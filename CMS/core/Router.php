@@ -11,8 +11,6 @@ declare(strict_types=1);
 
 namespace CMS;
 
-use CMS\Http\Request;
-
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -43,13 +41,13 @@ class Router
     private function __construct()
     {
         $this->requestUri = $this->resolveRequestUri();
-        $this->requestMethod = Request::method();
+        $this->requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $this->registerDefaultRoutes();
     }
 
     private function resolveRequestUri(): string
     {
-        $uri = (string) Request::server('REQUEST_URI', '/');
+        $uri = $_SERVER['REQUEST_URI'] ?? '/';
 
         if (($pos = strpos($uri, '?')) !== false) {
             $uri = substr($uri, 0, $pos);
@@ -164,7 +162,7 @@ class Router
         if (class_exists('\\CMS\\Services\\RedirectService')) {
             $redirect = Services\RedirectService::getInstance()->findRedirect(
                 $uri,
-                (string) Request::server('HTTP_HOST', '')
+                (string)($_SERVER['HTTP_HOST'] ?? '')
             );
             if (is_array($redirect) && !empty($redirect['target_url'])) {
                 $this->redirect((string)$redirect['target_url'], (int)($redirect['redirect_type'] ?? 301));
@@ -174,9 +172,9 @@ class Router
         $csrfBypassPrefixes = ['/contact/'];
         $csrfBypassExact = ['/login', '/register', '/forgot-password', '/cms-login', '/cms-register', '/cms-password-forgot', '/logout', '/contact', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
             $isThemeFavoriteToggle = $method === 'POST'
-                && (string) Request::post('phinit_toggle_favorite', '') === '1'
-                && in_array((string) Request::post('favorite_content_type', ''), ['post', 'page'], true)
-                && (int) Request::post('favorite_content_id', 0) > 0;
+                && (string) ($_POST['phinit_toggle_favorite'] ?? '') === '1'
+                && in_array((string) ($_POST['favorite_content_type'] ?? ''), ['post', 'page'], true)
+                && (int) ($_POST['favorite_content_id'] ?? 0) > 0;
         $isProtectedMethod = in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true);
 
         if ($isProtectedMethod
@@ -187,15 +185,15 @@ class Router
             && !in_array($routingUri, $csrfBypassExact, true)
             && !array_reduce($csrfBypassPrefixes, fn(bool $carry, string $prefix): bool => $carry || str_starts_with($routingUri, $prefix), false)
         ) {
-            $csrfToken = trim((string) Request::post('csrf_token', ''));
+            $csrfToken = trim((string) ($_POST['csrf_token'] ?? ''));
             $hasValidThemeFavoriteToken = false;
 
             if ($isThemeFavoriteToggle) {
-                $favoriteType = (string) Request::post('favorite_content_type', '');
-                $favoriteId = (int) Request::post('favorite_content_id', 0);
+                $favoriteType = (string) ($_POST['favorite_content_type'] ?? '');
+                $favoriteId = (int) ($_POST['favorite_content_id'] ?? 0);
                 $favoriteAction = 'phinit_favorite_' . $favoriteType . '_' . $favoriteId;
                 $hasValidThemeFavoriteToken = Security::instance()->verifyPersistentToken(
-                    (string) Request::post('favorite_csrf_token', ''),
+                    (string) ($_POST['favorite_csrf_token'] ?? ''),
                     $favoriteAction
                 );
             }
@@ -294,7 +292,7 @@ class Router
                     : (string) ($localizedCanonicalContext['base_uri'] ?? $canonicalPath);
 
                 if ($requestBaseUri !== '' && $requestBaseUri !== $expectedRequestBasePath) {
-                    $query = trim((string) Request::server('QUERY_STRING', ''));
+                    $query = trim((string) ($_SERVER['QUERY_STRING'] ?? ''));
                     $target = $canonicalPath . ($query !== '' ? '?' . $query : '');
                     $this->redirect($target, 301);
                     return;
@@ -323,7 +321,7 @@ class Router
                         $page['content'] = (string)($titleTocResult['toc'] ?? '') . (string)($titleTocResult['content'] ?? $page['content']);
                     }
                 }
-                if ((string) Request::get('pdf', '') === '1') {
+                if (isset($_GET['pdf']) && $_GET['pdf'] === '1') {
                     $this->streamContentAsPdf(
                         htmlspecialchars((string)($page['title'] ?? 'Seite'), ENT_QUOTES, 'UTF-8'),
                         (string)$page['content'],
@@ -370,7 +368,7 @@ class Router
             return false;
         }
 
-        $requestHost = $this->normalizeHost((string) Request::server('HTTP_HOST', ''));
+        $requestHost = $this->normalizeHost((string)($_SERVER['HTTP_HOST'] ?? ''));
         $mainHost = $this->normalizeHost((string)(parse_url((string)SITE_URL, PHP_URL_HOST) ?? ''));
         if ($requestHost === '' || $mainHost === '' || $requestHost === $mainHost) {
             return false;
@@ -392,7 +390,7 @@ class Router
             $targetPath = Services\ContentLocalizationService::getInstance()->buildLocalizedPath($targetPath, $locale);
         }
 
-        $query = (string)(parse_url((string) Request::server('REQUEST_URI', '/'), PHP_URL_QUERY) ?? '');
+        $query = (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_QUERY) ?? '');
         if ($query !== '') {
             $targetPath .= '?' . $query;
         }
@@ -416,7 +414,8 @@ class Router
 
     private function isAjaxRequest(): bool
     {
-        return strtolower(Request::header('X-Requested-With', '')) === 'xmlhttprequest';
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
     }
 
     private function isM365LicPublicEvaluationRequest(string $routingUri, string $method): bool
@@ -425,7 +424,7 @@ class Router
             return false;
         }
 
-        if ((string) Request::post('evaluation_csrf_token', '') === '' || Request::post('requirements_payload') === null) {
+        if (!isset($_POST['evaluation_csrf_token']) || !array_key_exists('requirements_payload', $_POST)) {
             return false;
         }
 
@@ -628,11 +627,11 @@ class Router
         Debug::checkpoint('router.render_404', ['uri' => $this->requestUri]);
         if (!$this->notFoundLogged && class_exists('\\CMS\\Services\\RedirectService')) {
             Services\RedirectService::getInstance()->logNotFound($this->requestUri, [
-                'request_host' => (string) Request::server('HTTP_HOST', ''),
+                'request_host' => (string)($_SERVER['HTTP_HOST'] ?? ''),
                 'request_method' => $this->requestMethod,
-                'referrer_url' => (string) Request::server('HTTP_REFERER', ''),
-                'ip_address' => (string) Request::server('REMOTE_ADDR', ''),
-                'user_agent' => (string) Request::server('HTTP_USER_AGENT', ''),
+                'referrer_url' => (string)($_SERVER['HTTP_REFERER'] ?? ''),
+                'ip_address' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),
+                'user_agent' => (string)($_SERVER['HTTP_USER_AGENT'] ?? ''),
             ]);
             $this->notFoundLogged = true;
         }

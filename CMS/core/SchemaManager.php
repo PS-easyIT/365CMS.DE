@@ -31,7 +31,7 @@ if (!class_exists(__NAMESPACE__ . '\\SchemaManager', false)) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v20';
+    public const SCHEMA_VERSION = 'v21';
 
     private Database $db;
     private string $prefix;
@@ -149,13 +149,12 @@ class SchemaManager
                 featured_image VARCHAR(500) DEFAULT NULL,
                 meta_title VARCHAR(255) DEFAULT NULL,
                 meta_description TEXT DEFAULT NULL,
-                meta_title_en VARCHAR(255) DEFAULT NULL,
-                meta_description_en TEXT DEFAULT NULL,
                 author_id INT UNSIGNED,
                 category_id INT UNSIGNED DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 published_at TIMESTAMP NULL,
+                content_updated_at DATETIME DEFAULT NULL,
                 INDEX idx_slug (slug),
                 INDEX idx_slug_en (slug_en),
                 INDEX idx_status (status),
@@ -175,6 +174,7 @@ class SchemaManager
                 excerpt TEXT,
                 status VARCHAR(20) DEFAULT NULL,
                 author_id INT UNSIGNED,
+                    content_updated_at DATETIME DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_page_id (page_id),
                 INDEX idx_author (author_id),
@@ -367,11 +367,14 @@ class SchemaManager
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 slug VARCHAR(100) NOT NULL UNIQUE,
+                slug_en VARCHAR(100) DEFAULT NULL,
                 description TEXT,
                 parent_id INT UNSIGNED DEFAULT NULL,
                 sort_order INT DEFAULT 0,
+                replacement_category_id INT UNSIGNED DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_slug (slug),
+                INDEX idx_slug_en (slug_en),
                 INDEX idx_parent (parent_id)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
@@ -386,6 +389,7 @@ class SchemaManager
                 status ENUM('draft','published','trash') NOT NULL DEFAULT 'draft',
                 author_id INT UNSIGNED NOT NULL,
                 author_display_name VARCHAR(150) DEFAULT NULL,
+                author_display_url VARCHAR(500) DEFAULT NULL,
                 post_template VARCHAR(80) DEFAULT NULL,
                 post_meta_json TEXT DEFAULT NULL,
                 category_id INT UNSIGNED DEFAULT NULL,
@@ -394,11 +398,10 @@ class SchemaManager
                 allow_comments TINYINT(1) NOT NULL DEFAULT 1,
                 meta_title VARCHAR(255),
                 meta_description TEXT,
-                meta_title_en VARCHAR(255) DEFAULT NULL,
-                meta_description_en TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 published_at TIMESTAMP NULL,
+                content_updated_at DATETIME DEFAULT NULL,
                 INDEX idx_slug (slug),
                 INDEX idx_slug_en (slug_en),
                 INDEX idx_status (status),
@@ -424,7 +427,9 @@ class SchemaManager
                 tags VARCHAR(500) DEFAULT NULL,
                 author_id INT UNSIGNED DEFAULT NULL,
                 author_display_name VARCHAR(150) DEFAULT NULL,
+                author_display_url VARCHAR(500) DEFAULT NULL,
                 published_at TIMESTAMP NULL,
+                    content_updated_at DATETIME DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_post_id (post_id),
                 INDEX idx_author_id (author_id),
@@ -730,10 +735,12 @@ class SchemaManager
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 slug VARCHAR(100) NOT NULL UNIQUE,
+                slug_en VARCHAR(100) DEFAULT NULL,
                 description TEXT,
                 post_count INT UNSIGNED NOT NULL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_slug (slug)
+                INDEX idx_slug (slug),
+                INDEX idx_slug_en (slug_en)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Blog-Schlagwörter'",
 
             'post_tag_rel' => "CREATE TABLE IF NOT EXISTS {$p}post_tag_rel (
@@ -894,16 +901,6 @@ class SchemaManager
             "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title"
         );
         $this->ensureColumnExists(
-            $this->prefix . 'pages',
-            'meta_title_en',
-            "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_title_en VARCHAR(255) DEFAULT NULL AFTER meta_description"
-        );
-        $this->ensureColumnExists(
-            $this->prefix . 'pages',
-            'meta_description_en',
-            "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_description_en TEXT DEFAULT NULL AFTER meta_title_en"
-        );
-        $this->ensureColumnExists(
             $this->prefix . 'posts',
             'featured_image',
             "ALTER TABLE {$this->prefix}posts ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER excerpt"
@@ -920,18 +917,23 @@ class SchemaManager
         );
         $this->ensureColumnExists(
             $this->prefix . 'posts',
-            'meta_title_en',
-            "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_title_en VARCHAR(255) DEFAULT NULL AFTER meta_description"
-        );
-        $this->ensureColumnExists(
-            $this->prefix . 'posts',
-            'meta_description_en',
-            "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description_en TEXT DEFAULT NULL AFTER meta_title_en"
-        );
-        $this->ensureColumnExists(
-            $this->prefix . 'posts',
             'author_display_name',
             "ALTER TABLE {$this->prefix}posts ADD COLUMN author_display_name VARCHAR(150) DEFAULT NULL AFTER author_id"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'posts',
+            'author_display_url',
+            "ALTER TABLE {$this->prefix}posts ADD COLUMN author_display_url VARCHAR(500) DEFAULT NULL AFTER author_display_name"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'posts',
+            'content_updated_at',
+            "ALTER TABLE {$this->prefix}posts ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER published_at"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'pages',
+            'content_updated_at',
+            "ALTER TABLE {$this->prefix}pages ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER published_at"
         );
     }
 
@@ -959,6 +961,18 @@ class SchemaManager
             $this->prefix . 'site_tables',
             'table_slug',
             "ALTER TABLE {$this->prefix}site_tables ADD COLUMN table_slug VARCHAR(191) DEFAULT NULL AFTER table_name"
+        );
+
+        $this->ensureColumnExists(
+            $this->prefix . 'post_categories',
+            'slug_en',
+            "ALTER TABLE {$this->prefix}post_categories ADD COLUMN slug_en VARCHAR(100) DEFAULT NULL AFTER slug"
+        );
+
+        $this->ensureColumnExists(
+            $this->prefix . 'post_tags',
+            'slug_en',
+            "ALTER TABLE {$this->prefix}post_tags ADD COLUMN slug_en VARCHAR(100) DEFAULT NULL AFTER slug"
         );
 
         $ordersSql = self::getSchemaQueries($this->prefix, $this->charset)['orders'] ?? '';

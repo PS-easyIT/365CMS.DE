@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\AuditLogger;
 use CMS\Logger;
-use CMS\Services\AI\AiProviderGateway;
+use CMS\Services\AI\AiService;
 
 final class AiEditorJsTranslationModule
 {
@@ -18,11 +18,11 @@ final class AiEditorJsTranslationModule
     private const int MAX_EDITOR_BLOCKS = 120;
     private const int MAX_BLOCK_TYPE_LENGTH = 80;
 
-    private AiProviderGateway $gateway;
+    private AiService $aiService;
 
     public function __construct()
     {
-        $this->gateway = AiProviderGateway::getInstance();
+        $this->aiService = AiService::getInstance();
     }
 
     /** @return array<string, mixed> */
@@ -37,7 +37,7 @@ final class AiEditorJsTranslationModule
             $targetLocale = $this->sanitizeLocale((string) ($post['target_locale'] ?? 'en'), 'en');
             $editorData = $this->sanitizeEditorJson((string) ($post['editor_data'] ?? ''));
 
-            $result = $this->gateway->translateEditorJsDraft([
+            $result = $this->aiService->translateEditorJsDraft([
                 'content_type' => $contentType,
                 'title' => $title,
                 'excerpt' => $excerpt,
@@ -67,7 +67,7 @@ final class AiEditorJsTranslationModule
                     'duration_ms' => (int) ($telemetry['duration_ms'] ?? 0),
                     'source_hash' => (string) ($telemetry['source_hash'] ?? ''),
                     'translated_hash' => (string) ($telemetry['translated_hash'] ?? ''),
-                    'selection_mode' => (string) ($result['provider']['selection_mode'] ?? 'single-provider'),
+                    'resolved_via' => (string) ($result['provider']['resolved_via'] ?? 'direct'),
                 ], static fn (mixed $value): bool => $value !== '' && $value !== null),
                 'info'
             );

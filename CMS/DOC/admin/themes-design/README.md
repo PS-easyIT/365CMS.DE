@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Übersicht über die aktuell produktiven Theme-, Design- und Frontend-Werkzeuge im Admin-Bereich – inklusive der Core-eigenen CMS Loginpage.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
 
 ---
 

@@ -1,5 +1,5 @@
 # 365CMS – Admin-Panel-Integration
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Aktueller Integrationspfad](#aktueller-integrationspfad)

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentation der dynamischen Rollen- und Rechteverwaltung im Admin.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.729
 
 ---
 

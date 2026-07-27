@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.47
+﻿**Version:** 3.3.73
 
 # 365CMS Changelog
 
@@ -13,6 +13,174 @@
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.3.73 — 27.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.73** | 🔴 fix | Admin / Kommentare – Sammellöschung | **Die Sammelaktion „Endgültig löschen“ in der Kommentarverwaltung blieb ohne jede Reaktion (kein Bestätigungsdialog, kein Neuladen), wenn der zentrale `cmsConfirm()`-Bestätigungsdialog beim Aufruf eine Ausnahme auslöste.** `admin-comments.js` umschließt den Aufruf jetzt mit try/catch (analog zum bereits gehärteten `initConfirmForms()` in `admin.js`) und protokolliert einen Fehler per `console.warn`, statt die Sammellöschung stillschweigend abzubrechen; danach greift zuverlässig der native `window.confirm()`-Fallback. |
+
+---
+
+### v3.3.72 — 27.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.72** | 🟢 feat | Admin / Tabellen-Editor & Hub-Sites-Editor | **Spalten und Zeilen im Tabellen-Editor sowie die Kacheln im Hub-Site-Editor lassen sich im Adminbereich jetzt per Drag & Drop neu anordnen.** `admin-site-tables.js` ergänzt Ziehgriffe für `columnsBody`/`rowsBody` (nativer HTML5-Dragdrop, Reihenfolge landet direkt in `columns_json`/`rows_json`); `admin-hub-site-edit.js` erhält je Kachel eine Kopfzeile mit Ziehgriff sowie Auf/Ab-Buttons für tastaturgesteuertes Verschieben. Neues Stylesheet `assets/css/admin-site-tables.css` sowie Ergänzungen in `assets/css/admin-hub-site-edit.css` liefern die Drag-/Drop-Zielhervorhebung. |
+
+---
+
+### v3.3.71 — 18.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.71** | 🎨 style | Theme cms-phinit / Startseite – Listcard-Kategorie | **Das Kategorie-Badge im Vorschaubild sichtbarer Startseiten-Listcards sitzt jetzt bündig und kantig oben links.** `assets/css/homepage-blog.css` und das dazugehörige `homepage-blog-critical.css` entfernen den bisherigen 6px-Abstand, die Rundung, den weißen Rand und Schatten von `.thumb-badge`; dadurch schließt die türkise Kategorie-Kachel direkt am Bildrand an und bleibt beim Critical-Rendern identisch. |
+
+---
+
+### v3.3.70 — 18.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.70** | 🎨 style | Theme cms-phinit / Beitragsdetail – Update-Badge | **Der Text des `[UPDATE | dd.MM.YY]`-Badges ist jetzt dunkler goldfarben.** `assets/css/post-detail.css` verwendet dafür `#8a5a05` statt des helleren Theme-Akzentgolds. Im Dark Mode wechselt die Badge-Fläche zu einem warmen hellen Ton, damit der dunkle Goldtext weiterhin kontrastreich und gut lesbar bleibt. |
+
+---
+
+### v3.3.69 — 18.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.69** | 🎨 style | Theme cms-phinit / Beitragsdetail – Header-Badges | **Lesezeit- und `[UPDATE | dd.MM.YY]`-Badge sind jetzt kantig und schließen ohne Abstand direkt mit den Bildrändern ab.** `assets/css/post-detail.css` entfernt abgerundete Ecken, Schatten und Außenabstände: Die Lesezeit sitzt an `top: 0; left: 0`, das goldfarbene Update-Badge an `right: 0; bottom: 0`. Die Regeln gelten gleichermaßen in der Desktop-, Tablet- und Mobilansicht sowie im Dark Mode. |
+
+---
+
+### v3.3.68 — 18.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.68** | 🔴 fix | Theme cms-phinit / Beitragsdetail – Header-Badges | **Die Lesezeit bleibt wieder oben links im Content-Headerbild; das optionale `[UPDATE]`-Badge steht davon getrennt oben rechts.** `assets/css/post-detail.css` nutzt für die gemeinsame Overlay-Leiste nun die volle Bildbreite mit `justify-content: space-between`; ohne Lesezeit richtet sich das Update-Badge per `margin-left:auto` weiterhin rechts aus. Der Badge-Text verwendet im hellen und dunklen Design den Gold-Accent `--accent-color`. |
+
+---
+
+### v3.3.67 — 18.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.67** | 🟢 feat | Theme cms-phinit / Beitragsdetail – Update-Badge | **Das manuelle `[UPDATE]`-Badge erscheint jetzt zusätzlich im Content-Headerbild von Beitragsdetails direkt rechts neben der Lesezeit.** `cms-phinit/partials/post-header.php` prüft ausschließlich das optionale Feld `content_updated_at`, gruppiert Lesezeit und Update-Badge im gemeinsamen Headerbild-Overlay und wird dadurch automatisch in Standard-, Wide- und Tech-Beitragsdetailtemplates angewendet. `assets/css/post-detail.css` positioniert die Leiste oben rechts im Bild, gestaltet das Update-Badge bewusst dezent und stellt Dark-Mode-Kontraste sicher. Ohne gefülltes Aktualisierungsfeld wird kein Badge ausgegeben; ohne Lesezeit erscheint das Update-Badge allein an derselben Headerposition. |
+
+---
+
+### v3.3.66 — 18.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.66** | 🟢 feat | Installer & Datenbank / versionsgeführtes Update | **Zentraler, versionsgeführter Datenbank-Updater für bestehende Installationen.** Neue Klasse `CMS\DatabaseUpdateRunner` liest den installierten Stand aus `cms_settings` (`installed_cms_version`, `db_schema_version`), blockiert automatische Downgrades und führt ausschließlich `Database::repairTables()` aus – damit werden die bereits zentral gepflegten, idempotenten `SchemaManager`-/`MigrationManager`-Migrationen ohne Datenlöschung ausgeführt. Erst nach Erfolg werden Core-Version, Zeitstempel und Schema-Version aktualisiert; ein Eintrag in der bestehenden Update-Historie wird nach Möglichkeit protokolliert. Die neue `CMS/update.php` ist im Web ausschließlich für eingeloggte Administratoren mit `manage_settings`-Berechtigung erreichbar, nutzt CSRF-Schutz und kann im CLI-Modus mit `php update.php --status`/`--dry-run` oder ohne Parameter zur Ausführung verwendet werden. `CMS/install.php` markiert nun explizit den Installer-Kontext; der bestehende Installer-Update-Schritt verwendet ebenfalls den zentralen Runner statt eines separaten Tabellenpfads. Neuinstallationen speichern ihren installierten Core-/Schema-Stand sofort. `SchemaManager` und `MigrationManager` sind auf gemeinsame Schema-Version `v21` vereinheitlicht, damit bestehende Instanzen die neuen zentralen Kompatibilitätsmigrationen zuverlässig ausführen. |
+
+---
+
+### v3.3.65 — 18.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.65** | 🔴 fix | Theme cms-phinit / Startseite – Beitragsabfragen | **Die Startseite zeigt Beiträge auch dann weiter an, wenn die Datenbank die neue Spalte `content_updated_at` noch nicht enthält.** `includes/theme-home-helpers.php::phinit_get_homepage_posts_payload()` prüft vor den beiden Startseiten-Queries (Artikel-Liste und Kachel-Grid), ob die Spalte bereits existiert. Bei einer noch ausstehenden Migration wird `NULL AS content_updated_at` selektiert statt `p.content_updated_at`; damit bleibt das optionale Update-Badge einfach leer, während die Beitragslisten vollständig laden. Der Check ist zusätzlich gegen einen Fehler beim Schema-Check abgesichert. Das Badge verwendet jetzt im Deutschen exakt die gewünschte Beschriftung `[UPDATE]`. |
+
+---
+
+### v3.3.64 — 18.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.64** | 🟢 feat | Admin & Theme / Seiten + Beiträge – Aktualisierungsdatum | **Neues optionales „Aktualisierungsdatum“-Feld für Seiten und Beiträge, das unabhängig vom automatischen `updated_at` manuell gepflegt wird.** Neue Spalte `content_updated_at` (`CMS/core/SchemaManager.php`, Migrationen in `PostsModule`/`PageManager`) ist nur gesetzt, wenn die Redaktion sie im Editor ausfüllt; ist sie leer, erscheint auf keiner Detailseite ein Hinweis. `CMS/admin/modules/posts/PostsModule.php` und `CMS/admin/modules/pages/PagesModule.php` validieren Datum+Uhrzeit (`normalizeContentUpdatedAtInput()`) und speichern das Feld. Im Beitrags-Editor (`CMS/admin/views/posts/edit.php`) gibt es zusätzlich die nicht persistierte Checkbox „Als neuen Beitrag behandeln“: aktiv setzt sie das Veröffentlichungsdatum auf das Aktualisierungsdatum, wodurch der Beitrag in allen bestehenden Sortierungen (Startseite, Archiv, Sitemap, RSS) wieder oben erscheint; ohne hinterlegtes Aktualisierungsdatum wird die Aktion mit einer verständlichen Validierungsmeldung abgewiesen. Die Detailseiten `post.php`, `post-wide.php`, `post-tech.php`, `page.php`, `page-wide.php` und `page-landing.php` zeigen den Hinweis ausschließlich aus dem manuellen Feld. Auf der Startseite (`partials/post-card.php`, `partials/home-post-grid.php`, einschließlich der Homepage-Queries) erscheint bei gesetztem Datum ein sehr dezentes „Update“-Badge; es bleibt auch sichtbar, wenn gewöhnliche Karten-Metadaten im Customizer abgeschaltet sind. Das Feld wird vollständig in die Revisions-Snapshots und -Vergleiche von Beiträgen sowie Seiten aufgenommen. Automatische SEO-Weiterleitungen bei Slug-Änderungen bestehen für Seiten und Beiträge; bei datumsbasierten Beitrags-URLs verwenden sie bei „als neu behandeln“ jetzt korrekt das neue Veröffentlichungsdatum als Zielpfad. |
+
+---
+
+### v3.3.63 — 18.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.63** | 🔴 fix | Theme cms-phinit / Startseite – alternativer Autor | **Der alternative Autoren-Website-Link (`author_display_url`) wird jetzt auch auf der Startseite korrekt aufgelöst statt immer auf die interne Autoren-Info-Seite zu verlinken.** `includes/theme-home-helpers.php::phinit_get_homepage_posts_payload()` selektierte in den Queries für die „Aktuelle Artikel-Liste“ und das „Kachel-Grid“ zwar `p.author_id` und den per `author_display_name` überschriebenen `author_name`, aber nicht `p.author_display_url` – dadurch erhielt der bereits in v3.3.62 eingeführte Helper `phinit_resolve_post_author_link()` in `partials/post-card.php` und `partials/home-post-grid.php` auf der Startseite immer einen leeren Wert und fiel auf die interne `/author/user-{id}`-Seite zurück, obwohl eine externe Website hinterlegt war. Beide SQL-Abfragen ergänzen jetzt `p.author_display_url`. Die Beitrags-Detailseite (`post.php`/`post-wide.php`/`post-tech.php`, Autorbox + Byline) war bereits zuvor korrekt, da sie `SELECT p.*` nutzt. Das Featured-Banner und das Sidebar-„Featured Posts“-Widget zeigen ohnehin keine Autoreninfo an und benötigten keine Änderung. |
+
+---
+
+### v3.3.62 — 13.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.62** | 🟢 feat | Admin & Theme / Beiträge – alternativer Autor | **Optionale Website für den alternativen Autoren-Anzeigenamen von Beiträgen – der Autorenname verlinkt dann im neuen Tab auf diese Website statt auf die interne Autoren-Info-Seite.** Neue Spalte `author_display_url` (`CMS/core/SchemaManager.php`, Migration in `PostsModule::ensureColumns()`/`ensurePostRevisionTable()`) ergänzt das bestehende Feld `author_display_name`. `CMS/admin/modules/posts/PostsModule.php` validiert die URL beim Speichern (`sanitizeAuthorDisplayUrl()`, nur `http(s)://`), persistiert sie in Insert/Update sowie in der Beitrags-Revisionshistorie (Vergleich, Snapshot, Diff-Anzeige „Website des alternativen Autors“). `CMS/admin/posts.php` und `CMS/admin/views/posts/edit.php` ergänzen ein neues Formularfeld „Website des alternativen Autors“ direkt unter dem Anzeigenamen-Feld. Im `cms-phinit`-Theme löst die neue Helper-Funktion `phinit_resolve_post_author_link()` (`includes/theme-template-helpers.php`) zentral auf, ob der Autorenname auf die hinterlegte externe Website (neuer Tab, `target="_blank" rel="noopener noreferrer"`) oder weiterhin auf die interne `/author/user-{id}`-Seite verlinkt – eingebunden in die Autorbox (`partials/post-author-box.php`, `phinit_build_author_box_context()`), den Beitrags-Header (`partials/post-header.php`), Artikelkarten (`partials/post-card.php`) und das Home-Grid (`partials/home-post-grid.php`) sowie alle drei Beitragsvorlagen (`post.php`, `post-wide.php`, `post-tech.php`). |
+
+---
+
+### v3.3.61 — 06.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.61** | 🟢 feat | Member / Profil & öffentliches Autorenprofil | **Das Profilfeld „Über mich“ nutzt jetzt den EditorJS-Block-Editor statt eines einfachen Textfelds, inklusive korrekter Formatierungs-/Zeilenumbruch-Übernahme auf die öffentliche Autorenseite.** `CMS/admin/modules/member/MemberDashboardModule.php` und die Fallback-Definitionen in `CMS/member/includes/class-member-controller.php` ändern den Feldtyp von `bio` auf `wysiwyg`; `CMS/member/profile.php` rendert für diesen Typ den Block-Editor über `EditorService::render()` statt eines `<textarea>`. Beim Speichern (`handleProfileRequest()`) sanitiert eine neue Methode `sanitizeWysiwygProfileFieldValue()` den Editor-Inhalt über `EditorService::sanitize()` und speichert bei leerem Editor-Inhalt bewusst einen leeren String, damit Profilvollständigkeits-Anzeigen weiterhin korrekt funktionieren. Auf der öffentlichen Autorenseite (`CMS/themes/cms-default/author.php`) wird die Biografie nun über `EditorService::renderContent()` gerendert statt nur `htmlspecialchars()`-escaped auszugeben – dadurch werden sowohl neue Block-Inhalte als auch bestehende Freitext-Biografien (inkl. Zeilenumbrüchen) korrekt als HTML dargestellt. |
+
+---
+
+### v3.3.60 — 05.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.60** | 🟢 feat | Admin / SEO Sitemap & Indexing | **Google als Ziel für die IndexNow-Massen-Meldung kürzlich veröffentlichter Inhalte, plus dauerhaft gespeichertes Google-Access-Token.** `CMS/core/Services/IndexingService.php` ergänzt `saveGoogleAccessToken()`/`clearGoogleAccessToken()`/`hasGoogleAccessToken()`, die das Token verschlüsselt (`SettingsService`, AES-256-CBC) in der Datenbank ablegen; `submitGoogle()`/`deleteGoogle()` nutzen dieses Token automatisch als Fallback, wenn kein Token manuell übergeben wird. `submitRecentContent()` akzeptiert jetzt eine Ziel-Liste (`indexnow`, `google`) statt nur IndexNow zu bedienen. `CMS/admin/modules/seo/SeoSuiteModule.php` ergänzt die Aktionen `save_google_access_token`, `clear_google_access_token` und erweitert `submitRecentContentIndexNow()` um Multi-Target-Unterstützung; `CMS/admin/seo-page.php` erlaubt die neuen Aktionen in der Sitemap-Section. `CMS/admin/views/seo/sitemap.php` zeigt einen Google-Token-Status-Badge, ein Formular zum dauerhaften Speichern/Entfernen des Tokens sowie Ziel-Checkboxen (IndexNow/Google) bei „Kürzlich veröffentlichte Inhalte melden“ — die manuelle Token-Eingabe in den bestehenden Google-Formularen ist jetzt optional. |
+
+---
+
+### v3.3.59 — 05.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.59** | 🟢 feat | Admin / SEO Sitemap & Indexing | **Neue IndexNow-Massen-Meldung für kürzlich veröffentlichte Inhalte.** `CMS/core/Services/IndexingService.php` ergänzt `getRecentContentUrls()`/`submitRecentContent()`, die alle veröffentlichten Seiten und Beiträge eines Zeitfensters (24h, 48h, 1 Woche, 1/3/6 Monate) ermitteln und in einem Schritt an IndexNow melden – vorausgesetzt, es ist bereits ein IndexNow-API-Key/eine Keydatei aktiv. `CMS/admin/modules/seo/SeoSuiteModule.php` stellt die neue Aktion `submit_recent_content_indexnow` bereit, `CMS/admin/seo-page.php` erlaubt sie in der Sitemap-Section, und `CMS/admin/views/seo/sitemap.php` zeigt dafür eine eigene Karte mit Zeitraum-Auswahl im Bereich „IndexNow & Google Submission“ – der Button ist deaktiviert, solange kein IndexNow-Key hinterlegt ist. Je Zeitfenster werden maximal 500 Seiten- bzw. Beitrags-URLs je Typ ermittelt, um Massen-Anfragen bei sehr großen Archiven abzufedern. |
+
+---
+
+### v3.3.58 — 05.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.58** | 🔴 fix | Core / EditorJS Renderer | **`CMS/core/Services/EditorJsRenderer.php`: Generierte Dateiname-Captions (z.B. `grafik.png`, `grafik-1.png` aus Word-/Outlook-Paste) landen nicht mehr im `alt`-Attribut von Bild- und Galerie-Blöcken.** Bisher wurde die dateinamenartige Caption bereits als sichtbare `<figcaption>` ausgeblendet, aber unverändert in `alt="..."` übernommen – dadurch enthielten Screenreader-Text und Bild-SEO weiterhin bedeutungslose Dateinamen. `renderImage()` und `renderImageGallery()` nutzen jetzt dieselbe `isGeneratedFilenameCaption()`-Prüfung auch für den Alt-Text und setzen in diesem Fall `alt=""` (dekoratives Bild), statt den Dateinamen auszugeben. Die Sitemap-Bild-Titel (`title`) nutzten bereits zuvor korrekt den Artikel-/Seitennamen und blieben unverändert. |
+
+---
+
+### v3.3.57 — 05.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.57** | 🔴 fix | Core / SEO Sitemap | **`CMS/core/Services/SEO/SeoSitemapService.php` sortiert Sitemap-XML-Dateien jetzt korrekt.** `pages.xml` listet veröffentlichte Seiten alphabetisch (A-Z) statt nach Änderungsdatum. `posts.xml`, `images.xml` und `news.xml` sortieren Beiträge/Bilder jetzt nach Veröffentlichungsdatum absteigend (`COALESCE(published_at, created_at) DESC`), sodass der neueste Inhalt immer oben steht. Der eigene RSS-Feed (`ThemeRouter::serveRssFeed()`) war bereits korrekt nach Veröffentlichungsdatum absteigend sortiert. |
+
+---
+
+### v3.3.51 — 03.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.51** | 🔴 fix | Admin / Kategorien- & Tag-Panel | **`CMS/assets/css/admin.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` geben dem Taxonomie-Slideover wieder einen eigenen Hintergrund.** `.taxonomy-slide-panel` referenzierte `var(--color-background-primary)` und `var(--color-border-secondary)` – diese Variablen sind im Admin nur lokal innerhalb von `.roles-permissions-matrix-wrap` definiert, wodurch das Panel transparent über dem Seiteninhalt lag und die Formularfelder unlesbar waren. Panel, Header und Footer nutzen jetzt Tabler-Variablen mit festen Fallbacks (`--tblr-bg-surface`, `--tblr-border-color`) und einen seitlichen Schatten, sodass der Anlege-/Bearbeiten-Bereich deckend und klar abgegrenzt dargestellt wird – auch im Dark Mode. |
+
+---
+
+### v3.3.50 — 03.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.50** | 🔴 fix | Admin / Kategorien- & Tag-Panel | **`CMS/assets/js/admin.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` reparieren das Öffnen des Taxonomie-Slideovers.** Die Buttons „Neue Kategorie anlegen“ und „Neues Tag anlegen“ liegen im Seitenkopf (`.page-header`), während `initTaxonomySlideovers()` den Öffnen-Button nur innerhalb des Panel-Roots (`.page-body[data-taxonomy-panel-root]`) suchte. Dadurch brach die komplette Slideover-Verdrahtung ab und der Klick blieb wirkungslos. Die Initialisierung fällt jetzt auf eine dokumentweite Suche nach `[data-taxonomy-open]` zurück, sodass Panel-Öffnen, Formular-Submit und Erfolgsmeldung wieder funktionieren. |
+
+---
+
+### v3.3.49 — 03.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.49** | 🟢 feat | Kategorien & Tags / Sprach-Slugs | **`CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/post-categories.php`, `CMS/admin/post-tags.php`, `CMS/admin/views/posts/categories.php`, `CMS/admin/views/posts/tags.php`, `CMS/core/Routing/ThemeRouter.php`, `CMS/core/Routing/ThemeArchiveRepository.php`, `CMS/core/SchemaManager.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/core/DATABASE-SCHEMA.md` und `Changelog.md` ergänzen sprachabhängige Slugs für Beitrags-Kategorien und -Tags.** `post_categories` und `post_tags` erhalten eine neue Spalte `slug_en` (Migration läuft automatisch über SchemaManager-Runtime und PostsModule). Im Admin-Slideover ist je Kategorie/Tag neben dem Haupt-Slug ein optionales Feld „Slug (EN)“ pflegbar; die Eindeutigkeitsprüfung greift über beide Slug-Spalten und die Listen zeigen den EN-Slug an. Die Kategorie-/Tag-Archive reagieren je Sprachbereich auf den passenden Slug (`/kategorie/…` bzw. `/category/…`, `/tag/…`): Der Router matcht Haupt- und EN-Slug, liefert Themes den lokalisierten Slug (`slug`, `slug_de`, `slug_en`), Beitragslisten geben `category_slug` in EN-Locale via `COALESCE(slug_en, slug)` aus und die Archiv-Übersichten verlinken lokalisiert. Slug-Änderungen erzeugen sprachspezifische Archiv-Weiterleitungen: DE-Änderungen auf der DE-Basis, Änderungen des effektiven EN-Slugs auf der EN-Basis. |
+
+---
+
+### v3.3.48 — 03.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.48** | 🔴 fix | Admin / Beitrags-Kategorien & -Tags | **`CMS/assets/js/admin.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` reparieren das Anlegen neuer Beitrags-Kategorien und -Tags im Adminbereich.** Der Taxonomie-Slideover unter „Seiten & Beiträge“ wertete nach dem Speichern die zurückgelieferte Seite aus und traf dabei immer das dauerhaft vorhandene, per `d-none` versteckte Fehler-Element `taxonomy-form-error` im Panel-Markup. Dadurch wurde auch bei erfolgreichem Speichern fälschlich „Speichern fehlgeschlagen.“ angezeigt, das Panel blieb offen und die Liste wurde nie aktualisiert. Die Fallback-Fehlererkennung berücksichtigt jetzt nur noch sichtbare Danger-Alerts außerhalb des Panel-Fehlercontainers (`.alert-danger:not(.d-none):not([data-taxonomy-form-error])`), sodass Kategorien und Tags wieder mit Erfolgsmeldung angelegt, das Panel geschlossen und die Liste neu geladen werden. |
 
 ---
 

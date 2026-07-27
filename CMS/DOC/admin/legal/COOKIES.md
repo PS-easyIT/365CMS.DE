@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von Cookie-Kategorien, Diensten, Banner-Texten, Matomo-Self-Hosted-Transparenzwerten und der öffentlichen Einwilligungsseite.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.723
 
 ---
 

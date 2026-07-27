@@ -55,22 +55,9 @@ function esc_textarea(string $text): string {
 
 /**
  * Escape for inline JavaScript
- *
- * addslashes() allein schützt nicht vor Script-Breakout: Ein Wert mit
- * "</script>" oder einem JS-Zeilenterminator (CR/LF, U+2028/U+2029) könnte
- * aus einem <script>-Block bzw. einem JS-String ausbrechen. Diese Sequenzen
- * werden zusätzlich neutralisiert (rückwärtskompatibel – es wird nur mehr,
- * nie weniger escaped). Für Daten in <script>-Blöcken ist json_encode() mit
- * JSON_HEX_TAG dennoch die robustere Wahl.
  */
 function esc_js(string $text): string {
-    $text = addslashes(html_entity_decode($text, ENT_QUOTES, 'UTF-8'));
-
-    return str_replace(
-        ['</', "\r", "\n", "\u{2028}", "\u{2029}"],
-        ['<\/', '\r', '\n', ' ', ' '],
-        $text
-    );
+    return addslashes(html_entity_decode($text, ENT_QUOTES, 'UTF-8'));
 }
 
 /**

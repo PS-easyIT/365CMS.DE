@@ -1,6 +1,6 @@
 # 365CMS – FILELIST
 
-> Stand: 2026-06-10 · Version: 3.3.47
+> Stand: 2026-04-07  
 > Zweck: aktuelle, entwicklerfreundliche Strukturübersicht des Repositories, der produktiven Runtime und der wichtigsten Wartungsflächen
 
 Diese Datei ist die **lesbare Strukturkarte** von 365CMS. Sie ergänzt:

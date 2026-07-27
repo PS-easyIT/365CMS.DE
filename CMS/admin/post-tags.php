@@ -45,6 +45,7 @@ function cms_admin_post_tags_store_form_state(array $post, string $message, arra
             'tag_id' => max(0, (int) ($post['tag_id'] ?? 0)),
             'tag_name' => (string) ($post['tag_name'] ?? ''),
             'tag_slug' => (string) ($post['tag_slug'] ?? ''),
+            'tag_slug_en' => (string) ($post['tag_slug_en'] ?? ''),
         ],
     ];
 }

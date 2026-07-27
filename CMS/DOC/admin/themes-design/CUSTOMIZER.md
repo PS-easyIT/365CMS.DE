@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Einordnung des heutigen Theme-Customizers, seiner Ladeverträge im Theme-Editor und der Abgrenzung zu anderen Design-Oberflächen.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
 
 ---
 

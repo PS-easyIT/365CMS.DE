@@ -1,5 +1,5 @@
 # 365CMS – Systemstatus
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Versionsstand](#versionsstand)
@@ -18,14 +18,13 @@
 
 | Eigenschaft | Wert |
 |---|---|
-| CMS-Version | `3.3.47` |
+| CMS-Version | `3.3.44` |
 | Code-Referenz | `CMS/core/Version.php` |
 | Update-Metadaten | `CMS/update.json` |
-| Release-Datum | `2026-06-05` |
+| Release-Datum | `2026-05-31` |
 | Projektstandard PHP | `8.4+` |
 | Update-Metadaten `min_php` | `8.4` |
-| Datenbank | MySQL 8.0+ / MariaDB 10.6+ |
-| Letztes Code-Audit | `2026-06-10` — 0 kritische Funde ([AUDIT_core](../AUDIT_core_2026-06-10.md)) |
+| Datenbank | MySQL 5.7+ / MariaDB 10.3+ |
 
 ---
 
@@ -83,7 +82,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 
 ---
 
-## Wichtige Feature-Stände im aktuellen Stand 3.3.47 <!-- UPDATED: 2026-06-10 -->
+## Wichtige Feature-Stände im aktuellen Stand 3.3.44 <!-- UPDATED: 2026-05-31 -->
 
 | Bereich | Stand |
 |---|---|
@@ -130,15 +129,6 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 - Public-Seiten prüfen vor der Auslieferung, ob die angefragte Sprachvariante wirklich Inhalt besitzt; EN bleibt damit strikt unter `/en/...`, DE ohne Sprachprefix.
 - Die Coverbild-Auswahl für Beiträge und Seiten listet nur noch `ArtikelRahmen_*`-Dateien, während normale Editor-Medienlisten unverändert bleiben.
 - Site Tables erlauben in Tabellenzellen nur sichere Formatierungs-Tags für Fett, Kursiv, Unterstreichung und Links; Link-Attribute werden sanitizer- und fallbackseitig auf sichere Schemata/Tabnabbing-Schutz gehärtet, aktivierte Seiten-/Beitragsquellen erzeugen Tabellen nur aus ausgewählten Inhalten oder einem Kategorie-Filter statt aus freier Eingabe.
-
-## Release-Notiz 3.3.47 <!-- ADDED: 2026-06-05 -->
-
-- EditorJS-Bild+Text-Blöcke speichern eine Vertikal-Ausrichtung (oben/mittig/unten) für Text relativ zum Bild; Admin-Vorschau, Sanitizer, Normalizer, Public-Renderer und Critical-CSS ziehen die Ausrichtung konsistent durch.
-
-## Sicherheits-Notiz Code-Audit <!-- ADDED: 2026-06-10 -->
-
-- Interne Audits von `core/`, `admin/` und `member/`+`includes/` ergaben **0 kritische Funde**. Übernommene Defense-in-Depth-Härtungen: `MailService` (Header-Injection im `mail()`-Fallback, Anhangsnamen), `Bootstrap` (`hardenErrorReporting()` — keine Stack-Traces an den Client), `esc_js()` (Script-Breakout), `MemberController::redirect()` (Open-Redirect) und der Featured-Image-Picker (HEX-geflaggtes JSON).
-- Reports: [AUDIT_core](../AUDIT_core_2026-06-10.md) · [AUDIT_admin](../AUDIT_admin_2026-06-10.md) · [AUDIT_member](../AUDIT_member-includes-views_2026-06-10.md).
 
 ## Release-Notiz 3.3.44 <!-- ADDED: 2026-05-31 -->
 

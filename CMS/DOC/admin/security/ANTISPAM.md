@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Anti-Spam-Verwaltung im Admin, die lokalen Schutzmechanismen und die serverseitige Blacklist-Speicherung.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.626
 
 ## Überblick
 
@@ -99,4 +99,4 @@ Die Seite folgt dem üblichen Admin-Muster:
 
 - [FIREWALL.md](FIREWALL.md)
 - [DSGVO.md](../legal/DSGVO.md)
-- [Member-Sicherheit](../../member/README.md)
+- [Member-Sicherheit](../../member/SECURITY.md)

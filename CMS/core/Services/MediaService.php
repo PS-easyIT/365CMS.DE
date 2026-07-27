@@ -22,8 +22,6 @@ class MediaService {
     private const FEATURED_REPLACEMENT_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'];
     private const DERIVATIVE_PROCESSING_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
     private const GENERATED_VARIANT_SUFFIXES = ['small', 'medium', 'large', 'banner'];
-    private const UPLOAD_HEURISTIC_SCAN_BYTES = 262144;
-    private const HEURISTIC_TEXT_SCAN_EXTENSIONS = ['xml', 'json', 'txt', 'csv', 'rtf'];
     private const DUPLICATE_HASH_MAX_BYTES = 268435456;
     private const DEFAULT_PUBLIC_UPLOAD_CACHE_TTL = 604800;
     private const PUBLIC_UPLOAD_CACHE_TTL_OPTIONS = [259200, 604800, 2678400];
@@ -548,96 +546,7 @@ class MediaService {
             ? $this->normalizeSettings($settings)
             : $this->getSettings();
 
-        $validation = $this->validateFile($file, $resolvedSettings);
-        if ($validation instanceof WP_Error) {
-            return $validation;
-        }
-
-        $scan = $this->runUploadSecurityScan($file, $resolvedSettings, (string) ($validation['ext'] ?? ''));
-        if ($scan instanceof WP_Error) {
-            return $scan;
-        }
-
-        return $validation;
-    }
-
-    /**
-     * @param array<string,mixed> $file
-     * @param array<string,mixed> $settings
-     */
-    private function runUploadSecurityScan(array $file, array $settings, string $extension): true|WP_Error
-    {
-        $tmpName = (string) ($file['tmp_name'] ?? '');
-        if ($tmpName === '' || !is_file($tmpName)) {
-            return new WP_Error('upload_scan_source_missing', 'Upload-Scan konnte nicht ausgeführt werden, da die temporäre Datei fehlt.');
-        }
-
-        $heuristicScan = $this->runHeuristicUploadScan($tmpName, $extension);
-        if ($heuristicScan instanceof WP_Error) {
-            return $heuristicScan;
-        }
-
-        if (!class_exists('CMS\\Hooks')) {
-            return true;
-        }
-
-        $scanContext = [
-            'tmp_name' => $tmpName,
-            'original_name' => (string) ($file['name'] ?? ''),
-            'extension' => strtolower($extension),
-            'size' => (int) ($file['size'] ?? 0),
-            'settings' => $settings,
-        ];
-
-        $scanResult = \CMS\Hooks::applyFilters('cms_media_upload_scan', [
-            'allowed' => true,
-            'code' => 'upload_scan_blocked',
-            'reason' => '',
-        ], $scanContext);
-
-        if (!is_array($scanResult)) {
-            return new WP_Error('upload_scan_invalid_result', 'Upload-Scan lieferte ein ungültiges Ergebnis.');
-        }
-
-        if (empty($scanResult['allowed'])) {
-            $reason = trim((string) ($scanResult['reason'] ?? 'Datei wurde durch Upload-Scan blockiert.'));
-            $code = trim((string) ($scanResult['code'] ?? 'upload_scan_blocked'));
-
-            return new WP_Error($code !== '' ? $code : 'upload_scan_blocked', $reason !== '' ? $reason : 'Datei wurde durch Upload-Scan blockiert.');
-        }
-
-        return true;
-    }
-
-    private function runHeuristicUploadScan(string $tmpName, string $extension): true|WP_Error
-    {
-        $extension = strtolower(trim($extension));
-
-        if (!in_array($extension, self::HEURISTIC_TEXT_SCAN_EXTENSIONS, true)) {
-            return true;
-        }
-
-        $sample = file_get_contents($tmpName, false, null, 0, self::UPLOAD_HEURISTIC_SCAN_BYTES);
-        if (!is_string($sample) || $sample === '') {
-            return true;
-        }
-
-        if (preg_match('/<\?(?:php|=)/i', $sample) === 1) {
-            return new WP_Error('upload_polyglot_detected', 'Upload blockiert: Verdächtiger eingebetteter Script-Code erkannt.');
-        }
-
-        if ($extension === 'xml' && stripos($sample, '<!DOCTYPE') !== false) {
-            return new WP_Error('upload_xml_doctype_blocked', 'Upload blockiert: XML-DOCTYPE ist aus Sicherheitsgründen nicht erlaubt.');
-        }
-
-        if ($extension === 'json') {
-            $trimmed = ltrim($sample, "\xEF\xBB\xBF\x00\x09\x0A\x0D ");
-            if ($trimmed !== '' && str_starts_with($trimmed, '<')) {
-                return new WP_Error('upload_json_payload_invalid', 'Upload blockiert: JSON-Datei enthält unerwarteten Markup-Inhalt.');
-            }
-        }
-
-        return true;
+        return $this->validateFile($file, $resolvedSettings);
     }
 
     private function isImageExtension(string $ext): bool {
@@ -1599,11 +1508,6 @@ class MediaService {
         $validation = $this->validateFile($file, $settings);
         if ($validation instanceof WP_Error) {
             return $validation;
-        }
-
-        $scan = $this->runUploadSecurityScan($file, $settings, (string) ($validation['ext'] ?? ''));
-        if ($scan instanceof WP_Error) {
-            return $scan;
         }
 
         $sourceExtension = strtolower((string) ($validation['ext'] ?? ''));

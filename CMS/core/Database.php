@@ -27,39 +27,6 @@ class Database implements DatabaseInterface
     public string $prefix = 'cms_';
     public string $last_error = '';
     private ?\PDOStatement $lastStatement = null;
-
-    /**
-     * Raw-SQL über query() bleibt auf Lese- und Schema/Wartungsbefehle begrenzt.
-     * Schreiboperationen sollen über execute()/insert()/update()/delete() laufen.
-     *
-     * @var array<int,string>
-     */
-    private const RAW_QUERY_ALLOWED_VERBS = [
-        'SELECT',
-        'WITH',
-        'SHOW',
-        'DESCRIBE',
-        'EXPLAIN',
-        'CHECK',
-        'REPAIR',
-        'OPTIMIZE',
-        'ANALYZE',
-        'ALTER',
-        'CREATE',
-        'DROP',
-        'SET',
-    ];
-
-    /** @var array<int,string> */
-    private const RAW_QUERY_BLOCKED_WRITE_VERBS = [
-        'INSERT',
-        'UPDATE',
-        'DELETE',
-        'REPLACE',
-        'TRUNCATE',
-        'MERGE',
-        'CALL',
-    ];
     
     /**
      * Singleton instance
@@ -203,66 +170,11 @@ class Database implements DatabaseInterface
             throw new \RuntimeException('Database connection is not available. PDO is null.');
         }
 
-        $this->assertRawQueryAllowed($sql);
-
         $startedAt = microtime(true);
         $statement = $this->pdo->query($sql);
         $this->logQueryTelemetry($sql, null, $startedAt);
 
         return $statement;
-    }
-
-    private function assertRawQueryAllowed(string $sql): void
-    {
-        $normalizedSql = $this->normalizeRawSqlForGuard($sql);
-        if ($normalizedSql === '') {
-            throw new \InvalidArgumentException('Leere SQL-Statements sind in Database::query() nicht erlaubt.');
-        }
-
-        if ($this->containsMultipleStatements($normalizedSql)) {
-            throw new \InvalidArgumentException('Mehrfach-Statements sind in Database::query() nicht erlaubt.');
-        }
-
-        $verb = $this->detectRawQueryVerb($normalizedSql);
-        if ($verb === '') {
-            throw new \InvalidArgumentException('Unbekannter SQL-Befehl in Database::query().');
-        }
-
-        if (in_array($verb, self::RAW_QUERY_BLOCKED_WRITE_VERBS, true)) {
-            throw new \InvalidArgumentException('Schreiboperationen sind in Database::query() gesperrt. Verwende execute()/insert()/update()/delete().');
-        }
-
-        if (!in_array($verb, self::RAW_QUERY_ALLOWED_VERBS, true)) {
-            throw new \InvalidArgumentException('SQL-Befehl in Database::query() nicht erlaubt: ' . $verb);
-        }
-    }
-
-    private function normalizeRawSqlForGuard(string $sql): string
-    {
-        $sql = preg_replace('/^\xEF\xBB\xBF/', '', $sql) ?? $sql;
-        $sql = trim($sql);
-
-        return preg_replace('/\s+/', ' ', $sql) ?? $sql;
-    }
-
-    private function detectRawQueryVerb(string $sql): string
-    {
-        if (preg_match('/^([A-Z]+)/', strtoupper($sql), $matches) !== 1) {
-            return '';
-        }
-
-        return $matches[1] ?? '';
-    }
-
-    private function containsMultipleStatements(string $sql): bool
-    {
-        $trimmed = rtrim($sql);
-
-        if (str_ends_with($trimmed, ';')) {
-            $trimmed = rtrim(substr($trimmed, 0, -1));
-        }
-
-        return str_contains($trimmed, ';');
     }
 
     /**

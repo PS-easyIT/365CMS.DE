@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung lokal gehosteter Schriftarten inklusive Theme-Scan, Google-Font-Spiegelung, Asset-Prüfung und read-only Font-Nutzungsanalyse.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.746
 
 ---
 

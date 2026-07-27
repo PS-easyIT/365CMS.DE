@@ -153,16 +153,20 @@
                     submitForm(bulkForm);
                 };
 
-                if (typeof cmsConfirm === 'function') {
-                    cmsConfirm({
-                        title: 'Kommentare löschen',
-                        message: message,
-                        confirmText: 'Löschen',
-                        confirmClass: 'btn-danger',
-                        statusClass: 'bg-danger',
-                        onConfirm: confirmDelete,
-                    });
-                    return;
+                try {
+                    if (typeof cmsConfirm === 'function') {
+                        cmsConfirm({
+                            title: 'Kommentare löschen',
+                            message: message,
+                            confirmText: 'Löschen',
+                            confirmClass: 'btn-danger',
+                            statusClass: 'bg-danger',
+                            onConfirm: confirmDelete,
+                        });
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('Bestätigungsdialog für Kommentar-Sammellöschung fehlgeschlagen, Fallback auf window.confirm wird verwendet.', error);
                 }
 
                 if (window.confirm(message)) {

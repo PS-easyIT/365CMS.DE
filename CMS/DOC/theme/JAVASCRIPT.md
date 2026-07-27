@@ -1,5 +1,5 @@
 # 365CMS – Theme-JavaScript
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Module-Übersicht](#module-übersicht)

@@ -134,6 +134,104 @@
         return button;
     }
 
+    function createDragHandleCell(tagName, label) {
+        var cell = document.createElement(tagName);
+        var handle = document.createElement('span');
+        cell.className = 'w-1 text-center';
+        handle.className = 'table-drag-handle';
+        handle.textContent = '⇅';
+        handle.setAttribute('data-drag-handle', '1');
+        handle.setAttribute('draggable', 'true');
+        handle.setAttribute('role', 'button');
+        handle.setAttribute('tabindex', '0');
+        handle.setAttribute('title', 'Zum Sortieren ziehen');
+        handle.setAttribute('aria-label', label);
+        cell.appendChild(handle);
+        return cell;
+    }
+
+    function makeRowsReorderable(tbody, isDisabled, onReorder) {
+        var dragRow = null;
+
+        function items() {
+            return Array.prototype.slice.call(tbody.children);
+        }
+
+        function clearDropTargets() {
+            items().forEach(function (row) {
+                row.classList.remove('is-drop-target');
+            });
+        }
+
+        tbody.addEventListener('dragstart', function (event) {
+            var handle = event.target.closest('[data-drag-handle]');
+            var row = handle ? handle.closest('tr') : null;
+
+            if (!handle || !row || (typeof isDisabled === 'function' && isDisabled())) {
+                event.preventDefault();
+                return;
+            }
+
+            dragRow = row;
+            row.classList.add('is-dragging');
+
+            if (event.dataTransfer) {
+                event.dataTransfer.clearData();
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', '1');
+            }
+        });
+
+        tbody.addEventListener('dragend', function () {
+            if (dragRow) {
+                dragRow.classList.remove('is-dragging');
+            }
+            clearDropTargets();
+            dragRow = null;
+        });
+
+        tbody.addEventListener('dragover', function (event) {
+            var row = event.target.closest('tr');
+            if (!dragRow || !row || row === dragRow || row.parentNode !== tbody) {
+                return;
+            }
+
+            event.preventDefault();
+            clearDropTargets();
+            row.classList.add('is-drop-target');
+
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'move';
+            }
+        });
+
+        tbody.addEventListener('drop', function (event) {
+            var row = event.target.closest('tr');
+            var rows;
+            var fromIndex;
+            var toIndex;
+
+            event.preventDefault();
+            clearDropTargets();
+
+            if (!dragRow || !row || row === dragRow || row.parentNode !== tbody) {
+                dragRow = null;
+                return;
+            }
+
+            rows = items();
+            fromIndex = rows.indexOf(dragRow);
+            toIndex = rows.indexOf(row);
+            dragRow = null;
+
+            if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+                return;
+            }
+
+            onReorder(fromIndex, toIndex);
+        });
+    }
+
     function initEditor() {
         var config = parseConfig('site-tables-editor-config');
         if (!config) {
@@ -240,6 +338,9 @@
 
         function renderRowsHead() {
             clearElement(rowsHeadContainer);
+            var handleTh = document.createElement('th');
+            handleTh.className = 'w-1';
+            rowsHeadContainer.appendChild(handleTh);
             columns.forEach(function (column) {
                 var th = document.createElement('th');
                 th.textContent = column.label || '—';
@@ -266,6 +367,7 @@
 
             rows.forEach(function (row, rowIndex) {
                 var tr = document.createElement('tr');
+                tr.appendChild(createDragHandleCell('td', 'Zeile ' + (rowIndex + 1) + ' zum Sortieren ziehen'));
                 columns.forEach(function (column) {
                     var td = document.createElement('td');
                     var input = document.createElement('input');
@@ -300,6 +402,7 @@
             clearElement(columnsBody);
             columns.forEach(function (column, columnIndex) {
                 var tr = document.createElement('tr');
+                tr.appendChild(createDragHandleCell('td', 'Spalte ' + (columnIndex + 1) + ' zum Sortieren ziehen'));
                 var labelTd = document.createElement('td');
                 var labelInput = document.createElement('input');
                 labelInput.type = 'text';
@@ -404,6 +507,18 @@
             }
 
             syncHiddenInputs();
+        });
+
+        makeRowsReorderable(columnsBody, isContentSourceEnabled, function (fromIndex, toIndex) {
+            var moved = columns.splice(fromIndex, 1)[0];
+            columns.splice(toIndex, 0, moved);
+            renderColumns();
+        });
+
+        makeRowsReorderable(rowsBody, isContentSourceEnabled, function (fromIndex, toIndex) {
+            var moved = rows.splice(fromIndex, 1)[0];
+            rows.splice(toIndex, 0, moved);
+            renderRows();
         });
 
         renderColumns();

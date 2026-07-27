@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Schutz vor missbräuchlichen Anfragen, IP-Sperren, Blockregeln, Simulationsläufen und sicherheitsrelevanten Zugriffsmustern.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.764
 
 **Admin-Route:** `/admin/firewall`
 
@@ -137,6 +137,6 @@ Diese Aktionen werden im aktuellen Arbeitsstand zusätzlich über den `AuditLogg
 ## Verwandte Dokumente
 
 - [ANTISPAM.md](ANTISPAM.md)
-- [../../audit/BEWERTUNG.md](../../audit/BEWERTUNG.md)
+- [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md)
 - [../legal/README.md](../legal/README.md)
 - [../../core/SECURITY.md](../../core/SECURITY.md)

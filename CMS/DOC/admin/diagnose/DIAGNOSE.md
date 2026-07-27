@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen, Monitoring-Werkzeuge und die zentrale Logzentrale für den laufenden Betrieb von 365CMS.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-21 · Version 3.0.19
 
 ---
 
@@ -139,4 +139,4 @@ Ausnahme: Der Diagnosebericht-Export streamt nach erfolgreicher CSRF-Prüfung di
 
 - [../system-settings/SYSTEM.md](../system-settings/SYSTEM.md)
 - [../system-settings/README.md](../system-settings/README.md)
-- [../../audit/BEWERTUNG.md](../../audit/BEWERTUNG.md)
+- [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md)

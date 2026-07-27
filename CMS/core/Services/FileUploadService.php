@@ -13,7 +13,6 @@ namespace CMS\Services;
 
 use CMS\AuditLogger;
 use CMS\Auth;
-use CMS\Http\Request;
 use CMS\Logger;
 use CMS\Security;
 use CMS\WP_Error;
@@ -45,7 +44,7 @@ final class FileUploadService
      */
     public function handleUploadRequest(): array
     {
-        if (Request::method() !== 'POST') {
+        if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
             return $this->errorResponse(405, 'Ungültige Upload-Anfrage.', 'upload.invalid_method');
         }
 
@@ -57,12 +56,12 @@ final class FileUploadService
             return $this->errorResponse(403, 'Nicht autorisiert.', 'upload.unauthorized');
         }
 
-        $csrfToken = (string) (Request::post('csrf_token', Request::header('X-CSRF-Token', '')) ?? '');
+        $csrfToken = (string)($_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
         if (!Security::instance()->verifyToken($csrfToken, 'media_action')) {
             return $this->errorResponse(403, 'Sicherheitsüberprüfung fehlgeschlagen.', 'upload.invalid_csrf');
         }
 
-        $uploadFile = Request::file('filepond') ?? Request::file('file') ?? null;
+        $uploadFile = $_FILES['filepond'] ?? $_FILES['file'] ?? null;
         if (!is_array($uploadFile)) {
             return $this->errorResponse(400, 'Keine Datei im Upload-Request gefunden.', 'upload.missing_file');
         }
@@ -76,7 +75,7 @@ final class FileUploadService
             return $this->errorResponse(400, 'Die Upload-Datei ist unvollständig oder ungültig.', 'upload.invalid_file');
         }
 
-        $targetPathRaw = (string) (Request::post('target_path', Request::post('path', '')) ?? '');
+        $targetPathRaw = (string)($_POST['target_path'] ?? $_POST['path'] ?? '');
         $targetPath = $this->sanitizePath($targetPathRaw);
         if ($targetPath === null) {
             return $this->errorResponse(400, 'Ungültiger Upload-Pfad.', 'upload.invalid_target_path', ['target_path' => $targetPathRaw]);

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Ordnet die Plugin-bezogene Update-Verwaltung in die zentrale Seite `/admin/updates` ein und beschreibt die aktuellen Aktionen für Core- und Plugin-Updates.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47 RC
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ## Überblick
 

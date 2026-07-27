@@ -335,7 +335,7 @@
     --cms-editorjs-space-after: var(--cms-editorjs-media-text-spacing-bottom);
     display: flex;
     flex-wrap: wrap;
-    align-items: var(--cms-editorjs-media-text-align-items, flex-start);
+    align-items: var(--cms-editorjs-media-text-align-items, flex-start) !important;
     gap: 1.5rem;
     margin: var(--cms-editorjs-media-text-spacing-top) 0 var(--cms-editorjs-media-text-spacing-bottom) !important;
     margin-block-start: var(--cms-editorjs-media-text-spacing-top) !important;
@@ -439,6 +439,7 @@
     min-width: 0;
     margin: 0;
     box-sizing: border-box;
+    align-self: var(--cms-editorjs-media-text-align-items, flex-start) !important;
 }
 
 .editorjs-media-text__media img {
@@ -449,6 +450,7 @@
     flex: 1 1 0;
     min-width: 0;
     box-sizing: border-box;
+    align-self: var(--cms-editorjs-media-text-align-items, flex-start) !important;
 }
 
 .editorjs-media-text__content > :first-child {
@@ -457,6 +459,116 @@
 
 .editorjs-media-text__content > :last-child {
     margin-bottom: 0;
+}
+
+.editorjs-button {
+    display: flex;
+    width: 100%;
+}
+
+.editorjs-button--align-left {
+    justify-content: flex-start;
+}
+
+.editorjs-button--align-center {
+    justify-content: center;
+}
+
+.editorjs-button--align-right {
+    justify-content: flex-end;
+}
+
+.editorjs-button__link {
+    --cms-editorjs-button-bg: #2563eb;
+    --cms-editorjs-button-bg-hover: #1d4ed8;
+    --cms-editorjs-button-color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--cms-editorjs-button-bg);
+    color: var(--cms-editorjs-button-color) !important;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease, transform .1s ease;
+}
+
+.editorjs-button__link:hover,
+.editorjs-button__link:focus-visible {
+    background: var(--cms-editorjs-button-bg-hover);
+    color: var(--cms-editorjs-button-color) !important;
+}
+
+.editorjs-button__link--primary {
+    --cms-editorjs-button-bg: #2563eb;
+    --cms-editorjs-button-bg-hover: #1d4ed8;
+    --cms-editorjs-button-color: #ffffff;
+}
+
+.editorjs-button__link--secondary {
+    --cms-editorjs-button-bg: #64748b;
+    --cms-editorjs-button-bg-hover: #475569;
+    --cms-editorjs-button-color: #ffffff;
+}
+
+.editorjs-button__link--info {
+    --cms-editorjs-button-bg: #0ea5e9;
+    --cms-editorjs-button-bg-hover: #0284c7;
+    --cms-editorjs-button-color: #ffffff;
+}
+
+.editorjs-button__link--success {
+    --cms-editorjs-button-bg: #16a34a;
+    --cms-editorjs-button-bg-hover: #15803d;
+    --cms-editorjs-button-color: #ffffff;
+}
+
+.editorjs-button__link--warning {
+    --cms-editorjs-button-bg: #d97706;
+    --cms-editorjs-button-bg-hover: #b45309;
+    --cms-editorjs-button-color: #ffffff;
+}
+
+.editorjs-button__link--danger {
+    --cms-editorjs-button-bg: #dc2626;
+    --cms-editorjs-button-bg-hover: #b91c1c;
+    --cms-editorjs-button-color: #ffffff;
+}
+
+.editorjs-button__link--light {
+    --cms-editorjs-button-bg: #f1f5f9;
+    --cms-editorjs-button-bg-hover: #e2e8f0;
+    --cms-editorjs-button-color: #0f172a;
+    border-color: #e2e8f0;
+}
+
+.editorjs-button__link--dark {
+    --cms-editorjs-button-bg: #0f172a;
+    --cms-editorjs-button-bg-hover: #1e293b;
+    --cms-editorjs-button-color: #ffffff;
+}
+
+.editorjs-button__link--small {
+    padding: .45rem 1rem;
+    font-size: .85rem;
+    border-radius: 8px;
+}
+
+.editorjs-button__link--medium {
+    padding: .65rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 10px;
+}
+
+.editorjs-button__link--large {
+    padding: .9rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 12px;
 }
 
 .editorjs-gallery {

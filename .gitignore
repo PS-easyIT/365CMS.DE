@@ -38,6 +38,8 @@ package-lock.json
 # yarn.lock # Einkommentieren, wenn Yarn verwendet wird
 
 # Dev/Local Folders (Komplette Ordner ignorieren)
+/ASSETS/
+/ASSETS/*
 /BACKUP/
 /PLUGINS/
 /ASSETS/test_import/
@@ -118,3 +120,4 @@ CMS/assets/mime/Test/
 CMS/assets/mailer/Test/
 CMS/assets/ldaprecord/Testing/
 cache/htmlpurifier/HTML/4.19.0,fef47230a541ed4de15de9e2aebc5553d82b2d66,2026051901.ser
+/CMS/assets

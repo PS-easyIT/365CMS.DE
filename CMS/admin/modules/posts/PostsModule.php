@@ -16,10 +16,8 @@ require_once __DIR__ . '/PostsCategoryViewModelBuilder.php';
 use CMS\AuditLogger;
 use CMS\CacheManager;
 use CMS\Database;
-use CMS\Http\Request;
 use CMS\Hooks;
 use CMS\Logger;
-use CMS\Services\ContentLanguageCopyService;
 use CMS\Services\ContentLocalizationService;
 use CMS\Services\ContentMediaPlacementService;
 use CMS\Services\PermalinkService;
@@ -106,6 +104,7 @@ class PostsModule
         $this->categoryViewModelBuilder = new PostsCategoryViewModelBuilder();
         $this->ensureColumns();
         $this->ensureCategoryColumns();
+        $this->ensureTagColumns();
         $this->ensurePostCategoryRelationTable();
         $this->ensurePostRevisionTable();
         $this->ensureDefaultCategories();
@@ -124,11 +123,11 @@ class PostsModule
             'excerpt_en' => "ALTER TABLE {$this->prefix}posts ADD COLUMN excerpt_en TEXT DEFAULT NULL AFTER excerpt",
             'meta_title' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER allow_comments",
             'meta_description' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title",
-            'meta_title_en' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_title_en VARCHAR(255) DEFAULT NULL AFTER meta_description",
-            'meta_description_en' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description_en TEXT DEFAULT NULL AFTER meta_title_en",
             'author_display_name' => "ALTER TABLE {$this->prefix}posts ADD COLUMN author_display_name VARCHAR(150) DEFAULT NULL AFTER author_id",
+            'author_display_url' => "ALTER TABLE {$this->prefix}posts ADD COLUMN author_display_url VARCHAR(500) DEFAULT NULL AFTER author_display_name",
             'post_template' => "ALTER TABLE {$this->prefix}posts ADD COLUMN post_template VARCHAR(80) DEFAULT NULL AFTER author_display_name",
             'post_meta_json' => "ALTER TABLE {$this->prefix}posts ADD COLUMN post_meta_json TEXT DEFAULT NULL AFTER post_template",
+            'content_updated_at' => "ALTER TABLE {$this->prefix}posts ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER published_at",
         ];
 
         foreach ($columns as $column => $sql) {
@@ -149,6 +148,7 @@ class PostsModule
     private function ensureCategoryColumns(): void
     {
         $columns = [
+            'slug_en' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN slug_en VARCHAR(100) DEFAULT NULL AFTER slug",
             'parent_id' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN parent_id INT UNSIGNED DEFAULT NULL AFTER description",
             'sort_order' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN sort_order INT DEFAULT 0 AFTER parent_id",
             'replacement_category_id' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN replacement_category_id INT UNSIGNED DEFAULT NULL AFTER sort_order",
@@ -162,6 +162,30 @@ class PostsModule
                 }
             } catch (\Throwable $e) {
                 Logger::instance()->withChannel('admin.posts')->warning('Beitrags-Kategoriespalte konnte nicht automatisch ergänzt werden.', [
+                    'column' => $column,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Ergänzt fehlende Tag-Spalten in Altinstallationen.
+     */
+    private function ensureTagColumns(): void
+    {
+        $columns = [
+            'slug_en' => "ALTER TABLE {$this->prefix}post_tags ADD COLUMN slug_en VARCHAR(100) DEFAULT NULL AFTER slug",
+        ];
+
+        foreach ($columns as $column => $sql) {
+            try {
+                $stmt = $this->db->query("SHOW COLUMNS FROM {$this->prefix}post_tags LIKE '{$column}'");
+                if ($stmt instanceof \PDOStatement && !$stmt->fetch()) {
+                    $this->db->query($sql);
+                }
+            } catch (\Throwable $e) {
+                Logger::instance()->withChannel('admin.posts')->warning('Beitrags-Tagspalte konnte nicht automatisch ergänzt werden.', [
                     'column' => $column,
                     'exception' => $e->getMessage(),
                 ]);
@@ -212,7 +236,9 @@ class PostsModule
                     tags VARCHAR(500) DEFAULT NULL,
                     author_id INT UNSIGNED DEFAULT NULL,
                     author_display_name VARCHAR(150) DEFAULT NULL,
+                    author_display_url VARCHAR(500) DEFAULT NULL,
                     published_at TIMESTAMP NULL,
+                        content_updated_at DATETIME DEFAULT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     INDEX idx_post_id (post_id),
                     INDEX idx_author_id (author_id),
@@ -231,7 +257,9 @@ class PostsModule
                 'category_name' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN category_name VARCHAR(150) DEFAULT NULL AFTER category_id",
                 'tags' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN tags VARCHAR(500) DEFAULT NULL AFTER category_name",
                 'author_display_name' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN author_display_name VARCHAR(150) DEFAULT NULL AFTER author_id",
-                'published_at' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN published_at TIMESTAMP NULL AFTER author_display_name",
+                'author_display_url' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN author_display_url VARCHAR(500) DEFAULT NULL AFTER author_display_name",
+                'published_at' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN published_at TIMESTAMP NULL AFTER author_display_url",
+                    'content_updated_at' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER published_at",
             ];
 
             foreach ($columns as $column => $sql) {
@@ -373,9 +401,9 @@ class PostsModule
         $drafts    = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'draft'");
         $private   = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'private'");
 
-        $statusFilter   = $this->normalizeListStatus((string) Request::get('status', ''));
-        $categoryFilter = $this->normalizeExistingCategoryId((int) Request::get('category', 0));
-        $search         = $this->sanitizeSearchTerm((string) Request::get('q', ''));
+        $statusFilter   = $this->normalizeListStatus((string)($_GET['status'] ?? ''));
+        $categoryFilter = $this->normalizeExistingCategoryId((int)($_GET['category'] ?? 0));
+        $search         = $this->sanitizeSearchTerm((string)($_GET['q'] ?? ''));
 
         $where  = [];
         $params = [];
@@ -495,7 +523,7 @@ class PostsModule
     public function getCategoryAdminData(): array
     {
         $categories = $this->db->get_results(
-            "SELECT c.id, c.name, c.slug, c.parent_id, c.sort_order, c.replacement_category_id,
+            "SELECT c.id, c.name, c.slug, c.slug_en, c.parent_id, c.sort_order, c.replacement_category_id,
                     (
                         SELECT COUNT(DISTINCT p2.id)
                         FROM {$this->prefix}posts p2
@@ -504,7 +532,7 @@ class PostsModule
                     ) AS assigned_post_count
              FROM {$this->prefix}post_categories c
              LEFT JOIN {$this->prefix}posts p ON p.category_id = c.id
-               GROUP BY c.id, c.name, c.slug, c.parent_id, c.sort_order, c.replacement_category_id
+               GROUP BY c.id, c.name, c.slug, c.slug_en, c.parent_id, c.sort_order, c.replacement_category_id
              ORDER BY c.sort_order ASC, c.name ASC"
         ) ?: [];
 
@@ -526,10 +554,10 @@ class PostsModule
     public function getTagAdminData(int $editTagId = 0): array
     {
         $tags = $this->db->get_results(
-            "SELECT t.id, t.name, t.slug, COUNT(ptr.post_id) AS post_count
+            "SELECT t.id, t.name, t.slug, t.slug_en, COUNT(ptr.post_id) AS post_count
              FROM {$this->prefix}post_tags t
              LEFT JOIN {$this->prefix}post_tag_rel ptr ON ptr.tag_id = t.id
-             GROUP BY t.id, t.name, t.slug
+             GROUP BY t.id, t.name, t.slug, t.slug_en
              ORDER BY t.name ASC"
         ) ?: [];
 
@@ -566,7 +594,7 @@ class PostsModule
             ? strtolower(trim((string) ($post['editor_locale'] ?? 'de')))
             : 'de';
         $existingPost = $id > 0
-            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en, meta_title, meta_description, meta_title_en, meta_description_en FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]) ?: [])
+            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]) ?: [])
             : [];
         $title      = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug       = trim((string)($post['slug'] ?? ''));
@@ -593,9 +621,8 @@ class PostsModule
         $publishTimeRaw = trim((string)($post['publish_time'] ?? ''));
         $metaTitle  = $this->sanitizePlainText((string)($post['meta_title'] ?? ''), 255);
         $metaDesc   = $this->sanitizePlainText((string)($post['meta_description'] ?? ''), 2000);
-        $metaTitleEn  = $this->sanitizePlainText((string)($post['meta_title_en'] ?? ''), 255);
-        $metaDescEn   = $this->sanitizePlainText((string)($post['meta_description_en'] ?? ''), 2000);
         $authorDisplayName = $this->sanitizeAuthorDisplayName((string)($post['author_display_name'] ?? ''));
+        $authorDisplayUrl = $this->sanitizeAuthorDisplayUrl((string)($post['author_display_url'] ?? ''));
         $postTemplates = $this->getPostTemplateDefinitions();
         $postTemplate = $this->sanitizePostTemplate((string)($post['post_template'] ?? ''), $postTemplates);
         $postMetaJson = $this->sanitizePostTemplateMeta($post['post_meta'] ?? [], $postTemplate, $postTemplates);
@@ -610,8 +637,6 @@ class PostsModule
             $slug = trim((string) ($existingPost['slug'] ?? ''));
             $content = $existingPost['content'] ?? '';
             $excerpt = $this->sanitizePlainText((string) ($existingPost['excerpt'] ?? ''), 2000);
-            $metaTitle = $this->sanitizePlainText((string) ($existingPost['meta_title'] ?? ''), 255);
-            $metaDesc = $this->sanitizePlainText((string) ($existingPost['meta_description'] ?? ''), 2000);
         }
 
         if ($editorLocale === 'de' && $existingPost !== []) {
@@ -619,8 +644,6 @@ class PostsModule
             $slugEn = trim((string) ($existingPost['slug_en'] ?? ''));
             $contentEn = $existingPost['content_en'] ?? '';
             $excerptEn = $this->sanitizePlainText((string) ($existingPost['excerpt_en'] ?? ''), 2000);
-            $metaTitleEn = $this->sanitizePlainText((string) ($existingPost['meta_title_en'] ?? ''), 255);
-            $metaDescEn = $this->sanitizePlainText((string) ($existingPost['meta_description_en'] ?? ''), 2000);
         }
 
         $slugEn     = $this->normalizeSlug($slugEn);
@@ -671,6 +694,18 @@ class PostsModule
             return ['success' => false, 'error' => (string) $publishedAtInput['error']];
         }
 
+        $contentUpdatedAtInput = $this->normalizeContentUpdatedAtInput(
+            trim((string) ($post['content_updated_date'] ?? '')),
+            trim((string) ($post['content_updated_time'] ?? ''))
+        );
+        if ($contentUpdatedAtInput['error'] !== null) {
+            return ['success' => false, 'error' => (string) $contentUpdatedAtInput['error']];
+        }
+        $treatUpdateAsNew = !empty($post['treat_update_as_new']);
+            if ($treatUpdateAsNew && $contentUpdatedAtInput['value'] === null) {
+                return ['success' => false, 'error' => 'Bitte zuerst ein Aktualisierungsdatum angeben, um den Beitrag als neu zu behandeln.'];
+            }
+
         $savePayload = [
             'title' => $title,
             'title_en' => $titleEn,
@@ -686,12 +721,12 @@ class PostsModule
             'tags' => $legacyTags,
             'meta_title' => $metaTitle,
             'meta_description' => $metaDesc,
-            'meta_title_en' => $metaTitleEn,
-            'meta_description_en' => $metaDescEn,
             'author_display_name' => $authorDisplayName,
+            'author_display_url' => $authorDisplayUrl,
             'post_template' => $postTemplate,
             'post_meta_json' => $postMetaJson,
             'published_at' => $publishedAtInput['value'],
+            'content_updated_at' => $contentUpdatedAtInput['value'],
         ];
 
         $filteredPayload = Hooks::applyFilters('cms_prepare_post_save_payload', $savePayload, $post, $id, $userId);
@@ -703,6 +738,9 @@ class PostsModule
             if ($id > 0) {
                 $existing = $this->db->get_row("SELECT slug, slug_en, status, published_at, created_at FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]);
                 $resolvedPublishedAt = $this->resolvePublishedAtValue((string) $savePayload['status'], $savePayload['published_at'], $existing);
+                if ($treatUpdateAsNew && $contentUpdatedAtInput['value'] !== null) {
+                    $resolvedPublishedAt = $contentUpdatedAtInput['value'];
+                }
                 $currentRevisionSource = $this->getCurrentPostRevisionSource($id);
                 $revisionComparisonPayload = $savePayload;
                 $revisionComparisonPayload['published_at'] = $resolvedPublishedAt;
@@ -719,7 +757,8 @@ class PostsModule
                     "UPDATE {$this->prefix}posts 
                      SET title = ?, title_en = ?, slug = ?, slug_en = ?, content = ?, content_en = ?, excerpt = ?, excerpt_en = ?, status = ?,
                          category_id = ?, featured_image = ?, tags = ?,
-                         meta_title = ?, meta_description = ?, meta_title_en = ?, meta_description_en = ?, author_display_name = ?, post_template = ?, post_meta_json = ?, published_at = ?,
+                         meta_title = ?, meta_description = ?, author_display_name = ?, author_display_url = ?, post_template = ?, post_meta_json = ?, published_at = ?,
+                         content_updated_at = ?,
                          updated_at = NOW()
                      WHERE id = ?",
                     [
@@ -737,12 +776,12 @@ class PostsModule
                         (string)($savePayload['tags'] ?? ''),
                         (string)$savePayload['meta_title'],
                         (string)$savePayload['meta_description'],
-                        (string)($savePayload['meta_title_en'] ?? ''),
-                        (string)($savePayload['meta_description_en'] ?? ''),
                         (string)($savePayload['author_display_name'] ?? ''),
+                        (string)($savePayload['author_display_url'] ?? ''),
                         (string)($savePayload['post_template'] ?? 'default'),
                         $savePayload['post_meta_json'],
                         $resolvedPublishedAt,
+                        $savePayload['content_updated_at'],
                         $id,
                     ]
                 );
@@ -758,6 +797,8 @@ class PostsModule
                     [
                         'published_at' => (string)($existing->published_at ?? ''),
                         'created_at' => (string)($existing->created_at ?? ''),
+                            'target_published_at' => $resolvedPublishedAt,
+                            'target_created_at' => (string)($existing->created_at ?? ''),
                     ]
                 );
                 Hooks::doAction('cms_after_post_save', $id, $savePayload, $post);
@@ -767,7 +808,7 @@ class PostsModule
                 $resolvedPublishedAt = $this->resolvePublishedAtValue((string) $savePayload['status'], $savePayload['published_at'], null);
                 $this->db->execute(
                     "INSERT INTO {$this->prefix}posts
-                     (title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, tags, meta_title, meta_description, meta_title_en, meta_description_en, author_id, author_display_name, post_template, post_meta_json, published_at, created_at, updated_at)
+                     (title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, tags, meta_title, meta_description, author_id, author_display_name, author_display_url, post_template, post_meta_json, published_at, content_updated_at, created_at, updated_at)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
                     [
                         (string)$savePayload['title'],
@@ -784,13 +825,13 @@ class PostsModule
                         (string)($savePayload['tags'] ?? ''),
                         (string)$savePayload['meta_title'],
                         (string)$savePayload['meta_description'],
-                        (string)($savePayload['meta_title_en'] ?? ''),
-                        (string)($savePayload['meta_description_en'] ?? ''),
                         $userId,
                         (string)($savePayload['author_display_name'] ?? ''),
+                        (string)($savePayload['author_display_url'] ?? ''),
                         (string)($savePayload['post_template'] ?? 'default'),
                         $savePayload['post_meta_json'],
                         $resolvedPublishedAt,
+                        $savePayload['content_updated_at'],
                     ]
                 );
                 $newId = (int)$this->db->lastInsertId();
@@ -812,80 +853,69 @@ class PostsModule
     }
 
     /**
-     * Kopiert die deutsche Beitragsfassung serverseitig in die englische Variante.
+     * Kopiert deutsche Beitragsinhalte serverseitig in die englischen Felder.
+     *
+     * Layout- und Medienreferenzen bleiben erhalten; nur Editor.js-Block-IDs werden
+     * entfernt, damit die kopierte EN-Fassung eigene Block-IDs erzeugen kann.
      */
-    public function copyGermanToEnglish(int $id): array
+    public function copyGermanToEnglish(int $id, int $userId = 0): array
     {
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültige Beitrags-ID.'];
         }
 
-        $post = $this->getCurrentPostRevisionSource($id);
-        if ($post === [] || !$this->postExists($id)) {
-            return ['success' => false, 'error' => 'Beitrag wurde nicht gefunden.'];
-        }
-
-        $copyService = ContentLanguageCopyService::getInstance();
-        $payload = $copyService->buildPostGermanToEnglishPayload($post);
-        if ($payload === []) {
-            return ['success' => false, 'error' => 'Die deutsche Beitragsfassung enthält keinen kopierbaren Inhalt.'];
-        }
-
-        $slugEn = trim((string)($payload['slug_en'] ?? ''));
-        if ($slugEn !== '' && $this->isLocalizedSlugTaken($slugEn, $id)) {
-            return ['success' => false, 'error' => 'Der kopierte englische Slug ist bereits vergeben.'];
-        }
-
-        $categoryIds = $this->getPostCategoryIds($id);
-        if ($categoryIds === [] && (int)($payload['category_id'] ?? 0) > 0) {
-            $categoryIds = [(int)$payload['category_id']];
-        }
-
         try {
-            if (!$this->storePostRevisionSnapshot($post)) {
-                return $this->failResult(
-                    'posts.copy_de_to_en.revision_failed',
-                    'Beitragsrevision konnte vor der DE→EN-Kopie nicht gesichert werden.',
-                    null,
-                    ['post_id' => $id]
-                );
+            $currentPost = $this->getCurrentPostRevisionSource($id);
+            if ($currentPost === []) {
+                return ['success' => false, 'error' => 'Der Beitrag wurde nicht gefunden.'];
+            }
+
+            $title = $this->sanitizePlainText((string) ($currentPost['title'] ?? ''), 255);
+            $content = (string) ($currentPost['content'] ?? '');
+            $excerpt = $this->sanitizePlainText((string) ($currentPost['excerpt'] ?? ''), 2000);
+
+            if ($title === '' && trim($content) === '' && $excerpt === '') {
+                return ['success' => false, 'error' => 'Der deutsche Beitrag enthält keinen kopierbaren Inhalt.'];
+            }
+
+            $newData = [
+                'title_en' => $title,
+                'content_en' => $this->prepareEditorContentForLanguageCopy($content),
+                'excerpt_en' => $excerpt,
+            ];
+
+            $comparisonPayload = array_merge($currentPost, $newData);
+            if ($this->hasTrackedPostRevisionChanges($currentPost, $comparisonPayload) && !$this->storePostRevisionSnapshot($currentPost)) {
+                return ['success' => false, 'error' => 'Beitragsrevision konnte vor dem Kopieren nicht gesichert werden.'];
             }
 
             $this->db->execute(
                 "UPDATE {$this->prefix}posts
-                 SET title_en = ?, slug_en = ?, content_en = ?, excerpt_en = ?, status = ?, category_id = ?, featured_image = ?, tags = ?,
-                     meta_title_en = ?, meta_description_en = ?, author_display_name = ?, post_template = ?, post_meta_json = ?, published_at = ?, updated_at = NOW()
+                 SET title_en = ?, content_en = ?, excerpt_en = ?, updated_at = NOW()
                  WHERE id = ?",
                 [
-                    (string)($payload['title_en'] ?? ''),
-                    $payload['slug_en'],
-                    (string)($payload['content_en'] ?? ''),
-                    (string)($payload['excerpt_en'] ?? ''),
-                    (string)($payload['status'] ?? 'draft'),
-                    $payload['category_id'],
-                    (string)($payload['featured_image'] ?? ''),
-                    (string)($payload['tags'] ?? ''),
-                    (string)($payload['meta_title_en'] ?? ''),
-                    (string)($payload['meta_description_en'] ?? ''),
-                    (string)($payload['author_display_name'] ?? ''),
-                    (string)($payload['post_template'] ?? 'default'),
-                    $payload['post_meta_json'],
-                    $payload['published_at'],
+                    (string) $newData['title_en'],
+                    (string) $newData['content_en'],
+                    (string) $newData['excerpt_en'],
                     $id,
                 ]
             );
 
-            $this->syncPostTags($id, (string)($payload['tags'] ?? ''));
-            $this->syncPostCategories($id, $categoryIds);
-
-            $seoMeta = SEOService::getInstance()->getContentMeta('post', $id);
-            SEOService::getInstance()->saveContentMeta('post', $id, $copyService->buildSeoRelationPayload('post', $id, $seoMeta));
-            Hooks::doAction('cms_after_post_save', $id, array_merge($post, $payload), ['copy_source_locale' => 'de', 'copy_target_locale' => 'en']);
+            Hooks::doAction('cms_after_post_copy_de_to_en', $id, $newData, $userId);
             $this->clearContentCacheIfEnabled('post_copy_de_to_en', $id);
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_CONTENT,
+                'posts.copy_de_to_en',
+                'Deutsche Beitragsinhalte nach EN kopiert.',
+                'posts',
+                $id,
+                ['post_id' => $id, 'user_id' => $userId],
+                'info'
+            );
 
-            return ['success' => true, 'id' => $id, 'message' => 'Deutsche Beitragsfassung wurde nach EN kopiert.'];
+            return ['success' => true, 'id' => $id, 'message' => 'Deutsche Beitragsinhalte wurden serverseitig nach EN kopiert.'];
         } catch (\Throwable $e) {
-            return $this->failResult('posts.copy_de_to_en.failed', 'DE→EN-Kopie des Beitrags fehlgeschlagen.', $e, ['post_id' => $id]);
+            return $this->failResult('posts.copy_de_to_en.failed', 'Beitragsinhalte konnten nicht nach EN kopiert werden.', $e, ['post_id' => $id, 'user_id' => $userId]);
         }
     }
 
@@ -1055,6 +1085,7 @@ class PostsModule
         $id   = (int)($post['cat_id'] ?? 0);
         $name = $this->sanitizePlainText((string)($post['cat_name'] ?? ''), 255);
         $slug = $this->normalizeSlug((string)($post['cat_slug'] ?? ''));
+        $slugEn = $this->normalizeSlug((string)($post['cat_slug_en'] ?? ''));
         $parentId = (int) ($post['parent_id'] ?? 0);
         $replacementCategoryId = (int) ($post['replacement_category_id'] ?? 0);
 
@@ -1069,14 +1100,23 @@ class PostsModule
             return ['success' => false, 'error' => 'Bitte einen gültigen Kategorie-Slug angeben.'];
         }
 
+        if ($slugEn === $slug) {
+            $slugEn = '';
+        }
+
         if ($id > 0 && !$this->categoryExists($id)) {
             return ['success' => false, 'error' => 'Die zu bearbeitende Kategorie existiert nicht mehr.'];
         }
 
         $previousSlug = $id > 0 ? $this->getCurrentCategorySlug($id) : '';
+        $previousSlugEn = $id > 0 ? $this->getCurrentCategorySlugEn($id) : '';
 
         if ($this->isCategorySlugTaken($slug, $id)) {
             return ['success' => false, 'error' => 'Dieser Kategorie-Slug ist bereits vergeben.'];
+        }
+
+        if ($slugEn !== '' && $this->isCategorySlugTaken($slugEn, $id)) {
+            return ['success' => false, 'error' => 'Dieser englische Kategorie-Slug ist bereits vergeben.'];
         }
 
         if ($parentId > 0 && !$this->categoryExists($parentId)) {
@@ -1104,10 +1144,10 @@ class PostsModule
         try {
             if ($id > 0) {
                 $this->db->execute(
-                    "UPDATE {$this->prefix}post_categories SET name = ?, slug = ?, parent_id = ?, replacement_category_id = ? WHERE id = ?",
-                    [$name, $slug, $parentId > 0 ? $parentId : null, $replacementCategoryId > 0 ? $replacementCategoryId : null, $id]
+                    "UPDATE {$this->prefix}post_categories SET name = ?, slug = ?, slug_en = ?, parent_id = ?, replacement_category_id = ? WHERE id = ?",
+                    [$name, $slug, $slugEn !== '' ? $slugEn : null, $parentId > 0 ? $parentId : null, $replacementCategoryId > 0 ? $replacementCategoryId : null, $id]
                 );
-                $redirectDetails = $this->createTaxonomyArchiveRedirectsIfNeeded('category', $previousSlug, $slug);
+                $redirectDetails = $this->createLocalizedTaxonomyArchiveRedirects('category', $previousSlug, $slug, $previousSlugEn, $slugEn);
                 $this->clearContentCacheIfEnabled('post_category_update', $id);
                 return [
                     'success' => true,
@@ -1116,8 +1156,8 @@ class PostsModule
                 ];
             } else {
                 $this->db->execute(
-                    "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, replacement_category_id) VALUES (?, ?, ?, ?)",
-                    [$name, $slug, $parentId > 0 ? $parentId : null, $replacementCategoryId > 0 ? $replacementCategoryId : null]
+                    "INSERT INTO {$this->prefix}post_categories (name, slug, slug_en, parent_id, replacement_category_id) VALUES (?, ?, ?, ?, ?)",
+                    [$name, $slug, $slugEn !== '' ? $slugEn : null, $parentId > 0 ? $parentId : null, $replacementCategoryId > 0 ? $replacementCategoryId : null]
                 );
                 $this->clearContentCacheIfEnabled('post_category_create', (int) $this->db->lastInsertId());
                 return ['success' => true, 'message' => 'Kategorie erstellt.'];
@@ -1542,6 +1582,7 @@ class PostsModule
         $id = (int) ($post['tag_id'] ?? 0);
         $name = $this->sanitizePlainText((string) ($post['tag_name'] ?? ''), 120);
         $slug = $this->normalizeSlug((string) ($post['tag_slug'] ?? ''));
+        $slugEn = $this->normalizeSlug((string) ($post['tag_slug_en'] ?? ''));
 
         if ($name === '') {
             return ['success' => false, 'error' => 'Tag-Name darf nicht leer sein.'];
@@ -1552,24 +1593,33 @@ class PostsModule
             return ['success' => false, 'error' => 'Bitte einen gültigen Tag-Slug angeben.'];
         }
 
+        if ($slugEn === $slug) {
+            $slugEn = '';
+        }
+
         if ($id > 0 && !$this->tagExists($id)) {
             return ['success' => false, 'error' => 'Der zu bearbeitende Tag existiert nicht mehr.'];
         }
 
         $previousSlug = $id > 0 ? $this->getCurrentTagSlug($id) : '';
+        $previousSlugEn = $id > 0 ? $this->getCurrentTagSlugEn($id) : '';
 
         if ($this->isTagSlugTaken($slug, $id)) {
             return ['success' => false, 'error' => 'Dieser Tag-Slug ist bereits vergeben.'];
         }
 
+        if ($slugEn !== '' && $this->isTagSlugTaken($slugEn, $id)) {
+            return ['success' => false, 'error' => 'Dieser englische Tag-Slug ist bereits vergeben.'];
+        }
+
         try {
             if ($id > 0) {
                 $this->db->execute(
-                    "UPDATE {$this->prefix}post_tags SET name = ?, slug = ? WHERE id = ?",
-                    [$name, $slug, $id]
+                    "UPDATE {$this->prefix}post_tags SET name = ?, slug = ?, slug_en = ? WHERE id = ?",
+                    [$name, $slug, $slugEn !== '' ? $slugEn : null, $id]
                 );
 
-                $redirectDetails = $this->createTaxonomyArchiveRedirectsIfNeeded('tag', $previousSlug, $slug);
+                $redirectDetails = $this->createLocalizedTaxonomyArchiveRedirects('tag', $previousSlug, $slug, $previousSlugEn, $slugEn);
 
                 $this->clearContentCacheIfEnabled('post_tag_update', $id);
 
@@ -1581,8 +1631,8 @@ class PostsModule
             }
 
             $this->db->execute(
-                "INSERT INTO {$this->prefix}post_tags (name, slug) VALUES (?, ?)",
-                [$name, $slug]
+                "INSERT INTO {$this->prefix}post_tags (name, slug, slug_en) VALUES (?, ?, ?)",
+                [$name, $slug, $slugEn !== '' ? $slugEn : null]
             );
 
             $this->clearContentCacheIfEnabled('post_tag_create', (int) $this->db->lastInsertId());
@@ -1828,7 +1878,9 @@ class PostsModule
             'category_name' => $this->resolveCategoryName($categoryId),
             'tags' => implode(', ', $tagNames),
             'author_display_name' => (string) ($postData['author_display_name'] ?? ''),
+            'author_display_url' => (string) ($postData['author_display_url'] ?? ''),
             'published_at' => (string) ($postData['published_at'] ?? ''),
+                'content_updated_at' => (string) ($postData['content_updated_at'] ?? ''),
         ];
     }
 
@@ -1858,7 +1910,9 @@ class PostsModule
                     pr.tags,
                     pr.author_id,
                     pr.author_display_name,
+                    pr.author_display_url,
                     pr.published_at,
+                        pr.content_updated_at,
                     pr.created_at,
                     u.username,
                     u.display_name
@@ -1885,8 +1939,7 @@ class PostsModule
 
         $row = $this->db->get_row(
             "SELECT p.id, p.title, p.title_en, p.slug, p.slug_en, p.content, p.content_en, p.excerpt, p.excerpt_en,
-                    p.status, p.category_id, p.tags, p.meta_title, p.meta_description, p.meta_title_en, p.meta_description_en,
-                    p.author_id, p.author_display_name, p.post_template, p.post_meta_json, p.published_at,
+                    p.status, p.category_id, p.tags, p.author_id, p.author_display_name, p.author_display_url, p.published_at, p.content_updated_at,
                     c.name AS category_name
              FROM {$this->prefix}posts p
              LEFT JOIN {$this->prefix}post_categories c ON c.id = p.category_id
@@ -1914,7 +1967,7 @@ class PostsModule
 
     private function hasTrackedPostRevisionChanges(array $currentPost, array $newData): bool
     {
-        foreach (['title', 'title_en', 'slug', 'slug_en', 'content', 'content_en', 'excerpt', 'excerpt_en', 'status', 'tags', 'author_display_name', 'published_at'] as $field) {
+        foreach (['title', 'title_en', 'slug', 'slug_en', 'content', 'content_en', 'excerpt', 'excerpt_en', 'status', 'tags', 'author_display_name', 'author_display_url', 'published_at', 'content_updated_at'] as $field) {
             if (!array_key_exists($field, $newData)) {
                 continue;
             }
@@ -1941,8 +1994,8 @@ class PostsModule
         $stmt = $this->db->prepare(
             "INSERT INTO {$this->prefix}post_revisions (
                 post_id, title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en,
-                status, category_id, category_name, tags, author_id, author_display_name, published_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                status, category_id, category_name, tags, author_id, author_display_name, author_display_url, published_at, content_updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
 
         return $stmt->execute([
@@ -1961,7 +2014,9 @@ class PostsModule
             (string) ($post['tags'] ?? ''),
             (int) ($post['author_id'] ?? 0) ?: null,
             (string) ($post['author_display_name'] ?? ''),
+            (string) ($post['author_display_url'] ?? ''),
             $this->normalizeRevisionTimestampValue($post['published_at'] ?? null),
+            $this->normalizeRevisionTimestampValue($post['content_updated_at'] ?? null),
         ]);
     }
 
@@ -1985,7 +2040,9 @@ class PostsModule
         $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Kategorie', $currentPost['category_name'] ?? '', $revision['category_name'] ?? '');
         $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Tags', $currentPost['tags'] ?? '', $revision['tags'] ?? '');
         $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Autorenname im Artikel', $currentPost['author_display_name'] ?? '', $revision['author_display_name'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Website des alternativen Autors', $currentPost['author_display_url'] ?? '', $revision['author_display_url'] ?? '');
         $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Veröffentlichung', $this->formatRevisionTimestampLabel($currentPost['published_at'] ?? null), $this->formatRevisionTimestampLabel($revision['published_at'] ?? null));
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Aktualisierungsdatum', $this->formatRevisionTimestampLabel($currentPost['content_updated_at'] ?? null), $this->formatRevisionTimestampLabel($revision['content_updated_at'] ?? null));
         $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (DE)', $currentPost['content'] ?? '', $revision['content'] ?? '');
         $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (EN)', $currentPost['content_en'] ?? '', $revision['content_en'] ?? '');
 
@@ -1994,9 +2051,7 @@ class PostsModule
             'field_diffs' => $fieldDiffs,
         ];
     }
-
-    /**
-     * @param array<int,string> $changedFields
+        /**
      * @param array<int,array<string,mixed>> $fieldDiffs
      */
     private function appendRevisionTextDiff(array &$changedFields, array &$fieldDiffs, string $label, mixed $current, mixed $revision): void
@@ -2028,7 +2083,7 @@ class PostsModule
         $currentSummary = $this->summarizeEditorContentValue($current);
         $revisionSummary = $this->summarizeEditorContentValue($revision);
 
-        if (($currentSummary['sha256'] ?? '') === ($revisionSummary['sha256'] ?? '')) {
+        if (($currentSummary['sha1'] ?? '') === ($revisionSummary['sha1'] ?? '')) {
             return;
         }
 
@@ -2166,6 +2221,25 @@ class PostsModule
         return function_exists('mb_substr')
             ? mb_substr($value, 0, 150)
             : substr($value, 0, 150);
+    }
+
+    private function sanitizeAuthorDisplayUrl(string $value): string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        $value = function_exists('mb_substr') ? mb_substr($value, 0, 500) : substr($value, 0, 500);
+
+        if (filter_var($value, FILTER_VALIDATE_URL) === false) {
+            return '';
+        }
+
+        $scheme = strtolower((string) (parse_url($value, PHP_URL_SCHEME) ?? ''));
+
+        return in_array($scheme, ['http', 'https'], true) ? $value : '';
     }
 
     /**
@@ -2517,6 +2591,54 @@ class PostsModule
         return function_exists('mb_substr') ? mb_substr($value, 0, 500) : substr($value, 0, 500);
     }
 
+    private function prepareEditorContentForLanguageCopy(string $content): string
+    {
+        $trimmed = trim($content);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        try {
+            $decoded = json_decode($trimmed, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            return $content;
+        }
+
+        if (!is_array($decoded) || !isset($decoded['blocks']) || !is_array($decoded['blocks'])) {
+            return $content;
+        }
+
+        $decoded['blocks'] = $this->removeEditorBlockIds($decoded['blocks']);
+
+        try {
+            return (string) json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            return $content;
+        }
+    }
+
+    /**
+     * @param array<int|string,mixed> $blocks
+     * @return array<int|string,mixed>
+     */
+    private function removeEditorBlockIds(array $blocks): array
+    {
+        foreach ($blocks as $index => $block) {
+            if (!is_array($block)) {
+                continue;
+            }
+
+            unset($block['id']);
+            if (isset($block['data']['blocks']) && is_array($block['data']['blocks'])) {
+                $block['data']['blocks'] = $this->removeEditorBlockIds($block['data']['blocks']);
+            }
+
+            $blocks[$index] = $block;
+        }
+
+        return $blocks;
+    }
+
     private function sanitizeSearchTerm(string $value): string
     {
         return $this->sanitizePlainText($value, 120);
@@ -2660,6 +2782,37 @@ class PostsModule
         return ['value' => $publishedAt->format('Y-m-d H:i:s'), 'error' => null];
     }
 
+    /**
+     * @return array{value:?string,error:?string}
+     */
+    private function normalizeContentUpdatedAtInput(string $date, string $time): array
+    {
+        $date = trim($date);
+        $time = trim($time);
+
+        if ($date === '' && $time === '') {
+            return ['value' => null, 'error' => null];
+        }
+
+        if ($date === '') {
+            return ['value' => null, 'error' => 'Bitte ein Aktualisierungsdatum angeben.'];
+        }
+
+        if ($time === '') {
+            $time = '00:00';
+        }
+
+        $contentUpdatedAt = \DateTimeImmutable::createFromFormat('!Y-m-d H:i', $date . ' ' . $time);
+        $errors = \DateTimeImmutable::getLastErrors();
+        $hasErrors = is_array($errors) && ((int) ($errors['warning_count'] ?? 0) > 0 || (int) ($errors['error_count'] ?? 0) > 0);
+
+        if (!$contentUpdatedAt instanceof \DateTimeImmutable || $hasErrors) {
+            return ['value' => null, 'error' => 'Bitte ein gültiges Aktualisierungsdatum mit Uhrzeit angeben.'];
+        }
+
+        return ['value' => $contentUpdatedAt->format('Y-m-d H:i:s'), 'error' => null];
+    }
+
     private function resolvePublishedAtValue(string $status, ?string $requestedPublishedAt, ?object $existing): ?string
     {
         $requestedPublishedAt = is_string($requestedPublishedAt) && trim($requestedPublishedAt) !== ''
@@ -2718,8 +2871,8 @@ class PostsModule
 
     private function isCategorySlugTaken(string $slug, int $ignoreId = 0): bool
     {
-        $params = [$slug];
-        $sql = "SELECT COUNT(*) FROM {$this->prefix}post_categories WHERE slug = ?";
+        $params = [$slug, $slug];
+        $sql = "SELECT COUNT(*) FROM {$this->prefix}post_categories WHERE (slug = ? OR slug_en = ?)";
 
         if ($ignoreId > 0) {
             $sql .= " AND id != ?";
@@ -2731,8 +2884,8 @@ class PostsModule
 
     private function isTagSlugTaken(string $slug, int $ignoreId = 0): bool
     {
-        $params = [$slug];
-        $sql = "SELECT COUNT(*) FROM {$this->prefix}post_tags WHERE slug = ?";
+        $params = [$slug, $slug];
+        $sql = "SELECT COUNT(*) FROM {$this->prefix}post_tags WHERE (slug = ? OR slug_en = ?)";
 
         if ($ignoreId > 0) {
             $sql .= " AND id != ?";
@@ -3113,6 +3266,18 @@ class PostsModule
         ) ?: ''));
     }
 
+    private function getCurrentCategorySlugEn(int $categoryId): string
+    {
+        if ($categoryId <= 0) {
+            return '';
+        }
+
+        return trim((string) ($this->db->get_var(
+            "SELECT slug_en FROM {$this->prefix}post_categories WHERE id = ? LIMIT 1",
+            [$categoryId]
+        ) ?: ''));
+    }
+
     private function getCurrentTagSlug(int $tagId): string
     {
         if ($tagId <= 0) {
@@ -3125,9 +3290,45 @@ class PostsModule
         ) ?: ''));
     }
 
-    private function createTaxonomyArchiveRedirectsIfNeeded(string $archiveType, string $oldSlug, string $newSlug): array
+    private function getCurrentTagSlugEn(int $tagId): string
     {
-        $redirectPairs = $this->getTaxonomyArchiveRedirectPairs($archiveType, $oldSlug, $newSlug);
+        if ($tagId <= 0) {
+            return '';
+        }
+
+        return trim((string) ($this->db->get_var(
+            "SELECT slug_en FROM {$this->prefix}post_tags WHERE id = ? LIMIT 1",
+            [$tagId]
+        ) ?: ''));
+    }
+
+    /**
+     * Legt Archiv-Weiterleitungen je Sprache an, wenn sich der effektive Slug ändert.
+     *
+     * DE nutzt immer den Haupt-Slug; EN nutzt den EN-Slug und fällt sonst auf den Haupt-Slug zurück.
+     *
+     * @return array<int, string>
+     */
+    private function createLocalizedTaxonomyArchiveRedirects(string $archiveType, string $oldSlug, string $newSlug, string $oldSlugEn = '', string $newSlugEn = ''): array
+    {
+        $details = $this->createTaxonomyArchiveRedirectsIfNeeded($archiveType, $oldSlug, $newSlug, 'de');
+
+        $locales = function_exists('cms_get_archive_locales') ? cms_get_archive_locales() : ['de'];
+        if (in_array('en', array_map('strval', $locales), true)) {
+            $effectiveOldEn = $oldSlugEn !== '' ? $oldSlugEn : $oldSlug;
+            $effectiveNewEn = $newSlugEn !== '' ? $newSlugEn : $newSlug;
+            $details = array_merge(
+                $details,
+                $this->createTaxonomyArchiveRedirectsIfNeeded($archiveType, $effectiveOldEn, $effectiveNewEn, 'en')
+            );
+        }
+
+        return array_values(array_unique($details));
+    }
+
+    private function createTaxonomyArchiveRedirectsIfNeeded(string $archiveType, string $oldSlug, string $newSlug, ?string $locale = null): array
+    {
+        $redirectPairs = $this->getTaxonomyArchiveRedirectPairs($archiveType, $oldSlug, $newSlug, $locale);
         if ($redirectPairs === []) {
             return [];
         }
@@ -3150,7 +3351,7 @@ class PostsModule
     /**
      * @return array<int, array{source_path:string,target_path:string}>
      */
-    private function getTaxonomyArchiveRedirectPairs(string $archiveType, string $oldSlug, string $newSlug): array
+    private function getTaxonomyArchiveRedirectPairs(string $archiveType, string $oldSlug, string $newSlug, ?string $locale = null): array
     {
         $oldSlug = $this->normalizeSlug($oldSlug);
         $newSlug = $this->normalizeSlug($newSlug);
@@ -3165,9 +3366,10 @@ class PostsModule
 
         $pairs = [];
         $seenPaths = [];
+        $locales = $locale !== null ? [$locale] : cms_get_archive_locales();
 
-        foreach (cms_get_archive_locales() as $locale) {
-            $archiveBase = trim((string) cms_get_archive_base($archiveType, (string) $locale), '/');
+        foreach ($locales as $archiveLocale) {
+            $archiveBase = trim((string) cms_get_archive_base($archiveType, (string) $archiveLocale), '/');
             if ($archiveBase === '') {
                 continue;
             }
@@ -3228,10 +3430,12 @@ class PostsModule
         $permalinkService = PermalinkService::getInstance();
         $publishedAt = (string)($postDates['published_at'] ?? '');
         $createdAt = (string)($postDates['created_at'] ?? '');
+            $targetPublishedAt = (string)($postDates['target_published_at'] ?? $publishedAt);
+            $targetCreatedAt = (string)($postDates['target_created_at'] ?? $createdAt);
 
         if ($oldSlug !== '' && $newSlug !== '' && $oldSlug !== $newSlug) {
             $oldPath = $permalinkService->buildPostPathFromValues($oldSlug, $publishedAt, $createdAt);
-            $newPath = $permalinkService->buildPostPathFromValues($newSlug, $publishedAt, $createdAt);
+                $newPath = $permalinkService->buildPostPathFromValues($newSlug, $targetPublishedAt, $targetCreatedAt);
 
             RedirectService::getInstance()->createAutomaticRedirect(
                 $oldPath,
@@ -3262,7 +3466,7 @@ class PostsModule
             }
 
             $localizedOldPath = $permalinkService->buildPostPathFromValues($sourceSlug, $publishedAt, $createdAt, $locale);
-            $localizedNewPath = $permalinkService->buildPostPathFromValues($targetSlug, $publishedAt, $createdAt, $locale);
+                $localizedNewPath = $permalinkService->buildPostPathFromValues($targetSlug, $targetPublishedAt, $targetCreatedAt, $locale);
             RedirectService::getInstance()->createAutomaticRedirect(
                 $localizedOldPath,
                 $localizedNewPath,

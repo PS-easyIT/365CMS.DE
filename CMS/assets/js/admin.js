@@ -679,7 +679,7 @@ function initTaxonomySlideovers() {
     roots.forEach(function (root) {
         var panel = document.querySelector('[data-taxonomy-panel]');
         var backdrop = document.querySelector('[data-taxonomy-backdrop]');
-        var openButton = root.querySelector('[data-taxonomy-open]');
+        var openButton = root.querySelector('[data-taxonomy-open]') || document.querySelector('[data-taxonomy-open]');
         var isTagPanel = String(root.getAttribute('data-taxonomy-list-url') || '').indexOf('post-tags') > -1;
         var form = panel instanceof HTMLElement ? panel.querySelector('[data-taxonomy-form]') : null;
         if (!(panel instanceof HTMLElement) || !(backdrop instanceof HTMLElement) || !(openButton instanceof HTMLElement) || !(form instanceof HTMLFormElement)) {
@@ -808,7 +808,7 @@ function initTaxonomySlideovers() {
                     var nextDoc = parser.parseFromString(html, 'text/html');
                     var nextStateNode = nextDoc.querySelector('[data-taxonomy-panel-state]');
                     var nextState = parseStateFromNode(nextStateNode);
-                    var fallbackDangerAlert = nextDoc.querySelector('.alert.alert-danger, .alert-danger');
+                    var fallbackDangerAlert = nextDoc.querySelector('.alert-danger:not(.d-none):not([data-taxonomy-form-error])');
 
                     if (nextState && nextState.formError) {
                         var formError = form.querySelector('[data-taxonomy-form-error]');

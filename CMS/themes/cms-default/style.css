@@ -2012,6 +2012,7 @@ footer {
 .badge-y { background: #fef9c3; color: #a16207; }
 .badge-g { background: #dcfce7; color: #16a34a; }
 .badge-b { background: #dbeafe; color: #1d4ed8; }
+.meridian-update-badge { display: inline-flex; align-items: center; padding: .05rem .3rem; border-radius: 999px; background: rgba(100,116,139,.10); color: var(--ink-ghost); font-family: var(--font-sans); font-size: .56rem; font-weight: 600; letter-spacing: .05em; line-height: 1.4; white-space: nowrap; }
 
 /* === POST FOOTER / TAGS / SHARE === */
 .post-footer-bar { max-width: var(--col); margin: 0 auto; padding: 1.25rem 1.5rem 2rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; border-top: 1px solid var(--rule); }

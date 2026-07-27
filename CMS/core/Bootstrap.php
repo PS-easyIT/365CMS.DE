@@ -13,15 +13,8 @@ namespace CMS;
 
 use CMS\Services\SiteTable\SiteTableHubRenderer;
 
-if (!function_exists(__NAMESPACE__ . '\\terminate_bootstrap_process')) {
-    function terminate_bootstrap_process(int $code = 0): never
-    {
-        exit($code);
-    }
-}
-
 if (!defined('ABSPATH')) {
-    terminate_bootstrap_process();
+    exit;
 }
 
 if (class_exists(__NAMESPACE__ . '\\Bootstrap', false)) {
@@ -45,11 +38,6 @@ class Bootstrap
     private PluginManager $pluginManager;
     /** @var ThemeManager|null Im API/CLI-Modus nicht geladen (H-12) */
     private ?ThemeManager $themeManager = null;
-
-    private static function terminateProcess(int $code = 0): never
-    {
-        terminate_bootstrap_process($code);
-    }
 
     /**
      * Singleton instance
@@ -104,7 +92,6 @@ class Bootstrap
         defined('CMS_MODE') || define('CMS_MODE', $this->mode);
 
         Debug::enable(defined('CMS_DEBUG') && CMS_DEBUG);
-        $this->hardenErrorReporting(defined('CMS_DEBUG') && CMS_DEBUG);
         Debug::resetRuntimeProfile([
             'mode' => $this->mode,
             'request_uri' => (string)($_SERVER['REQUEST_URI'] ?? '/'),
@@ -212,7 +199,7 @@ class Bootstrap
     {
         if (PHP_SAPI === 'cli') {
             fwrite(STDERR, $message . PHP_EOL);
-            self::terminateProcess(1);
+            exit(1);
         }
 
         http_response_code(503);
@@ -229,7 +216,7 @@ class Bootstrap
                 'success' => false,
                 'error' => $message,
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            self::terminateProcess();
+            exit;
         }
 
         header('Content-Type: text/html; charset=utf-8');
@@ -256,75 +243,9 @@ class Bootstrap
         </body>
         </html>
         <?php
-        self::terminateProcess();
+        exit;
     }
     
-    /**
-     * Härtet das PHP-Fehlerverhalten auf Applikationsebene ab.
-     *
-     * Verhindert, dass Stack-Traces oder Fehlermeldungen an den Client gelangen,
-     * falls die php.ini falsch konfiguriert ist (display_errors=On in Produktion).
-     * Im Debug-Modus bleibt die volle Fehleranzeige erhalten.
-     *
-     * Registriert zusätzlich einen globalen Exception-Handler, der die vollständige
-     * Exception protokolliert, dem Client aber nur eine generische Meldung liefert.
-     */
-    private function hardenErrorReporting(bool $debug): void
-    {
-        if ($debug) {
-            // Entwicklung/Diagnose: volle Sichtbarkeit.
-            @ini_set('display_errors', '1');
-            @ini_set('display_startup_errors', '1');
-            error_reporting(E_ALL);
-        } else {
-            // Produktion: keine Ausgabe an den Client, aber vollständiges Logging.
-            @ini_set('display_errors', '0');
-            @ini_set('display_startup_errors', '0');
-            @ini_set('log_errors', '1');
-            error_reporting(E_ALL);
-        }
-
-        // Nur registrieren, wenn noch kein eigener Handler aktiv ist
-        // (set_exception_handler gibt den vorherigen Handler zurück).
-        $previous = set_exception_handler(null);
-        if ($previous !== null) {
-            set_exception_handler($previous);
-            return;
-        }
-
-        set_exception_handler(static function (\Throwable $e) use ($debug): void {
-            error_log(
-                'Uncaught ' . get_class($e) . ': ' . $e->getMessage()
-                . ' in ' . $e->getFile() . ':' . $e->getLine()
-            );
-
-            if (PHP_SAPI === 'cli') {
-                fwrite(STDERR, 'Fatal error: ' . $e->getMessage() . PHP_EOL);
-                self::terminateProcess(1);
-            }
-
-            if (!headers_sent()) {
-                http_response_code(500);
-            }
-
-            if ($debug) {
-                // Im Debug-Modus die Originalmeldung sichtbar machen (escaped).
-                echo 'Fatal error: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
-            } else {
-                $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
-                if (defined('CMS_AJAX_REQUEST') || str_starts_with($requestUri, '/api/')) {
-                    if (!headers_sent()) {
-                        header('Content-Type: application/json; charset=utf-8');
-                    }
-                    echo json_encode(['success' => false, 'error' => 'Internal server error'], JSON_UNESCAPED_UNICODE);
-                } else {
-                    echo 'Es ist ein interner Fehler aufgetreten. Bitte versuche es später erneut.';
-                }
-            }
-            self::terminateProcess(1);
-        });
-    }
-
     /**
      * Load core dependencies
      */
@@ -805,7 +726,7 @@ class Bootstrap
 
                 $editorJsContentStylesRendered = true;
                 $href = htmlspecialchars(cms_asset_url('css/editorjs-content.css'), ENT_QUOTES, 'UTF-8');
-                $criticalCss = '.editorjs-block{--cms-editorjs-default-space-after:1.1rem;--cms-editorjs-space-before:0rem;--cms-editorjs-space-after:var(--cms-editorjs-default-space-after);box-sizing:border-box;display:block;max-width:100%;margin-block-start:var(--cms-editorjs-space-before)!important;margin-block-end:var(--cms-editorjs-space-after)!important}.editorjs-block+.editorjs-block:not(.editorjs-media-text),.editorjs-block:first-child:not(.editorjs-media-text){margin-block-start:0!important}.editorjs-block:last-child:not(.editorjs-media-text){margin-block-end:0!important}.editorjs-image img,.editorjs-gallery img,.editorjs-carousel img,.editorjs-drawing img,.editorjs-media-text img{box-sizing:border-box;max-width:100%!important;height:auto!important}.editorjs-block.editorjs-media-text{--cms-editorjs-media-text-align-items:flex-start;--cms-editorjs-media-text-spacing-top:10px;--cms-editorjs-media-text-spacing-bottom:10px;--cms-editorjs-space-before:var(--cms-editorjs-media-text-spacing-top);--cms-editorjs-space-after:var(--cms-editorjs-media-text-spacing-bottom);display:flex;flex-wrap:wrap;align-items:var(--cms-editorjs-media-text-align-items,flex-start);gap:1.5rem;margin-block-start:var(--cms-editorjs-media-text-spacing-top)!important;margin-block-end:var(--cms-editorjs-media-text-spacing-bottom)!important}.editorjs-block.editorjs-media-text[data-spacing-top="0"],.editorjs-block.editorjs-media-text--spacing-top-0{--cms-editorjs-media-text-spacing-top:0px;--cms-editorjs-space-before:0px;margin-block-start:0!important}.editorjs-block.editorjs-media-text[data-spacing-top="5"],.editorjs-block.editorjs-media-text--spacing-top-5{--cms-editorjs-media-text-spacing-top:5px;--cms-editorjs-space-before:5px;margin-block-start:5px!important}.editorjs-block.editorjs-media-text[data-spacing-top="10"],.editorjs-block.editorjs-media-text--spacing-top-10{--cms-editorjs-media-text-spacing-top:10px;--cms-editorjs-space-before:10px;margin-block-start:10px!important}.editorjs-block.editorjs-media-text[data-spacing-top="15"],.editorjs-block.editorjs-media-text--spacing-top-15{--cms-editorjs-media-text-spacing-top:15px;--cms-editorjs-space-before:15px;margin-block-start:15px!important}.editorjs-block.editorjs-media-text[data-spacing-top="20"],.editorjs-block.editorjs-media-text--spacing-top-20{--cms-editorjs-media-text-spacing-top:20px;--cms-editorjs-space-before:20px;margin-block-start:20px!important}.editorjs-block.editorjs-media-text[data-spacing-top="30"],.editorjs-block.editorjs-media-text--spacing-top-30{--cms-editorjs-media-text-spacing-top:30px;--cms-editorjs-space-before:30px;margin-block-start:30px!important}.editorjs-block.editorjs-media-text[data-spacing-top="40"],.editorjs-block.editorjs-media-text--spacing-top-40{--cms-editorjs-media-text-spacing-top:40px;--cms-editorjs-space-before:40px;margin-block-start:40px!important}.editorjs-block.editorjs-media-text[data-spacing-top="60"],.editorjs-block.editorjs-media-text--spacing-top-60{--cms-editorjs-media-text-spacing-top:60px;--cms-editorjs-space-before:60px;margin-block-start:60px!important}.editorjs-block.editorjs-media-text[data-spacing-top="80"],.editorjs-block.editorjs-media-text--spacing-top-80{--cms-editorjs-media-text-spacing-top:80px;--cms-editorjs-space-before:80px;margin-block-start:80px!important}.editorjs-block.editorjs-media-text[data-spacing-top="100"],.editorjs-block.editorjs-media-text--spacing-top-100{--cms-editorjs-media-text-spacing-top:100px;--cms-editorjs-space-before:100px;margin-block-start:100px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="0"],.editorjs-block.editorjs-media-text--spacing-bottom-0{--cms-editorjs-media-text-spacing-bottom:0px;--cms-editorjs-space-after:0px;margin-block-end:0!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="5"],.editorjs-block.editorjs-media-text--spacing-bottom-5{--cms-editorjs-media-text-spacing-bottom:5px;--cms-editorjs-space-after:5px;margin-block-end:5px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="10"],.editorjs-block.editorjs-media-text--spacing-bottom-10{--cms-editorjs-media-text-spacing-bottom:10px;--cms-editorjs-space-after:10px;margin-block-end:10px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="15"],.editorjs-block.editorjs-media-text--spacing-bottom-15{--cms-editorjs-media-text-spacing-bottom:15px;--cms-editorjs-space-after:15px;margin-block-end:15px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="20"],.editorjs-block.editorjs-media-text--spacing-bottom-20{--cms-editorjs-media-text-spacing-bottom:20px;--cms-editorjs-space-after:20px;margin-block-end:20px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="30"],.editorjs-block.editorjs-media-text--spacing-bottom-30{--cms-editorjs-media-text-spacing-bottom:30px;--cms-editorjs-space-after:30px;margin-block-end:30px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="40"],.editorjs-block.editorjs-media-text--spacing-bottom-40{--cms-editorjs-media-text-spacing-bottom:40px;--cms-editorjs-space-after:40px;margin-block-end:40px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="60"],.editorjs-block.editorjs-media-text--spacing-bottom-60{--cms-editorjs-media-text-spacing-bottom:60px;--cms-editorjs-space-after:60px;margin-block-end:60px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="80"],.editorjs-block.editorjs-media-text--spacing-bottom-80{--cms-editorjs-media-text-spacing-bottom:80px;--cms-editorjs-space-after:80px;margin-block-end:80px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="100"],.editorjs-block.editorjs-media-text--spacing-bottom-100{--cms-editorjs-media-text-spacing-bottom:100px;--cms-editorjs-space-after:100px;margin-block-end:100px!important}.editorjs-media-text--image-right{flex-direction:row-reverse}.editorjs-media-text--valign-top,.editorjs-media-text[data-vertical-alignment="top"]{--cms-editorjs-media-text-align-items:flex-start}.editorjs-media-text--valign-center,.editorjs-media-text[data-vertical-alignment="center"]{--cms-editorjs-media-text-align-items:center}.editorjs-media-text--valign-bottom,.editorjs-media-text[data-vertical-alignment="bottom"]{--cms-editorjs-media-text-align-items:flex-end}.editorjs-table{overflow-x:auto}.editorjs-spacer{--cms-editorjs-space-after:0rem;--cms-editorjs-spacer-height:40px;display:block!important;clear:both;width:100%;height:var(--cms-editorjs-spacer-height)!important;min-height:var(--cms-editorjs-spacer-height)!important;margin:0!important;padding:0!important;line-height:0;font-size:0;overflow:hidden}';
+                $criticalCss = '.editorjs-block{--cms-editorjs-default-space-after:1.1rem;--cms-editorjs-space-before:0rem;--cms-editorjs-space-after:var(--cms-editorjs-default-space-after);box-sizing:border-box;display:block;max-width:100%;margin-block-start:var(--cms-editorjs-space-before)!important;margin-block-end:var(--cms-editorjs-space-after)!important}.editorjs-block+.editorjs-block:not(.editorjs-media-text),.editorjs-block:first-child:not(.editorjs-media-text){margin-block-start:0!important}.editorjs-block:last-child:not(.editorjs-media-text){margin-block-end:0!important}.editorjs-image img,.editorjs-gallery img,.editorjs-carousel img,.editorjs-drawing img,.editorjs-media-text img{box-sizing:border-box;max-width:100%!important;height:auto!important}.editorjs-block.editorjs-media-text{--cms-editorjs-media-text-align-items:flex-start;--cms-editorjs-media-text-spacing-top:10px;--cms-editorjs-media-text-spacing-bottom:10px;--cms-editorjs-space-before:var(--cms-editorjs-media-text-spacing-top);--cms-editorjs-space-after:var(--cms-editorjs-media-text-spacing-bottom);display:flex;flex-wrap:wrap;align-items:var(--cms-editorjs-media-text-align-items,flex-start)!important;gap:1.5rem;margin-block-start:var(--cms-editorjs-media-text-spacing-top)!important;margin-block-end:var(--cms-editorjs-media-text-spacing-bottom)!important}.editorjs-block.editorjs-media-text[data-spacing-top="0"],.editorjs-block.editorjs-media-text--spacing-top-0{--cms-editorjs-media-text-spacing-top:0px;--cms-editorjs-space-before:0px;margin-block-start:0!important}.editorjs-block.editorjs-media-text[data-spacing-top="5"],.editorjs-block.editorjs-media-text--spacing-top-5{--cms-editorjs-media-text-spacing-top:5px;--cms-editorjs-space-before:5px;margin-block-start:5px!important}.editorjs-block.editorjs-media-text[data-spacing-top="10"],.editorjs-block.editorjs-media-text--spacing-top-10{--cms-editorjs-media-text-spacing-top:10px;--cms-editorjs-space-before:10px;margin-block-start:10px!important}.editorjs-block.editorjs-media-text[data-spacing-top="15"],.editorjs-block.editorjs-media-text--spacing-top-15{--cms-editorjs-media-text-spacing-top:15px;--cms-editorjs-space-before:15px;margin-block-start:15px!important}.editorjs-block.editorjs-media-text[data-spacing-top="20"],.editorjs-block.editorjs-media-text--spacing-top-20{--cms-editorjs-media-text-spacing-top:20px;--cms-editorjs-space-before:20px;margin-block-start:20px!important}.editorjs-block.editorjs-media-text[data-spacing-top="30"],.editorjs-block.editorjs-media-text--spacing-top-30{--cms-editorjs-media-text-spacing-top:30px;--cms-editorjs-space-before:30px;margin-block-start:30px!important}.editorjs-block.editorjs-media-text[data-spacing-top="40"],.editorjs-block.editorjs-media-text--spacing-top-40{--cms-editorjs-media-text-spacing-top:40px;--cms-editorjs-space-before:40px;margin-block-start:40px!important}.editorjs-block.editorjs-media-text[data-spacing-top="60"],.editorjs-block.editorjs-media-text--spacing-top-60{--cms-editorjs-media-text-spacing-top:60px;--cms-editorjs-space-before:60px;margin-block-start:60px!important}.editorjs-block.editorjs-media-text[data-spacing-top="80"],.editorjs-block.editorjs-media-text--spacing-top-80{--cms-editorjs-media-text-spacing-top:80px;--cms-editorjs-space-before:80px;margin-block-start:80px!important}.editorjs-block.editorjs-media-text[data-spacing-top="100"],.editorjs-block.editorjs-media-text--spacing-top-100{--cms-editorjs-media-text-spacing-top:100px;--cms-editorjs-space-before:100px;margin-block-start:100px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="0"],.editorjs-block.editorjs-media-text--spacing-bottom-0{--cms-editorjs-media-text-spacing-bottom:0px;--cms-editorjs-space-after:0px;margin-block-end:0!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="5"],.editorjs-block.editorjs-media-text--spacing-bottom-5{--cms-editorjs-media-text-spacing-bottom:5px;--cms-editorjs-space-after:5px;margin-block-end:5px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="10"],.editorjs-block.editorjs-media-text--spacing-bottom-10{--cms-editorjs-media-text-spacing-bottom:10px;--cms-editorjs-space-after:10px;margin-block-end:10px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="15"],.editorjs-block.editorjs-media-text--spacing-bottom-15{--cms-editorjs-media-text-spacing-bottom:15px;--cms-editorjs-space-after:15px;margin-block-end:15px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="20"],.editorjs-block.editorjs-media-text--spacing-bottom-20{--cms-editorjs-media-text-spacing-bottom:20px;--cms-editorjs-space-after:20px;margin-block-end:20px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="30"],.editorjs-block.editorjs-media-text--spacing-bottom-30{--cms-editorjs-media-text-spacing-bottom:30px;--cms-editorjs-space-after:30px;margin-block-end:30px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="40"],.editorjs-block.editorjs-media-text--spacing-bottom-40{--cms-editorjs-media-text-spacing-bottom:40px;--cms-editorjs-space-after:40px;margin-block-end:40px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="60"],.editorjs-block.editorjs-media-text--spacing-bottom-60{--cms-editorjs-media-text-spacing-bottom:60px;--cms-editorjs-space-after:60px;margin-block-end:60px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="80"],.editorjs-block.editorjs-media-text--spacing-bottom-80{--cms-editorjs-media-text-spacing-bottom:80px;--cms-editorjs-space-after:80px;margin-block-end:80px!important}.editorjs-block.editorjs-media-text[data-spacing-bottom="100"],.editorjs-block.editorjs-media-text--spacing-bottom-100{--cms-editorjs-media-text-spacing-bottom:100px;--cms-editorjs-space-after:100px;margin-block-end:100px!important}.editorjs-media-text--image-right{flex-direction:row-reverse}.editorjs-media-text--valign-top,.editorjs-media-text[data-vertical-alignment="top"]{--cms-editorjs-media-text-align-items:flex-start}.editorjs-media-text--valign-center,.editorjs-media-text[data-vertical-alignment="center"]{--cms-editorjs-media-text-align-items:center}.editorjs-media-text--valign-bottom,.editorjs-media-text[data-vertical-alignment="bottom"]{--cms-editorjs-media-text-align-items:flex-end}.editorjs-table{overflow-x:auto}.editorjs-spacer{--cms-editorjs-space-after:0rem;--cms-editorjs-spacer-height:40px;display:block!important;clear:both;width:100%;height:var(--cms-editorjs-spacer-height)!important;min-height:var(--cms-editorjs-spacer-height)!important;margin:0!important;padding:0!important;line-height:0;font-size:0;overflow:hidden}';
                 $criticalCss .= '.editorjs-spacer[data-height="0"]{--cms-editorjs-spacer-height:0px}.editorjs-spacer[data-height="8"]{--cms-editorjs-spacer-height:8px}.editorjs-spacer[data-height="10"]{--cms-editorjs-spacer-height:10px}.editorjs-spacer[data-height="15"]{--cms-editorjs-spacer-height:15px}.editorjs-spacer[data-height="16"]{--cms-editorjs-spacer-height:16px}.editorjs-spacer[data-height="24"]{--cms-editorjs-spacer-height:24px}.editorjs-spacer[data-height="25"]{--cms-editorjs-spacer-height:25px}.editorjs-spacer[data-height="32"]{--cms-editorjs-spacer-height:32px}.editorjs-spacer[data-height="40"]{--cms-editorjs-spacer-height:40px}.editorjs-spacer[data-height="48"]{--cms-editorjs-spacer-height:48px}.editorjs-spacer[data-height="56"]{--cms-editorjs-spacer-height:56px}.editorjs-spacer[data-height="60"]{--cms-editorjs-spacer-height:60px}.editorjs-spacer[data-height="64"]{--cms-editorjs-spacer-height:64px}.editorjs-spacer[data-height="72"]{--cms-editorjs-spacer-height:72px}.editorjs-spacer[data-height="75"]{--cms-editorjs-spacer-height:75px}.editorjs-spacer[data-height="80"]{--cms-editorjs-spacer-height:80px}.editorjs-spacer[data-height="96"]{--cms-editorjs-spacer-height:96px}.editorjs-spacer[data-height="100"]{--cms-editorjs-spacer-height:100px}.editorjs-spacer[data-height="120"]{--cms-editorjs-spacer-height:120px}.editorjs-spacer[data-height="140"]{--cms-editorjs-spacer-height:140px}.editorjs-spacer[data-height="150"]{--cms-editorjs-spacer-height:150px}.editorjs-spacer[data-height="160"]{--cms-editorjs-spacer-height:160px}.editorjs-spacer[data-height="180"]{--cms-editorjs-spacer-height:180px}.editorjs-spacer[data-height="200"]{--cms-editorjs-spacer-height:200px}';
                 echo '<style id="cms-editorjs-critical-css">' . $criticalCss . '</style>' . "\n";
                 echo '<link rel="preload" as="style" href="' . $href . '" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";

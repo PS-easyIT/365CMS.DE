@@ -12,7 +12,6 @@ namespace CMS\Routing;
 use CMS\Api;
 use CMS\Auth;
 use CMS\Database;
-use CMS\Http\Request;
 use CMS\Router;
 use CMS\Security;
 use CMS\Services;
@@ -123,10 +122,10 @@ final class ApiRouter
         $this->requireAdminCapability('manage_settings', 'Zugriff auf die Mailprotokolle verweigert');
         header('Content-Type: application/json; charset=utf-8');
 
-        $page = max(1, (int) Request::get('page', 1));
-        $limit = min(200, max(10, (int) Request::get('limit', 50)));
-        $search = $this->normalizeSearchFilter(Request::get('search', ''));
-        $status = $this->normalizeTextFilter(Request::get('status', ''), 32);
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $limit = min(200, max(10, (int)($_GET['limit'] ?? 50)));
+        $search = $this->normalizeSearchFilter($_GET['search'] ?? '');
+        $status = $this->normalizeTextFilter($_GET['status'] ?? '', 32);
 
         $result = Services\MailLogService::getInstance()->getRecent($limit, $page, $search, $status);
         echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -137,12 +136,12 @@ final class ApiRouter
     {
         $this->requireAdmin();
 
-        $token = (string) Request::post('csrf_token', Request::header('X-CSRF-Token', ''));
+        $token = (string)($_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
         if (!Security::instance()->verifyToken($token, 'admin_mail_api')) {
             $this->denyJson('Sicherheitsüberprüfung fehlgeschlagen.');
         }
 
-        $recipient = trim((string) Request::post('recipient', ''));
+        $recipient = trim((string)($_POST['recipient'] ?? ''));
         $result = Services\MailService::getInstance()->sendBackendTestEmail($recipient, 'admin-mail-api');
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -153,7 +152,7 @@ final class ApiRouter
     {
         $this->requireAdmin();
 
-        $token = (string) Request::post('csrf_token', Request::header('X-CSRF-Token', ''));
+        $token = (string)($_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
         if (!Security::instance()->verifyToken($token, 'admin_mail_api')) {
             $this->denyJson('Sicherheitsüberprüfung fehlgeschlagen.');
         }
@@ -186,16 +185,16 @@ final class ApiRouter
         $prefix = $db->getPrefix();
         $currentDateTime = date('Y-m-d H:i:s');
 
-        $page = max(1, (int) Request::get('page', 1));
-        $limit = min(100, max(5, (int) Request::get('limit', 20)));
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $limit = min(100, max(5, (int)($_GET['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
-        $search = $this->normalizeSearchFilter(Request::get('search', ''));
-        $status = trim((string) Request::get('status', 'all'));
-        $category = max(0, (int) Request::get('category', 0));
-        $sort = in_array(Request::get('sort', ''), ['title', 'status', 'published_at', 'views', 'updated_at', 'created_at'], true)
-            ? (string) Request::get('sort', '')
+        $search = $this->normalizeSearchFilter($_GET['search'] ?? '');
+        $status = trim((string)($_GET['status'] ?? 'all'));
+        $category = max(0, (int)($_GET['category'] ?? 0));
+        $sort = in_array($_GET['sort'] ?? '', ['title', 'status', 'published_at', 'views', 'updated_at', 'created_at'], true)
+            ? (string)$_GET['sort']
             : 'created_at';
-        $order = strtoupper((string) Request::get('order', 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
+        $order = strtoupper((string)($_GET['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
         $where = [];
         $params = [];
@@ -302,16 +301,16 @@ final class ApiRouter
         $db = Database::instance();
         $prefix = $db->getPrefix();
 
-        $page = max(1, (int) Request::get('page', 1));
-        $limit = min(100, max(5, (int) Request::get('limit', 20)));
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $limit = min(100, max(5, (int)($_GET['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
-        $search = $this->normalizeSearchFilter(Request::get('search', ''));
-        $status = $this->normalizeTextFilter(Request::get('status', ''), 32);
-        $category = max(0, (int) Request::get('category', 0));
-        $sort = in_array(Request::get('sort', ''), ['title', 'slug', 'status', 'updated_at', 'created_at'], true)
-            ? (string) Request::get('sort', '')
+        $search = $this->normalizeSearchFilter($_GET['search'] ?? '');
+        $status = $this->normalizeTextFilter($_GET['status'] ?? '', 32);
+        $category = max(0, (int)($_GET['category'] ?? 0));
+        $sort = in_array($_GET['sort'] ?? '', ['title', 'slug', 'status', 'updated_at', 'created_at'], true)
+            ? (string)$_GET['sort']
             : 'created_at';
-        $order = strtoupper((string) Request::get('order', 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
+        $order = strtoupper((string)($_GET['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
         $where = [];
         $params = [];
@@ -393,16 +392,16 @@ final class ApiRouter
         $db = Database::instance();
         $prefix = $db->getPrefix();
 
-        $page = max(1, (int) Request::get('page', 1));
-        $limit = min(100, max(5, (int) Request::get('limit', 20)));
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $limit = min(100, max(5, (int)($_GET['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
-        $search = $this->normalizeSearchFilter(Request::get('search', ''));
-        $role = $this->normalizeTextFilter(Request::get('role', 'all'), 64);
-        $status = $this->normalizeTextFilter(Request::get('status', ''), 32);
-        $sort = in_array(Request::get('sort', ''), ['username', 'email', 'display_name', 'role', 'status', 'created_at'], true)
-            ? (string) Request::get('sort', '')
+        $search = $this->normalizeSearchFilter($_GET['search'] ?? '');
+        $role = $this->normalizeTextFilter($_GET['role'] ?? 'all', 64);
+        $status = $this->normalizeTextFilter($_GET['status'] ?? '', 32);
+        $sort = in_array($_GET['sort'] ?? '', ['username', 'email', 'display_name', 'role', 'status', 'created_at'], true)
+            ? (string)$_GET['sort']
             : 'created_at';
-        $order = strtoupper((string) Request::get('order', 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
+        $order = strtoupper((string)($_GET['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
         $where = [];
         $params = [];
@@ -483,7 +482,7 @@ final class ApiRouter
 
         $hasOriginSignals = false;
         foreach (['HTTP_ORIGIN', 'HTTP_REFERER'] as $header) {
-            $value = trim((string) Request::server($header, ''));
+            $value = trim((string)($_SERVER[$header] ?? ''));
             if ($value === '') {
                 continue;
             }
@@ -502,9 +501,9 @@ final class ApiRouter
     private function consumeWebVitalsRateLimitToken(): bool
     {
         $window = (int) floor(time() / self::WEB_VITALS_RATE_LIMIT_WINDOW_SECONDS);
-        $ip = trim((string) Request::server('REMOTE_ADDR', ''));
+        $ip = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
         $session = session_id();
-        $userAgent = trim((string) Request::server('HTTP_USER_AGENT', ''));
+        $userAgent = trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
         $fingerprint = hash('sha256', $ip . '|' . $session . '|' . mb_substr($userAgent, 0, 180));
         $cacheFile = rtrim((string) sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
             . '365cms-web-vitals-rate-' . hash('sha256', ABSPATH) . '.json';

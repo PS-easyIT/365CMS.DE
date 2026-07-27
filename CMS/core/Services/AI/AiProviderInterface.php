@@ -18,14 +18,15 @@ interface AiProviderInterface
     public function getDefaultModel(): string;
 
     /**
+     * @param list<array{role:string,content:string}> $messages
+     * @param array<string, mixed> $options
+     */
+    public function complete(array $messages, array $options = []): string;
+
+    /**
      * @param list<string> $segments
      * @param array<string, mixed> $context
      * @return list<string>
      */
     public function translateBatch(array $segments, array $context = []): array;
-
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function generateText(string $systemPrompt, string $userPrompt, array $context = []): string;
 }

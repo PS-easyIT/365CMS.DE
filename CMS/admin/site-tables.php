@@ -182,6 +182,9 @@ function cms_admin_site_tables_page_assets(string $viewAction): array
     }
 
     return [
+        'css' => [
+            cms_asset_url('css/admin-site-tables.css'),
+        ],
         'js' => [
             cms_asset_url('js/admin-site-tables.js'),
         ],

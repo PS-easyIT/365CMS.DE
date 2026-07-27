@@ -7,10 +7,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-use CMS\AuditLogger;
 use CMS\Database;
 use CMS\Debug;
-use CMS\Logger;
 use CMS\Security;
 use PDO;
 
@@ -23,9 +21,6 @@ use PDO;
 class SystemService {
     private static ?SystemService $instance = null;
     private Database $db;
-    private const MAX_INLINE_MAINTENANCE_TABLES = 10;
-    private const MAX_INLINE_MAINTENANCE_ROWS = 100000;
-    private const MAX_INLINE_MAINTENANCE_BYTES = 268435456; // 256 MiB
     
     /**
      * Get singleton instance
@@ -540,17 +535,11 @@ class SystemService {
         $prefix = $this->db->getPrefix();
         $supportedEngines = ['MYISAM', 'ARCHIVE', 'CSV'];
         $results = [];
-        $processedTables = 0;
 
         foreach ($this->getCmsTableMaintenanceTargets() as $target) {
             $tableName = (string)($target['table_name'] ?? '');
             $engine = strtoupper((string)($target['engine'] ?? ''));
             $key = str_starts_with($tableName, $prefix) ? substr($tableName, strlen($prefix)) : $tableName;
-
-            if ($processedTables >= self::MAX_INLINE_MAINTENANCE_TABLES) {
-                $results[$key] = $this->buildSkippedMaintenanceResult('REPAIR', 'Inline-Limit erreicht. Weitere Tabellen bitte per Job/CLI warten.');
-                continue;
-            }
 
             if (!in_array($engine, $supportedEngines, true)) {
                 $results[$key] = [
@@ -561,14 +550,7 @@ class SystemService {
                 continue;
             }
 
-            $skipReason = $this->getInlineMaintenanceSkipReason($target, 'REPAIR');
-            if ($skipReason !== null) {
-                $results[$key] = $this->buildSkippedMaintenanceResult('REPAIR', $skipReason);
-                continue;
-            }
-
             $results[$key] = $this->runTableMaintenanceStatement('REPAIR', $tableName);
-            $processedTables++;
         }
 
         return $results;
@@ -581,17 +563,11 @@ class SystemService {
         $prefix = $this->db->getPrefix();
         $supportedEngines = ['INNODB', 'MYISAM', 'ARCHIVE'];
         $results = [];
-        $processedTables = 0;
 
         foreach ($this->getCmsTableMaintenanceTargets() as $target) {
             $tableName = (string)($target['table_name'] ?? '');
             $engine = strtoupper((string)($target['engine'] ?? ''));
             $key = str_starts_with($tableName, $prefix) ? substr($tableName, strlen($prefix)) : $tableName;
-
-            if ($processedTables >= self::MAX_INLINE_MAINTENANCE_TABLES) {
-                $results[$key] = $this->buildSkippedMaintenanceResult('OPTIMIZE', 'Inline-Limit erreicht. Weitere Tabellen bitte per Job/CLI warten.');
-                continue;
-            }
 
             if (!in_array($engine, $supportedEngines, true)) {
                 $results[$key] = [
@@ -602,31 +578,21 @@ class SystemService {
                 continue;
             }
 
-            $skipReason = $this->getInlineMaintenanceSkipReason($target, 'OPTIMIZE');
-            if ($skipReason !== null) {
-                $results[$key] = $this->buildSkippedMaintenanceResult('OPTIMIZE', $skipReason);
-                continue;
-            }
-
             $results[$key] = $this->runTableMaintenanceStatement('OPTIMIZE', $tableName);
-            $processedTables++;
         }
 
         return $results;
     }
 
     /**
-     * @return list<array{table_name:string,engine:?string,table_rows:int,data_length:int,index_length:int}>
+     * @return list<array{table_name:string,engine:?string}>
      */
     private function getCmsTableMaintenanceTargets(): array {
         $pdo = $this->db->getConnection();
         $prefix = $this->db->getPrefix();
 
         $stmt = $pdo->prepare(
-            "SELECT table_name, engine,
-                    COALESCE(table_rows, 0) AS table_rows,
-                    COALESCE(data_length, 0) AS data_length,
-                    COALESCE(index_length, 0) AS index_length
+            "SELECT table_name, engine
              FROM information_schema.tables
              WHERE table_schema = DATABASE()
                AND table_type = 'BASE TABLE'
@@ -640,201 +606,50 @@ class SystemService {
     }
 
     /**
-     * @param array<string,mixed> $target
-     */
-    private function getInlineMaintenanceSkipReason(array $target, string $operation): ?string
-    {
-        $rows = max(0, (int)($target['table_rows'] ?? 0));
-        $bytes = max(0, (int)($target['data_length'] ?? 0)) + max(0, (int)($target['index_length'] ?? 0));
-        $operation = strtoupper($operation) === 'REPAIR' ? 'REPAIR' : 'OPTIMIZE';
-
-        if ($rows > self::MAX_INLINE_MAINTENANCE_ROWS) {
-            return sprintf(
-                '%s TABLE inline übersprungen: %d geschätzte Zeilen überschreiten das Limit von %d. Bitte per Job/CLI ausführen.',
-                $operation,
-                $rows,
-                self::MAX_INLINE_MAINTENANCE_ROWS
-            );
-        }
-
-        if ($bytes > self::MAX_INLINE_MAINTENANCE_BYTES) {
-            return sprintf(
-                '%s TABLE inline übersprungen: Tabellengröße überschreitet 256 MiB. Bitte per Job/CLI ausführen.',
-                $operation
-            );
-        }
-
-        return null;
-    }
-
-    /**
-     * @return array{success:bool,skipped:bool,message:string}
-     */
-    private function buildSkippedMaintenanceResult(string $operation, string $message): array
-    {
-        return [
-            'success' => false,
-            'skipped' => true,
-            'message' => $message,
-        ];
-    }
-
-    /**
      * @return array{success:bool,message:string,details?:list<array<string,mixed>>}
      */
     private function runTableMaintenanceStatement(string $operation, string $tableName): array {
         $pdo = $this->db->getConnection();
         $operation = strtoupper($operation) === 'REPAIR' ? 'REPAIR' : 'OPTIMIZE';
 
-        $normalizedTableName = $this->normalizeMaintenanceTableName($tableName);
-        if ($normalizedTableName === null) {
-            $this->logMaintenanceResult($operation, $tableName, false, [
-                ['status' => 'error', 'message' => 'Ungültiger Tabellenname für Wartungsoperation.']
-            ]);
-
-            return [
-                'success' => false,
-                'message' => 'Ungültiger Tabellenname für Wartungsoperation.',
-                'details' => [],
-            ];
-        }
-
         try {
-            $statement = sprintf('%s TABLE %s', $operation, $this->quoteIdentifier($normalizedTableName));
-            $result = $pdo->query($statement);
-            $rows = $result instanceof \PDOStatement ? $result->fetchAll(PDO::FETCH_ASSOC) : [];
-            $rows = is_array($rows) ? $rows : [];
+            $result = $pdo->query($operation . ' TABLE ' . $this->quoteIdentifier($tableName));
+            $rows = $result ? $result->fetchAll(PDO::FETCH_ASSOC) : [];
 
             if ($rows === []) {
-                $details = [[
-                    'table' => $normalizedTableName,
-                    'operation' => $operation,
-                    'status' => 'warning',
-                    'msg_type' => 'notice',
-                    'msg_text' => 'Keine Detailzeilen vom Datenbanktreiber zurückgegeben.',
-                ]];
-
-                $this->logMaintenanceResult($operation, $normalizedTableName, true, $details);
-
                 return [
-                    'success' => true,
-                    'message' => 'Wartungsbefehl ausgeführt (ohne Detailzeilen des Treibers).',
-                    'details' => $details,
+                    'success' => false,
+                    'message' => $operation === 'REPAIR' ? 'Repair fehlgeschlagen' : 'Optimierung fehlgeschlagen'
                 ];
             }
 
             $messages = [];
             $hasError = false;
-            $hasWarning = false;
-            $normalizedRows = [];
             foreach ($rows as $row) {
                 $msgType = strtolower((string)($row['Msg_type'] ?? ''));
                 $msgText = trim((string)($row['Msg_text'] ?? ''));
-
-                $status = 'ok';
                 if ($msgType === 'error') {
                     $hasError = true;
-                    $status = 'error';
-                } elseif (in_array($msgType, ['warning', 'note'], true)) {
-                    $hasWarning = true;
-                    $status = 'warning';
                 }
-
                 if ($msgText !== '') {
                     $messages[] = $msgText;
                 }
-
-                $normalizedRows[] = [
-                    'table' => (string)($row['Table'] ?? $normalizedTableName),
-                    'operation' => $operation,
-                    'status' => $status,
-                    'msg_type' => $msgType !== '' ? $msgType : 'info',
-                    'msg_text' => $msgText !== '' ? $msgText : 'OK',
-                ];
             }
-
-            $message = $messages !== [] ? implode(' | ', array_values(array_unique($messages))) : 'OK';
-            $success = !$hasError;
-
-            if ($success && $hasWarning && $message === 'OK') {
-                $message = 'Wartung abgeschlossen (mit Hinweisen).';
-            }
-
-            $this->logMaintenanceResult($operation, $normalizedTableName, $success, $normalizedRows);
 
             return [
-                'success' => $success,
-                'message' => $message,
-                'details' => $normalizedRows,
+                'success' => !$hasError,
+                'message' => $messages !== [] ? implode(' | ', $messages) : 'OK',
+                'details' => $rows,
             ];
-        } catch (\Throwable $e) {
-            $this->logMaintenanceResult($operation, $normalizedTableName, false, [
-                ['status' => 'error', 'message' => $e->getMessage()]
-            ]);
-
+        } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => $e->getMessage(),
-                'details' => [],
+                'message' => $e->getMessage()
             ];
-        }
-    }
-
-    private function normalizeMaintenanceTableName(string $tableName): ?string
-    {
-        $tableName = trim($tableName);
-        if ($tableName === '' || preg_match('/^[A-Za-z0-9_]+$/', $tableName) !== 1) {
-            return null;
-        }
-
-        $prefix = $this->db->getPrefix();
-        if ($prefix !== '' && !str_starts_with($tableName, $prefix)) {
-            return null;
-        }
-
-        return $tableName;
-    }
-
-    /**
-     * @param array<int, array<string,mixed>> $details
-     */
-    private function logMaintenanceResult(string $operation, string $tableName, bool $success, array $details): void
-    {
-        $action = strtolower($operation) === 'repair' ? 'system.db.repair' : 'system.db.optimize';
-        $message = sprintf('%s TABLE %s: %s', $operation, $tableName, $success ? 'OK' : 'Fehler');
-
-        if (class_exists(AuditLogger::class)) {
-            AuditLogger::instance()->log(
-                AuditLogger::CAT_SYSTEM,
-                $action,
-                $message,
-                'database-table',
-                null,
-                [
-                    'table' => $tableName,
-                    'operation' => $operation,
-                    'success' => $success,
-                    'details' => $details,
-                ],
-                $success ? 'info' : 'warning'
-            );
-        }
-
-        if (class_exists(Logger::class)) {
-            $logger = Logger::instance()->withChannel('system.maintenance');
-            if ($success) {
-                $logger->info($message, ['table' => $tableName, 'operation' => $operation]);
-            } else {
-                $logger->warning($message, ['table' => $tableName, 'operation' => $operation]);
-            }
         }
     }
 
     private function quoteIdentifier(string $identifier): string {
-        if (preg_match('/^[A-Za-z0-9_]+$/', $identifier) !== 1) {
-            throw new \InvalidArgumentException('Ungültiger SQL-Identifier für Wartungsoperation.');
-        }
-
         return '`' . str_replace('`', '``', $identifier) . '`';
     }
     

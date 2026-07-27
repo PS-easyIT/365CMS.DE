@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuelle Benutzerverwaltung mit dynamischen Rollen, Gruppen und Rechtezuordnung.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
 
 Der Bereich ist im aktuellen Stand auf vier Hauptbereiche verteilt:
 

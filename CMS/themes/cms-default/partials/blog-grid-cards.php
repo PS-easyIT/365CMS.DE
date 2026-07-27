@@ -95,6 +95,7 @@ $svgs = [
             <?php endif; ?>
             <div class="card-footer">
                 <?php if ($gDate): ?><time><?php echo $gDate; ?></time><?php endif; ?>
+                <?php echo meridian_post_update_badge($item); ?>
                 <a href="<?php echo SITE_URL; ?>/blog/<?php echo $gSlug; ?>" class="read-link">Lesen →</a>
             </div>
         </div>

@@ -309,10 +309,48 @@
         return column;
     }
 
+    function createCardHeaderBar(index, totalCount) {
+        var header = createElement('div', 'hub-card-item-header d-flex align-items-center justify-content-between gap-2 mb-2 pb-2 border-bottom');
+        var start = createElement('div', 'd-flex align-items-center gap-2');
+        var handle = createElement('span', 'hub-card-drag-handle', '⇅');
+        var label = createElement('span', 'fw-semibold small text-secondary', 'Kachel ' + (index + 1));
+        var moveGroup = createElement('div', 'btn-group btn-group-sm');
+        var upButton = createElement('button', 'btn btn-outline-secondary', '↑');
+        var downButton = createElement('button', 'btn btn-outline-secondary', '↓');
+
+        handle.setAttribute('data-card-drag-handle', '1');
+        handle.setAttribute('draggable', 'true');
+        handle.setAttribute('role', 'button');
+        handle.setAttribute('tabindex', '0');
+        handle.setAttribute('title', 'Zum Sortieren ziehen');
+        handle.setAttribute('aria-label', 'Kachel ' + (index + 1) + ' zum Sortieren ziehen');
+
+        upButton.type = 'button';
+        downButton.type = 'button';
+        upButton.disabled = index === 0;
+        downButton.disabled = index === totalCount - 1;
+        upButton.setAttribute('aria-label', 'Kachel ' + (index + 1) + ' nach oben verschieben');
+        downButton.setAttribute('aria-label', 'Kachel ' + (index + 1) + ' nach unten verschieben');
+        setDataAttributes(upButton, { index: index, cardMove: 'up' });
+        setDataAttributes(downButton, { index: index, cardMove: 'down' });
+
+        start.appendChild(handle);
+        start.appendChild(label);
+        moveGroup.appendChild(upButton);
+        moveGroup.appendChild(downButton);
+        header.appendChild(start);
+        header.appendChild(moveGroup);
+
+        return header;
+    }
+
     function createCardItemNode(card, index, options) {
-        var wrapper = createElement('div', 'border-bottom p-3');
+        var wrapper = createElement('div', 'border-bottom p-3 hub-card-item');
         var row = createElement('div', 'row g-2');
         var suffix = options.activeLanguage === 'en' ? ' (EN)' : '';
+
+        wrapper.dataset.cardIndex = String(index);
+        wrapper.appendChild(createCardHeaderBar(index, options.totalCount));
 
         row.appendChild(createFeatureToggleColumn(index, card, options.featureSupported));
         row.appendChild(createFieldColumn(
@@ -377,6 +415,7 @@
         var initialTemplateValue;
         var activeLanguage = 'de';
         var summaryEditors = new Map();
+        var dragCard = null;
 
         if (!form) {
             return;
@@ -1071,6 +1110,30 @@
             render();
         }
 
+        function cardNodes() {
+            return Array.prototype.slice.call(container.children).filter(function (node) {
+                return node.classList && node.classList.contains('hub-card-item');
+            });
+        }
+
+        function clearCardDropTargets() {
+            cardNodes().forEach(function (node) {
+                node.classList.remove('is-drop-target');
+            });
+        }
+
+        function moveCard(fromIndex, toIndex) {
+            var moved;
+
+            if (fromIndex < 0 || fromIndex >= cards.length || toIndex < 0 || toIndex >= cards.length || fromIndex === toIndex) {
+                return;
+            }
+
+            moved = cards.splice(fromIndex, 1)[0];
+            cards.splice(toIndex, 0, moved);
+            render();
+        }
+
         function render() {
             var schema = getCardSchema();
             var templateKey = templateSelect ? templateSelect.value : initialTemplateValue;
@@ -1097,6 +1160,7 @@
                 activeLanguage: activeLanguage,
                 featureSupported: featureSupported,
                 schema: schema,
+                totalCount: cards.length,
                 titleKey: titleKey,
                 badgeKey: badgeKey,
                 metaKey: metaKey,
@@ -1200,17 +1264,97 @@
         });
 
         container.addEventListener('click', function (event) {
-            var button = event.target.closest('.remove-card');
+            var moveButton = event.target.closest('[data-card-move]');
+            var removeButton;
             var index;
-            if (!button) {
+
+            if (moveButton) {
+                index = parseInt(moveButton.dataset.index || '-1', 10);
+                if (index < 0) {
+                    return;
+                }
+                moveCard(index, moveButton.dataset.cardMove === 'up' ? index - 1 : index + 1);
                 return;
             }
-            index = parseInt(button.dataset.index || '-1', 10);
+
+            removeButton = event.target.closest('.remove-card');
+            if (!removeButton) {
+                return;
+            }
+            index = parseInt(removeButton.dataset.index || '-1', 10);
             if (index < 0) {
                 return;
             }
             cards.splice(index, 1);
             render();
+        });
+
+        container.addEventListener('dragstart', function (event) {
+            var handle = event.target.closest('[data-card-drag-handle]');
+            var card = handle ? handle.closest('.hub-card-item') : null;
+
+            if (!handle || !card) {
+                event.preventDefault();
+                return;
+            }
+
+            dragCard = card;
+            card.classList.add('is-dragging');
+
+            if (event.dataTransfer) {
+                event.dataTransfer.clearData();
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', card.dataset.cardIndex || '');
+            }
+        });
+
+        container.addEventListener('dragend', function () {
+            if (dragCard) {
+                dragCard.classList.remove('is-dragging');
+            }
+            clearCardDropTargets();
+            dragCard = null;
+        });
+
+        container.addEventListener('dragover', function (event) {
+            var card = event.target.closest('.hub-card-item');
+            if (!dragCard || !card || card === dragCard) {
+                return;
+            }
+
+            event.preventDefault();
+            clearCardDropTargets();
+            card.classList.add('is-drop-target');
+
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'move';
+            }
+        });
+
+        container.addEventListener('drop', function (event) {
+            var card = event.target.closest('.hub-card-item');
+            var nodes;
+            var fromIndex;
+            var toIndex;
+
+            event.preventDefault();
+            clearCardDropTargets();
+
+            if (!dragCard || !card || card === dragCard) {
+                dragCard = null;
+                return;
+            }
+
+            nodes = cardNodes();
+            fromIndex = nodes.indexOf(dragCard);
+            toIndex = nodes.indexOf(card);
+            dragCard = null;
+
+            if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+                return;
+            }
+
+            moveCard(fromIndex, toIndex);
         });
 
         cards = cards.map(function (card) {

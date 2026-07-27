@@ -1,7 +1,7 @@
 # 365CMS – Landing Page Builder
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-06-10 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Überblick
 

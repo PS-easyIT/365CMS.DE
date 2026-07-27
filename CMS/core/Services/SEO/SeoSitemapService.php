@@ -212,10 +212,10 @@ final class SeoSitemapService
         ]];
 
         $rows = $this->db->get_results(
-            "SELECT id, slug, updated_at
+            "SELECT id, slug, title, updated_at
              FROM {$this->prefix}pages
              WHERE status = 'published'
-             ORDER BY updated_at DESC"
+             ORDER BY title ASC"
         ) ?: [];
 
         foreach ($rows as $row) {
@@ -246,7 +246,7 @@ final class SeoSitemapService
             "SELECT id, slug, updated_at, published_at, created_at
              FROM {$this->prefix}posts
                WHERE " . \cms_post_publication_where() . "
-             ORDER BY updated_at DESC"
+             ORDER BY COALESCE(published_at, created_at) DESC"
         ) ?: [];
 
         $entries = [];
@@ -283,7 +283,8 @@ final class SeoSitemapService
             "SELECT p.id, p.slug, p.updated_at, p.title, p.featured_image, sm.og_image
              FROM {$this->prefix}pages p
              LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'page' AND sm.content_id = p.id
-             WHERE p.status = 'published'"
+             WHERE p.status = 'published'
+             ORDER BY p.title ASC"
         ) ?: [];
 
         foreach ($pages as $page) {
@@ -306,7 +307,8 @@ final class SeoSitemapService
             "SELECT p.id, p.slug, p.updated_at, p.published_at, p.created_at, p.title, p.featured_image, sm.og_image
              FROM {$this->prefix}posts p
              LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'post' AND sm.content_id = p.id
-               WHERE " . \cms_post_publication_where('p') . ""
+               WHERE " . \cms_post_publication_where('p') . "
+             ORDER BY COALESCE(p.published_at, p.created_at) DESC"
         ) ?: [];
 
         foreach ($posts as $post) {
@@ -341,7 +343,7 @@ final class SeoSitemapService
             "SELECT slug, title, updated_at, published_at, created_at
              FROM {$this->prefix}posts
                WHERE " . \cms_post_publication_where() . "
-             ORDER BY updated_at DESC
+             ORDER BY COALESCE(published_at, created_at) DESC
              LIMIT 100"
         ) ?: [];
 

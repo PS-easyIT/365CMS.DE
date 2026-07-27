@@ -14,7 +14,6 @@ final class OpenAiCompatibleProvider extends AbstractPromptingAiProvider
     private Client $httpClient;
     private string $endpoint;
     private string $apiKey;
-    private string $providerLabel;
     private int $timeoutSeconds;
 
     public function __construct(
@@ -24,8 +23,7 @@ final class OpenAiCompatibleProvider extends AbstractPromptingAiProvider
         string $endpoint,
         string $apiKey,
         Client $httpClient,
-        int $timeoutSeconds,
-        string $providerLabel = 'OpenAI-kompatibler Provider'
+        int $timeoutSeconds
     ) {
         parent::__construct($providerId, $label, $defaultModel);
 
@@ -33,7 +31,52 @@ final class OpenAiCompatibleProvider extends AbstractPromptingAiProvider
         $this->apiKey = trim($apiKey);
         $this->httpClient = $httpClient;
         $this->timeoutSeconds = max(5, $timeoutSeconds);
-        $this->providerLabel = trim($providerLabel) !== '' ? trim($providerLabel) : 'OpenAI-kompatibler Provider';
+    }
+
+    /**
+     * @param list<array{role:string,content:string}> $messages
+     * @param array<string, mixed> $options
+     */
+    public function complete(array $messages, array $options = []): string
+    {
+        $payload = [
+            'model' => $this->getDefaultModel(),
+            'messages' => $messages,
+            'temperature' => (float) ($options['temperature'] ?? 0.2),
+        ];
+
+        $response = $this->httpClient->post(
+            $this->endpoint . '/chat/completions',
+            (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            [
+                'headers' => [
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                    'Authorization: Bearer ' . $this->apiKey,
+                ],
+                'timeout' => $this->timeoutSeconds,
+                'connectTimeout' => min(5, $this->timeoutSeconds),
+                'maxBytes' => 2 * 1024 * 1024,
+                'allowedContentTypes' => ['application/json', 'text/plain'],
+            ]
+        );
+
+        if (!$response['success']) {
+            throw new \RuntimeException($this->buildTransportError($response));
+        }
+
+        try {
+            $decoded = json_decode((string) $response['body'], true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            throw new \RuntimeException($this->getLabel() . ' lieferte keine gültige JSON-Antwort zurück.');
+        }
+
+        $content = $this->extractAssistantContent($decoded);
+        if ($content === '') {
+            throw new \RuntimeException($this->getLabel() . ' lieferte keine verwertbare Antwort zurück.');
+        }
+
+        return $content;
     }
 
     /**
@@ -47,123 +90,15 @@ final class OpenAiCompatibleProvider extends AbstractPromptingAiProvider
             return [];
         }
 
-        if ($this->endpoint === '') {
-            throw new \RuntimeException($this->providerLabel . ': Endpoint fehlt.');
-        }
-
-        if ($this->apiKey === '') {
-            throw new \RuntimeException($this->providerLabel . ': API-Key fehlt.');
-        }
-
         $prompt = $this->buildTranslationPrompt($segments, $context);
-        $payload = [
-            'model' => $this->getDefaultModel(),
-            'messages' => [
-                ['role' => 'system', 'content' => $prompt['system']],
-                ['role' => 'user', 'content' => $prompt['user']],
-            ],
+        $content = $this->complete([
+            ['role' => 'system', 'content' => $prompt['system']],
+            ['role' => 'user', 'content' => $prompt['user']],
+        ], [
             'temperature' => 0.1,
-            'response_format' => ['type' => 'json_object'],
-        ];
-
-        $response = $this->httpClient->post(
-            $this->buildRequestUrl(),
-            (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            [
-                'headers' => [
-                    'Content-Type: application/json',
-                    'Accept: application/json',
-                    'Authorization: Bearer ' . $this->apiKey,
-                ],
-                'timeout' => $this->timeoutSeconds,
-                'connectTimeout' => min(5, $this->timeoutSeconds),
-                'maxBytes' => 2 * 1024 * 1024,
-                'allowedContentTypes' => ['application/json', 'text/plain'],
-            ]
-        );
-
-        if (!$response['success']) {
-            throw new \RuntimeException($this->buildTransportError($response));
-        }
-
-        try {
-            $decoded = json_decode((string) $response['body'], true, 512, JSON_THROW_ON_ERROR);
-        } catch (\Throwable) {
-            throw new \RuntimeException($this->providerLabel . ' lieferte keine gültige JSON-Antwort zurück.');
-        }
-
-        $content = $this->extractAssistantContent($decoded);
-        if ($content === '') {
-            throw new \RuntimeException($this->providerLabel . ' lieferte keine verwertbare Übersetzungsantwort zurück.');
-        }
+        ]);
 
         return $this->extractTranslationsFromResponse($content, $segments);
-    }
-
-    /** @param array<string, mixed> $context */
-    public function generateText(string $systemPrompt, string $userPrompt, array $context = []): string
-    {
-        if ($this->endpoint === '') {
-            throw new \RuntimeException($this->providerLabel . ': Endpoint fehlt.');
-        }
-
-        if ($this->apiKey === '') {
-            throw new \RuntimeException($this->providerLabel . ': API-Key fehlt.');
-        }
-
-        $payload = [
-            'model' => $this->getDefaultModel(),
-            'messages' => [
-                ['role' => 'system', 'content' => $systemPrompt],
-                ['role' => 'user', 'content' => $userPrompt],
-            ],
-            'temperature' => max(0.0, min(1.0, (float) ($context['temperature'] ?? 0.2))),
-            'response_format' => ['type' => 'json_object'],
-        ];
-
-        $response = $this->httpClient->post(
-            $this->buildRequestUrl(),
-            (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            [
-                'headers' => [
-                    'Content-Type: application/json',
-                    'Accept: application/json',
-                    'Authorization: Bearer ' . $this->apiKey,
-                ],
-                'timeout' => $this->timeoutSeconds,
-                'connectTimeout' => min(5, $this->timeoutSeconds),
-                'maxBytes' => 2 * 1024 * 1024,
-                'allowedContentTypes' => ['application/json', 'text/plain'],
-            ]
-        );
-
-        if (!$response['success']) {
-            throw new \RuntimeException($this->buildTransportError($response));
-        }
-
-        try {
-            $decoded = json_decode((string) $response['body'], true, 512, JSON_THROW_ON_ERROR);
-        } catch (\Throwable) {
-            throw new \RuntimeException($this->providerLabel . ' lieferte keine gültige JSON-Antwort zurück.');
-        }
-
-        $content = $this->extractAssistantContent($decoded);
-        if ($content === '') {
-            throw new \RuntimeException($this->providerLabel . ' lieferte keine verwertbare Generierungsantwort zurück.');
-        }
-
-        return $content;
-    }
-
-    private function buildRequestUrl(): string
-    {
-        $endpoint = rtrim($this->endpoint, '/');
-
-        if (preg_match('#/chat/completions$#i', $endpoint) === 1) {
-            return $endpoint;
-        }
-
-        return $endpoint . '/chat/completions';
     }
 
     /** @param array<string, mixed> $payload */
@@ -207,8 +142,6 @@ final class OpenAiCompatibleProvider extends AbstractPromptingAiProvider
             }
         }
 
-        $message = $message !== '' ? $message : $this->providerLabel . '-Request ist fehlgeschlagen.';
-
-        return $this->providerLabel . ': ' . $message;
+        return $this->getLabel() . ': ' . ($message !== '' ? $message : 'AI-Request ist fehlgeschlagen.');
     }
 }

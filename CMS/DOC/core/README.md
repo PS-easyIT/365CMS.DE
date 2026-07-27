@@ -1,12 +1,12 @@
 # CMS Core – Übersicht
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Verzeichnisstruktur](#verzeichnisstruktur)
 - [Wichtige Muster](#wichtige-muster)
 - [Dokumentation](#dokumentation)
 
-<!-- UPDATED: 2026-06-10 -->
+<!-- UPDATED: 2026-04-07 -->
 
 Das `core/`-Verzeichnis enthält alle Kernklassen des 365CMS.  
 Die meisten Klassen folgen dem **Singleton-Pattern** und sind über PSR-4 autogeladen.
@@ -42,15 +42,6 @@ core/
 ├── VendorRegistry.php        Registry für produktive Bundles und Plattformprüfung
 ├── Version.php               Zentrale Release-Konstanten (Version, Datum, Status)
 ├── WP_Error.php              WordPress-kompatible Fehlerklasse
-├── Auth/
-│   ├── AuthManager.php              Orchestriert Login-Strategien (Passwort, LDAP, MFA, Passkey)
-│   ├── LDAP/
-│   │   └── LdapAuthProvider.php     LDAP / Active Directory (LdapRecord)
-│   ├── MFA/
-│   │   ├── BackupCodesManager.php   Einmal-Backup-Codes für 2FA
-│   │   └── TotpAdapter.php          TOTP-Adapter (RFC 6238)
-│   └── Passkey/
-│       └── WebAuthnAdapter.php      Passkeys / WebAuthn (passwortlose Anmeldung)
 ├── Contracts/
 │   ├── CacheInterface.php    PSR-16-ähnlicher Cache-Contract
 │   ├── DatabaseInterface.php Datenbank-Abstraktions-Contract
@@ -60,51 +51,52 @@ core/
 ├── Member/
 │   └── PluginDashboardRegistry.php  Plugin-Bereiche im Member-Dashboard
 ├── Routing/
-│   ├── AdminRouter.php           Teilrouter für Admin- und AJAX-Einstiege
-│   ├── ApiRouter.php             API-/Upload-/Medien-Routen
-│   ├── MemberRouter.php          Member-Dashboard- und Plugin-Routen
-│   ├── PublicRouter.php          Public-Routen inkl. Archive, Kommentare und Sitemaps
-│   ├── ThemeArchiveRepository.php Archiv-/Listen-Abfragen für Theme-Frontend
-│   └── ThemeRouter.php           Theme-spezifische Frontend-Dispatching-Hilfe
-└── Services/                     (~60 Service-Klassen; Auszug nach Themen)
-    │  # Inhalte & Editor
-    ├── EditorJsRenderer.php · EditorJsService.php · EditorService.php · SiteTableService.php
-    ├── PermalinkService.php · ContentLocalizationService.php · ContentMediaPlacementService.php
-    │  # Medien
-    ├── MediaService.php · MediaDeliveryService.php · MediaUsageService.php · ImageService.php
-    ├── FileUploadService.php · AssetOptimizerService.php · OpcacheWarmupService.php
-    │  # SEO & Feeds
-    ├── SEOService.php · SeoAnalysisService.php · SeoBrokenLinkService.php · SeoTrendService.php
-    ├── SitemapService.php · IndexingService.php · FeedService.php · PermalinkService.php
-    │  # Mail & Azure/Graph
-    ├── MailService.php · MailQueueService.php · MailLogService.php
-    ├── AzureMailTokenProvider.php · GraphApiService.php · JwtService.php
-    │  # Sicherheit & Recht
-    ├── SecurityRuntimeService.php · SecurityAlertService.php · AntispamService.php
-    ├── CookieConsentService.php · PurifierService.php
-    │  # System, Monitoring & Updates
-    ├── StatusService.php · SystemService.php · MonitoringTrendService.php
-    ├── PerformanceSafetyNetService.php · CoreWebVitalsService.php · BackupService.php
-    ├── UpdateService.php · SettingsService.php · CoreModuleService.php · ErrorReportService.php
-    ├── CronRunnerService.php · CronExpressionAdapter.php
-    │  # Mitglieder, Nutzer & Nachrichten
-    ├── MemberService.php · UserService.php · MessageService.php · CommentService.php
-    │  # Dashboard, Analytics & Tracking
-    ├── DashboardService.php · AnalyticsService.php · TrackingService.php · FeatureUsageService.php
-    │  # Design, Suche, Auth-Seiten, i18n, PDF, Redirects, Landing
-    ├── ThemeCustomizer.php · LandingPageService.php · SearchService.php · CmsAuthPageService.php
-    ├── TranslationService.php · PdfService.php · RedirectService.php
-    │  # Unterordner mit weiterer Fachlogik
-    └── AI/  ·  EditorJs/  ·  Landing/  ·  Media/  ·  SEO/  ·  SiteTable/
+│   ├── AdminRouter.php       Teilrouter für Admin- und AJAX-Einstiege
+│   ├── ApiRouter.php         API-/Upload-/Medien-Routen
+│   ├── MemberRouter.php      Member-Dashboard- und Plugin-Routen
+│   ├── PublicRouter.php      Public-Routen inkl. Archive, Kommentare und Sitemaps
+│   └── ThemeRouter.php       Theme-spezifische Frontend-Dispatching-Hilfe
+└── Services/
+    ├── AnalyticsService.php       Besucherstatistiken
+    ├── BackupService.php          Datenbank-/Datei-Backups
+    ├── CommentService.php         Kommentar-Verwaltung
+    ├── ContentLocalizationService.php Lokalisierte Basis-URIs und Sprachpfade
+    ├── CoreWebVitalsService.php   Feldmessung für Web Vitals
+    ├── CookieConsentService.php   Cookie-Consent-Banner
+    ├── DashboardService.php       Dashboard-Statistiken
+    ├── ErrorReportService.php     Persistente Fehlerreports mit Audit-Logging
+    ├── EditorJsRenderer.php       Editor.js Block-Rendering
+    ├── EditorJsService.php        Editor.js Integration
+    ├── EditorService.php          Seiten-Editor Logik
+    ├── FeatureUsageService.php    Datensparsame Nutzungsmetriken für Admin/Member
+    ├── FeedService.php            RSS-/Atom-Feed-Generierung
+    ├── FileUploadService.php      Datei-Upload-Verarbeitung
+    ├── ImageService.php           Bildverarbeitung (Resize, WebP)
+    ├── LandingPageService.php     Landing Pages (Sections)
+    ├── MailService.php            E-Mail-Versand (SMTP/Symfony Mailer)
+    ├── MediaDeliveryService.php   Kontrollierte Auslieferung privater Uploads
+    ├── MediaService.php           Medienbibliothek & Upload
+    ├── MemberService.php          Member-Dashboard-Logik
+    ├── MessageService.php         Internes Nachrichten-System
+    ├── OpcacheWarmupService.php   Warmup der größten PHP-Dateien
+    ├── PdfService.php             PDF-Generierung (DomPDF)
+    ├── PermalinkService.php       Beitrags-URL-Strukturen und Slug-Migration
+    ├── PurifierService.php        HTML-Bereinigung (HTMLPurifier)
+    ├── RedirectService.php        URL-Weiterleitungen
+    ├── SearchService.php          Volltextsuche (TNTSearch)
+    ├── SeoAnalysisService.php     SEO-Analyse & Scoring
+    ├── SEOService.php             Sitemap, Robots.txt, Meta-Tags
+    ├── SiteTableService.php       Tabellen-Verwaltung
+    ├── StatusService.php          System-Health-Checks, Reparatur
+    ├── SystemService.php          System-Infos, DB-Status
+    ├── ThemeCustomizer.php        Theme-Einstellungen (Farben, Fonts)
+    ├── TrackingService.php        Page-View-Tracking
+    ├── TranslationService.php     Übersetzungssystem (i18n)
+    ├── UpdateService.php          CMS-Update-Prüfung
+    └── UserService.php            Benutzer-CRUD für Admin
 ```
 
-> Die Service-Schicht ist seit den 2.9-Ständen deutlich gewachsen (u. a. Mail-Queue/-Log,
-> Azure-/Graph-Anbindung, JWT, Cron-Runner, Security-Runtime, Sitemap-/Broken-Link-/Trend-Dienste).
-> Maßgeblich ist immer der reale Verzeichnisstand unter `CMS/core/Services/`.
-
-[STRUCTURE.md](STRUCTURE.md) dokumentiert zusätzlich den Release-Snapshot des Core-/Admin-Scopes inklusive Service- und Admin-Einstiege. Für die aktuelle Gesamtstruktur der Runtime ergänzt [../FILELIST.md](../FILELIST.md) diesen Core-Blick um Assets, Member, Plugins, Themes und weitere Runtime-Zonen.
-
-> **Sicherheits-Hinweis:** Die Kernschicht wurde zuletzt am 2026-06-10 auditiert — siehe [../AUDIT_core_2026-06-10.md](../AUDIT_core_2026-06-10.md). Ergebnis: 0 kritische Funde, Defense-in-Depth-Härtungen in `MailService` und `Bootstrap` (Fehler-Handling) übernommen.
+Im Stand `2.9.0` dokumentiert [STRUCTURE.md](STRUCTURE.md) zusätzlich den aktuellen Release-Snapshot des Core-/Admin-Scopes inklusive neuer Service- und Admin-Einstiege. Für die aktuelle Gesamtstruktur der Runtime ergänzt [../FILELIST.md](../FILELIST.md) diesen Core-Blick um Assets, Member, Plugins, Themes und weitere Runtime-Zonen.
 
 ---
 
@@ -145,11 +137,9 @@ $user      = UserService::getInstance();
 | Datei                    | Inhalt                                        |
 |--------------------------|-----------------------------------------------|
 | [STRUCTURE.md](STRUCTURE.md)         | Release-Snapshot für `CMS/core`, `CMS/admin`, `CMS/config` |
-| [CORE-CLASSES.md](CORE-CLASSES.md) | Detailreferenz der Core-Klassen (24 Top-Level + Auth/MFA/LDAP/Passkey) |
-| [SERVICES.md](SERVICES.md)         | Service-Schicht (~60 Klassen inkl. AI/EditorJs/Landing/Media/SEO/SiteTable) |
+| [CORE-CLASSES.md](CORE-CLASSES.md) | Detailreferenz aller 22 Core-Klassen  |
+| [SERVICES.md](SERVICES.md)         | Alle 30 Service-Klassen dokumentiert  |
 | [SECURITY.md](SECURITY.md)         | Sicherheitsmodell                     |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Gesamt-Systemarchitektur      |
-| [DATABASE-SCHEMA.md](DATABASE-SCHEMA.md)   | Alle DB-Tabellen          |
-| [HOOKS-REFERENCE.md](HOOKS-REFERENCE.md)   | Action/Filter-Referenz    |
-| [API-REFERENCE.md](API-REFERENCE.md) | REST-API v1 Referenz |
-| [STATUS.md](STATUS.md) | Implementierungs- und Betriebsstatus |
+| [../ARCHITECTURE.md](../ARCHITECTURE.md) | Gesamt-Systemarchitektur      |
+| [../DATABASE-SCHEMA.md](../DATABASE-SCHEMA.md)   | Alle DB-Tabellen          |
+| [../HOOKS-REFERENCE.md](../HOOKS-REFERENCE.md)   | Action/Filter-Referenz    |

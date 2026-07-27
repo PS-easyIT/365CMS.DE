@@ -95,40 +95,7 @@ function cms_admin_pages_normalize_view(mixed $view): string
 {
     $normalizedView = trim((string) $view);
 
-    if (in_array($normalizedView, ['new', 'create', 'add'], true)) {
-        return 'edit';
-    }
-
     return in_array($normalizedView, CMS_ADMIN_PAGES_ALLOWED_VIEWS, true) ? $normalizedView : 'list';
-}
-
-function cms_admin_pages_asset_url(string $relativePath): string
-{
-    if (function_exists('cms_asset_url')) {
-        return cms_asset_url($relativePath);
-    }
-
-    $normalizedPath = ltrim(str_replace('\\', '/', $relativePath), '/');
-    if (function_exists('cms_assets_url')) {
-        $url = cms_assets_url($normalizedPath);
-    } else {
-        $baseUrl = defined('ASSETS_URL')
-            ? (string) ASSETS_URL
-            : (defined('SITE_URL') ? rtrim((string) SITE_URL, '/') . '/assets' : (defined('BASE_URL') ? rtrim((string) BASE_URL, '/') . '/assets' : '/assets'));
-        $url = rtrim(str_replace('\\', '/', $baseUrl), '/') . '/' . $normalizedPath;
-    }
-    $assetPath = defined('ASSETS_PATH')
-        ? rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) ASSETS_PATH), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $normalizedPath)
-        : null;
-
-    if (is_string($assetPath) && is_file($assetPath)) {
-        $modified = filemtime($assetPath);
-        if ($modified !== false) {
-            $url .= '?v=' . rawurlencode((string) $modified);
-        }
-    }
-
-    return $url;
 }
 
 function cms_admin_pages_normalize_positive_id(mixed $id): int
@@ -177,6 +144,14 @@ function cms_admin_pages_build_inline_edit_data(PagesModule $module, array $post
     $existingPage = is_object($editData['page'] ?? null) ? (array) $editData['page'] : [];
     $editorLocale = cms_admin_pages_normalize_editor_locale($post['editor_locale'] ?? ($_GET['lang'] ?? 'de'));
 
+    $contentUpdatedAt = trim((string) ($existingPage['content_updated_at'] ?? ''));
+    $contentUpdatedDate = trim((string) ($post['content_updated_date'] ?? ''));
+    $contentUpdatedTime = trim((string) ($post['content_updated_time'] ?? ''));
+
+    if ($contentUpdatedDate !== '') {
+        $contentUpdatedAt = $contentUpdatedDate . ' ' . ($contentUpdatedTime !== '' ? $contentUpdatedTime : '00:00') . ':00';
+    }
+
     $draftPage = array_merge($existingPage, [
         'id' => $id > 0 ? $id : (int) ($existingPage['id'] ?? 0),
         'title' => (string) ($post['title'] ?? ($existingPage['title'] ?? '')),
@@ -192,22 +167,17 @@ function cms_admin_pages_build_inline_edit_data(PagesModule $module, array $post
         'featured_image' => (string) ($post['featured_image'] ?? ($existingPage['featured_image'] ?? '')),
         'meta_title' => (string) ($post['meta_title'] ?? ($existingPage['meta_title'] ?? '')),
         'meta_description' => (string) ($post['meta_description'] ?? ($existingPage['meta_description'] ?? '')),
-        'meta_title_en' => (string) ($post['meta_title_en'] ?? ($existingPage['meta_title_en'] ?? '')),
-        'meta_description_en' => (string) ($post['meta_description_en'] ?? ($existingPage['meta_description_en'] ?? '')),
+        'content_updated_at' => $contentUpdatedAt,
     ]);
 
     if ($editorLocale === 'en') {
         $draftPage['title'] = (string) ($existingPage['title'] ?? '');
         $draftPage['slug'] = (string) ($existingPage['slug'] ?? '');
         $draftPage['content'] = $existingPage['content'] ?? '';
-        $draftPage['meta_title'] = (string) ($existingPage['meta_title'] ?? '');
-        $draftPage['meta_description'] = (string) ($existingPage['meta_description'] ?? '');
     } else {
         $draftPage['title_en'] = (string) ($existingPage['title_en'] ?? $draftPage['title_en'] ?? '');
         $draftPage['slug_en'] = (string) ($existingPage['slug_en'] ?? $draftPage['slug_en'] ?? '');
         $draftPage['content_en'] = $existingPage['content_en'] ?? ($draftPage['content_en'] ?? '');
-        $draftPage['meta_title_en'] = (string) ($existingPage['meta_title_en'] ?? $draftPage['meta_title_en'] ?? '');
-        $draftPage['meta_description_en'] = (string) ($existingPage['meta_description_en'] ?? $draftPage['meta_description_en'] ?? '');
     }
 
     $editData['page'] = (object) $draftPage;
@@ -258,9 +228,9 @@ function cms_admin_pages_view_config(PagesModule $module, string $view, ?array $
         $pageAssets['css'] = $pageAssets['css'] ?? [];
         $pageAssets['js'] = $pageAssets['js'] ?? [];
         if (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isModuleEnabled('seo')) {
-            $pageAssets['js'][] = cms_admin_pages_asset_url('js/admin-seo-editor.js');
+            $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
         }
-        $pageAssets['js'][] = cms_admin_pages_asset_url('js/admin-content-editor.js');
+        $pageAssets['js'][] = cms_asset_url('js/admin-content-editor.js');
 
         $id = cms_admin_pages_normalize_positive_id($_GET['id'] ?? 0);
         $editData = is_array($overrideEditData) ? $overrideEditData : $module->getEditData($id);
@@ -417,10 +387,11 @@ $sectionPageConfig = [
             case 'copy_de_to_en':
                 $id = cms_admin_pages_normalize_positive_id($post['id'] ?? ($_GET['id'] ?? 0));
                 if ($id < 1) {
-                    return ['success' => false, 'error' => 'Ungültige Seiten-ID.'];
+                    return ['success' => false, 'error' => 'Bitte die Seite zuerst speichern, bevor Inhalte nach EN kopiert werden.'];
                 }
 
-                $result = $module->copyGermanToEnglish($id);
+                $userId = Auth::instance()->getCurrentUser()->id ?? 0;
+                $result = $module->copyGermanToEnglish($id, (int) $userId);
                 if (!empty($result['success'])) {
                     $result['editor_locale'] = 'en';
                     $result['redirect_path'] = cms_admin_pages_target_url($id, 'en');

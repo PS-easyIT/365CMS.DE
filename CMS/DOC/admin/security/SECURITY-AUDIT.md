@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Admin-Seite für manuelle Sicherheitsprüfungen, KPI-Auswertung und Audit-Log-Einsicht.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.626
 
 **Admin-Route:** `/admin/security-audit`
 

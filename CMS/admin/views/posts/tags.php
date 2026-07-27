@@ -14,6 +14,7 @@ $formAlert = is_array($formAlert ?? null) ? $formAlert : null;
 $editTagId = (int) ($formValues['tag_id'] ?? ($editTag['id'] ?? 0));
 $editTagName = (string) ($formValues['tag_name'] ?? ($editTag['name'] ?? ''));
 $editTagSlug = (string) ($formValues['tag_slug'] ?? ($editTag['slug'] ?? ''));
+$editTagSlugEn = (string) ($formValues['tag_slug_en'] ?? ($editTag['slug_en'] ?? ''));
 $isEditing = $editTagId > 0;
 $deleteTagOptions = array_values(array_filter(
     $tagOptions,
@@ -56,6 +57,7 @@ $panelState = [
         'tag_id' => $editTagId,
         'tag_name' => $editTagName,
         'tag_slug' => $editTagSlug,
+        'tag_slug_en' => $editTagSlugEn,
     ],
 ];
 $panelStateJson = htmlspecialchars((string) json_encode($panelState, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES);
@@ -143,7 +145,12 @@ $panelStateJson = htmlspecialchars((string) json_encode($panelState, JSON_UNESCA
                                             <input class="form-check-input" type="checkbox" form="bulkTagForm" name="tag_ids[]" value="<?php echo (int) ($tag['id'] ?? 0); ?>" aria-label="Tag auswählen: <?php echo htmlspecialchars((string) ($tag['name'] ?? ''), ENT_QUOTES); ?>">
                                         </td>
                                         <td class="fw-medium"><?php echo htmlspecialchars((string) ($tag['name'] ?? ''), ENT_QUOTES); ?></td>
-                                        <td><code><?php echo htmlspecialchars((string) ($tag['slug'] ?? ''), ENT_QUOTES); ?></code></td>
+                                        <td>
+                                            <code><?php echo htmlspecialchars((string) ($tag['slug'] ?? ''), ENT_QUOTES); ?></code>
+                                            <?php if (trim((string) ($tag['slug_en'] ?? '')) !== ''): ?>
+                                                <div class="text-secondary small">EN: <code><?php echo htmlspecialchars((string) $tag['slug_en'], ENT_QUOTES); ?></code></div>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?php echo (int) ($tag['post_count'] ?? 0); ?></td>
                                         <td class="table-actions content-listing-table__actions-cell">
                                             <div class="table-row-actions">
@@ -195,6 +202,15 @@ $panelStateJson = htmlspecialchars((string) json_encode($panelState, JSON_UNESCA
                     <input type="text" class="form-control" id="postTagPanelSlug" name="tag_slug" value="<?php echo htmlspecialchars($editTagSlug, ENT_QUOTES); ?>" placeholder="wird automatisch generiert" data-taxonomy-field="tag_slug" data-taxonomy-slug>
                 </div>
                 <div class="taxonomy-validation-error d-none" data-taxonomy-error-for="tag_slug"></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="postTagPanelSlugEn">Slug (EN)</label>
+                <div class="input-group">
+                    <span class="input-group-text">/</span>
+                    <input type="text" class="form-control" id="postTagPanelSlugEn" name="tag_slug_en" value="<?php echo htmlspecialchars($editTagSlugEn, ENT_QUOTES); ?>" placeholder="optional – für englische Archiv-URLs" data-taxonomy-field="tag_slug_en">
+                </div>
+                <div class="form-hint">Optionaler zweiter Slug für das englische Tag-Archiv. Leer lassen, um den Haupt-Slug für alle Sprachen zu nutzen.</div>
+                <div class="taxonomy-validation-error d-none" data-taxonomy-error-for="tag_slug_en"></div>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="postTagPanelDescription">Beschreibung</label>

@@ -148,6 +148,7 @@ final class EditorJsRenderer
             'columns' => $this->renderColumns($data),
             'drawingTool' => $this->renderDrawingTool($data),
             'mediaText' => $this->renderMediaText($data),
+            'button' => $this->renderButton($data),
             'callout' => $this->renderCallout($data),
             'terminal' => $this->renderTerminal($data),
             'codeTabs' => $this->renderCodeTabs($data),
@@ -719,9 +720,12 @@ final class EditorJsRenderer
             . ' data-rounded="' . ((array_key_exists('rounded', $data) ? !empty($data['rounded']) : false) ? '1' : '0') . '"'
             . ' data-shadow="' . (!empty($data['shadow']) ? '1' : '0') . '"';
 
+        $isGeneratedCaption = $caption !== '' && $this->isGeneratedFilenameCaption($caption, $imageUrl);
+        $altText = $isGeneratedCaption ? '' : $caption;
+
         $html = '<figure class="' . implode(' ', $classes) . '"' . $dataAttributes . $styleAttr . '>';
-        $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars(strip_tags($caption), ENT_QUOTES, 'UTF-8') . '"' . $imageStyleAttr . $this->getLazyLoadingAttribute() . '>';
-        if ($caption !== '' && !$this->isGeneratedFilenameCaption($caption, $imageUrl)) {
+        $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars(strip_tags($altText), ENT_QUOTES, 'UTF-8') . '"' . $imageStyleAttr . $this->getLazyLoadingAttribute() . '>';
+        if (!$isGeneratedCaption && $caption !== '') {
             $html .= '<figcaption>' . $caption . '</figcaption>';
         }
         $html .= '</figure>';
@@ -955,10 +959,14 @@ final class EditorJsRenderer
                 continue;
             }
 
+            $itemCaption = $this->sanitizeInline((string)($itemData['caption'] ?? $itemData['alt'] ?? ''));
+            $isGeneratedItemCaption = $itemCaption !== '' && $this->isGeneratedFilenameCaption($itemCaption, $url);
+
             $images[] = [
                 'url' => $url,
-                'caption' => $this->sanitizeInline((string)($itemData['caption'] ?? $itemData['alt'] ?? '')),
-                'alt' => htmlspecialchars(strip_tags((string)($itemData['caption'] ?? $itemData['alt'] ?? '')), ENT_QUOTES, 'UTF-8'),
+                'caption' => $itemCaption,
+                'is_generated_caption' => $isGeneratedItemCaption,
+                'alt' => $isGeneratedItemCaption ? '' : htmlspecialchars(strip_tags($itemCaption), ENT_QUOTES, 'UTF-8'),
             ];
         }
 
@@ -974,6 +982,7 @@ final class EditorJsRenderer
                 $images[] = [
                     'url' => $normalizedUrl,
                     'caption' => '',
+                    'is_generated_caption' => false,
                     'alt' => '',
                 ];
             }
@@ -992,7 +1001,7 @@ final class EditorJsRenderer
         foreach ($images as $image) {
             $html .= '<figure class="editorjs-gallery__item" style="margin:0;min-width:0;">';
             $html .= '<img src="' . htmlspecialchars($image['url'], ENT_QUOTES, 'UTF-8') . '" alt="' . $image['alt'] . '"' . $this->getLazyLoadingAttribute() . ' style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px;">';
-            if ($image['caption'] !== '' && !$this->isGeneratedFilenameCaption($image['caption'], $image['url'])) {
+            if ($image['caption'] !== '' && !$image['is_generated_caption']) {
                 $html .= '<figcaption style="margin-top:0.6rem;font-size:0.92rem;color:#475569;">' . $image['caption'] . '</figcaption>';
             }
             $html .= '</figure>';
@@ -1067,6 +1076,51 @@ final class EditorJsRenderer
         $html .= $textHtml !== '' ? $textHtml : '<p></p>';
         $html .= '</div>';
         $html .= '</section>';
+
+        return $html;
+    }
+
+    /** @param array<string,mixed> $data */
+    private function renderButton(array $data): string
+    {
+        $url = EditorJsHtmlSanitizer::sanitizeUrl((string)($data['url'] ?? $data['link'] ?? ''), ['http', 'https', 'mailto', 'tel'], false);
+        $text = $this->sanitizeInline((string)($data['text'] ?? $data['label'] ?? ''));
+        if ($url === '' || $text === '') {
+            return '';
+        }
+
+        $align = (string)($data['align'] ?? $data['alignment'] ?? 'left');
+        if (!in_array($align, ['left', 'center', 'right'], true)) {
+            $align = 'left';
+        }
+
+        $color = (string)($data['color'] ?? $data['variant'] ?? 'primary');
+        if (!in_array($color, ['primary', 'secondary', 'info', 'success', 'warning', 'danger', 'light', 'dark'], true)) {
+            $color = 'primary';
+        }
+
+        $size = (string)($data['size'] ?? 'medium');
+        if (!in_array($size, ['small', 'medium', 'large'], true)) {
+            $size = 'medium';
+        }
+
+        $isExternal = (bool) preg_match('#^https?://#i', $url);
+        $relAttr = $isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+
+        $classes = [
+            'editorjs-block',
+            'editorjs-button',
+            'editorjs-button--align-' . $align,
+        ];
+        $linkClasses = [
+            'editorjs-button__link',
+            'editorjs-button__link--' . $color,
+            'editorjs-button__link--' . $size,
+        ];
+
+        $html = '<div class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '" data-align="' . htmlspecialchars($align, ENT_QUOTES, 'UTF-8') . '">';
+        $html .= '<a class="' . htmlspecialchars(implode(' ', $linkClasses), ENT_QUOTES, 'UTF-8') . '" href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '"' . $relAttr . '>' . $text . '</a>';
+        $html .= '</div>';
 
         return $html;
     }

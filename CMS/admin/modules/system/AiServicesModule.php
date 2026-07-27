@@ -7,9 +7,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\AuditLogger;
 use CMS\Database;
-use CMS\Http\Request;
 use CMS\Logger;
-use CMS\Services\AI\AiProviderGateway;
 use CMS\Services\AI\AiSettingsService;
 
 final class AiServicesModule
@@ -106,7 +104,7 @@ final class AiServicesModule
     private function getDefaultData(): array
     {
         return [
-            'providers' => ['active_provider_id' => 'mock', 'entries' => [], 'catalog' => []],
+            'providers' => ['active_provider_id' => 'mock', 'fallback_provider_id' => '', 'entries' => [], 'catalog' => []],
             'features' => [],
             'translation' => [],
             'logging' => [],
@@ -213,16 +211,12 @@ final class AiServicesModule
         $rows = $this->db->get_results(
             "SELECT user_id, action, severity, description, metadata, created_at
              FROM {$this->dbPrefix}audit_log
-             WHERE action IN (?, ?, ?, ?, ?, ?) AND created_at >= ?
+             WHERE action IN (?, ?) AND created_at >= ?
              ORDER BY created_at DESC
              LIMIT ?",
             [
                 'ai.editorjs.translate.processed',
                 'ai.editorjs.translate.failed',
-                'ai.content.generate.processed',
-                'ai.content.generate.failed',
-                'ai.seo.generate.processed',
-                'ai.seo.generate.failed',
                 $since,
                 self::USAGE_DATASET_LIMIT,
             ]
@@ -259,8 +253,7 @@ final class AiServicesModule
         $providerId = $this->sanitizeProviderId((string) ($metadata['provider'] ?? ''));
         $providerLabel = $providerLabels[$providerId] ?? ($providerId !== '' ? $providerId : '—');
         $userId = isset($row->user_id) ? (int) $row->user_id : 0;
-        $rowAction = (string) ($row->action ?? '');
-        $status = str_ends_with($rowAction, '.processed') ? 'success' : 'warning';
+        $status = (string) ($row->action ?? '') === 'ai.editorjs.translate.processed' ? 'success' : 'warning';
         $targetLocale = strtolower(trim((string) ($metadata['target_locale'] ?? '')));
         $targetLocale = $targetLocale !== '' ? strtoupper($targetLocale) : '—';
 
@@ -278,7 +271,7 @@ final class AiServicesModule
             'translated_segments' => $this->normalizePositiveNullable($metadata['translated_segments'] ?? null),
             'char_count' => $this->normalizePositiveNullable($metadata['char_count'] ?? null),
             'block_count' => $this->normalizePositiveNullable($metadata['block_count'] ?? null),
-            'selection_mode' => $this->sanitizeText((string) ($metadata['selection_mode'] ?? 'single-provider'), self::MAX_TEXT_LENGTH) ?: 'single-provider',
+            'resolved_via' => $this->sanitizeText((string) ($metadata['resolved_via'] ?? 'direct'), self::MAX_TEXT_LENGTH) ?: 'direct',
             'description' => $this->sanitizeText((string) ($row->description ?? ''), self::MAX_TEXT_LENGTH),
         ];
     }
@@ -432,7 +425,7 @@ final class AiServicesModule
 
     private function getCurrentUserId(): int
     {
-        return max(0, (int) Request::session('user_id', 0));
+        return isset($_SESSION['user_id']) ? max(0, (int) $_SESSION['user_id']) : 0;
     }
 
     /** @return array<string, mixed> */
@@ -444,47 +437,43 @@ final class AiServicesModule
             }
 
             $current = $this->settings->getConfiguration();
-            $providerEntries = $this->sanitizeProviderEntries($post, $current);
-            if ($providerEntries === []) {
-                return ['success' => false, 'error' => 'Bitte genau einen AI-Provider konfigurieren.'];
+            $providerEntry = $this->sanitizeGlobalProviderEntry($post, $current);
+            $providerId = (string) ($providerEntry['id'] ?? '');
+            $providerEntries = [];
+            $replaced = false;
+            foreach ((array) ($current['providers']['entries'] ?? []) as $currentEntry) {
+                if (!is_array($currentEntry)) {
+                    continue;
+                }
+
+                if ((string) ($currentEntry['id'] ?? '') === $providerId) {
+                    $providerEntries[] = $providerEntry;
+                    $replaced = true;
+                    continue;
+                }
+
+                $providerEntries[] = $currentEntry;
             }
 
-            $providerIds = array_values(array_map(
-                static fn (array $entry): string => (string) ($entry['id'] ?? ''),
-                $providerEntries
-            ));
-            $activeProviderId = (string) ($providerIds[0] ?? '');
+            if (!$replaced) {
+                $providerEntries[] = $providerEntry;
+            }
 
             $meta = [
-                'active_provider_id' => $activeProviderId,
+                'active_provider_id' => $providerId,
+                'fallback_provider_id' => '',
             ];
 
             $secretValues = [];
-            $flatSecretValue = trim((string) ($post['provider_secret_value'] ?? ''));
-            if ($activeProviderId !== '' && $flatSecretValue !== '') {
-                $secretValues[$activeProviderId] = $flatSecretValue;
-            }
-
-            foreach ((array) ($post['provider_secret'] ?? []) as $providerId => $secretValue) {
-                $providerId = $this->sanitizeProviderId((string) $providerId);
-                $secretValue = trim((string) $secretValue);
-                if ($providerId !== '' && $secretValue !== '') {
-                    $secretValues[$providerId] = $secretValue;
-                }
+            $secretValue = trim((string) ($post['provider_secret'] ?? ''));
+            if ($providerId !== '' && $secretValue !== '') {
+                $secretValues[$providerId] = $secretValue;
             }
 
             $clearSecrets = [];
-            if ($activeProviderId !== '' && !empty($post['clear_provider_secret_value'])) {
-                $clearSecrets[] = $activeProviderId;
+            if (!empty($post['clear_provider_secret']) && $providerId !== '') {
+                $clearSecrets[] = $providerId;
             }
-
-            foreach (array_keys((array) ($post['clear_provider_secret'] ?? [])) as $providerId) {
-                $providerId = $this->sanitizeProviderId((string) $providerId);
-                if ($providerId !== '') {
-                    $clearSecrets[] = $providerId;
-                }
-            }
-            $clearSecrets = array_values(array_unique($clearSecrets));
 
             if (!$this->settings->saveProviders($meta, $providerEntries, $secretValues, $clearSecrets)) {
                 return ['success' => false, 'error' => 'Provider-Einstellungen konnten nicht gespeichert werden.'];
@@ -498,9 +487,8 @@ final class AiServicesModule
                 null,
                 [
                     'active_provider_id' => $meta['active_provider_id'],
-                    'provider_type' => (string) ($providerEntries[0]['type'] ?? ''),
-                    'providers_enabled' => 1,
-                    'provider_count' => 1,
+                    'provider_type' => (string) ($providerEntry['type'] ?? ''),
+                    'provider_enabled' => !empty($providerEntry['enabled']),
                     'secrets_updated' => count($secretValues),
                     'secrets_cleared' => $clearSecrets,
                 ],
@@ -511,57 +499,6 @@ final class AiServicesModule
         } catch (\Throwable $e) {
             return $this->failResult('setting.ai.providers.save_failed', 'Provider-Einstellungen konnten nicht gespeichert werden.', $e);
         }
-    }
-
-    /** @return array<string, mixed> */
-    public function testProvider(array $post): array
-    {
-        try {
-            if ($this->settings === null) {
-                return $this->runtimeUnavailableResult('Provider-Test konnte nicht ausgeführt werden.');
-            }
-
-            $saveResult = $this->saveProviders($post);
-            if (empty($saveResult['success'])) {
-                return $saveResult;
-            }
-
-            $result = AiProviderGateway::getInstance()->testActiveProvider();
-
-            AuditLogger::instance()->log(
-                AuditLogger::CAT_SETTING,
-                'setting.ai.provider.test',
-                'Aktiver AI-Provider erfolgreich getestet.',
-                'setting',
-                null,
-                [
-                    'provider' => (string) ($result['provider']['slug'] ?? ''),
-                    'provider_type' => (string) ($result['provider']['type'] ?? ''),
-                    'duration_ms' => (int) ($result['duration_ms'] ?? 0),
-                ],
-                'info'
-            );
-
-            return [
-                'success' => true,
-                'message' => 'AI-Provider gespeichert und erfolgreich getestet.',
-                'redirect_section' => 'settings',
-            ];
-        } catch (\Throwable $e) {
-            return $this->failResult('setting.ai.provider.test_failed', 'AI-Provider-Test fehlgeschlagen.', $e);
-        }
-    }
-
-    /** @return array<string, mixed> */
-    public function addProvider(array $post): array
-    {
-        return ['success' => false, 'error' => 'Die Multi-Provider-Verwaltung wurde entfernt. Bitte den Single Provider direkt speichern.'];
-    }
-
-    /** @return array<string, mixed> */
-    public function deleteProvider(array $post): array
-    {
-        return ['success' => false, 'error' => 'Der aktive Single Provider kann nicht gelöscht, sondern nur umkonfiguriert werden.'];
     }
 
     /** @return array<string, mixed> */
@@ -662,123 +599,6 @@ final class AiServicesModule
     public function saveSeoPrompts(array $post): array
     {
         return $this->savePromptTemplatesForArea('seo_creator', $post, 'SEO-Creator-Prompt-Vorlage gespeichert.');
-    }
-
-    /** @return array<string, mixed> */
-    public function generateContentPreview(array $post): array
-    {
-        try {
-            $gateway = AiProviderGateway::getInstance();
-            $result = $gateway->generateContentDraft([
-                'task' => (string) ($post['content_task'] ?? 'summary'),
-                'brief' => (string) ($post['content_brief'] ?? ''),
-                'context' => (string) ($post['content_context'] ?? ''),
-                'tone' => (string) ($post['content_tone'] ?? 'professionell'),
-                'format' => (string) ($post['content_format'] ?? 'review-draft'),
-                'locale' => (string) ($post['content_locale'] ?? 'de'),
-            ]);
-
-            AuditLogger::instance()->log(
-                AuditLogger::CAT_SETTING,
-                'ai.content.generate.processed',
-                'AI-Content-Preview generiert.',
-                'setting',
-                null,
-                [
-                    'provider' => (string) ($result['provider']['slug'] ?? ''),
-                    'provider_type' => (string) ($result['provider']['type'] ?? ''),
-                    'selection_mode' => (string) ($result['provider']['selection_mode'] ?? 'single-provider'),
-                    'duration_ms' => (int) ($result['telemetry']['duration_ms'] ?? 0),
-                    'char_count' => (int) ($result['telemetry']['char_count'] ?? 0),
-                    'target_locale' => strtoupper((string) ($result['locale'] ?? 'de')),
-                    'block_count' => 0,
-                    'translated_blocks' => 0,
-                ],
-                'info'
-            );
-
-            return $this->inlineGenerationResult('content_creator', 'Content-Preview generiert.', 'content_result', $result);
-        } catch (\Throwable $e) {
-            AuditLogger::instance()->log(
-                AuditLogger::CAT_SETTING,
-                'ai.content.generate.failed',
-                'AI-Content-Preview fehlgeschlagen.',
-                'setting',
-                null,
-                ['exception' => $e::class],
-                'warning'
-            );
-
-            return ['success' => false, 'error' => $this->sanitizeText($e->getMessage(), 220), 'render_inline' => true];
-        }
-    }
-
-    /** @return array<string, mixed> */
-    public function generateSeoPreview(array $post): array
-    {
-        try {
-            $gateway = AiProviderGateway::getInstance();
-            $result = $gateway->generateSeoDraft([
-                'keyword' => (string) ($post['seo_keyword'] ?? ''),
-                'context' => (string) ($post['seo_context'] ?? ''),
-                'locale' => (string) ($post['seo_locale'] ?? 'de'),
-                'content_type' => (string) ($post['seo_content_type'] ?? 'page'),
-            ]);
-
-            AuditLogger::instance()->log(
-                AuditLogger::CAT_SETTING,
-                'ai.seo.generate.processed',
-                'AI-SEO-Preview generiert.',
-                'setting',
-                null,
-                [
-                    'provider' => (string) ($result['provider']['slug'] ?? ''),
-                    'provider_type' => (string) ($result['provider']['type'] ?? ''),
-                    'selection_mode' => (string) ($result['provider']['selection_mode'] ?? 'single-provider'),
-                    'duration_ms' => (int) ($result['telemetry']['duration_ms'] ?? 0),
-                    'char_count' => (int) ($result['telemetry']['char_count'] ?? 0),
-                    'target_locale' => strtoupper((string) ($result['locale'] ?? 'de')),
-                    'block_count' => 0,
-                    'translated_blocks' => 0,
-                ],
-                'info'
-            );
-
-            return $this->inlineGenerationResult('seo_creator', 'SEO-Preview generiert.', 'seo_result', $result);
-        } catch (\Throwable $e) {
-            AuditLogger::instance()->log(
-                AuditLogger::CAT_SETTING,
-                'ai.seo.generate.failed',
-                'AI-SEO-Preview fehlgeschlagen.',
-                'setting',
-                null,
-                ['exception' => $e::class],
-                'warning'
-            );
-
-            return ['success' => false, 'error' => $this->sanitizeText($e->getMessage(), 220), 'render_inline' => true];
-        }
-    }
-
-    /** @return array<string, mixed> */
-    private function inlineGenerationResult(string $section, string $message, string $resultKey, array $result): array
-    {
-        $data = $this->getData($section);
-        $data[$resultKey] = $result;
-
-        return [
-            'success' => true,
-            'message' => $message,
-            'render_inline' => true,
-            'runtime_context' => [
-                'section' => $section,
-                'data' => $data,
-                'template_vars' => [
-                    'currentSection' => $section,
-                    'currentRoutePath' => $section === 'seo_creator' ? '/admin/ai-seo-creator' : '/admin/ai-content-creator',
-                ],
-            ],
-        ];
     }
 
     /** @return array<string, mixed> */
@@ -940,33 +760,6 @@ final class AiServicesModule
         $value = preg_replace('/-+/', '-', $value) ?? '';
 
         return trim($value, '-');
-    }
-
-    /** @param list<string> $validProviderIds */
-    private function sanitizeProviderSelection(string $value, array $validProviderIds): string
-    {
-        $value = $this->sanitizeProviderId($value);
-
-        return in_array($value, $validProviderIds, true) ? $value : '';
-    }
-
-    /** @param list<string> $validProviderIds */
-    private function resolvePrimaryProviderSelection(string $value, array $validProviderIds): string
-    {
-        $selection = $this->sanitizeProviderSelection($value, $validProviderIds);
-        if ($selection !== '' || $validProviderIds === []) {
-            return $selection;
-        }
-
-        return (string) ($validProviderIds[0] ?? '');
-    }
-
-    private function sanitizeProfile(string $value): string
-    {
-        $value = strtolower(trim($value));
-        $allowed = ['disabled', 'beta', 'editor-translation', 'content-assist', 'seo-assist'];
-
-        return in_array($value, $allowed, true) ? $value : 'disabled';
     }
 
     private function sanitizeResultMode(string $value): string
@@ -1144,64 +937,48 @@ final class AiServicesModule
     /**
      * @param array<string, mixed> $post
      * @param array<string, mixed> $current
-     * @return list<array<string, mixed>>
+     * @return array<string, mixed>
      */
-    private function sanitizeProviderEntries(array $post, array $current): array
+    private function sanitizeGlobalProviderEntry(array $post, array $current): array
     {
-        $rawEntries = array_values(array_filter(
-            (array) ($post['provider_entries'] ?? []),
-            static fn (mixed $entry): bool => is_array($entry)
-        ));
-        if ($rawEntries === []) {
-            $rawEntries[] = [
-                'type' => (string) ($post['provider_type'] ?? ($current['providers']['active_provider_id'] ?? 'mock')),
-            ];
+        $providerType = $this->sanitizeProviderType((string) ($post['active_provider_type'] ?? ''), false);
+        if ($providerType === '') {
+            $providerType = 'mock';
         }
 
-        $currentEntries = [];
+        $providerId = $providerType;
+        $currentEntry = [];
         foreach ((array) ($current['providers']['entries'] ?? []) as $entry) {
-            if (is_array($entry) && !empty($entry['id'])) {
-                $currentEntries[(string) $entry['id']] = $entry;
+            if (is_array($entry) && (string) ($entry['type'] ?? '') === $providerType) {
+                $currentEntry = $entry;
+                break;
             }
         }
 
-        $entries = [];
-
-        foreach ($rawEntries as $rawEntry) {
-            $providerType = $this->sanitizeProviderType((string) ($rawEntry['type'] ?? ''), false);
-            if ($providerType === '' || !empty($rawEntry['remove'])) {
-                continue;
-            }
-
-            $providerId = $this->sanitizeProviderId($providerType);
-            $currentEntry = is_array($currentEntries[$providerId] ?? null) ? $currentEntries[$providerId] : [];
-            $defaultEntry = $this->settings->buildProviderEntry($providerType, $providerId);
-
-            $entries[] = [
-                'id' => $providerId,
-                'type' => $providerType,
-                'label' => $this->sanitizeText((string) ($rawEntry['label'] ?? ($currentEntry['label'] ?? $defaultEntry['label'] ?? '')), self::MAX_TEXT_LENGTH) ?: (string) ($defaultEntry['label'] ?? $providerType),
-                'enabled' => !empty($rawEntry['enabled']),
-                'profile' => $this->sanitizeProfile((string) ($rawEntry['profile'] ?? ($currentEntry['profile'] ?? $defaultEntry['profile'] ?? 'disabled'))),
-                'default_model' => AiSettingsService::normalizeProviderModel(
-                    $providerType,
-                    $this->sanitizeText((string) ($rawEntry['default_model'] ?? ($currentEntry['default_model'] ?? $defaultEntry['default_model'] ?? '')), self::MAX_TEXT_LENGTH)
-                ),
-                'endpoint' => $this->sanitizeProviderEndpoint($providerType, (string) ($rawEntry['endpoint'] ?? ($currentEntry['endpoint'] ?? $defaultEntry['endpoint'] ?? '')), (string) ($defaultEntry['endpoint'] ?? '')),
-                'deployment' => $this->sanitizeText((string) ($rawEntry['deployment'] ?? ($currentEntry['deployment'] ?? $defaultEntry['deployment'] ?? '')), self::MAX_TEXT_LENGTH),
-                'api_version' => $this->sanitizeApiVersion((string) ($rawEntry['api_version'] ?? ($currentEntry['api_version'] ?? $defaultEntry['api_version'] ?? '')), (string) ($defaultEntry['api_version'] ?? '')),
-                'translation_enabled' => !empty($rawEntry['translation_enabled']),
-                'rewrite_enabled' => !empty($rawEntry['rewrite_enabled']),
-                'summary_enabled' => !empty($rawEntry['summary_enabled']),
-                'seo_meta_enabled' => !empty($rawEntry['seo_meta_enabled']),
-                'editorjs_enabled' => !empty($rawEntry['editorjs_enabled']),
-                'allowed_locales' => $this->sanitizeCsvList((string) ($rawEntry['allowed_locales'] ?? implode(',', (array) ($currentEntry['allowed_locales'] ?? $defaultEntry['allowed_locales'] ?? ['en']))), ['en']),
-                'beta_only' => !empty($rawEntry['beta_only']),
-            ];
-            break;
+        $defaultEntry = $this->settings->buildProviderEntry($providerType, $providerId);
+        $enabled = !empty($post['provider_enabled']);
+        if ($providerType === 'mock') {
+            $enabled = true;
         }
 
-        return $entries;
+        return [
+            'id' => $providerId,
+            'type' => $providerType,
+            'label' => $this->sanitizeText((string) ($post['provider_label'] ?? ($currentEntry['label'] ?? $defaultEntry['label'] ?? '')), self::MAX_TEXT_LENGTH) ?: (string) ($defaultEntry['label'] ?? $providerType),
+            'enabled' => $enabled,
+            'profile' => 'editor-translation',
+            'default_model' => $this->sanitizeText((string) ($post['provider_model'] ?? ($currentEntry['default_model'] ?? $defaultEntry['default_model'] ?? '')), self::MAX_TEXT_LENGTH),
+            'endpoint' => $this->sanitizeProviderEndpoint($providerType, (string) ($post['provider_endpoint'] ?? ($currentEntry['endpoint'] ?? $defaultEntry['endpoint'] ?? '')), (string) ($defaultEntry['endpoint'] ?? '')),
+            'deployment' => $this->sanitizeText((string) ($post['provider_deployment'] ?? ($currentEntry['deployment'] ?? $defaultEntry['deployment'] ?? '')), self::MAX_TEXT_LENGTH),
+            'api_version' => $this->sanitizeApiVersion((string) ($post['provider_api_version'] ?? ($currentEntry['api_version'] ?? $defaultEntry['api_version'] ?? '')), (string) ($defaultEntry['api_version'] ?? '')),
+            'translation_enabled' => true,
+            'rewrite_enabled' => true,
+            'summary_enabled' => true,
+            'seo_meta_enabled' => true,
+            'editorjs_enabled' => true,
+            'allowed_locales' => $this->sanitizeCsvList((string) ($post['provider_allowed_locales'] ?? implode(',', (array) ($currentEntry['allowed_locales'] ?? $defaultEntry['allowed_locales'] ?? ['en']))), ['en']),
+            'beta_only' => !empty($post['provider_beta_only']),
+        ];
     }
 
     /** @return array<string, mixed> */

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von 301/302-Weiterleitungen, Protokollierung, 404-Monitoring und Aggregatkennzahlen für Dashboard-Trends.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.751
 
 ---
 

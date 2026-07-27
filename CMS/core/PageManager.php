@@ -53,11 +53,10 @@ class PageManager
                 'featured_image' => "ALTER TABLE {$this->prefix}pages ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER show_title_toc",
                 'meta_title' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER featured_image",
                 'meta_description' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title",
-                'meta_title_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_title_en VARCHAR(255) DEFAULT NULL AFTER meta_description",
-                'meta_description_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_description_en TEXT DEFAULT NULL AFTER meta_title_en",
                 'title_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN title_en VARCHAR(255) DEFAULT NULL AFTER title",
                 'content_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN content_en LONGTEXT DEFAULT NULL AFTER content",
                 'category_id' => "ALTER TABLE {$this->prefix}pages ADD COLUMN category_id INT UNSIGNED DEFAULT NULL AFTER author_id",
+                'content_updated_at' => "ALTER TABLE {$this->prefix}pages ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER published_at",
             ];
 
             foreach ($columns as $column => $sql) {
@@ -90,6 +89,7 @@ class PageManager
                 excerpt TEXT,
                 status VARCHAR(20) DEFAULT NULL,
                 author_id INT UNSIGNED,
+                 content_updated_at DATETIME DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_page_id (page_id),
                 INDEX idx_author (author_id),
@@ -102,6 +102,7 @@ class PageManager
                 'slug_en' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN slug_en VARCHAR(200) DEFAULT NULL AFTER slug",
                 'content_en' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN content_en LONGTEXT AFTER content",
                 'status' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN status VARCHAR(20) DEFAULT NULL AFTER excerpt",
+                 'content_updated_at' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER author_id",
             ];
 
             foreach ($columns as $column => $sql) {
@@ -150,7 +151,7 @@ class PageManager
         $values = [];
         
         foreach ($data as $key => $value) {
-            if (in_array($key, ['title', 'title_en', 'content', 'content_en', 'status', 'slug', 'slug_en', 'hide_title', 'show_title_toc', 'featured_image', 'meta_title', 'meta_description', 'meta_title_en', 'meta_description_en', 'category_id'], true)) {
+            if (in_array($key, ['title', 'title_en', 'content', 'content_en', 'status', 'slug', 'slug_en', 'hide_title', 'show_title_toc', 'featured_image', 'meta_title', 'meta_description', 'category_id', 'content_updated_at'], true)) {
                 $fields[] = "$key = ?";
                 $values[] = $value;
             }
@@ -177,7 +178,7 @@ class PageManager
      */
     private function hasTrackedRevisionChanges(array $currentPage, array $newData): bool
     {
-        foreach (['title', 'title_en', 'slug', 'slug_en', 'content', 'content_en', 'excerpt', 'status'] as $field) {
+        foreach (['title', 'title_en', 'slug', 'slug_en', 'content', 'content_en', 'excerpt', 'status', 'content_updated_at'] as $field) {
             if (!array_key_exists($field, $newData)) {
                 continue;
             }
@@ -305,7 +306,7 @@ class PageManager
             return false;
         }
 
-        $sql = "INSERT INTO {$this->prefix}page_revisions (page_id, title, title_en, slug, slug_en, content, content_en, excerpt, status, author_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO {$this->prefix}page_revisions (page_id, title, title_en, slug, slug_en, content, content_en, excerpt, status, author_id, content_updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
 
         return $stmt->execute([
@@ -319,6 +320,7 @@ class PageManager
             (string)($page['excerpt'] ?? ''),
             (string)($page['status'] ?? 'draft'),
             (int)($page['author_id'] ?? 0),
+                trim((string)($page['content_updated_at'] ?? '')) ?: null,
         ]);
     }
 
@@ -344,6 +346,7 @@ class PageManager
                        pr.excerpt,
                        pr.status,
                        pr.author_id,
+                       pr.content_updated_at,
                        pr.created_at,
                        u.username,
                        u.display_name

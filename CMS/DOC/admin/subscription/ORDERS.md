@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die aktuelle Bestellverwaltung inklusive Statuspflege, manueller Paketzuweisung, read-only Renewal-Hinweisen, CSV-Exporten und Historie.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.738
 
 ---
 
@@ -177,5 +177,5 @@ Ein vollautomatisiertes Rechnungs-, Refund- oder Payment-Gateway-Backoffice ist 
 ## Verwandte Seiten
 
 - [Abo-System](SUBSCRIPTION-SYSTEM.md)
-- [Mitgliedschaften im Member-Bereich](../../member/README.md)
+- [Mitgliedschaften im Member-Bereich](../../member/general/SUBSCRIPTION.md)
 - [Aboverwaltung – Überblick](../member/README.md)

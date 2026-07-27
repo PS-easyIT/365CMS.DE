@@ -41,9 +41,9 @@ const CMS_ADMIN_AI_PAGE_CONFIGS = [
 const CMS_ADMIN_AI_ALLOWED_ACTIONS_BY_SECTION = [
     'overview' => [],
     'translation' => ['save_translation', 'save_translation_prompts'],
-    'content_creator' => ['save_content_prompts', 'generate_content'],
-    'seo_creator' => ['save_seo_prompts', 'generate_seo'],
-    'settings' => ['save_providers', 'test_provider', 'save_features', 'save_logging', 'save_quotas'],
+    'content_creator' => ['save_content_prompts'],
+    'seo_creator' => ['save_seo_prompts'],
+    'settings' => ['save_providers', 'save_features', 'save_logging', 'save_quotas'],
 ];
 
 function cms_admin_ai_has_any_capability(array $capabilities): bool
@@ -132,14 +132,11 @@ function cms_admin_ai_handle_action(AiServicesModule $module, string $action, ar
 {
     return match ($action) {
         'save_providers' => $module->saveProviders($post),
-        'test_provider' => $module->testProvider($post),
         'save_features' => $module->saveFeatures($post),
         'save_translation' => $module->saveTranslation($post),
         'save_translation_prompts' => $module->saveTranslationPrompts($post),
         'save_content_prompts' => $module->saveContentPrompts($post),
         'save_seo_prompts' => $module->saveSeoPrompts($post),
-        'generate_content' => $module->generateContentPreview($post),
-        'generate_seo' => $module->generateSeoPreview($post),
         'save_logging' => $module->saveLogging($post),
         'save_quotas' => $module->saveQuotas($post),
         default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],

@@ -130,6 +130,10 @@ final class EditorJsAssetService
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.07 0l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15"/><path d="M14 11a5 5 0 0 0-7.07 0l-2 2A5 5 0 0 0 12 20.07l1.15-1.15"/></svg>
                     <span>Link</span>
                 </button>
+                <button type="button" data-block="button" title="Button" aria-label="Button einfügen">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="8" rx="4"/><path d="M8 12h8"/></svg>
+                    <span>Button</span>
+                </button>
                 <button type="button" data-block="attaches" title="Anhang" aria-label="Anhang einfügen">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.83l8.48-8.48"/></svg>
                     <span>Anhang</span>
@@ -471,42 +475,6 @@ final class EditorJsAssetService
 
     private function buildAssetUrl(string $relativePath): string
     {
-        if (\function_exists('cms_asset_url')) {
-            return \cms_asset_url($relativePath);
-        }
-
-        $normalizedPath = ltrim(str_replace('\\', '/', $relativePath), '/');
-        $baseUrl = '';
-        $url = '';
-
-        if (\function_exists('cms_assets_url')) {
-            $url = \cms_assets_url($normalizedPath);
-            $baseUrl = '';
-        } elseif (defined('ASSETS_URL')) {
-            $baseUrl = (string) ASSETS_URL;
-        } elseif (defined('SITE_URL')) {
-            $baseUrl = rtrim((string) SITE_URL, '/') . '/assets';
-        } elseif (defined('BASE_URL')) {
-            $baseUrl = rtrim((string) BASE_URL, '/') . '/assets';
-        } else {
-            $baseUrl = '/assets';
-        }
-
-        if ($url === '') {
-            $url = rtrim(str_replace('\\', '/', $baseUrl), '/') . '/' . $normalizedPath;
-        }
-        $assetPath = defined('ASSETS_PATH')
-            ? rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) ASSETS_PATH), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
-                . str_replace('/', DIRECTORY_SEPARATOR, $normalizedPath)
-            : null;
-
-        if (is_string($assetPath) && is_file($assetPath)) {
-            $modified = filemtime($assetPath);
-            if ($modified !== false) {
-                $url .= '?v=' . rawurlencode((string) $modified);
-            }
-        }
-
-        return $url;
+        return \cms_asset_url($relativePath);
     }
 }

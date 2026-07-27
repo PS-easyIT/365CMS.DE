@@ -13,7 +13,6 @@ if (!defined('ABSPATH')) {
 
 use CMS\AuditLogger;
 use CMS\Auth;
-use CMS\Http\Request;
 use CMS\Logger;
 use CMS\Security;
 use CMS\Services\BackupService;
@@ -341,7 +340,7 @@ class BackupsModule
         }
 
         return class_exists(Security::class)
-            && Security::instance()->verifyToken((string) Request::post('csrf_token', ''), self::CSRF_ACTION);
+            && Security::instance()->verifyToken((string)($_POST['csrf_token'] ?? ''), self::CSRF_ACTION);
     }
 
     /**

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Konfiguration der Dashboard-Widgets im **Member Dashboard** aus Admin-Sicht.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.734
 
 ---
 

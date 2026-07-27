@@ -69,14 +69,10 @@ final class SeoSuiteModule
 
 	private const ANALYTICS_DEFAULTS = [
 		'seo_analytics_gsc_property' => '',
-		'seo_analytics_ga4_enabled' => '0',
 		'seo_analytics_ga4_id' => '',
-		'seo_analytics_matomo_enabled' => '0',
 		'seo_analytics_matomo_url' => '',
 		'seo_analytics_matomo_site_id' => '1',
-		'seo_analytics_gtm_enabled' => '0',
 		'seo_analytics_gtm_id' => '',
-		'seo_analytics_fb_pixel_enabled' => '0',
 		'seo_analytics_fb_pixel_id' => '',
 		'seo_analytics_exclude_admins' => '1',
 		'seo_analytics_respect_dnt' => '1',
@@ -203,7 +199,10 @@ final class SeoSuiteModule
 		return match ($action) {
 			'regenerate_sitemap', 'regenerate_sitemap_bundle' => $this->regenerateSitemapBundle(),
 			'submit_indexing_urls' => $this->submitIndexingUrls($post),
+			'submit_recent_content_indexnow' => $this->submitRecentContentIndexNow($post),
 			'delete_google_url' => $this->deleteGoogleUrl($post),
+			'save_google_access_token' => $this->saveGoogleAccessToken($post),
+			'clear_google_access_token' => $this->clearGoogleAccessToken(),
 			'save_templates' => $this->saveMetaTemplates($post),
 			'save_sitemap_settings' => $this->saveSitemapSettings($post),
 			'save_meta_defaults' => $this->saveMetaDefaults($post),
@@ -223,7 +222,7 @@ final class SeoSuiteModule
 	public function regenerateSitemapBundle(): array
 	{
 		try {
-			$bundleSaved = $this->seoService->regenerateSitemapBundle();
+			$bundleSaved = (bool)$this->seoService->saveSitemapBundle();
 			$lastError = $this->sanitizeLogValue((string)$this->seoService->getLastSitemapError(), 240);
 
 			if (!$bundleSaved) {
@@ -368,50 +367,13 @@ final class SeoSuiteModule
 
 	public function saveAnalyticsSettings(array $post): array
 	{
-		$rawGscProperty = trim((string)($post['gsc_property'] ?? ''));
-		$rawGa4Id = trim((string)($post['ga4_id'] ?? ''));
-		$rawMatomoUrl = trim((string)($post['matomo_url'] ?? ''));
-		$rawGtmId = trim((string)($post['gtm_id'] ?? ''));
-		$rawFbPixelId = trim((string)($post['fb_pixel_id'] ?? ''));
-
-		$ga4Id = $this->normalizeTrackingId($rawGa4Id, '/^G-[A-Z0-9\-]+$/i');
-		$gtmId = $this->normalizeTrackingId($rawGtmId, '/^GTM-[A-Z0-9\-]+$/i');
-		$fbPixelId = $this->normalizeTrackingId($rawFbPixelId, '/^[0-9]{5,20}$/');
-		$matomoUrl = $this->normalizeOptionalUrl($rawMatomoUrl, false);
-
-		$validationErrors = [];
-
-		if ($rawGa4Id !== '' && ($ga4Id === '' || $this->isPlaceholderTrackingId($rawGa4Id, 'ga4'))) {
-			$validationErrors[] = 'Bitte eine gültige GA4-ID (Format: G-XXXXXXXXXX) hinterlegen.';
-		}
-
-		if ($rawGtmId !== '' && ($gtmId === '' || $this->isPlaceholderTrackingId($rawGtmId, 'gtm'))) {
-			$validationErrors[] = 'Bitte eine gültige GTM-ID (Format: GTM-XXXXXXX) hinterlegen.';
-		}
-
-		if ($rawFbPixelId !== '' && ($fbPixelId === '' || $this->isPlaceholderTrackingId($rawFbPixelId, 'fb_pixel'))) {
-			$validationErrors[] = 'Bitte eine gültige Meta-Pixel-ID (nur Ziffern, min. 5 Stellen) hinterlegen.';
-		}
-
-		if ($rawMatomoUrl !== '' && $matomoUrl === '') {
-			$validationErrors[] = 'Bitte eine gültige Matomo-URL (http/https) hinterlegen.';
-		}
-
-		if ($validationErrors !== []) {
-			return ['success' => false, 'error' => $validationErrors[0]];
-		}
-
 		$this->persistSettings([
-			'seo_analytics_gsc_property' => $rawGscProperty,
-			'seo_analytics_ga4_enabled' => $ga4Id !== '' ? '1' : '0',
-			'seo_analytics_ga4_id' => $ga4Id,
-			'seo_analytics_matomo_enabled' => $matomoUrl !== '' ? '1' : '0',
-			'seo_analytics_matomo_url' => $matomoUrl,
+			'seo_analytics_gsc_property' => trim((string)($post['gsc_property'] ?? '')),
+			'seo_analytics_ga4_id' => $this->normalizeTrackingId((string)($post['ga4_id'] ?? ''), '/^G-[A-Z0-9\-]+$/i'),
+			'seo_analytics_matomo_url' => $this->normalizeOptionalUrl((string)($post['matomo_url'] ?? ''), false),
 			'seo_analytics_matomo_site_id' => $this->normalizePositiveIntString($post['matomo_site_id'] ?? '1', '1'),
-			'seo_analytics_gtm_enabled' => $gtmId !== '' ? '1' : '0',
-			'seo_analytics_gtm_id' => $gtmId,
-			'seo_analytics_fb_pixel_enabled' => $fbPixelId !== '' ? '1' : '0',
-			'seo_analytics_fb_pixel_id' => $fbPixelId,
+			'seo_analytics_gtm_id' => $this->normalizeTrackingId((string)($post['gtm_id'] ?? ''), '/^GTM-[A-Z0-9\-]+$/i'),
+			'seo_analytics_fb_pixel_id' => $this->normalizeTrackingId((string)($post['fb_pixel_id'] ?? ''), '/^[0-9]{5,20}$/'),
 			'seo_analytics_exclude_admins' => !empty($post['exclude_admins']) ? '1' : '0',
 			'seo_analytics_respect_dnt' => !empty($post['respect_dnt']) ? '1' : '0',
 			'seo_analytics_anonymize_ip' => !empty($post['anonymize_ip']) ? '1' : '0',
@@ -420,108 +382,6 @@ final class SeoSuiteModule
 		]);
 
 		return ['success' => true, 'message' => 'Analytics- und Tracking-Einstellungen gespeichert.'];
-	}
-
-	/**
-	 * @param array<string, string> $settings
-	 * @return array<string, mixed>
-	 */
-	private function buildTrackingConfigurationStatus(array $settings): array
-	{
-		$integrations = [
-			'ga4' => [
-				'label' => 'GA4',
-				'enabled' => ($settings['seo_analytics_ga4_enabled'] ?? '0') === '1',
-				'value' => trim((string)($settings['seo_analytics_ga4_id'] ?? '')),
-				'placeholder_type' => 'ga4',
-				'validation_pattern' => '/^G-[A-Z0-9\-]+$/i',
-			],
-			'gtm' => [
-				'label' => 'GTM',
-				'enabled' => ($settings['seo_analytics_gtm_enabled'] ?? '0') === '1',
-				'value' => trim((string)($settings['seo_analytics_gtm_id'] ?? '')),
-				'placeholder_type' => 'gtm',
-				'validation_pattern' => '/^GTM-[A-Z0-9\-]+$/i',
-			],
-			'fb_pixel' => [
-				'label' => 'Meta Pixel',
-				'enabled' => ($settings['seo_analytics_fb_pixel_enabled'] ?? '0') === '1',
-				'value' => trim((string)($settings['seo_analytics_fb_pixel_id'] ?? '')),
-				'placeholder_type' => 'fb_pixel',
-				'validation_pattern' => '/^[0-9]{5,20}$/',
-			],
-			'matomo' => [
-				'label' => 'Matomo',
-				'enabled' => ($settings['seo_analytics_matomo_enabled'] ?? '0') === '1',
-				'value' => trim((string)($settings['seo_analytics_matomo_url'] ?? '')),
-				'placeholder_type' => 'none',
-				'validation_pattern' => '',
-			],
-		];
-
-		$configured = 0;
-		$partial = 0;
-		$missing = 0;
-		$issues = [];
-		$items = [];
-
-		foreach ($integrations as $key => $integration) {
-			$value = (string)($integration['value'] ?? '');
-			$enabled = !empty($integration['enabled']);
-			$placeholderType = (string)($integration['placeholder_type'] ?? 'none');
-			$hasPlaceholder = $placeholderType !== 'none' && $this->isPlaceholderTrackingId($value, $placeholderType);
-			$validationPattern = (string)($integration['validation_pattern'] ?? '');
-			$isValueValid = $value === '' ? false : match ($key) {
-				'matomo' => $this->normalizeOptionalUrl($value, false) !== '',
-				default => $validationPattern !== '' && $this->normalizeTrackingId($value, $validationPattern) !== '',
-			};
-
-			if ($enabled && $isValueValid && !$hasPlaceholder) {
-				$status = 'configured';
-				$configured++;
-			} elseif ($enabled || $hasPlaceholder) {
-				$status = 'partial';
-				$partial++;
-
-				if ($enabled && $value === '') {
-					$issues[] = (string)($integration['label'] ?? strtoupper($key)) . ': Aktiviert, aber ohne hinterlegte Kennung/URL.';
-				} elseif ($hasPlaceholder) {
-					$issues[] = (string)($integration['label'] ?? strtoupper($key)) . ': Platzhalter-Kennung erkannt (nicht produktiv).';
-				} elseif ($enabled && !$isValueValid) {
-					$issues[] = (string)($integration['label'] ?? strtoupper($key)) . ': Aktiviert, aber Kennung/URL hat ein ungültiges Format.';
-				} else {
-					$issues[] = (string)($integration['label'] ?? strtoupper($key)) . ': Aktiviert, aber ohne gültige produktive Kennung.';
-				}
-			} else {
-				$status = 'missing';
-				$missing++;
-			}
-
-			$items[$key] = [
-				'label' => (string)($integration['label'] ?? strtoupper($key)),
-				'status' => $status,
-				'enabled' => $enabled,
-				'has_value' => $value !== '',
-				'is_valid' => $isValueValid,
-				'uses_placeholder' => $hasPlaceholder,
-			];
-		}
-
-		$overall = 'missing';
-		if ($partial > 0) {
-			$overall = 'partial';
-		} elseif ($configured > 0) {
-			$overall = 'configured';
-		}
-
-		return [
-			'overall' => $overall,
-			'configured_count' => $configured,
-			'partial_count' => $partial,
-			'missing_count' => $missing,
-			'issues' => $issues,
-			'integrations' => $items,
-		];
 	}
 
 	public function saveSitemapSettings(array $post): array
@@ -575,8 +435,8 @@ final class SeoSuiteModule
 
 		if (in_array('google', $targets, true)) {
 			$accessToken = trim((string)($post['google_access_token'] ?? ''));
-			if ($accessToken === '') {
-				$errors[] = 'Für Google fehlt ein Access-Token.';
+			if ($accessToken === '' && !$this->indexingService->hasGoogleAccessToken()) {
+				$errors[] = 'Für Google fehlt ein Access-Token (weder eingegeben noch dauerhaft gespeichert).';
 			} elseif ($this->indexingService->submitGoogle($rawUrls, $accessToken)) {
 				$messages[] = 'Google URL Notification wurde angestoßen.';
 			} else {
@@ -595,18 +455,103 @@ final class SeoSuiteModule
 		return ['success' => false, 'error' => implode(' ', $errors)];
 	}
 
+	public function submitRecentContentIndexNow(array $post): array
+	{
+		$range = $this->normalizeAllowedValue(
+			(string)($post['recent_content_range'] ?? ''),
+			array_keys($this->indexingService->getRecentContentRangeOptions()),
+			''
+		);
+
+		if ($range === '') {
+			return ['success' => false, 'error' => 'Bitte einen gültigen Zeitraum auswählen.'];
+		}
+
+		$targets = $post['recent_content_target'] ?? [];
+		$targets = is_array($targets) ? $targets : [$targets];
+		$targets = array_values(array_unique(array_filter(array_map(
+			fn($target): string => $this->normalizeAllowedValue((string)$target, $this->indexingService->getRecentContentTargetOptions(), ''),
+			$targets
+		))));
+
+		if ($targets === []) {
+			return ['success' => false, 'error' => 'Bitte mindestens ein Ziel für die Meldung auswählen.'];
+		}
+
+		$result = $this->indexingService->submitRecentContent($range, $targets);
+
+		if (!empty($result['success'])) {
+			AuditLogger::instance()->log(
+				AuditLogger::CAT_SETTING,
+				'seo.indexnow.recent_content_submitted',
+				'Kürzlich veröffentlichte Inhalte gemeldet',
+				'seo',
+				null,
+				['range' => $range, 'targets' => $targets, 'count' => (int)($result['count'] ?? 0)],
+				'info'
+			);
+
+			return ['success' => true, 'message' => (string)($result['message'] ?? 'Meldung wurde übermittelt.')];
+		}
+
+		return ['success' => false, 'error' => (string)($result['error'] ?? 'Meldung konnte nicht übermittelt werden.')];
+	}
+
 	public function deleteGoogleUrl(array $post): array
 	{
 		$url = $this->normalizeIndexingUrl((string)($post['google_delete_url'] ?? ''));
 		$accessToken = trim((string)($post['google_access_token'] ?? ''));
 
-		if ($url === '' || $accessToken === '') {
-			return ['success' => false, 'error' => 'Für das Entfernen aus Google werden URL und Access-Token benötigt.'];
+		if ($url === '' || ($accessToken === '' && !$this->indexingService->hasGoogleAccessToken())) {
+			return ['success' => false, 'error' => 'Für das Entfernen aus Google werden eine URL sowie ein Access-Token (eingegeben oder dauerhaft gespeichert) benötigt.'];
 		}
 
 		return $this->indexingService->deleteGoogle($url, $accessToken)
 			? ['success' => true, 'message' => 'Google wurde über die Entfernung der URL informiert.']
 			: ['success' => false, 'error' => 'Google konnte die URL nicht aus dem Index entfernen.'];
+	}
+
+	public function saveGoogleAccessToken(array $post): array
+	{
+		$accessToken = trim((string)($post['google_access_token'] ?? ''));
+		if ($accessToken === '') {
+			return ['success' => false, 'error' => 'Bitte ein Google-Access-Token eingeben.'];
+		}
+
+		if (!$this->indexingService->saveGoogleAccessToken($accessToken)) {
+			return ['success' => false, 'error' => 'Google-Access-Token konnte nicht gespeichert werden.'];
+		}
+
+		AuditLogger::instance()->log(
+			AuditLogger::CAT_SETTING,
+			'seo.indexing.google_token_saved',
+			'Google-Access-Token dauerhaft gespeichert',
+			'seo',
+			null,
+			[],
+			'info'
+		);
+
+		return ['success' => true, 'message' => 'Google-Access-Token wurde verschlüsselt gespeichert und wird künftig automatisch verwendet.'];
+	}
+
+	public function clearGoogleAccessToken(): array
+	{
+		if (!$this->indexingService->clearGoogleAccessToken()) {
+			return ['success' => false, 'error' => 'Google-Access-Token konnte nicht entfernt werden.'];
+		}
+
+		AuditLogger::instance()->log(
+			AuditLogger::CAT_SETTING,
+			'seo.indexing.google_token_cleared',
+			'Google-Access-Token entfernt',
+			'seo',
+			null,
+			[],
+			'info'
+		);
+
+		return ['success' => true, 'message' => 'Gespeichertes Google-Access-Token wurde entfernt.'];
 	}
 
 	public function saveAuditItem(array $post): array
@@ -778,8 +723,6 @@ final class SeoSuiteModule
 			];
 		}
 
-		$trackingSettings = $this->loadSettings(self::ANALYTICS_DEFAULTS);
-
 		return [
 			'visitor_stats' => $this->analyticsService->getVisitorStats(30),
 			'daily_traffic' => $dailyTraffic,
@@ -789,8 +732,7 @@ final class SeoSuiteModule
 			'backlinks' => $backlinks,
 			'internal_link_suggestions' => array_slice($internalLinkSuggestions, 0, 10),
 			'core_web_vitals' => $this->analyticsService->getCoreWebVitals(30),
-			'tracking_settings' => $trackingSettings,
-			'tracking_status' => $this->buildTrackingConfigurationStatus($trackingSettings),
+			'tracking_settings' => $this->loadSettings(self::ANALYTICS_DEFAULTS),
 			'has_page_views' => $hasPageViews,
 		];
 	}
@@ -1050,12 +992,15 @@ final class SeoSuiteModule
 				'indexnow_ready_for_submission' => $indexNowStatus['ready_for_submission'],
 				'indexnow_validation_errors' => $indexNowStatus['validation_errors'],
 				'indexnow_validation_notes' => $indexNowStatus['validation_notes'],
+				'google_access_token_available' => $this->indexingService->hasGoogleAccessToken(),
+				'recent_content_ranges' => $this->indexingService->getRecentContentRangeOptions(),
+				'recent_content_targets' => $this->indexingService->getRecentContentTargetOptions(),
 				'engines' => ['IndexNow', 'Google Indexing API'],
 				'notes' => [
 					'IndexNow-Key kann jetzt direkt im SEO-Bereich gepflegt werden.',
 					'Keydatei wird bei gesetztem Schlüssel dynamisch vom Core ausgeliefert.',
 					'Optional kann zusätzlich eine physische Root-TXT-Datei geprüft werden.',
-					'Google-Submission nutzt bewusst einen manuellen Access-Token pro Aktion.',
+					'Google-Access-Token kann dauerhaft (verschlüsselt) gespeichert oder pro Aktion manuell überschrieben werden.',
 				],
 			],
 			'counts' => [
@@ -1285,21 +1230,6 @@ final class SeoSuiteModule
 		}
 
 		return preg_match($pattern, $value) === 1 ? $value : '';
-	}
-
-	private function isPlaceholderTrackingId(string $value, string $type): bool
-	{
-		$value = strtoupper(trim($value));
-		if ($value === '') {
-			return false;
-		}
-
-		return match ($type) {
-			'ga4' => preg_match('/^G-[X0-9]{4,}$/', $value) === 1,
-			'gtm' => preg_match('/^GTM-[X0-9]{4,}$/', $value) === 1,
-			'fb_pixel' => preg_match('/^(?:0+|1{5,}|9{5,}|X{5,})$/', $value) === 1,
-			default => false,
-		};
 	}
 
 	private function normalizePositiveIntString(mixed $value, string $fallback): string

@@ -19,7 +19,7 @@ final class AiSettingsService
     public const GROUP_PROMPTS = 'ai.prompts';
 
     /** @var list<string> */
-    public const PROVIDER_SLUGS = ['mock', 'openai', 'azure_openai', 'mistral', 'ollama', 'openrouter'];
+    public const PROVIDER_SLUGS = ['mock', 'openai', 'mistral', 'azure_openai', 'ollama', 'openrouter'];
 
     private const PROVIDER_SECRET_PREFIX = 'provider_secret_';
 
@@ -51,15 +51,15 @@ final class AiSettingsService
         ],
         'openai' => [
             'label' => 'OpenAI',
-            'description' => 'OpenAI Chat Completions API über Endpoint, Modell und API-Key.',
+            'description' => 'OpenAI Chat Completions API über zentralen AIService.',
             'requires_secret' => true,
             'secret_label' => 'API-Key',
             'live_supported' => true,
             'addable' => true,
         ],
         'mistral' => [
-            'label' => 'Mistral AI',
-            'description' => 'Mistral Chat Completions API über Endpoint, Modell und API-Key.',
+            'label' => 'Mistral',
+            'description' => 'Mistral Chat Completions API über zentralen AIService.',
             'requires_secret' => true,
             'secret_label' => 'API-Key',
             'live_supported' => true,
@@ -67,7 +67,7 @@ final class AiSettingsService
         ],
         'openrouter' => [
             'label' => 'OpenRouter',
-            'description' => 'OpenRouter Chat Completions API für routingfähige OpenAI-kompatible Modelle.',
+            'description' => 'OpenRouter Chat Completions API über zentralen AIService.',
             'requires_secret' => true,
             'secret_label' => 'API-Key',
             'live_supported' => true,
@@ -105,56 +105,9 @@ final class AiSettingsService
 
     private const PROVIDER_SECRET_KEYS = [
         'openai_api_key',
-        'azure_openai_api_key',
         'mistral_api_key',
+        'azure_openai_api_key',
         'openrouter_api_key',
-    ];
-
-    /** @var array<string, array<string, string>> */
-    private const PROVIDER_MODEL_OPTIONS = [
-        'mock' => [
-            'mock-local-v1' => 'Mock Local v1',
-        ],
-        'openai' => [
-            'gpt-5.3' => 'GPT 5.3',
-            'gpt-5.4' => 'GPT 5.4',
-            'gpt-5.5' => 'GPT 5.5',
-        ],
-        'azure_openai' => [
-            'gpt-5.3' => 'GPT 5.3',
-            'gpt-5.4' => 'GPT 5.4',
-            'gpt-5.5' => 'GPT 5.5',
-        ],
-        'mistral' => [
-            'mistral-small-latest' => 'Mistral Small (latest)',
-            'mistral-large-latest' => 'Mistral Large (latest)',
-            'mistral-medium-latest' => 'Mistral Medium (latest)',
-            'codestral-latest' => 'Codestral (latest)',
-        ],
-        'ollama' => [
-            'llama3.1:8b' => 'Llama 3.1 8B',
-            'llama3.2:3b' => 'Llama 3.2 3B',
-            'mistral:7b' => 'Mistral 7B',
-            'qwen2.5:7b' => 'Qwen 2.5 7B',
-        ],
-        'openrouter' => [
-            'openai/gpt-5.3' => 'OpenAI GPT 5.3',
-            'openai/gpt-5.4' => 'OpenAI GPT 5.4',
-            'openai/gpt-5.5' => 'OpenAI GPT 5.5',
-            'mistralai/mistral-small-latest' => 'Mistral Small (latest)',
-            'mistralai/mistral-large-latest' => 'Mistral Large (latest)',
-            'meta-llama/llama-3.1-70b-instruct' => 'Llama 3.1 70B Instruct',
-        ],
-    ];
-
-    /** @var array<string, array<string, bool>> */
-    private const PROVIDER_SETTINGS_FIELDS = [
-        'mock' => ['model' => true, 'endpoint' => false, 'deployment' => false, 'api_version' => false, 'secret' => false],
-        'openai' => ['model' => true, 'endpoint' => true, 'deployment' => false, 'api_version' => false, 'secret' => true],
-        'azure_openai' => ['model' => true, 'endpoint' => true, 'deployment' => true, 'api_version' => true, 'secret' => true],
-        'mistral' => ['model' => true, 'endpoint' => true, 'deployment' => false, 'api_version' => false, 'secret' => true],
-        'ollama' => ['model' => true, 'endpoint' => true, 'deployment' => false, 'api_version' => false, 'secret' => false],
-        'openrouter' => ['model' => true, 'endpoint' => true, 'deployment' => false, 'api_version' => false, 'secret' => true],
     ];
 
     private static ?self $instance = null;
@@ -202,30 +155,6 @@ final class AiSettingsService
         $definition = self::getProviderTypeDefinition($providerType);
 
         return !empty($definition['addable']);
-    }
-
-    /** @return array<string, string> */
-    public static function getProviderModelOptions(string $providerType): array
-    {
-        $providerType = self::isKnownProviderType($providerType) ? strtolower(trim($providerType)) : 'mock';
-
-        return self::PROVIDER_MODEL_OPTIONS[$providerType] ?? self::PROVIDER_MODEL_OPTIONS['mock'];
-    }
-
-    public static function normalizeProviderModel(string $providerType, string $model): string
-    {
-        $options = self::getProviderModelOptions($providerType);
-        $model = trim($model);
-
-        return isset($options[$model]) ? $model : (string) array_key_first($options);
-    }
-
-    /** @return array<string, bool> */
-    public static function getProviderSettingsFields(string $providerType): array
-    {
-        $providerType = self::isKnownProviderType($providerType) ? strtolower(trim($providerType)) : 'mock';
-
-        return self::PROVIDER_SETTINGS_FIELDS[$providerType] ?? self::PROVIDER_SETTINGS_FIELDS['mock'];
     }
 
     /** @return array<string, mixed> */
@@ -321,34 +250,22 @@ final class AiSettingsService
             $knownEntryIds[$providerId] = true;
         }
 
-        $selectedProviderId = $this->sanitizeProviderId((string) ($meta['active_provider_id'] ?? ''));
-        $selectedEntry = null;
-        foreach ($sanitizedEntries as $entry) {
-            if ($selectedProviderId !== '' && (string) ($entry['id'] ?? '') === $selectedProviderId) {
-                $selectedEntry = $entry;
-                break;
-            }
-        }
+        $entryIds = array_values(array_map(
+            static fn (array $entry): string => (string) ($entry['id'] ?? ''),
+            $sanitizedEntries
+        ));
 
-        if ($selectedEntry === null) {
-            $selectedEntry = $sanitizedEntries[0] ?? $this->buildProviderEntry('mock', 'mock');
-        }
-
-        $selectedEntry['enabled'] = true;
-        $sanitizedEntries = [$selectedEntry];
-        $activeProviderId = (string) ($selectedEntry['id'] ?? 'mock');
+        $activeProviderId = $this->normalizeSelectedProviderId((string) ($meta['active_provider_id'] ?? ''), $entryIds, $sanitizedEntries);
 
         $payload = [
             'active_provider_id' => $activeProviderId,
+            'fallback_provider_id' => $this->normalizeSelectedProviderId((string) ($meta['fallback_provider_id'] ?? ''), $entryIds, $sanitizedEntries, $activeProviderId),
             'entries' => $sanitizedEntries,
         ];
 
         if (!$this->settings->setMany(self::GROUP_PROVIDERS, $payload, [], 0)) {
             return false;
         }
-
-        $this->settings->forget(self::GROUP_PROVIDERS, 'fallback_provider_id');
-        $this->settings->forget(self::GROUP_PROVIDERS, 'fallback_provider');
 
         foreach ($secretValues as $providerId => $secretValue) {
             $providerId = $this->sanitizeProviderId((string) $providerId);
@@ -371,14 +288,6 @@ final class AiSettingsService
             if (!$this->settings->forget(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerId))) {
                 return false;
             }
-        }
-
-        foreach (self::PROVIDER_SLUGS as $providerSlug) {
-            if ($providerSlug === $activeProviderId) {
-                continue;
-            }
-
-            $this->settings->forget(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerSlug));
         }
 
         return true;
@@ -446,34 +355,26 @@ final class AiSettingsService
             $entries[] = $this->buildProviderEntry('mock', 'mock');
         }
 
-        $activeProviderId = $this->sanitizeProviderId((string) ($stored['active_provider_id'] ?? $stored['active_provider'] ?? $defaults['active_provider_id']));
-        $activeEntry = null;
-        foreach ($entries as $entry) {
-            if ($activeProviderId !== '' && (string) ($entry['id'] ?? '') === $activeProviderId) {
-                $activeEntry = $entry;
-                break;
-            }
-        }
+        $entryIds = array_values(array_map(
+            static fn (array $entry): string => (string) ($entry['id'] ?? ''),
+            $entries
+        ));
 
-        if ($activeEntry === null) {
-            foreach ($entries as $entry) {
-                if (!empty($entry['enabled'])) {
-                    $activeEntry = $entry;
-                    break;
-                }
-            }
-        }
-
-        if ($activeEntry === null) {
-            $activeEntry = $entries[0] ?? $this->buildProviderEntry('mock', 'mock');
-        }
-
-        $activeEntry['enabled'] = true;
-        $entries = [$activeEntry];
-        $activeProviderId = (string) ($activeEntry['id'] ?? 'mock');
+        $activeProviderId = $this->normalizeSelectedProviderId(
+            (string) ($stored['active_provider_id'] ?? $stored['active_provider'] ?? $defaults['active_provider_id']),
+            $entryIds,
+            $entries
+        );
+        $fallbackProviderId = $this->normalizeSelectedProviderId(
+            (string) ($stored['fallback_provider_id'] ?? $stored['fallback_provider'] ?? $defaults['fallback_provider_id']),
+            $entryIds,
+            $entries,
+            $activeProviderId
+        );
 
         return [
             'active_provider_id' => $activeProviderId,
+            'fallback_provider_id' => $fallbackProviderId,
             'entries' => $entries,
             'catalog' => $this->buildProviderCatalog(),
         ];
@@ -506,7 +407,7 @@ final class AiSettingsService
             'label' => $label,
             'enabled' => (bool) ($stored['enabled'] ?? $defaults['enabled']),
             'profile' => $profile,
-            'default_model' => self::normalizeProviderModel($providerType, (string) ($stored['default_model'] ?? $defaults['default_model'])),
+            'default_model' => trim((string) ($stored['default_model'] ?? $defaults['default_model'])),
             'endpoint' => trim((string) ($stored['endpoint'] ?? $defaults['endpoint'])),
             'deployment' => trim((string) ($stored['deployment'] ?? $defaults['deployment'])),
             'api_version' => trim((string) ($stored['api_version'] ?? $defaults['api_version'])),
@@ -684,6 +585,7 @@ final class AiSettingsService
     {
         return [
             'active_provider_id' => 'mock',
+            'fallback_provider_id' => '',
         ];
     }
 
@@ -709,10 +611,26 @@ final class AiSettingsService
             ],
             'openai' => [
                 'label' => 'OpenAI',
-                'enabled' => false,
+                'enabled' => true,
                 'profile' => 'editor-translation',
-                'default_model' => 'gpt-5.3',
+                'default_model' => 'gpt-5-mini',
                 'endpoint' => 'https://api.openai.com/v1',
+                'deployment' => '',
+                'api_version' => '',
+                'translation_enabled' => true,
+                'rewrite_enabled' => true,
+                'summary_enabled' => true,
+                'seo_meta_enabled' => true,
+                'editorjs_enabled' => true,
+                'allowed_locales' => ['en'],
+                'beta_only' => true,
+            ],
+            'mistral' => [
+                'label' => 'Mistral',
+                'enabled' => true,
+                'profile' => 'editor-translation',
+                'default_model' => 'mistral-small-latest',
+                'endpoint' => 'https://api.mistral.ai/v1',
                 'deployment' => '',
                 'api_version' => '',
                 'translation_enabled' => true,
@@ -727,26 +645,10 @@ final class AiSettingsService
                 'label' => 'Azure AI',
                 'enabled' => false,
                 'profile' => 'editor-translation',
-                'default_model' => 'gpt-5.3',
+                'default_model' => 'gpt-4.1-mini',
                 'endpoint' => '',
                 'deployment' => '',
                 'api_version' => '2024-10-21',
-                'translation_enabled' => true,
-                'rewrite_enabled' => true,
-                'summary_enabled' => true,
-                'seo_meta_enabled' => true,
-                'editorjs_enabled' => true,
-                'allowed_locales' => ['en'],
-                'beta_only' => true,
-            ],
-            'mistral' => [
-                'label' => 'Mistral AI',
-                'enabled' => false,
-                'profile' => 'editor-translation',
-                'default_model' => 'mistral-small-latest',
-                'endpoint' => 'https://api.mistral.ai/v1',
-                'deployment' => '',
-                'api_version' => '',
                 'translation_enabled' => true,
                 'rewrite_enabled' => true,
                 'summary_enabled' => true,
@@ -775,7 +677,7 @@ final class AiSettingsService
                 'label' => 'OpenRouter',
                 'enabled' => false,
                 'profile' => 'beta',
-                'default_model' => 'openai/gpt-5.3',
+                'default_model' => 'openai/gpt-4.1-mini',
                 'endpoint' => 'https://openrouter.ai/api/v1',
                 'deployment' => '',
                 'api_version' => '',
@@ -1100,7 +1002,7 @@ final class AiSettingsService
             'label' => trim((string) ($entry['label'] ?? $defaults['label'])) !== '' ? trim((string) ($entry['label'] ?? $defaults['label'])) : (string) $defaults['label'],
             'enabled' => (bool) ($entry['enabled'] ?? $defaults['enabled']),
             'profile' => (string) ($entry['profile'] ?? $defaults['profile']),
-            'default_model' => self::normalizeProviderModel($providerType, (string) ($entry['default_model'] ?? $defaults['default_model'])),
+            'default_model' => trim((string) ($entry['default_model'] ?? $defaults['default_model'])),
             'endpoint' => trim((string) ($entry['endpoint'] ?? $defaults['endpoint'])),
             'deployment' => trim((string) ($entry['deployment'] ?? $defaults['deployment'])),
             'api_version' => trim((string) ($entry['api_version'] ?? $defaults['api_version'])),
@@ -1131,8 +1033,14 @@ final class AiSettingsService
                 'addable' => !empty($definition['addable']),
                 'default_model' => (string) ($defaults['default_model'] ?? ''),
                 'default_endpoint' => (string) ($defaults['endpoint'] ?? ''),
-                'model_options' => self::getProviderModelOptions($providerType),
-                'settings_fields' => self::getProviderSettingsFields($providerType),
+                'default_deployment' => (string) ($defaults['deployment'] ?? ''),
+                'default_api_version' => (string) ($defaults['api_version'] ?? ''),
+                'fields' => [
+                    'endpoint' => $providerType !== 'mock',
+                    'deployment' => $providerType === 'azure_openai',
+                    'api_version' => $providerType === 'azure_openai',
+                    'secret' => !empty($definition['requires_secret']),
+                ],
             ];
         }
 
@@ -1143,8 +1051,8 @@ final class AiSettingsService
     {
         return match ($providerType) {
             'openai' => 'openai_api_key',
-            'azure_openai' => 'azure_openai_api_key',
             'mistral' => 'mistral_api_key',
+            'azure_openai' => 'azure_openai_api_key',
             'openrouter' => 'openrouter_api_key',
             default => '',
         };

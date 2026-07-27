@@ -179,11 +179,21 @@ if ($publishedAtValue !== '') {
     $publishTime = date('H:i');
 }
 $isScheduledPost = $post !== null && \cms_post_is_scheduled($post);
+$contentUpdatedAtValue = (string)($post['content_updated_at'] ?? '');
+$contentUpdatedDate = '';
+$contentUpdatedTime = '';
+if ($contentUpdatedAtValue !== '') {
+    $contentUpdatedTimestamp = strtotime($contentUpdatedAtValue);
+    if ($contentUpdatedTimestamp !== false) {
+        $contentUpdatedDate = date('Y-m-d', $contentUpdatedTimestamp);
+        $contentUpdatedTime = date('H:i', $contentUpdatedTimestamp);
+    }
+}
+$treatUpdateAsNewChecked = !empty($post['treat_update_as_new']);
 $metaTitle  = htmlspecialchars($post['meta_title'] ?? '');
 $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
-$metaTitleEn  = htmlspecialchars($post['meta_title_en'] ?? '');
-$metaDescEn   = htmlspecialchars($post['meta_description_en'] ?? '');
 $authorDisplayName = htmlspecialchars($post['author_display_name'] ?? '', ENT_QUOTES);
+$authorDisplayUrl = htmlspecialchars($post['author_display_url'] ?? '', ENT_QUOTES);
 $tagString  = htmlspecialchars(implode(', ', array_map(static fn(array $tag): string => (string)($tag['name'] ?? ''), $postTagsData)), ENT_QUOTES);
 $seoMeta = $data['seoMeta'] ?? [];
 $seoTemplateSettings = \CMS\Services\SeoAnalysisService::getInstance()->getSettings();
@@ -265,8 +275,6 @@ $additionalCategoryIds = array_values(array_filter(
             $postStatusValue = (string)$status;
             $postMetaTitleValue = (string)($post['meta_title'] ?? '');
             $postMetaDescriptionValue = (string)($post['meta_description'] ?? '');
-            $postMetaTitleEnValue = (string)($post['meta_title_en'] ?? '');
-            $postMetaDescriptionEnValue = (string)($post['meta_description_en'] ?? '');
             $postFeaturedImageValue = (string)($post['featured_image'] ?? '');
             $postPreviewUrlTemplate = $permalinkService !== null
                 ? $permalinkService->buildPostUrlTemplate((string)($post['published_at'] ?? ''), (string)($post['created_at'] ?? ''))
@@ -297,9 +305,7 @@ $additionalCategoryIds = array_values(array_filter(
             $activeEditorHolderId = $isEnglishEditorView ? 'editorjsEn' : 'editorjs';
             $activeContentFieldName = $isEnglishEditorView ? 'content_en' : 'content';
             $activeContentPlainTextValue = $isEnglishEditorView ? $postContentPlainEnValue : $postContentPlainValue;
-            $activeContentLabel = $isEnglishEditorView ? 'Inhalt (EN) – Plain-Fallback' : 'Inhalt (DE) – Plain-Fallback';
-            $activePostMetaTitleValue = $isEnglishEditorView ? $postMetaTitleEnValue : $postMetaTitleValue;
-            $activePostMetaDescriptionValue = $isEnglishEditorView ? $postMetaDescriptionEnValue : $postMetaDescriptionValue;
+            $activeContentLabel = $isEnglishEditorView ? 'EditorJS Notfall-Fallback (EN)' : 'EditorJS Notfall-Fallback (DE)';
             $postEditorHasValidActiveMapping = ($isEnglishEditorView && $activeContentInputId === 'postPlainEditorEn')
                 || (!$isEnglishEditorView && $activeContentInputId === 'postPlainEditorDe');
             $postPermalinkHint = $permalinkService !== null
@@ -321,17 +327,13 @@ $additionalCategoryIds = array_values(array_filter(
                 <input type="hidden" name="title" id="title" value="<?php echo htmlspecialchars($postTitleValue); ?>">
                 <input type="hidden" name="slug" id="slug" value="<?php echo htmlspecialchars($postSlugValue); ?>">
                 <input type="hidden" name="excerpt" id="excerpt" value="<?php echo htmlspecialchars($postExcerptValue); ?>">
-                <input type="hidden" name="meta_title" value="<?php echo htmlspecialchars($postMetaTitleValue); ?>">
-                <input type="hidden" name="meta_description" value="<?php echo htmlspecialchars($postMetaDescriptionValue); ?>">
                 <input type="hidden" id="contentInput" name="content" value="<?php echo htmlspecialchars($postContentValue); ?>">
-                <input type="hidden" id="contentInputEn" data-editor-submit-name="content_en" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
+                <input type="hidden" id="contentInputEn" name="content_en" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
             <?php else: ?>
                 <input type="hidden" name="title_en" id="titleEn" value="<?php echo htmlspecialchars($postTitleEnValue); ?>">
                 <input type="hidden" name="slug_en" id="slugEn" value="<?php echo htmlspecialchars($postSlugEnValue); ?>">
                 <input type="hidden" name="excerpt_en" id="excerptEn" value="<?php echo htmlspecialchars($postExcerptEnValue); ?>">
-                <input type="hidden" name="meta_title_en" value="<?php echo htmlspecialchars($postMetaTitleEnValue); ?>">
-                <input type="hidden" name="meta_description_en" value="<?php echo htmlspecialchars($postMetaDescriptionEnValue); ?>">
-                <input type="hidden" id="contentInput" data-editor-submit-name="content" value="<?php echo htmlspecialchars($postContentValue); ?>">
+                <input type="hidden" id="contentInput" name="content" value="<?php echo htmlspecialchars($postContentValue); ?>">
                 <input type="hidden" id="contentInputEn" name="content_en" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
             <?php endif; ?>
             <input type="hidden" name="content_original" value="<?php echo htmlspecialchars($postContentValue); ?>">
@@ -481,6 +483,28 @@ $additionalCategoryIds = array_values(array_filter(
                                 <input type="text" class="form-control" id="authorDisplayName" name="author_display_name" value="<?php echo $authorDisplayName; ?>" maxlength="150" placeholder="Leer lassen = normaler 365CMS-Anzeigename des Autors">
                                 <div class="form-hint">Optionaler Override nur für diesen Beitrag. Wenn leer, wird automatisch der Anzeigename des zugewiesenen 365CMS-Autors verwendet.</div>
                             </div>
+                            <div class="mt-3">
+                                <label class="form-label" for="authorDisplayUrl">Website des alternativen Autors</label>
+                                <input type="url" class="form-control" id="authorDisplayUrl" name="author_display_url" value="<?php echo $authorDisplayUrl; ?>" maxlength="500" placeholder="https://beispiel.de (optional)">
+                                <div class="form-hint">Optional. Wenn gesetzt, verlinkt der Autorenname im Artikel auf diese Website (öffnet in neuem Tab) statt auf die interne Autoren-Info-Seite. Muss mit http:// oder https:// beginnen.</div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label" for="contentUpdatedDate">Aktualisierungsdatum (öffentlich sichtbar)</label>
+                                <div class="row g-2">
+                                    <div class="col-sm-7">
+                                        <input type="date" class="form-control" id="contentUpdatedDate" name="content_updated_date" value="<?php echo htmlspecialchars($contentUpdatedDate); ?>">
+                                    </div>
+                                    <div class="col-sm-5">
+                                        <input type="time" class="form-control" id="contentUpdatedTime" name="content_updated_time" value="<?php echo htmlspecialchars($contentUpdatedTime); ?>" step="60">
+                                    </div>
+                                </div>
+                                <div class="form-hint">Optional. Leer lassen = kein „Aktualisiert am“-Hinweis im Artikel und kein Update-Badge in den Übersichten. Ausgefüllt = wird am Artikelende als „Aktualisiert am“ angezeigt.</div>
+                                <label class="form-check mt-2 mb-0">
+                                    <input type="checkbox" class="form-check-input" id="treatUpdateAsNew" name="treat_update_as_new" value="1"<?php echo $treatUpdateAsNewChecked ? ' checked' : ''; ?>>
+                                    <span class="form-check-label">Als neuen Beitrag behandeln (an die Spitze der Übersichten rücken)</span>
+                                </label>
+                                <div class="form-hint">Beim Speichern aktiv: Das Veröffentlichungsdatum wird auf das Aktualisierungsdatum gesetzt, der Beitrag erscheint dadurch wieder ganz oben. Inaktiv: Der Beitrag bleibt unter seinem ursprünglichen Datum, zeigt aber weiterhin das Update-Badge. Diese Auswahl wird nicht gespeichert und muss bei jeder erneuten Aktualisierung neu gesetzt werden.</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -587,7 +611,18 @@ $additionalCategoryIds = array_values(array_filter(
                                 <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
                                     <div class="text-secondary small">Die englische Version ist unter <code><?php echo htmlspecialchars($postPreviewUrlEn); ?></code> erreichbar.</div>
                                     <div class="btn-list">
-                                        <button type="submit" name="_action" value="copy_de_to_en" class="btn btn-outline-secondary btn-sm" id="copyPostDeToEnButton" form="postForm" formnovalidate data-confirm="Die aktuelle englische Beitragsfassung wird durch die deutsche Fassung ersetzt. Wirklich kopieren?">DE nach EN kopieren</button>
+                                        <?php if (!$isNew): ?>
+                                            <button
+                                                type="submit"
+                                                name="_action"
+                                                value="copy_de_to_en"
+                                                class="btn btn-outline-secondary btn-sm"
+                                                id="copyPostDeToEnButton"
+                                                form="postForm"
+                                                formnovalidate
+                                                data-confirm="Die EN-Fassung wird serverseitig mit den deutschen Beitragsinhalten überschrieben. Fortfahren?"
+                                            >DE nach EN kopieren</button>
+                                        <?php endif; ?>
                                         <?php if ($aiTranslationEnabled): ?>
                                             <button type="button" class="btn btn-primary btn-sm" id="translatePostDeToEnButton">Mit AI nach EN übersetzen</button>
                                         <?php endif; ?>
@@ -599,16 +634,17 @@ $additionalCategoryIds = array_values(array_filter(
                             <?php endif; ?>
 
                             <div
-                                class="cms-editor-plain-wrap mb-3"
+                                class="cms-editor-plain-wrap mb-3<?php echo !empty($useEditorJs) ? ' cms-editor-plain-wrap--enhanced' : ''; ?>"
                                 id="<?php echo htmlspecialchars($isEnglishEditorView ? 'postPlainEditorWrapEn' : 'postPlainEditorWrapDe'); ?>"
+                                <?php echo !empty($useEditorJs) ? 'hidden' : ''; ?>
                             >
                                 <label class="form-label" for="<?php echo htmlspecialchars($activeContentInputId); ?>"><?php echo htmlspecialchars($activeContentLabel); ?></label>
-                                <div class="form-hint mb-2">Dieses Feld bleibt als sichere Speicherebene aktiv, bis der Block-Editor erfolgreich geladen wurde.</div>
                                 <textarea
                                     class="form-control cms-editor-plain-textarea"
                                     id="<?php echo htmlspecialchars($activeContentInputId); ?>"
                                     name="<?php echo htmlspecialchars($activeContentFieldName); ?>"
                                     rows="14"
+                                    <?php echo !empty($useEditorJs) ? 'disabled' : ''; ?>
                                 ><?php echo htmlspecialchars($activeContentPlainTextValue); ?></textarea>
                             </div>
                             <?php if (!empty($useEditorJs)): ?>
@@ -648,12 +684,12 @@ $additionalCategoryIds = array_values(array_filter(
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="metaTitle">Meta-Titel</label>
-                                <input type="text" class="form-control" id="metaTitle" name="<?php echo $isEnglishEditorView ? 'meta_title_en' : 'meta_title'; ?>" value="<?php echo htmlspecialchars($activePostMetaTitleValue); ?>" maxlength="70">
+                                <input type="text" class="form-control" id="metaTitle" name="meta_title" value="<?php echo htmlspecialchars($postMetaTitleValue); ?>" maxlength="70">
                                 <span class="form-hint"><span id="metaTitleCount">0</span>/70 Zeichen</span>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="metaDesc">Meta-Beschreibung</label>
-                                <textarea class="form-control" id="metaDesc" name="<?php echo $isEnglishEditorView ? 'meta_description_en' : 'meta_description'; ?>" rows="4" maxlength="160"><?php echo htmlspecialchars($activePostMetaDescriptionValue); ?></textarea>
+                                <textarea class="form-control" id="metaDesc" name="meta_description" rows="4" maxlength="160"><?php echo htmlspecialchars($postMetaDescriptionValue); ?></textarea>
                                 <span class="form-hint"><span id="metaDescCount">0</span>/160 Zeichen</span>
                             </div>
                             <div id="postSeoOverrideNotice" class="alert alert-info d-none cms-seo-override-notice" role="status" aria-live="polite">
@@ -704,18 +740,18 @@ $additionalCategoryIds = array_values(array_filter(
                     <?php
                     $previewCard = [
                         'serpTitleId' => 'postSerpTitle',
-                        'serpTitle' => $activePostMetaTitleValue ?: $activePostTitleValue,
+                        'serpTitle' => $postMetaTitleValue ?: $activePostTitleValue,
                         'serpUrlId' => 'postSerpUrl',
                         'serpUrl' => $activePostPreviewUrl,
                         'serpDescriptionId' => 'postSerpDescription',
-                        'serpDescription' => $activePostMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.',
+                        'serpDescription' => $postMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.',
                         'socialImageId' => 'postSocialImage',
                         'socialImage' => $ogImage !== '' ? html_entity_decode($ogImage, ENT_QUOTES, 'UTF-8') : $postFeaturedImageValue,
                         'socialImageVisible' => $ogImage !== '' || $postFeaturedImageValue !== '',
                         'socialTitleId' => 'postSocialTitle',
-                        'socialTitle' => $ogTitle !== '' ? html_entity_decode($ogTitle, ENT_QUOTES, 'UTF-8') : ($activePostMetaTitleValue ?: $activePostTitleValue),
+                        'socialTitle' => $ogTitle !== '' ? html_entity_decode($ogTitle, ENT_QUOTES, 'UTF-8') : ($postMetaTitleValue ?: $activePostTitleValue),
                         'socialDescriptionId' => 'postSocialDescription',
-                        'socialDescription' => $ogDescription !== '' ? html_entity_decode($ogDescription, ENT_QUOTES, 'UTF-8') : ($activePostMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten'),
+                        'socialDescription' => $ogDescription !== '' ? html_entity_decode($ogDescription, ENT_QUOTES, 'UTF-8') : ($postMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten'),
                     ];
                     require __DIR__ . '/../partials/content-preview-card.php';
                     ?>
@@ -988,22 +1024,6 @@ $additionalCategoryIds = array_values(array_filter(
 
         $postContentEditorJsConfig = [
             'formId' => 'postForm',
-            'copyAction' => $isEnglishEditorView ? [
-                'buttonId' => 'copyPostDeToEnButton',
-                'serverSubmit' => true,
-                'contentMode' => 'editorjs',
-                'sourceEditorKey' => 'de',
-                'targetEditorKey' => 'en',
-                'sourceTitleId' => null,
-                'targetTitleId' => null,
-                'sourceSlugId' => null,
-                'targetSlugId' => null,
-                'sourceExcerptId' => 'excerpt',
-                'targetExcerptId' => 'excerptEn',
-                'sourceContentFieldId' => 'contentInput',
-                'targetContentFieldId' => 'contentInputEn',
-                'targetContentFieldName' => null,
-            ] : null,
             'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView) ? [
                 'buttonId' => 'translatePostDeToEnButton',
                 'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
@@ -1049,9 +1069,5 @@ $additionalCategoryIds = array_values(array_filter(
         <input type="hidden" id="contentEditorUiConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentUiConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
         <input type="hidden" id="contentEditorSeoConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentSeoConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
         <input type="hidden" id="contentEditorEditorJsConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentEditorJsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
-        <?php
-        $editorInlineBootConfig = $postContentEditorJsConfig;
-        require __DIR__ . '/../partials/editorjs-inline-boot.php';
-        ?>
     </div>
 </div>

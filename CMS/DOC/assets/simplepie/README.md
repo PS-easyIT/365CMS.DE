@@ -1,6 +1,6 @@
 # SimplePie
 
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Legacy-Bestand
 
 ## Kurzbeschreibung
 

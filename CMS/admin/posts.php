@@ -113,40 +113,7 @@ function cms_admin_posts_normalize_view(mixed $view): string
 {
     $normalizedView = trim((string) $view);
 
-    if (in_array($normalizedView, ['new', 'create', 'add'], true)) {
-        return 'edit';
-    }
-
     return in_array($normalizedView, CMS_ADMIN_POSTS_ALLOWED_VIEWS, true) ? $normalizedView : 'list';
-}
-
-function cms_admin_posts_asset_url(string $relativePath): string
-{
-    if (function_exists('cms_asset_url')) {
-        return cms_asset_url($relativePath);
-    }
-
-    $normalizedPath = ltrim(str_replace('\\', '/', $relativePath), '/');
-    if (function_exists('cms_assets_url')) {
-        $url = cms_assets_url($normalizedPath);
-    } else {
-        $baseUrl = defined('ASSETS_URL')
-            ? (string) ASSETS_URL
-            : (defined('SITE_URL') ? rtrim((string) SITE_URL, '/') . '/assets' : (defined('BASE_URL') ? rtrim((string) BASE_URL, '/') . '/assets' : '/assets'));
-        $url = rtrim(str_replace('\\', '/', $baseUrl), '/') . '/' . $normalizedPath;
-    }
-    $assetPath = defined('ASSETS_PATH')
-        ? rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) ASSETS_PATH), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $normalizedPath)
-        : null;
-
-    if (is_string($assetPath) && is_file($assetPath)) {
-        $modified = filemtime($assetPath);
-        if ($modified !== false) {
-            $url .= '?v=' . rawurlencode((string) $modified);
-        }
-    }
-
-    return $url;
 }
 
 function cms_admin_posts_normalize_positive_id(mixed $id): int
@@ -250,6 +217,14 @@ function cms_admin_posts_build_inline_edit_data(object $module, array $post): ar
         $publishedAt = $publishDate . ' ' . ($publishTime !== '' ? $publishTime : '00:00') . ':00';
     }
 
+    $contentUpdatedAt = trim((string) ($existingPost['content_updated_at'] ?? ''));
+    $contentUpdatedDate = trim((string) ($post['content_updated_date'] ?? ''));
+    $contentUpdatedTime = trim((string) ($post['content_updated_time'] ?? ''));
+
+    if ($contentUpdatedDate !== '') {
+        $contentUpdatedAt = $contentUpdatedDate . ' ' . ($contentUpdatedTime !== '' ? $contentUpdatedTime : '00:00') . ':00';
+    }
+
     $draftPost = array_merge($existingPost, [
         'id' => $id > 0 ? $id : (int) ($existingPost['id'] ?? 0),
         'title' => (string) ($post['title'] ?? ($existingPost['title'] ?? '')),
@@ -265,14 +240,15 @@ function cms_admin_posts_build_inline_edit_data(object $module, array $post): ar
         'featured_image' => (string) ($post['featured_image'] ?? ($existingPost['featured_image'] ?? '')),
         'meta_title' => (string) ($post['meta_title'] ?? ($existingPost['meta_title'] ?? '')),
         'meta_description' => (string) ($post['meta_description'] ?? ($existingPost['meta_description'] ?? '')),
-        'meta_title_en' => (string) ($post['meta_title_en'] ?? ($existingPost['meta_title_en'] ?? '')),
-        'meta_description_en' => (string) ($post['meta_description_en'] ?? ($existingPost['meta_description_en'] ?? '')),
         'author_display_name' => (string) ($post['author_display_name'] ?? ($existingPost['author_display_name'] ?? '')),
+        'author_display_url' => (string) ($post['author_display_url'] ?? ($existingPost['author_display_url'] ?? '')),
         'post_template' => (string) ($post['post_template'] ?? ($existingPost['post_template'] ?? 'default')),
         'post_meta_json' => is_array($post['post_meta'] ?? null)
             ? (string) json_encode((array) $post['post_meta'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
             : (string) ($existingPost['post_meta_json'] ?? ''),
         'published_at' => $publishedAt,
+        'content_updated_at' => $contentUpdatedAt,
+        'treat_update_as_new' => !empty($post['treat_update_as_new']),
     ]);
 
     if ($editorLocale === 'en') {
@@ -280,15 +256,11 @@ function cms_admin_posts_build_inline_edit_data(object $module, array $post): ar
         $draftPost['slug'] = (string) ($existingPost['slug'] ?? '');
         $draftPost['content'] = $existingPost['content'] ?? '';
         $draftPost['excerpt'] = (string) ($existingPost['excerpt'] ?? '');
-        $draftPost['meta_title'] = (string) ($existingPost['meta_title'] ?? '');
-        $draftPost['meta_description'] = (string) ($existingPost['meta_description'] ?? '');
     } else {
         $draftPost['title_en'] = (string) ($existingPost['title_en'] ?? $draftPost['title_en'] ?? '');
         $draftPost['slug_en'] = (string) ($existingPost['slug_en'] ?? $draftPost['slug_en'] ?? '');
         $draftPost['content_en'] = $existingPost['content_en'] ?? ($draftPost['content_en'] ?? '');
         $draftPost['excerpt_en'] = (string) ($existingPost['excerpt_en'] ?? $draftPost['excerpt_en'] ?? '');
-        $draftPost['meta_title_en'] = (string) ($existingPost['meta_title_en'] ?? $draftPost['meta_title_en'] ?? '');
-        $draftPost['meta_description_en'] = (string) ($existingPost['meta_description_en'] ?? $draftPost['meta_description_en'] ?? '');
     }
 
     $tagNames = array_values(array_filter(array_map(
@@ -358,9 +330,9 @@ function cms_admin_posts_view_config(object $module, string $view, ?array $overr
         $pageAssets['css'] = $pageAssets['css'] ?? [];
         $pageAssets['js'] = $pageAssets['js'] ?? [];
         if (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isModuleEnabled('seo')) {
-            $pageAssets['js'][] = cms_admin_posts_asset_url('js/admin-seo-editor.js');
+            $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
         }
-        $pageAssets['js'][] = cms_admin_posts_asset_url('js/admin-content-editor.js');
+        $pageAssets['js'][] = cms_asset_url('js/admin-content-editor.js');
 
         return [
             'section' => 'edit',
@@ -560,10 +532,11 @@ $sectionPageConfig = [
             case 'copy_de_to_en':
                 $id = cms_admin_posts_normalize_positive_id($post['id'] ?? ($_GET['id'] ?? 0));
                 if ($id < 1) {
-                    return ['success' => false, 'error' => 'Ungültige Beitrags-ID.'];
+                    return ['success' => false, 'error' => 'Bitte den Beitrag zuerst speichern, bevor Inhalte nach EN kopiert werden.'];
                 }
 
-                $result = $module->copyGermanToEnglish($id);
+                $userId = Auth::instance()->getCurrentUser()->id ?? 0;
+                $result = $module->copyGermanToEnglish($id, (int) $userId);
                 if (!empty($result['success'])) {
                     $result['editor_locale'] = 'en';
                     $result['redirect_path'] = cms_admin_posts_target_url($id, 'en');

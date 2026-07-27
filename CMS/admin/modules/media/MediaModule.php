@@ -16,7 +16,6 @@ if (!defined('ABSPATH')) {
 use CMS\AuditLogger;
 use CMS\Auth;
 use CMS\Database;
-use CMS\Http\Request;
 use CMS\Logger;
 use CMS\Services\MediaDeliveryService;
 use CMS\Services\MediaService;
@@ -299,19 +298,19 @@ class MediaModule
      */
     public function getLibraryData(): array
     {
-        $path     = $this->normalizeRelativePath((string) Request::get('path', ''));
-        $category = $this->normalizeCategorySlug((string) Request::get('category', ''));
-        $view     = $this->normalizeView((string) Request::get('view', 'list'));
-        $search   = $this->sanitizeSearch((string) Request::get('q', ''));
-        $usageFilter = $this->normalizeUsageFilter((string) Request::get('usage_filter', 'all'));
+        $path     = $this->normalizeRelativePath((string)($_GET['path'] ?? ''));
+        $category = $this->normalizeCategorySlug((string)($_GET['category'] ?? ''));
+        $view     = $this->normalizeView((string)($_GET['view'] ?? 'list'));
+        $search   = $this->sanitizeSearch((string)($_GET['q'] ?? ''));
+        $usageFilter = $this->normalizeUsageFilter((string)($_GET['usage_filter'] ?? 'all'));
         $advancedFilters = [
-            'file_type' => $this->normalizeFileTypeFilter((string) Request::get('file_type', 'all')),
-            'extension' => $this->normalizeExtensionFilter((string) Request::get('extension', '')),
-            'size' => $this->normalizeSizeFilter((string) Request::get('size_filter', 'all')),
-            'modified' => $this->normalizeModifiedFilter((string) Request::get('modified_filter', 'all')),
+            'file_type' => $this->normalizeFileTypeFilter((string)($_GET['file_type'] ?? 'all')),
+            'extension' => $this->normalizeExtensionFilter((string)($_GET['extension'] ?? '')),
+            'size' => $this->normalizeSizeFilter((string)($_GET['size_filter'] ?? 'all')),
+            'modified' => $this->normalizeModifiedFilter((string)($_GET['modified_filter'] ?? 'all')),
         ];
-        $orphanDays = $this->normalizeOrphanDays(Request::get('orphan_days', 0));
-        $confirmMember = (string) Request::get('confirm_member', '') === '1';
+        $orphanDays = $this->normalizeOrphanDays($_GET['orphan_days'] ?? 0);
+        $confirmMember = (string)($_GET['confirm_member'] ?? '') === '1';
 
         if ($category !== '' && !$this->categoryExists($category)) {
             $category = '';
@@ -391,7 +390,6 @@ class MediaModule
             static fn (array $file): string => (string) ($file['path'] ?? ''),
             is_array($items['files'] ?? null) ? $items['files'] : []
         ));
-        $altTextCompliance = $this->buildAltTextComplianceData($items['files'] ?? [], $usageMap);
         $stats = $this->buildLibraryStats($items, $categories, $diskUsage, $duplicateMap, $usageMap);
         $orphanMedia = $this->buildOrphanMediaData($orphanDays);
         $altTextBulkAvailable = $this->mediaTableExists();
@@ -414,7 +412,6 @@ class MediaModule
             'confirm_member' => $confirmMember,
             'breadcrumbs' => $this->buildBreadcrumbs($path, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays),
             'stats' => $stats,
-            'alt_text_compliance' => $altTextCompliance,
             'base_url' => $this->buildAdminUrl(),
             'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays)),
             'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays)),
@@ -486,10 +483,10 @@ class MediaModule
      */
     public function getFeaturedMediaData(): array
     {
-        $search = $this->sanitizeSearch((string) Request::get('q', ''));
-        $usageScope = $this->normalizeFeaturedUsageScope((string) Request::get('usage_scope', 'all'));
-        $highlightPath = $this->normalizeRelativePath((string) Request::get('highlight', ''));
-        $highlightActive = ((string) Request::get('replaced', '') === '1') && $highlightPath !== '';
+        $search = $this->sanitizeSearch((string) ($_GET['q'] ?? ''));
+        $usageScope = $this->normalizeFeaturedUsageScope((string) ($_GET['usage_scope'] ?? 'all'));
+        $highlightPath = $this->normalizeRelativePath((string) ($_GET['highlight'] ?? ''));
+        $highlightActive = ((string) ($_GET['replaced'] ?? '') === '1') && $highlightPath !== '';
         $featuredUsageMap = $this->usageService->buildFeaturedImageMap();
         $items = [];
         $totalReferences = 0;
@@ -582,8 +579,8 @@ class MediaModule
      */
     public function getMediaCheckData(): array
     {
-        $search = $this->sanitizeSearch((string) Request::get('q', ''));
-        $usageScope = $this->normalizeFeaturedUsageScope((string) Request::get('usage_scope', 'all'));
+        $search = $this->sanitizeSearch((string) ($_GET['q'] ?? ''));
+        $usageScope = $this->normalizeFeaturedUsageScope((string) ($_GET['usage_scope'] ?? 'all'));
         $featuredUsageMap = $this->usageService->buildFeaturedImageMap();
         $consistencyData = $this->buildFeaturedConsistencyData($search, $usageScope, $featuredUsageMap);
 
@@ -876,8 +873,7 @@ class MediaModule
             return ['success' => false, 'error' => 'Dieses Bild ist aktuell nicht als Beitrags- oder Seitenbild registriert. Bitte die Medienansicht neu laden.'];
         }
 
-        $replacementInput = Request::file('replacement_file');
-        $replacementFile = is_array($replacementInput) ? $replacementInput : null;
+        $replacementFile = is_array($_FILES['replacement_file'] ?? null) ? $_FILES['replacement_file'] : null;
         if ($replacementFile === null || (int) ($replacementFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
             return ['success' => false, 'error' => 'Bitte eine neue Bilddatei auswählen.'];
         }
@@ -2753,115 +2749,6 @@ class MediaModule
     }
 
     /**
-     * @param array<int, array<string, mixed>> $files
-     * @param array<string, list<array<string, mixed>>> $usageMap
-     * @return array<string, mixed>
-     */
-    private function buildAltTextComplianceData(array $files, array $usageMap = []): array
-    {
-        $imagePaths = [];
-        foreach ($files as $file) {
-            if (!is_array($file)) {
-                continue;
-            }
-
-            $fileName = (string)($file['name'] ?? '');
-            $filePath = (string)($file['path'] ?? $fileName);
-            if ($filePath === '' || $this->detectFileType($fileName !== '' ? $fileName : $filePath) !== 'image') {
-                continue;
-            }
-
-            $normalizedPath = $this->normalizeRelativePath($filePath);
-            if ($normalizedPath !== '') {
-                $imagePaths[$normalizedPath] = $fileName !== '' ? $fileName : basename($normalizedPath);
-            }
-        }
-
-        $imageCount = count($imagePaths);
-        if ($imageCount === 0) {
-            return [
-                'status' => 'pass',
-                'gate_passed' => true,
-                'score' => 100,
-                'image_count' => 0,
-                'missing_count' => 0,
-                'used_missing_count' => 0,
-                'message' => 'Keine Bilder in der aktuellen Ansicht.',
-                'items' => [],
-            ];
-        }
-
-        if (!$this->mediaTableExists()) {
-            return [
-                'status' => 'unavailable',
-                'gate_passed' => false,
-                'score' => 0,
-                'image_count' => $imageCount,
-                'missing_count' => $imageCount,
-                'used_missing_count' => 0,
-                'message' => 'Alt-Text-Gate nicht verfügbar, weil die Media-Metadatentabelle fehlt.',
-                'items' => [],
-            ];
-        }
-
-        $altTextMap = $this->loadMediaAltTextMap(array_keys($imagePaths));
-        $missingItems = [];
-        $usedMissingCount = 0;
-
-        foreach ($imagePaths as $path => $name) {
-            $altText = $this->normalizeAltText($altTextMap[$path] ?? '');
-            if ($altText !== '') {
-                continue;
-            }
-
-            $usageItems = array_values(array_filter(
-                is_array($usageMap[$path] ?? null) ? $usageMap[$path] : [],
-                static fn (mixed $usage): bool => is_array($usage)
-            ));
-            $usageCount = count($usageItems);
-            if ($usageCount > 0) {
-                $usedMissingCount++;
-            }
-
-            if (count($missingItems) < 10) {
-                $missingItems[] = [
-                    'name' => $name,
-                    'path' => $path,
-                    'usage_count' => $usageCount,
-                ];
-            }
-        }
-
-        $missingCount = count($imagePaths) - count($altTextMap);
-        foreach ($altTextMap as $path => $altText) {
-            if (isset($imagePaths[$path]) && $this->normalizeAltText($altText) === '') {
-                $missingCount++;
-            }
-        }
-        $missingCount = min($imageCount, $missingCount);
-        $score = (int)round((($imageCount - $missingCount) / max(1, $imageCount)) * 100);
-        $status = 'pass';
-        if ($usedMissingCount > 0) {
-            $status = 'critical';
-        } elseif ($missingCount > 0) {
-            $status = 'warning';
-        }
-
-        return [
-            'status' => $status,
-            'gate_passed' => $missingCount === 0,
-            'score' => $score,
-            'image_count' => $imageCount,
-            'missing_count' => $missingCount,
-            'used_missing_count' => $usedMissingCount,
-            'message' => $missingCount === 0
-                ? 'Alle sichtbaren Bilder haben einen Alt-Text.'
-                : $missingCount . ' sichtbare Bild(er) ohne Alt-Text gefunden.',
-            'items' => $missingItems,
-        ];
-    }
-
-    /**
      * @param mixed $altTextMap
      * @return array<string, string>
      */
@@ -3759,7 +3646,7 @@ class MediaModule
     {
         $user = Auth::instance()->currentUser();
 
-        return (int) ($user->id ?? Request::session('user_id', 0));
+        return (int) ($user->id ?? $_SESSION['user_id'] ?? 0);
     }
 
     /**

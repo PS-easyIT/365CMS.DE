@@ -33,13 +33,13 @@ if ($topbarInitials === '') {
 }
 
 $topbarCtaLabel = 'Neuer Beitrag';
-$topbarCtaHref = '/admin/posts?action=edit';
+$topbarCtaHref = '/admin/posts?action=new';
 $pagesSlugs = ['pages', 'landing-page', 'hub-sites', 'site-tables', 'table-of-contents'];
 $mediaSlugs = ['media', 'media-featured', 'media-check', 'media-categories', 'media-settings'];
 $userSlugs = ['users', 'groups', 'roles', 'user-settings'];
 if (in_array((string) ($activePage ?? ''), $pagesSlugs, true)) {
     $topbarCtaLabel = 'Neue Seite';
-    $topbarCtaHref = '/admin/pages?action=edit';
+    $topbarCtaHref = '/admin/pages?action=new';
 } elseif (in_array((string) ($activePage ?? ''), $mediaSlugs, true)) {
     $topbarCtaLabel = 'Hochladen';
     $topbarCtaHref = '/admin/media?action=upload';

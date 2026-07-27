@@ -1,5 +1,5 @@
 # 365CMS – Architektur
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -12,7 +12,7 @@
 
 ---
 
-## Überblick <!-- UPDATED: 2026-06-10 -->
+## Überblick <!-- UPDATED: 2026-04-07 -->
 
 365CMS ist ein modular aufgebautes Content-Management-System, das auf **PHP 8.4+** basiert und für den Betrieb auf Shared- und Managed-Hosting optimiert ist. Die Architektur trennt sechs Schichten klar voneinander: Core, Services, Plugins, Themes, Admin und Member/API.
 
@@ -28,7 +28,7 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      365CMS v3.3.47                                  │
+│                      365CMS v2.9.0                                  │
 │                                                                     │
 │  Presentation     → Themes (Frontend), Admin-Views, Member-Templates│
 │  Application      → Router, Hooks, PluginManager, ThemeManager      │
@@ -465,7 +465,7 @@ defined('ASSETS_PATH')   || define('ASSETS_PATH',   ABSPATH . 'assets/');
 |---|---|---|
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` | MySQL/MariaDB-Verbindung | `localhost`, `cms_db` |
 | `SITE_URL` | Basis-URL der Installation | `https://example.com` |
-| `CMS_VERSION` | Aktuelle Version | `3.3.47` |
+| `CMS_VERSION` | Aktuelle Version | `2.9.0` |
 | `LOG_PATH` | Verzeichnis für Log-Dateien | `ABSPATH . 'logs/'` |
 | `LOG_LEVEL` | Minimaler Log-Level | `WARNING` (oder `DEBUG` bei `CMS_DEBUG=true`) |
 | `CMS_DEBUG` | Debug-Modus | `false` |

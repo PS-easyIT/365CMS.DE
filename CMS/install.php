@@ -20,6 +20,10 @@ if (!defined('ABSPATH')) {
     define('ABSPATH', __DIR__ . DIRECTORY_SEPARATOR);
 }
 
+if (!defined('CMS_INSTALLER_RUNNING')) {
+    define('CMS_INSTALLER_RUNNING', true);
+}
+
 if (PHP_SAPI !== 'cli') {
     require_once __DIR__ . '/core/Contracts/CacheInterface.php';
     require_once __DIR__ . '/core/CacheManager.php';

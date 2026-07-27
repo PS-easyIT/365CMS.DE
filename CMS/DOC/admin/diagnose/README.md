@@ -1,7 +1,7 @@
 # 365CMS – Diagnose & Monitoring
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-05-12 | **Version:** 2.9.777 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-06-10 -->
+<!-- UPDATED: 2026-05-12 -->
 
 ## Überblick
 

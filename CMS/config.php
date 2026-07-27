@@ -30,16 +30,6 @@ if (!defined('CMS_MIN_PHP_VERSION')) {
     define('CMS_MIN_PHP_VERSION', '8.4.0');
 }
 
-if (!function_exists('cms_config_terminate')) {
-    /**
-     * Zentraler Prozessabbruch für Konfigurations-Stub-Pfade.
-     */
-    function cms_config_terminate(int $code = 0): never
-    {
-        exit($code);
-    }
-}
-
 if (!defined('CMS_INSTALLER_RUNNING') && version_compare(PHP_VERSION, CMS_MIN_PHP_VERSION, '<')) {
     $requiredPhpVersion = CMS_MIN_PHP_VERSION;
     $currentPhpVersion = PHP_VERSION;
@@ -49,7 +39,7 @@ if (!defined('CMS_INSTALLER_RUNNING') && version_compare(PHP_VERSION, CMS_MIN_PH
             STDERR,
             '365CMS benötigt mindestens PHP ' . $requiredPhpVersion . '. Aktuell aktiv: ' . $currentPhpVersion . '.' . PHP_EOL
         );
-        cms_config_terminate(1);
+        exit(1);
     }
 
     http_response_code(503);
@@ -77,7 +67,7 @@ if (!defined('CMS_INSTALLER_RUNNING') && version_compare(PHP_VERSION, CMS_MIN_PH
     </body>
     </html>
     <?php
-    cms_config_terminate();
+    exit;
 }
 
 $_cmsAppConfig = __DIR__ . '/config/app.php';
@@ -88,17 +78,17 @@ if (!file_exists($_cmsAppConfig)) {
         if (defined('CMS_CRON_RUNNING')) {
             if (PHP_SAPI === 'cli') {
                 fwrite(STDERR, '365CMS Cron kann nicht starten: config/app.php fehlt. Bitte Installation abschließen.' . PHP_EOL);
-                cms_config_terminate(1);
+                exit(1);
             }
 
             http_response_code(503);
             header('Content-Type: text/plain; charset=UTF-8');
             echo '365CMS Cron kann nicht starten: Installation nicht abgeschlossen.';
-            cms_config_terminate();
+            exit;
         }
 
         header('Location: ' . rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/') . '/install.php');
-        cms_config_terminate();
+        exit;
     }
     return;
 }
@@ -119,13 +109,13 @@ if (!defined('CMS_INSTALLER_RUNNING')
     if (defined('CMS_CRON_RUNNING')) {
         if (PHP_SAPI === 'cli') {
             fwrite(STDERR, '365CMS Cron kann nicht starten: Datenbank-Konfiguration enthält Platzhalter. Bitte Installation abschließen.' . PHP_EOL);
-            cms_config_terminate(1);
+            exit(1);
         }
 
         http_response_code(503);
         header('Content-Type: text/plain; charset=UTF-8');
         echo '365CMS Cron kann nicht starten: Konfiguration nicht abgeschlossen.';
-        cms_config_terminate();
+        exit;
     }
 
     http_response_code(503);
@@ -154,5 +144,5 @@ if (!defined('CMS_INSTALLER_RUNNING')
     </body>
     </html>
     <?php
-    cms_config_terminate();
+    exit;
 }

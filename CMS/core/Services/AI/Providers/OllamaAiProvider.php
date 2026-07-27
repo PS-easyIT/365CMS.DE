@@ -42,68 +42,35 @@ final class OllamaAiProvider extends AbstractPromptingAiProvider
         }
 
         $prompt = $this->buildTranslationPrompt($segments, $context);
-        $payload = [
-            'model' => $this->getDefaultModel(),
-            'stream' => false,
+        $content = $this->complete([
+            ['role' => 'system', 'content' => $prompt['system']],
+            ['role' => 'user', 'content' => $prompt['user']],
+        ], [
+            'temperature' => 0.1,
             'format' => 'json',
-            'messages' => [
-                ['role' => 'system', 'content' => $prompt['system']],
-                ['role' => 'user', 'content' => $prompt['user']],
-            ],
-            'options' => [
-                'temperature' => 0.1,
-            ],
-        ];
-
-        $response = $this->httpClient->post(
-            $this->endpoint . '/api/chat',
-            (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            [
-                'headers' => [
-                    'Content-Type: application/json',
-                    'Accept: application/json',
-                ],
-                'timeout' => $this->timeoutSeconds,
-                'connectTimeout' => min(5, $this->timeoutSeconds),
-                'maxBytes' => 2 * 1024 * 1024,
-                'allowedContentTypes' => ['application/json', 'text/plain'],
-                'allowPrivateHosts' => true,
-            ]
-        );
-
-        if (!$response['success']) {
-            throw new \RuntimeException($this->buildTransportError($response, 'Ollama'));
-        }
-
-        try {
-            $decoded = json_decode((string) $response['body'], true, 512, JSON_THROW_ON_ERROR);
-        } catch (\Throwable) {
-            throw new \RuntimeException('Ollama lieferte keine gültige JSON-Antwort zurück.');
-        }
-
-        $content = trim((string) (($decoded['message']['content'] ?? $decoded['response'] ?? '')));
-        if ($content === '') {
-            throw new \RuntimeException('Ollama lieferte keine verwertbare Übersetzungsantwort zurück.');
-        }
+        ]);
 
         return $this->extractTranslationsFromResponse($content, $segments);
     }
 
-    /** @param array<string, mixed> $context */
-    public function generateText(string $systemPrompt, string $userPrompt, array $context = []): string
+    /**
+     * @param list<array{role:string,content:string}> $messages
+     * @param array<string, mixed> $options
+     */
+    public function complete(array $messages, array $options = []): string
     {
         $payload = [
             'model' => $this->getDefaultModel(),
             'stream' => false,
-            'format' => 'json',
-            'messages' => [
-                ['role' => 'system', 'content' => $systemPrompt],
-                ['role' => 'user', 'content' => $userPrompt],
-            ],
+            'format' => (string) ($options['format'] ?? ''),
+            'messages' => $messages,
             'options' => [
-                'temperature' => max(0.0, min(1.0, (float) ($context['temperature'] ?? 0.2))),
+                'temperature' => (float) ($options['temperature'] ?? 0.2),
             ],
         ];
+        if ($payload['format'] === '') {
+            unset($payload['format']);
+        }
 
         $response = $this->httpClient->post(
             $this->endpoint . '/api/chat',
@@ -133,7 +100,7 @@ final class OllamaAiProvider extends AbstractPromptingAiProvider
 
         $content = trim((string) (($decoded['message']['content'] ?? $decoded['response'] ?? '')));
         if ($content === '') {
-            throw new \RuntimeException('Ollama lieferte keine verwertbare Generierungsantwort zurück.');
+            throw new \RuntimeException('Ollama lieferte keine verwertbare Antwort zurück.');
         }
 
         return $content;

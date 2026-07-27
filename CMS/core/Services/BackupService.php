@@ -44,8 +44,6 @@ class BackupService
     private const BACKUP_HASH_ALGORITHM = 'sha256';
     private const VALIDATION_CRITICAL_TABLE_SUFFIXES = ['users', 'settings', 'pages', 'posts'];
     private const VALIDATION_MAX_CRITICAL_TABLES = 6;
-    private const DATABASE_DUMP_SELECT_CHUNK_SIZE = 250;
-    private const DATABASE_DUMP_MAX_RUNTIME_SECONDS = 180;
     private const RESTORE_MAX_ARCHIVE_ENTRIES = 5000;
     private const RESTORE_MAX_ARCHIVE_FILE_BYTES = 268435456;
     private const RESTORE_MAX_ARCHIVE_UNCOMPRESSED_BYTES = 536870912;
@@ -271,8 +269,6 @@ class BackupService
      */
     private function writeDatabaseDumpToWriter(callable $writer): void
     {
-        $startedAt = microtime(true);
-
         $writer("-- CMS Database Backup\n");
         $writer("-- Generated: " . date('Y-m-d H:i:s') . "\n");
         $writer("-- Database: " . DB_NAME . "\n\n");
@@ -283,10 +279,6 @@ class BackupService
         $tables = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
         foreach ($tables as $table) {
-            if ((microtime(true) - $startedAt) > self::DATABASE_DUMP_MAX_RUNTIME_SECONDS) {
-                throw new \RuntimeException('Backup-Laufzeitlimit überschritten. Bitte Backup erneut starten oder in kleineren Intervallen ausführen.');
-            }
-
             if (!is_string($table) || $table === '' || preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1) {
                 continue;
             }
@@ -302,38 +294,14 @@ class BackupService
             $writer("DROP TABLE IF EXISTS {$quotedTable};\n");
             $writer($create['Create Table'] . ";\n\n");
 
-            $offset = 0;
+            $dataStmt = $this->db->query("SELECT * FROM {$quotedTable}");
             $wroteRows = false;
 
-            while (true) {
-                if ((microtime(true) - $startedAt) > self::DATABASE_DUMP_MAX_RUNTIME_SECONDS) {
-                    throw new \RuntimeException('Backup-Laufzeitlimit überschritten. Bitte Backup erneut starten oder in kleineren Intervallen ausführen.');
-                }
-
-                $dataStmt = $this->db->execute(
-                    "SELECT * FROM {$quotedTable} LIMIT ? OFFSET ?",
-                    [self::DATABASE_DUMP_SELECT_CHUNK_SIZE, $offset]
-                );
-
-                $rows = $dataStmt->fetchAll(\PDO::FETCH_ASSOC);
-                if (!is_array($rows) || $rows === []) {
-                    break;
-                }
-
-                $columns = implode(', ', array_map(
-                    fn (string $column): string => $this->quoteSqlIdentifier($column),
-                    array_keys($rows[0])
-                ));
-
-                $insertRows = [];
-                foreach ($rows as $row) {
-                    $values = array_map(fn ($value) => $this->createSqlValueLiteral($value), array_values($row));
-                    $insertRows[] = '(' . implode(', ', $values) . ')';
-                }
-
-                $writer("INSERT INTO {$quotedTable} ({$columns}) VALUES\n" . implode(",\n", $insertRows) . ";\n");
+            while ($row = $dataStmt->fetch(\PDO::FETCH_ASSOC)) {
+                $columns = implode(', ', array_map(fn (string $column): string => $this->quoteSqlIdentifier($column), array_keys($row)));
+                $values = array_map(fn ($value) => $this->createSqlValueLiteral($value), array_values($row));
+                $writer("INSERT INTO {$quotedTable} ({$columns}) VALUES (" . implode(', ', $values) . ");\n");
                 $wroteRows = true;
-                $offset += count($rows);
             }
 
             if ($wroteRows) {
@@ -1822,7 +1790,7 @@ class BackupService
     private function getCriticalTablesForValidation(): array
     {
         $tables = [];
-        $allTables = $this->db->getCol('SHOW TABLES');
+        $allTables = $this->db->get_col('SHOW TABLES');
         $prefix = $this->db->getPrefix();
         $labels = [
             'users' => 'Benutzer',
@@ -2062,6 +2030,7 @@ class BackupService
             'size_formatted' => $this->formatBytes($size),
             'timestamp' => date('Y-m-d H:i:s'),
             'user' => $_SESSION['user_id'] ?? 'System',
+            'success' => true,
         ];
         
         $optionName = 'backup_log_' . time();

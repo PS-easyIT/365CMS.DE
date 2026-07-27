@@ -168,9 +168,9 @@ class MemberDashboardModule
         ],
         'bio' => [
             'label' => 'Biografie',
-            'description' => 'Kurzbeschreibung für Mitgliederprofil oder Netzwerkseiten.',
+            'description' => 'Kurzbeschreibung für Mitgliederprofil oder Netzwerkseiten. Nutzt den Block-Editor inkl. Formatierung.',
             'recommended' => false,
-            'type' => 'textarea',
+            'type' => 'wysiwyg',
         ],
         'phone' => [
             'label' => 'Telefon',

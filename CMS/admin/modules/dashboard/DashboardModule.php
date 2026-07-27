@@ -19,7 +19,6 @@ use CMS\Services\DashboardService;
 use CMS\Database;
 use CMS\Auth;
 use CMS\AuditLogger;
-use CMS\Http\Request;
 
 class DashboardModule
 {
@@ -113,13 +112,13 @@ class DashboardModule
             'label' => 'Neue Seite',
             'description' => 'Schnell in die Seitenerstellung springen.',
             'icon' => 'file-plus',
-            'url' => '/admin/pages?action=edit',
+            'url' => '/admin/pages?action=new',
         ],
         'new_post' => [
             'label' => 'Neuer Beitrag',
             'description' => 'Direkt einen neuen Beitrag anlegen.',
             'icon' => 'pencil-plus',
-            'url' => '/admin/posts?action=edit',
+            'url' => '/admin/posts?action=new',
         ],
         'comments' => [
             'label' => 'Kommentare',
@@ -855,14 +854,14 @@ class DashboardModule
     {
         $user = Auth::instance()->currentUser();
 
-        return (int) ($user->id ?? Request::session('user_id', 0));
+        return (int) ($user->id ?? $_SESSION['user_id'] ?? 0);
     }
 
     private function getCurrentUserRole(): string
     {
         $user = Auth::instance()->currentUser();
 
-        return $this->normalizeRoleSlug((string) ($user->role ?? Request::session('user_role', '')));
+        return $this->normalizeRoleSlug((string) ($user->role ?? $_SESSION['user_role'] ?? ''));
     }
 
     private function getCurrentUserRoleLabel(string $role): string
@@ -1249,12 +1248,10 @@ class DashboardModule
         };
 
         $displayName = 'im Admin';
-        $sessionDisplayName = trim((string) Request::session('user_display_name', ''));
-        $sessionUsername = trim((string) Request::session('username', ''));
-        if ($sessionDisplayName !== '') {
-            $displayName = $sessionDisplayName;
-        } elseif ($sessionUsername !== '') {
-            $displayName = $sessionUsername;
+        if (!empty($_SESSION['user_display_name'])) {
+            $displayName = (string) $_SESSION['user_display_name'];
+        } elseif (!empty($_SESSION['username'])) {
+            $displayName = (string) $_SESSION['username'];
         }
 
         return [
@@ -1350,8 +1347,8 @@ class DashboardModule
     private function getQuickLinks(): array
     {
         return [
-            ['label' => 'Neue Seite',       'url' => '/admin/pages?action=edit',  'icon' => 'file-plus',    'color' => 'blue'],
-            ['label' => 'Neuer Beitrag',     'url' => '/admin/posts?action=edit',  'icon' => 'pencil-plus',  'color' => 'green'],
+            ['label' => 'Neue Seite',       'url' => '/admin/pages?action=new',  'icon' => 'file-plus',    'color' => 'blue'],
+            ['label' => 'Neuer Beitrag',     'url' => '/admin/posts?action=new',  'icon' => 'pencil-plus',  'color' => 'green'],
             ['label' => 'Medien hochladen',  'url' => '/admin/media',             'icon' => 'upload',       'color' => 'purple'],
             ['label' => 'Einstellungen',     'url' => '/admin/settings',          'icon' => 'settings',     'color' => 'orange'],
         ];

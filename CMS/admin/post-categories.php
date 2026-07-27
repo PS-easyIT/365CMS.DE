@@ -54,6 +54,7 @@ function cms_admin_post_categories_store_form_state(array $post, string $message
             'cat_id' => max(0, (int) ($post['cat_id'] ?? 0)),
             'cat_name' => (string) ($post['cat_name'] ?? ''),
             'cat_slug' => (string) ($post['cat_slug'] ?? ''),
+            'cat_slug_en' => (string) ($post['cat_slug_en'] ?? ''),
             'parent_id' => max(0, (int) ($post['parent_id'] ?? 0)),
             'replacement_category_id' => max(0, (int) ($post['replacement_category_id'] ?? 0)),
         ],

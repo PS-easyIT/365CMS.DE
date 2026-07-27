@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.47",
+  "version": "3.3.73",
   "min_php": "8.4",
-  "released": "2026-06-05",
+  "released": "2026-07-27",
   "download_url": "",
-  "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/CHANGELOG.md",
+  "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.47: EditorJS-Bild+Text-Blöcke speichern eine Vertikal-Ausrichtung für Text und Bild. Admin-Vorschau, Sanitizer, Normalizer, Public-Renderer, Critical-CSS und editorjs-content.css richten den Text oben, mittig oder unten bündig zum Bild aus.",
+  "notes": "Release-Stand 3.3.73: Die Sammellöschung von Kommentaren im Adminbereich fängt Fehler im Bestätigungsdialog jetzt ab und fällt zuverlässig auf einen nativen Bestätigungsdialog zurück.",
   "critical": false
 }

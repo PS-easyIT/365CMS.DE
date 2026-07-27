@@ -81,6 +81,7 @@ if (empty($listPosts)) {
                 <span class="dot"></span>
                 <?php endif; ?>
                 <span class="read-t"><?php echo $iRead; ?></span>
+                <?php echo meridian_post_update_badge($item); ?>
             </div>
         </div>
     </article>

@@ -12,7 +12,6 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
-use CMS\Http\Request;
 use CMS\Hooks;
 use CMS\CacheManager;
 use CMS\AuditLogger;
@@ -20,7 +19,6 @@ use CMS\Logger;
 use CMS\PageManager;
 use CMS\Services\RedirectService;
 use CMS\Services\ContentMediaPlacementService;
-use CMS\Services\ContentLanguageCopyService;
 use CMS\Services\ContentLocalizationService;
 use CMS\Services\SEOService;
 
@@ -211,9 +209,9 @@ class PagesModule
         $private   = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}pages WHERE status = 'private'");
 
         // Filter
-        $statusFilter = $this->normalizeListStatus((string) Request::get('status', ''));
-        $categoryFilter = $this->normalizeExistingCategoryId((int) Request::get('category', 0));
-        $search       = $this->sanitizeSearchTerm((string) Request::get('q', ''));
+        $statusFilter = $this->normalizeListStatus((string)($_GET['status'] ?? ''));
+        $categoryFilter = $this->normalizeExistingCategoryId((int)($_GET['category'] ?? 0));
+        $search       = $this->sanitizeSearchTerm((string)($_GET['q'] ?? ''));
 
         // Query bauen
         $where  = [];
@@ -319,7 +317,7 @@ class PagesModule
             ? strtolower(trim((string) ($post['editor_locale'] ?? 'de')))
             : 'de';
         $existingPage = $id > 0
-            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en, meta_title, meta_description, meta_title_en, meta_description_en FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]) ?: [])
+            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]) ?: [])
             : [];
         $title  = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug   = trim($post['slug'] ?? '');
@@ -342,8 +340,13 @@ class PagesModule
         $featuredImageTempPath = $this->sanitizeMediaReference((string)($post['featured_image_temp_path'] ?? ''));
         $metaTitle  = $this->sanitizePlainText((string)($post['meta_title'] ?? ''), 255);
         $metaDesc   = $this->sanitizePlainText((string)($post['meta_description'] ?? ''), 2000);
-        $metaTitleEn  = $this->sanitizePlainText((string)($post['meta_title_en'] ?? ''), 255);
-        $metaDescEn   = $this->sanitizePlainText((string)($post['meta_description_en'] ?? ''), 2000);
+        $contentUpdatedAtInput = $this->normalizeContentUpdatedAtInput(
+            trim((string) ($post['content_updated_date'] ?? '')),
+            trim((string) ($post['content_updated_time'] ?? ''))
+        );
+        if ($contentUpdatedAtInput['error'] !== null) {
+            return ['success' => false, 'error' => (string) $contentUpdatedAtInput['error']];
+        }
         if ($id > 0 && $existingPage === []) {
             return ['success' => false, 'error' => 'Die Seite existiert nicht mehr. Bitte Liste neu laden.'];
         }
@@ -352,16 +355,12 @@ class PagesModule
             $title = $this->sanitizePlainText((string) ($existingPage['title'] ?? ''), 255);
             $slug = trim((string) ($existingPage['slug'] ?? ''));
             $content = $existingPage['content'] ?? '';
-            $metaTitle = $this->sanitizePlainText((string) ($existingPage['meta_title'] ?? ''), 255);
-            $metaDesc = $this->sanitizePlainText((string) ($existingPage['meta_description'] ?? ''), 2000);
         }
 
         if ($editorLocale === 'de' && $existingPage !== []) {
             $titleEn = $this->sanitizePlainText((string) ($existingPage['title_en'] ?? ''), 255);
             $slugEn = trim((string) ($existingPage['slug_en'] ?? ''));
             $contentEn = $existingPage['content_en'] ?? '';
-            $metaTitleEn = $this->sanitizePlainText((string) ($existingPage['meta_title_en'] ?? ''), 255);
-            $metaDescEn = $this->sanitizePlainText((string) ($existingPage['meta_description_en'] ?? ''), 2000);
         }
 
         $slugEn     = $this->normalizeSlug($slugEn);
@@ -420,8 +419,7 @@ class PagesModule
             'featured_image' => $featuredImage,
             'meta_title' => $metaTitle,
             'meta_description' => $metaDesc,
-            'meta_title_en' => $metaTitleEn,
-            'meta_description_en' => $metaDescEn,
+            'content_updated_at' => $contentUpdatedAtInput['value'],
         ];
 
         $filteredPayload = Hooks::applyFilters('cms_prepare_page_save_payload', $savePayload, $post, $id, $userId);
@@ -454,7 +452,7 @@ class PagesModule
                     // Update meta fields
                     $this->db->execute(
                         "UPDATE {$this->prefix}pages 
-                             SET slug = ?, slug_en = ?, title_en = ?, content_en = ?, show_title_toc = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?, meta_title_en = ?, meta_description_en = ?
+                             SET slug = ?, slug_en = ?, title_en = ?, content_en = ?, show_title_toc = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?, content_updated_at = ?
                          WHERE id = ?",
                         [
                             (string)$savePayload['slug'],
@@ -466,8 +464,7 @@ class PagesModule
                             (string)$savePayload['featured_image'],
                             (string)$savePayload['meta_title'],
                             (string)$savePayload['meta_description'],
-                            (string)($savePayload['meta_title_en'] ?? ''),
-                            (string)($savePayload['meta_description_en'] ?? ''),
+                            $savePayload['content_updated_at'],
                             $newId,
                         ]
                     );
@@ -489,44 +486,54 @@ class PagesModule
     }
 
     /**
-     * Kopiert die deutsche Seitenfassung serverseitig in die englische Variante.
+     * Kopiert die deutschen Editor-Inhalte serverseitig in die englischen Felder.
+     *
+     * Medienreferenzen und Layoutdaten bleiben erhalten; Editor.js-Block-IDs werden
+     * entfernt, damit die EN-Fassung keine doppelten Block-IDs übernimmt.
      */
-    public function copyGermanToEnglish(int $id): array
+    public function copyGermanToEnglish(int $id, int $userId = 0): array
     {
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültige Seiten-ID.'];
         }
 
-        $page = $this->pageManager->getPage($id);
-        if ($page === null) {
-            return ['success' => false, 'error' => 'Seite wurde nicht gefunden.'];
-        }
-
-        $copyService = ContentLanguageCopyService::getInstance();
-        $payload = $copyService->buildPageGermanToEnglishPayload($page);
-        if ($payload === []) {
-            return ['success' => false, 'error' => 'Die deutsche Seitenfassung enthält keinen kopierbaren Inhalt.'];
-        }
-
-        $slugEn = trim((string)($payload['slug_en'] ?? ''));
-        if ($slugEn !== '' && $this->isLocalizedSlugTaken($slugEn, $id)) {
-            return ['success' => false, 'error' => 'Der kopierte englische Slug ist bereits vergeben.'];
-        }
-
         try {
-            $updated = $this->pageManager->updatePage($id, $payload);
-            if (!$updated) {
-                return ['success' => false, 'error' => 'Die englische Seitenfassung konnte nicht aktualisiert werden.'];
+            $page = $this->pageManager->getPage($id);
+            if ($page === null) {
+                return ['success' => false, 'error' => 'Die Seite wurde nicht gefunden.'];
             }
 
-            $seoMeta = SEOService::getInstance()->getContentMeta('page', $id);
-            SEOService::getInstance()->saveContentMeta('page', $id, $copyService->buildSeoRelationPayload('page', $id, $seoMeta));
-            Hooks::doAction('cms_after_page_save', $id, array_merge($page, $payload), ['copy_source_locale' => 'de', 'copy_target_locale' => 'en']);
-            $this->clearContentCacheIfEnabled('page_copy_de_to_en', $id);
+            $title = $this->sanitizePlainText((string) ($page['title'] ?? ''), 255);
+            $content = (string) ($page['content'] ?? '');
 
-            return ['success' => true, 'id' => $id, 'message' => 'Deutsche Seitenfassung wurde nach EN kopiert.'];
+            if ($title === '' && trim($content) === '') {
+                return ['success' => false, 'error' => 'Die deutsche Seite enthält keinen kopierbaren Inhalt.'];
+            }
+
+            $payload = [
+                'title_en' => $title,
+                'content_en' => $this->prepareEditorContentForLanguageCopy($content),
+            ];
+
+            if (!$this->pageManager->updatePage($id, $payload)) {
+                return ['success' => false, 'error' => 'Die englischen Seiteninhalte konnten nicht aktualisiert werden.'];
+            }
+
+            Hooks::doAction('cms_after_page_copy_de_to_en', $id, $payload, $userId);
+            $this->clearContentCacheIfEnabled('page_copy_de_to_en', $id);
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_CONTENT,
+                'pages.copy_de_to_en',
+                'Deutsche Seiteninhalte nach EN kopiert.',
+                'pages',
+                $id,
+                ['page_id' => $id, 'user_id' => $userId],
+                'info'
+            );
+
+            return ['success' => true, 'id' => $id, 'message' => 'Deutsche Inhalte wurden serverseitig nach EN kopiert.'];
         } catch (\Throwable $e) {
-            return $this->failResult('pages.copy_de_to_en.failed', 'DE→EN-Kopie der Seite fehlgeschlagen.', $e, ['page_id' => $id]);
+            return $this->failResult('pages.copy_de_to_en.failed', 'Inhalte konnten nicht nach EN kopiert werden.', $e, ['page_id' => $id, 'user_id' => $userId]);
         }
     }
 
@@ -835,6 +842,7 @@ class PagesModule
         $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Titel (EN)', $currentPage['title_en'] ?? '', $revision['title_en'] ?? '');
         $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Slug (EN)', $currentPage['slug_en'] ?? '', $revision['slug_en'] ?? '');
         $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Status', $currentPage['status'] ?? '', $revision['status'] ?? '');
+            $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Aktualisierungsdatum', $currentPage['content_updated_at'] ?? '', $revision['content_updated_at'] ?? '');
         $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (DE)', $currentPage['content'] ?? '', $revision['content'] ?? '');
         $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (EN)', $currentPage['content_en'] ?? '', $revision['content_en'] ?? '');
 
@@ -877,7 +885,7 @@ class PagesModule
         $currentSummary = $this->summarizeEditorContentValue($current);
         $revisionSummary = $this->summarizeEditorContentValue($revision);
 
-        if (($currentSummary['sha256'] ?? '') === ($revisionSummary['sha256'] ?? '')) {
+            if (($currentSummary['sha256'] ?? '') === ($revisionSummary['sha256'] ?? '')) {
             return;
         }
 
@@ -966,6 +974,85 @@ class PagesModule
         }
 
         return function_exists('mb_substr') ? mb_substr($value, 0, 500) : substr($value, 0, 500);
+    }
+
+    /**
+     * @return array{value:?string,error:?string}
+     */
+    private function normalizeContentUpdatedAtInput(string $date, string $time): array
+    {
+        $date = trim($date);
+        $time = trim($time);
+
+        if ($date === '' && $time === '') {
+            return ['value' => null, 'error' => null];
+        }
+
+        if ($date === '') {
+            return ['value' => null, 'error' => 'Bitte ein Aktualisierungsdatum angeben.'];
+        }
+
+        if ($time === '') {
+            $time = '00:00';
+        }
+
+        $contentUpdatedAt = \DateTimeImmutable::createFromFormat('!Y-m-d H:i', $date . ' ' . $time);
+        $errors = \DateTimeImmutable::getLastErrors();
+        $hasErrors = is_array($errors) && ((int) ($errors['warning_count'] ?? 0) > 0 || (int) ($errors['error_count'] ?? 0) > 0);
+
+        if (!$contentUpdatedAt instanceof \DateTimeImmutable || $hasErrors) {
+            return ['value' => null, 'error' => 'Bitte ein gültiges Aktualisierungsdatum mit Uhrzeit angeben.'];
+        }
+
+        return ['value' => $contentUpdatedAt->format('Y-m-d H:i:s'), 'error' => null];
+    }
+
+    private function prepareEditorContentForLanguageCopy(string $content): string
+    {
+        $trimmed = trim($content);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        try {
+            $decoded = json_decode($trimmed, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            return $content;
+        }
+
+        if (!is_array($decoded) || !isset($decoded['blocks']) || !is_array($decoded['blocks'])) {
+            return $content;
+        }
+
+        $decoded['blocks'] = $this->removeEditorBlockIds($decoded['blocks']);
+
+        try {
+            return (string) json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            return $content;
+        }
+    }
+
+    /**
+     * @param array<int|string,mixed> $blocks
+     * @return array<int|string,mixed>
+     */
+    private function removeEditorBlockIds(array $blocks): array
+    {
+        foreach ($blocks as $index => $block) {
+            if (!is_array($block)) {
+                continue;
+            }
+
+            unset($block['id']);
+            if (isset($block['data']['blocks']) && is_array($block['data']['blocks'])) {
+                $block['data']['blocks'] = $this->removeEditorBlockIds($block['data']['blocks']);
+            }
+
+            $blocks[$index] = $block;
+        }
+
+        return $blocks;
     }
 
     private function sanitizeSearchTerm(string $value): string

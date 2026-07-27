@@ -51,31 +51,22 @@ $pickerFilenamePrefix = (string)($pickerFilenamePrefix ?? 'ArtikelRahmen');
     </div>
 </div>
 
-<?php
-// Defense-in-Depth: JSON-Werte werden in einen <script>-Block eingebettet.
-// Mit JSON_HEX_TAG/AMP/APOS/QUOT kann ein Wert das </script>-Tag nicht
-// vorzeitig schließen (kein Script-Breakout), konsistent zur restlichen Codebasis.
-$jsEnc = static fn (mixed $value): string => (string) json_encode(
-    $value,
-    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE
-);
-?>
 <script>
 (function() {
-    var modalEl = document.getElementById(<?= $jsEnc($pickerModalId) ?>);
-    var openBtn = document.getElementById(<?= $jsEnc($pickerOpenButtonId) ?>);
-    var inputEl = document.getElementById(<?= $jsEnc($pickerInputId) ?>);
-    var previewEl = document.getElementById(<?= $jsEnc($pickerPreviewContainerId) ?>);
-    var removeBtn = document.getElementById(<?= $jsEnc($pickerRemoveButtonId) ?>);
-    var emptyEl = document.getElementById(<?= $jsEnc($pickerEmptyStateId) ?>);
-    var titleInput = document.getElementById(<?= $jsEnc($pickerTitleInputId) ?>);
-    var slugInput = document.getElementById(<?= $jsEnc($pickerSlugInputId) ?>);
-    var token = <?= $jsEnc($pickerToken) ?>;
-    var apiUrl = <?= $jsEnc('/api/media') ?>;
+    var modalEl = document.getElementById(<?= json_encode($pickerModalId) ?>);
+    var openBtn = document.getElementById(<?= json_encode($pickerOpenButtonId) ?>);
+    var inputEl = document.getElementById(<?= json_encode($pickerInputId) ?>);
+    var previewEl = document.getElementById(<?= json_encode($pickerPreviewContainerId) ?>);
+    var removeBtn = document.getElementById(<?= json_encode($pickerRemoveButtonId) ?>);
+    var emptyEl = document.getElementById(<?= json_encode($pickerEmptyStateId) ?>);
+    var titleInput = document.getElementById(<?= json_encode($pickerTitleInputId) ?>);
+    var slugInput = document.getElementById(<?= json_encode($pickerSlugInputId) ?>);
+    var token = <?= json_encode($pickerToken) ?>;
+    var apiUrl = <?= json_encode('/api/media') ?>;
     var pickerIsNew = <?= $pickerIsNew ? 'true' : 'false' ?>;
-    var pickerContentType = <?= $jsEnc($pickerContentType) ?>;
-    var pickerFilenamePrefix = <?= $jsEnc($pickerFilenamePrefix) ?>;
-    var pickerTempPathInputId = <?= $jsEnc($pickerInputId . '_temp_path') ?>;
+    var pickerContentType = <?= json_encode($pickerContentType) ?>;
+    var pickerFilenamePrefix = <?= json_encode($pickerFilenamePrefix) ?>;
+    var pickerTempPathInputId = <?= json_encode($pickerInputId . '_temp_path') ?>;
     var tempPathEl = document.getElementById(pickerTempPathInputId);
 
     if (!modalEl || !openBtn || !inputEl || !previewEl || !apiUrl) {
@@ -379,4 +370,20 @@ $jsEnc = static fn (mixed $value): string => (string) json_encode(
 
     searchEl && searchEl.addEventListener('input', filterItems);
 
-    uploadButton && uploadButton.addE
+    uploadButton && uploadButton.addEventListener('click', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (uploadEl) {
+            uploadEl.click();
+        }
+    });
+
+    uploadEl && uploadEl.addEventListener('change', function() {
+        var file = this.files && this.files[0] ? this.files[0] : null;
+        if (file) {
+            uploadImage(file);
+        }
+    });
+})();
+</script>

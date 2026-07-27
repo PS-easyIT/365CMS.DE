@@ -665,14 +665,6 @@ class MailService
     private function sendMessageFallback(string $to, string $subject, string $body, array $headers, bool $isHtml): bool
     {
         $config = $this->getEffectiveConfig();
-
-        // Defense-in-Depth: PHP mail() übernimmt $to und $subject direkt in den
-        // Mail-Header. Anders als der SMTP-Pfad (createBaseEmail) erhält dieser
-        // Fallback die Rohwerte – daher hier CRLF/Steuerzeichen entfernen, um
-        // Header-Injection (z. B. via manipuliertem Betreff) auszuschließen.
-        $to = $this->sanitizeHeaderValue($to);
-        $subject = $this->sanitizeHeaderValue($subject);
-
         $messageHeaders = $this->buildHeaders(
             array_merge(
                 [
@@ -699,15 +691,6 @@ class MailService
         array $headers
     ): bool {
         $config = $this->getEffectiveConfig();
-
-        // Defense-in-Depth: Rohwerte gehen direkt in mail()-Header bzw. MIME-Header.
-        $to = $this->sanitizeHeaderValue($to);
-        $subject = $this->sanitizeHeaderValue($subject);
-        // Dateiname wird in Content-Type/Content-Disposition interpoliert:
-        // CRLF, Anführungszeichen und Steuerzeichen entfernen, um MIME-Header-
-        // Injection über einen manipulierten Anhangsnamen zu verhindern.
-        $attachmentName = $this->sanitizeAttachmentFilename($attachmentName);
-
         $boundary = '----=_CMS_' . bin2hex(random_bytes(16));
         $mimeType = mime_content_type($attachmentPath) ?: 'application/octet-stream';
         $plainBody = $isHtml ? $this->createPlainTextBody($body) : $body;
@@ -1232,30 +1215,6 @@ class MailService
         $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
 
         return trim($value);
-    }
-
-    /**
-     * Bereinigt einen Anhangsdateinamen für die Verwendung in MIME-Headern
-     * (Content-Type name="…" / Content-Disposition filename="…").
-     *
-     * Entfernt CRLF, Steuerzeichen, Anführungszeichen und Pfadtrenner, sodass
-     * weder MIME-Header-Injection noch Pfad-Leaks über den Dateinamen möglich sind.
-     */
-    private function sanitizeAttachmentFilename(string $filename): string
-    {
-        // Nur den Basisnamen verwenden – keine Verzeichnisanteile im Header.
-        $filename = str_replace('\\', '/', $filename);
-        $filename = basename($filename);
-        // CRLF, NUL, Steuerzeichen und Anführungszeichen entfernen.
-        $filename = str_replace(["\r", "\n", "\0", '"'], '', $filename);
-        $filename = preg_replace('/[\x00-\x1F\x7F]+/u', '', $filename) ?? $filename;
-        $filename = trim($filename);
-
-        if ($filename === '') {
-            $filename = 'attachment';
-        }
-
-        return mb_substr($filename, 0, 200, 'UTF-8');
     }
 
     private function sanitizeAddressHeader(string $value): string

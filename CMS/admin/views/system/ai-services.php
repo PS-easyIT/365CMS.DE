@@ -15,11 +15,8 @@ $providers = array_values(array_filter(
     static fn (mixed $entry): bool => is_array($entry)
 ));
 $providerCatalog = is_array($providersData['catalog'] ?? null) ? $providersData['catalog'] : [];
-$providerCatalogAddable = array_filter(
-    $providerCatalog,
-    static fn (array $entry): bool => !empty($entry['addable'])
-);
 $providerOptions = [];
+$providerValuesByType = [];
 foreach ($providers as $provider) {
     $providerId = (string) ($provider['id'] ?? '');
     if ($providerId === '') {
@@ -27,8 +24,24 @@ foreach ($providers as $provider) {
     }
 
     $providerOptions[$providerId] = $provider;
+    $providerType = (string) ($provider['type'] ?? '');
+    if ($providerType !== '') {
+        $providerValuesByType[$providerType] = [
+            'label' => (string) ($provider['label'] ?? ''),
+            'enabled' => !empty($provider['enabled']),
+            'model' => (string) ($provider['default_model'] ?? ''),
+            'endpoint' => (string) ($provider['endpoint'] ?? ''),
+            'deployment' => (string) ($provider['deployment'] ?? ''),
+            'api_version' => (string) ($provider['api_version'] ?? ''),
+            'allowed_locales' => implode(',', (array) ($provider['allowed_locales'] ?? ['en'])),
+            'beta_only' => !empty($provider['beta_only']),
+            'secret_configured' => !empty($provider['secret_configured']),
+        ];
+    }
 }
 $activeProviderId = (string) ($providersData['active_provider_id'] ?? '');
+$activeProvider = is_array($providerOptions[$activeProviderId] ?? null) ? $providerOptions[$activeProviderId] : (is_array($providers[0] ?? null) ? $providers[0] : []);
+$activeProviderType = (string) ($activeProvider['type'] ?? 'mock');
 $activeProviderLabel = (string) (($providerOptions[$activeProviderId]['label'] ?? '') ?: '—');
 $features = is_array($data['features'] ?? null) ? $data['features'] : [];
 $translation = is_array($data['translation'] ?? null) ? $data['translation'] : [];
@@ -50,8 +63,6 @@ $generationHistory = array_values(array_filter(
     (array) ($data['generation_history'] ?? []),
     static fn (mixed $entry): bool => is_array($entry)
 ));
-$contentGenerationResult = is_array($data['content_result'] ?? null) ? $data['content_result'] : [];
-$seoGenerationResult = is_array($data['seo_result'] ?? null) ? $data['seo_result'] : [];
 $currentSection = $currentSection ?? 'overview';
 $navItems = [
     'overview' => ['label' => 'Dashboard', 'url' => '/admin/ai-services'],
@@ -60,14 +71,6 @@ $navItems = [
     'seo_creator' => ['label' => 'SEO-Assistent', 'url' => '/admin/ai-seo-creator'],
     'settings' => ['label' => 'Einstellungen', 'url' => '/admin/ai-settings'],
 ];
-$providerProfiles = [
-    'disabled' => 'Disabled',
-    'beta' => 'Beta',
-    'editor-translation' => 'Editor Translation',
-    'content-assist' => 'Content Assist',
-    'seo-assist' => 'SEO Assist',
-];
-$providerCatalogJson = (string) json_encode($providerCatalog, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 $loggingModes = [
     'minimal' => 'Minimal',
     'technical' => 'Technical',
@@ -221,7 +224,7 @@ if (empty($summary['translation_ready'])) {
 
     <?php if ($isCurrentSection('overview')): ?>
         <div class="row row-cards mb-4">
-            <?php $renderMetricCard('Aktiver Provider', $activeProviderLabel, 'Single-Provider-Modus'); ?>
+            <?php $renderMetricCard('Aktive Provider', (string) ((int) ($summary['provider_enabled'] ?? 0)) . ' / ' . (string) ((int) ($summary['provider_total'] ?? count($providers))), 'konfigurierter Provider-Pool'); ?>
             <?php $renderMetricCard('Aktive Gates', (string) (int) ($summary['feature_enabled'] ?? 0), 'globale Feature-Freigaben'); ?>
             <?php $renderMetricCard('Translation-Provider', (string) count($translationReadyProviders), 'für DE → EN nutzbar'); ?>
             <?php $renderMetricCard('Prompt-Vorlagen', (string) (int) ($summary['prompt_templates_enabled'] ?? 0) . ' / 3', 'aktiv verwaltete Bereiche'); ?>
@@ -259,11 +262,11 @@ if (empty($summary['translation_ready'])) {
                             <li class="mb-2">✅ Provider-, Feature-, Translation-, Logging- und Quota-Persistenz ist im Core verdrahtet.</li>
                             <li class="mb-2">✅ Provider erscheinen jetzt nur noch als bewusst angelegte Liste statt als starre Komplettmatrix.</li>
                             <li class="mb-2">✅ Der Editor.js-Übersetzungs-Endpoint bleibt geschützt und an die zentralen Feature-Gates gekoppelt.</li>
-                            <li class="mb-2">✅ Ollama, Azure AI, OpenAI, Mistral AI und OpenRouter sind als echte Live-Provider im Gateway verdrahtet.</li>
+                            <li class="mb-2">✅ Ollama und Azure AI sind als erste echte Live-Provider im Gateway verdrahtet.</li>
                             <li class="mb-2">✅ Translation, Content-Assist und SEO-Assist lassen sich auf Provider-Ebene getrennt schalten.</li>
                             <li class="mb-2">✅ Das AI-Dashboard zeigt jetzt request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus dem Audit-Log, ohne Rohprompts oder Volltexte offenzulegen.</li>
                             <li class="mb-2">✅ Prompt-Vorlagen lassen sich je Bereich verwalten; die Translation-Vorlage wirkt direkt in der Live-Pipeline und bleibt durch serverseitige Pflicht-Leitplanken abgesichert.</li>
-                            <li class="mb-2">✅ Content- und SEO-Generatoren liefern serverseitige Preview-Ausgaben über dieselben Provider-Gates wie Translation.</li>
+                            <li class="mb-2">⚠️ Live-Generatoren für Content- und SEO-Outputs sind als nächster Ausbauschritt vorgesehen, derzeit aber noch Leitplanken-/Settings-getrieben.</li>
                             <li>⚠️ Feingranulare Daily-/Monthly-Quota-Erzwingung und echte providerübergreifende Tokenkosten bleiben Follow-up-Arbeit, solange Live-Provider ihre Usage-Daten nicht konsistent zurückmelden.</li>
                         </ul>
                     </div>
@@ -391,7 +394,7 @@ if (empty($summary['translation_ready'])) {
                                                 <td><?php echo htmlspecialchars((string) ($historyEntry['user_label'] ?? '—')); ?></td>
                                                 <td>
                                                     <div class="fw-semibold"><?php echo htmlspecialchars((string) ($historyEntry['provider_label'] ?? '—')); ?></div>
-                                                    <div class="text-secondary small"><?php echo htmlspecialchars((string) ($historyEntry['selection_mode'] ?? 'single-provider')); ?></div>
+                                                    <div class="text-secondary small"><?php echo htmlspecialchars((string) ($historyEntry['resolved_via'] ?? 'direct')); ?></div>
                                                 </td>
                                                 <td><?php echo htmlspecialchars((string) ($historyEntry['target_locale'] ?? '—')); ?></td>
                                                 <td>
@@ -502,91 +505,15 @@ if (empty($summary['translation_ready'])) {
         </div>
 
         <div class="row row-cards">
-            <div class="col-12">
-                <form method="post" class="card">
-                    <?php $renderFormContext('generate_content'); ?>
-                    <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                        <div>
-                            <h3 class="card-title mb-1">Content-Preview generieren</h3>
-                            <div class="text-secondary small">Human-in-the-loop: Es wird nur eine Vorschau erzeugt, nichts automatisch veröffentlicht.</div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Preview generieren</button>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label">Workflow</label>
-                                <select class="form-select" name="content_task">
-                                    <option value="summary">Zusammenfassung</option>
-                                    <option value="rewrite">Rewrite</option>
-                                    <option value="outline">Outline</option>
-                                    <option value="cta">CTA-Varianten</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Sprache</label>
-                                <input type="text" class="form-control" name="content_locale" maxlength="12" value="de">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Tonality</label>
-                                <input type="text" class="form-control" name="content_tone" maxlength="120" value="professionell, klar, hilfreich">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Format</label>
-                                <input type="text" class="form-control" name="content_format" maxlength="120" value="review-draft">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Briefing</label>
-                                <textarea class="form-control" name="content_brief" rows="4" maxlength="6000" required placeholder="Was soll die KI ausarbeiten, zusammenfassen oder umschreiben?"></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Kontext / Ausgangstext</label>
-                                <textarea class="form-control" name="content_context" rows="6" maxlength="6000" placeholder="Optionaler Seiten-/Beitragstext, Zielgruppe, Constraints, Quellenhinweise..."></textarea>
-                                <div class="form-hint">Secrets, API-Keys und personenbezogene Daten gehören nicht in Prompts. Die Ausgabe bleibt Preview.</div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <?php if ($contentGenerationResult !== []): ?>
-                <?php $contentResult = is_array($contentGenerationResult['content'] ?? null) ? $contentGenerationResult['content'] : []; ?>
-                <div class="col-12">
-                    <div class="card border-primary">
-                        <div class="card-header d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                            <div>
-                                <h3 class="card-title mb-1">Generierte Content-Preview</h3>
-                                <div class="text-secondary small">Provider: <?php echo htmlspecialchars((string) ($contentGenerationResult['provider']['label'] ?? '—')); ?> · Modell: <?php echo htmlspecialchars((string) ($contentGenerationResult['provider']['model'] ?? '—')); ?> · <?php echo (int) ($contentGenerationResult['telemetry']['duration_ms'] ?? 0); ?> ms</div>
-                            </div>
-                            <span class="badge bg-primary-lt">Preview · keine Persistenz</span>
-                        </div>
-                        <div class="card-body">
-                            <h4><?php echo htmlspecialchars((string) ($contentResult['title'] ?? 'Content-Vorschlag')); ?></h4>
-                            <?php if (trim((string) ($contentResult['summary'] ?? '')) !== ''): ?>
-                                <p class="text-secondary"><?php echo nl2br(htmlspecialchars((string) $contentResult['summary'])); ?></p>
-                            <?php endif; ?>
-                            <?php if (trim((string) ($contentResult['draft'] ?? '')) !== ''): ?>
-                                <div class="border rounded p-3 bg-light-subtle mb-3"><?php echo nl2br(htmlspecialchars((string) $contentResult['draft'])); ?></div>
-                            <?php endif; ?>
-                            <?php $variants = array_values(array_filter(array_map('strval', (array) ($contentResult['variants'] ?? [])))); ?>
-                            <?php if ($variants !== []): ?>
-                                <div class="mb-3"><strong>Varianten</strong><ul class="mb-0 mt-2"><?php foreach ($variants as $variant): ?><li><?php echo htmlspecialchars($variant); ?></li><?php endforeach; ?></ul></div>
-                            <?php endif; ?>
-                            <?php if (trim((string) ($contentResult['rationale'] ?? '')) !== ''): ?>
-                                <div class="alert alert-info mb-0 small"><?php echo nl2br(htmlspecialchars((string) $contentResult['rationale'])); ?></div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
             <div class="col-12 col-xl-7">
                 <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Verfügbare Content-Workflows</h3></div>
+                    <div class="card-header"><h3 class="card-title">Geplante Content-Workflows</h3></div>
                     <div class="card-body text-secondary small">
                         <ul class="mb-0 ps-3">
                             <li>Absatz-Rewrite für Seiten- und Beitragsentwürfe</li>
                             <li>Zusammenfassungen, CTA-Textvarianten und Snippet-Ideen</li>
                             <li>Outline-/Briefing-Helfer für neue Inhalte</li>
-                            <li>Serverseitige Preview-Generierung mit Provider-Readiness-Prüfung</li>
+                            <li>Späterer Ausbau zu Formular- oder Modal-getriebenen Creator-Flows</li>
                         </ul>
                     </div>
                 </div>
@@ -595,7 +522,7 @@ if (empty($summary['translation_ready'])) {
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Status</h3></div>
                     <div class="card-body text-secondary small">
-                        Der Bereich erzeugt jetzt echte serverseitige Vorschauen über Provider mit Rewrite- oder Summary-Fähigkeit. Ausgaben bleiben bewusst Human-in-the-loop und werden nicht automatisch gespeichert.
+                        Der Bereich ist bereits im Modulvertrag und in den Provider-Profilen vorbereitet. Die eigentlichen Content-Creator-Generatoren folgen als nächster Funktionsschritt – ohne später wieder Routing oder Rechte umzubauen.
                     </div>
                 </div>
             </div>
@@ -643,75 +570,15 @@ if (empty($summary['translation_ready'])) {
         </div>
 
         <div class="row row-cards">
-            <div class="col-12">
-                <form method="post" class="card">
-                    <?php $renderFormContext('generate_seo'); ?>
-                    <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                        <div>
-                            <h3 class="card-title mb-1">SEO-Preview generieren</h3>
-                            <div class="text-secondary small">Erzeugt Title-/Description-/Social-/Schema-Vorschläge zur redaktionellen Prüfung.</div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">SEO-Preview generieren</button>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Primäres Keyword</label>
-                                <input type="text" class="form-control" name="seo_keyword" maxlength="160" placeholder="z. B. Microsoft 365 Backup">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Sprache</label>
-                                <input type="text" class="form-control" name="seo_locale" maxlength="12" value="de">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Inhaltstyp</label>
-                                <select class="form-select" name="seo_content_type">
-                                    <option value="page">Seite</option>
-                                    <option value="post">Beitrag</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Seiten-/Beitragskontext</label>
-                                <textarea class="form-control" name="seo_context" rows="7" maxlength="6000" required placeholder="Titel, Kurzbeschreibung, relevante Abschnitte, Zielgruppe, Suchintention..."></textarea>
-                                <div class="form-hint">Die KI darf keine Fakten erfinden; bei dünnem Kontext werden Warnungen erwartet.</div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <?php if ($seoGenerationResult !== []): ?>
-                <?php $seoResult = is_array($seoGenerationResult['seo'] ?? null) ? $seoGenerationResult['seo'] : []; ?>
-                <div class="col-12">
-                    <div class="card border-primary">
-                        <div class="card-header d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                            <div>
-                                <h3 class="card-title mb-1">Generierte SEO-Preview</h3>
-                                <div class="text-secondary small">Provider: <?php echo htmlspecialchars((string) ($seoGenerationResult['provider']['label'] ?? '—')); ?> · Modell: <?php echo htmlspecialchars((string) ($seoGenerationResult['provider']['model'] ?? '—')); ?> · <?php echo (int) ($seoGenerationResult['telemetry']['duration_ms'] ?? 0); ?> ms</div>
-                            </div>
-                            <span class="badge bg-primary-lt">Review erforderlich</span>
-                        </div>
-                        <div class="card-body">
-                            <dl class="row mb-0">
-                                <dt class="col-md-3">Meta Title</dt><dd class="col-md-9"><?php echo htmlspecialchars((string) ($seoResult['meta_title'] ?? '')); ?></dd>
-                                <dt class="col-md-3">Meta Description</dt><dd class="col-md-9"><?php echo htmlspecialchars((string) ($seoResult['meta_description'] ?? '')); ?></dd>
-                                <dt class="col-md-3">Social Title</dt><dd class="col-md-9"><?php echo htmlspecialchars((string) ($seoResult['social_title'] ?? '')); ?></dd>
-                                <dt class="col-md-3">Social Description</dt><dd class="col-md-9"><?php echo htmlspecialchars((string) ($seoResult['social_description'] ?? '')); ?></dd>
-                                <dt class="col-md-3">Keywords</dt><dd class="col-md-9"><?php echo htmlspecialchars(implode(', ', (array) ($seoResult['keywords'] ?? []))); ?></dd>
-                                <dt class="col-md-3">Schema-Hinweise</dt><dd class="col-md-9"><?php echo htmlspecialchars(implode(', ', (array) ($seoResult['schema_hints'] ?? []))); ?></dd>
-                            </dl>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
             <div class="col-12 col-xl-7">
                 <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Verfügbare SEO-Workflows</h3></div>
+                    <div class="card-header"><h3 class="card-title">Geplante SEO-Workflows</h3></div>
                     <div class="card-body text-secondary small">
                         <ul class="mb-0 ps-3">
                             <li>Title-/Meta-Description-Vorschläge pro Entwurf</li>
                             <li>Social Snippets, OpenGraph-Ideen und strukturierte Daten-Hinweise</li>
                             <li>Keyword- und Intent-basierte Outline-Verbesserungen</li>
-                            <li>Serverseitige Preview-Generierung mit Review-Pflicht</li>
+                            <li>Spätere Anbindung an SEO-Dashboard und Editor-Assist</li>
                         </ul>
                     </div>
                 </div>
@@ -720,7 +587,7 @@ if (empty($summary['translation_ready'])) {
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Status</h3></div>
                     <div class="card-body text-secondary small">
-                        Der SEO Creator ist als eigenständiger Navigationspunkt live nutzbar und erzeugt Preview-Vorschläge über Provider mit SEO-/Meta-Fähigkeit, ohne automatisch zu veröffentlichen.
+                        Der SEO Creator ist als eigenständiger Navigationspunkt vorbereitet und kann auf dem bereits vorhandenen SEO-Modul aufsetzen, ohne wieder unter „System“ zu verschwinden.
                     </div>
                 </div>
             </div>
@@ -792,198 +659,70 @@ if (empty($summary['translation_ready'])) {
                     <?php $renderFormContext('save_providers'); ?>
                     <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                         <div>
-                            <h3 class="card-title mb-1">Single AI Provider</h3>
-                            <div class="text-secondary small">Es ist exakt ein Provider aktiv. Kein Fallback, keine Parallelprovider, keine direkte Providerliste.</div>
+                            <h3 class="card-title mb-1">Globale Provider-Verwaltung</h3>
+                            <div class="text-secondary small">Alle AI-Features nutzen ausschließlich diesen aktiven Provider über <code>AiService</code> und <code>AiProviderFactory</code>.</div>
                         </div>
-                        <div class="btn-list">
-                            <button type="submit" name="action" value="test_provider" class="btn btn-outline-primary">Provider speichern & testen</button>
-                            <button type="submit" class="btn btn-primary">Provider speichern</button>
-                        </div>
+                        <button type="submit" class="btn btn-primary">Provider speichern</button>
                     </div>
                     <div class="card-body">
-                        <?php
-                        $provider = $providers[0] ?? ['id' => 'mock', 'type' => 'mock', 'label' => 'Mock Provider'];
-                        $providerId = (string) ($provider['id'] ?? 'mock');
-                        $providerType = (string) ($provider['type'] ?? 'mock');
-                        $providerLabel = (string) ($provider['label'] ?? $providerId);
-                        $namePrefix = 'provider_entries[0]';
-                        ?>
-                        <input type="hidden" id="aiActiveProviderIdInput" name="active_provider_id" value="<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>">
-                        <input type="hidden" id="aiProviderEntryIdInput" name="<?php echo htmlspecialchars($namePrefix . '[id]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>">
-                        <input type="hidden" name="<?php echo htmlspecialchars($namePrefix . '[enabled]', ENT_QUOTES); ?>" value="1">
-
-                        <div class="alert alert-info small">
-                            Der AI-Core lädt ausschließlich diesen aktiven Provider. Wenn er falsch konfiguriert ist, schlägt der Workflow sichtbar fehl – es gibt keinen stillen Fallback auf Mock, OpenAI, Mistral, Azure AI oder andere Provider.
-                        </div>
-
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Provider-Typ</label>
-                                <select class="form-select" id="aiProviderTypeSelect" name="<?php echo htmlspecialchars($namePrefix . '[type]', ENT_QUOTES); ?>">
-                                    <?php foreach ($providerCatalog as $catalogType => $catalogEntry): ?>
-                                        <option value="<?php echo htmlspecialchars((string) $catalogType, ENT_QUOTES); ?>" <?php echo $isSelected($providerType, (string) $catalogType); ?>><?php echo htmlspecialchars((string) ($catalogEntry['label'] ?? $catalogType)); ?></option>
+                        <div class="row g-3" id="aiProviderForm" data-provider-catalog="<?php echo htmlspecialchars((string) json_encode($providerCatalog, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'); ?>" data-provider-values="<?php echo htmlspecialchars((string) json_encode($providerValuesByType, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'); ?>">
+                            <div class="col-md-6">
+                                <label class="form-label">Aktiver Provider</label>
+                                <select class="form-select" name="active_provider_type" id="aiProviderType">
+                                    <?php foreach ($providerCatalog as $providerType => $catalogEntry): ?>
+                                        <option value="<?php echo htmlspecialchars((string) $providerType, ENT_QUOTES); ?>" <?php echo $isSelected($activeProviderType, (string) $providerType); ?>><?php echo htmlspecialchars((string) ($catalogEntry['label'] ?? $providerType)); ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                                <div class="form-hint" id="aiProviderDescription"><?php echo htmlspecialchars((string) ($providerCatalog[$activeProviderType]['description'] ?? '')); ?></div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6 d-flex align-items-end">
+                                <?php $renderSwitch('provider_enabled', 'Globalen Provider aktivieren', !empty($activeProvider['enabled']), 'Mock ist immer aktiv; echte Provider benötigen Endpoint/Modell und ggf. Secret.'); ?>
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label">Anzeigename</label>
-                                <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[label]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars($providerLabel); ?>">
+                                <input type="text" class="form-control" name="provider_label" id="aiProviderLabel" maxlength="120" value="<?php echo htmlspecialchars((string) ($activeProvider['label'] ?? $activeProviderLabel), ENT_QUOTES); ?>">
                             </div>
-                            <div class="col-md-4" data-ai-provider-field="model">
-                                <label class="form-label">Optionales Modell</label>
-                                <select class="form-select" id="aiProviderModelSelect" name="<?php echo htmlspecialchars($namePrefix . '[default_model]', ENT_QUOTES); ?>" data-current-model="<?php echo htmlspecialchars((string) ($provider['default_model'] ?? ''), ENT_QUOTES); ?>">
-                                    <?php $currentModelOptions = (array) ($providerCatalog[$providerType]['model_options'] ?? []); ?>
-                                    <?php foreach ($currentModelOptions as $modelValue => $modelLabel): ?>
-                                        <option value="<?php echo htmlspecialchars((string) $modelValue, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($provider['default_model'] ?? ''), (string) $modelValue); ?>><?php echo htmlspecialchars((string) $modelLabel); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="form-hint">Modellauswahl ist providerabhängig und serverseitig validiert. Nicht freigegebene Legacy-Modelle sind nicht auswählbar.</div>
+                            <div class="col-md-6">
+                                <label class="form-label">Modell</label>
+                                <input type="text" class="form-control" name="provider_model" id="aiProviderModel" maxlength="120" value="<?php echo htmlspecialchars((string) ($activeProvider['default_model'] ?? ''), ENT_QUOTES); ?>">
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Betriebsprofil</label>
-                                <select class="form-select" name="<?php echo htmlspecialchars($namePrefix . '[profile]', ENT_QUOTES); ?>">
-                                    <?php foreach ($providerProfiles as $profileValue => $profileLabel): ?>
-                                        <option value="<?php echo htmlspecialchars($profileValue, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($provider['profile'] ?? 'editor-translation'), $profileValue); ?>><?php echo htmlspecialchars($profileLabel); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Erlaubte Zielsprachen</label>
-                                <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[allowed_locales]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars(implode(',', (array) ($provider['allowed_locales'] ?? ['en']))); ?>" placeholder="en">
-                            </div>
-                            <div class="col-md-4" data-ai-provider-field="secret">
-                                <label class="form-label">API-Key / Secret</label>
-                                <input type="password" class="form-control" name="provider_secret_value" value="" placeholder="Leer lassen = gespeichertes Secret behalten" autocomplete="new-password" spellcheck="false" autocapitalize="off" autocorrect="off">
-                                <div class="form-hint">Aktuell gespeichert: <?php echo !empty($provider['secret_configured']) ? 'Ja' : 'Nein'; ?> · Mock/Ollama benötigen keinen Key.</div>
-                            </div>
-                            <div class="col-12" data-ai-provider-field="endpoint">
+                            <div class="col-12" data-provider-field="endpoint">
                                 <label class="form-label">Endpoint</label>
-                                <input type="url" class="form-control" id="aiProviderEndpointInput" name="<?php echo htmlspecialchars($namePrefix . '[endpoint]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['endpoint'] ?? '')); ?>" placeholder="https://..." data-current-default="<?php echo htmlspecialchars((string) ($providerCatalog[$providerType]['default_endpoint'] ?? ''), ENT_QUOTES); ?>">
-                                <div class="form-hint" id="aiProviderEndpointHint">OpenAI/Mistral/OpenRouter verwenden OpenAI-kompatible Chat-Completions; Azure AI benötigt zusätzlich Deployment und API-Version.</div>
+                                <input type="url" class="form-control" name="provider_endpoint" id="aiProviderEndpoint" maxlength="255" value="<?php echo htmlspecialchars((string) ($activeProvider['endpoint'] ?? ''), ENT_QUOTES); ?>" placeholder="https://...">
                             </div>
-                            <div class="col-md-6" data-ai-provider-field="deployment">
-                                <label class="form-label">Azure Deployment</label>
-                                <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[deployment]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['deployment'] ?? '')); ?>" placeholder="Nur für Azure AI erforderlich">
+                            <div class="col-md-6" data-provider-field="deployment">
+                                <label class="form-label">Deployment</label>
+                                <input type="text" class="form-control" name="provider_deployment" id="aiProviderDeployment" maxlength="120" value="<?php echo htmlspecialchars((string) ($activeProvider['deployment'] ?? ''), ENT_QUOTES); ?>" placeholder="Azure Deployment-Name">
                             </div>
-                            <div class="col-md-6" data-ai-provider-field="api_version">
-                                <label class="form-label">Azure API-Version</label>
-                                <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[api_version]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['api_version'] ?? '')); ?>" placeholder="2024-10-21">
+                            <div class="col-md-6" data-provider-field="api_version">
+                                <label class="form-label">API-Version</label>
+                                <input type="text" class="form-control" name="provider_api_version" id="aiProviderApiVersion" maxlength="120" value="<?php echo htmlspecialchars((string) ($activeProvider['api_version'] ?? ''), ENT_QUOTES); ?>" placeholder="2024-10-21">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Erlaubte Zielsprachen</label>
+                                <input type="text" class="form-control" name="provider_allowed_locales" id="aiProviderAllowedLocales" value="<?php echo htmlspecialchars(implode(',', (array) ($activeProvider['allowed_locales'] ?? ['en'])), ENT_QUOTES); ?>" placeholder="en,de">
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <label class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" name="provider_beta_only" id="aiProviderBetaOnly" value="1" <?php echo !empty($activeProvider['beta_only']) ? 'checked' : ''; ?>>
+                                    <span class="form-check-label fw-medium">Nur Beta</span>
+                                </label>
+                            </div>
+                            <div class="col-12" data-provider-field="secret">
+                                <label class="form-label" id="aiProviderSecretLabel"><?php echo htmlspecialchars((string) ($activeProvider['secret_label'] ?? 'API-Key')); ?></label>
+                                <input type="password" class="form-control" name="provider_secret" value="" placeholder="Leer lassen = gespeichertes Secret behalten" autocomplete="new-password" spellcheck="false" autocapitalize="off" autocorrect="off">
+                                <div class="form-hint">Aktuell gespeichert: <span id="aiProviderSecretState"><?php echo !empty($activeProvider['secret_configured']) ? 'Ja' : 'Nein'; ?></span></div>
+                                <label class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" name="clear_provider_secret" value="1">
+                                    <span class="form-check-label">Gespeichertes Secret löschen</span>
+                                </label>
+                            </div>
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0 small">
+                                    Beispiel-API-Call: <code>\CMS\Services\AI\AiService::getInstance()->complete([['role' =&gt; 'user', 'content' =&gt; 'Erzeuge eine kurze Zusammenfassung.']]);</code>
+                                </div>
                             </div>
                         </div>
-
-                        <script type="application/json" id="aiProviderCatalogJson"><?php echo htmlspecialchars($providerCatalogJson, ENT_NOQUOTES, 'UTF-8'); ?></script>
-                        <script>
-                            (function () {
-                                var catalogNode = document.getElementById('aiProviderCatalogJson');
-                                var typeSelect = document.getElementById('aiProviderTypeSelect');
-                                var modelSelect = document.getElementById('aiProviderModelSelect');
-                                var endpointInput = document.getElementById('aiProviderEndpointInput');
-                                var endpointHint = document.getElementById('aiProviderEndpointHint');
-                                var activeProviderIdInput = document.getElementById('aiActiveProviderIdInput');
-                                var providerEntryIdInput = document.getElementById('aiProviderEntryIdInput');
-                                var catalog = {};
-                                var lastProviderType = typeSelect ? typeSelect.value : '';
-
-                                if (!catalogNode || !typeSelect || !modelSelect) {
-                                    return;
-                                }
-
-                                try {
-                                    catalog = JSON.parse(catalogNode.textContent || '{}');
-                                } catch (error) {
-                                    catalog = {};
-                                }
-
-                                function getProviderEntry(providerType) {
-                                    return catalog[providerType] || catalog.mock || {};
-                                }
-
-                                function renderModelOptions(providerType, preferredModel) {
-                                    var entry = getProviderEntry(providerType);
-                                    var options = entry.model_options || {};
-                                    var defaultModel = entry.default_model || Object.keys(options)[0] || '';
-                                    var selectedModel = Object.prototype.hasOwnProperty.call(options, preferredModel) ? preferredModel : defaultModel;
-
-                                    modelSelect.innerHTML = '';
-                                    Object.keys(options).forEach(function (modelValue) {
-                                        var option = document.createElement('option');
-                                        option.value = modelValue;
-                                        option.textContent = options[modelValue] || modelValue;
-                                        option.selected = modelValue === selectedModel;
-                                        modelSelect.appendChild(option);
-                                    });
-                                }
-
-                                function updateFieldVisibility(providerType) {
-                                    var entry = getProviderEntry(providerType);
-                                    var fields = entry.settings_fields || {};
-
-                                    document.querySelectorAll('[data-ai-provider-field]').forEach(function (fieldNode) {
-                                        var fieldName = fieldNode.getAttribute('data-ai-provider-field') || '';
-                                        var visible = fields[fieldName] !== false;
-                                        fieldNode.hidden = !visible;
-                                    });
-
-                                    if (endpointHint) {
-                                        if (providerType === 'azure_openai') {
-                                            endpointHint.textContent = 'Azure AI benötigt Resource-Endpoint, Deployment-Name, API-Version und API-Key.';
-                                        } else if (providerType === 'ollama') {
-                                            endpointHint.textContent = 'Ollama nutzt den lokalen/interneren Host, z. B. http://127.0.0.1:11434.';
-                                        } else if (providerType === 'mock') {
-                                            endpointHint.textContent = 'Mock läuft intern und benötigt keinen externen Endpoint.';
-                                        } else {
-                                            endpointHint.textContent = 'Dieser Provider nutzt einen OpenAI-kompatiblen /chat/completions Endpoint.';
-                                        }
-                                    }
-                                }
-
-                                function applyProviderDefaults(providerType) {
-                                    var entry = getProviderEntry(providerType);
-                                    var oldEntry = getProviderEntry(lastProviderType);
-                                    var oldDefaultEndpoint = oldEntry.default_endpoint || '';
-                                    var nextDefaultEndpoint = entry.default_endpoint || '';
-
-                                    if (activeProviderIdInput) {
-                                        activeProviderIdInput.value = providerType;
-                                    }
-
-                                    if (providerEntryIdInput) {
-                                        providerEntryIdInput.value = providerType;
-                                    }
-
-                                    renderModelOptions(providerType, providerType === lastProviderType ? (modelSelect.getAttribute('data-current-model') || modelSelect.value || '') : '');
-                                    updateFieldVisibility(providerType);
-
-                                    if (endpointInput && (endpointInput.value.trim() === '' || endpointInput.value.trim() === oldDefaultEndpoint)) {
-                                        endpointInput.value = nextDefaultEndpoint;
-                                    }
-
-                                    lastProviderType = providerType;
-                                }
-
-                                typeSelect.addEventListener('change', function () {
-                                    applyProviderDefaults(typeSelect.value || 'mock');
-                                });
-
-                                applyProviderDefaults(typeSelect.value || 'mock');
-                            }());
-                        </script>
-
-                        <hr>
-                        <div class="row g-2">
-                            <div class="col-md-4"><?php $renderSwitch($namePrefix . '[translation_enabled]', 'Translation', !empty($provider['translation_enabled']) || $providerType === 'mock'); ?></div>
-                            <div class="col-md-4"><?php $renderSwitch($namePrefix . '[rewrite_enabled]', 'Rewrite', !empty($provider['rewrite_enabled'])); ?></div>
-                            <div class="col-md-4"><?php $renderSwitch($namePrefix . '[summary_enabled]', 'Summaries', !empty($provider['summary_enabled'])); ?></div>
-                            <div class="col-md-4"><?php $renderSwitch($namePrefix . '[seo_meta_enabled]', 'SEO / Meta', !empty($provider['seo_meta_enabled'])); ?></div>
-                            <div class="col-md-4"><?php $renderSwitch($namePrefix . '[editorjs_enabled]', 'Editor.js', !empty($provider['editorjs_enabled']) || $providerType === 'mock'); ?></div>
-                            <div class="col-md-4"><?php $renderSwitch($namePrefix . '[beta_only]', 'Nur Beta', !empty($provider['beta_only'])); ?></div>
-                        </div>
-
-                        <hr>
-                        <label class="form-check mb-0">
-                            <input class="form-check-input" type="checkbox" name="clear_provider_secret_value" value="1">
-                            <span class="form-check-label">Gespeichertes Secret für den aktiven Provider löschen</span>
-                        </label>
                     </div>
                 </form>
             </div>
@@ -1062,3 +801,118 @@ if (empty($summary['translation_ready'])) {
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+(() => {
+    const form = document.getElementById('aiProviderForm');
+    const select = document.getElementById('aiProviderType');
+    if (!form || !select) {
+        return;
+    }
+
+    let catalog = {};
+    try {
+        catalog = JSON.parse(form.dataset.providerCatalog || '{}');
+    } catch (error) {
+        catalog = {};
+    }
+    let providerValues = {};
+    try {
+        providerValues = JSON.parse(form.dataset.providerValues || '{}');
+    } catch (error) {
+        providerValues = {};
+    }
+
+    const description = document.getElementById('aiProviderDescription');
+    const label = document.getElementById('aiProviderLabel');
+    const model = document.getElementById('aiProviderModel');
+    const endpoint = document.getElementById('aiProviderEndpoint');
+    const deployment = document.getElementById('aiProviderDeployment');
+    const apiVersion = document.getElementById('aiProviderApiVersion');
+    const allowedLocales = document.getElementById('aiProviderAllowedLocales');
+    const betaOnly = document.getElementById('aiProviderBetaOnly');
+    const secretLabel = document.getElementById('aiProviderSecretLabel');
+    const secretState = document.getElementById('aiProviderSecretState');
+    const fieldGroups = Array.from(form.querySelectorAll('[data-provider-field]'));
+
+    const toggleField = (field, visible) => {
+        fieldGroups
+            .filter((group) => group.dataset.providerField === field)
+            .forEach((group) => {
+                group.hidden = !visible;
+                group.querySelectorAll('input, select, textarea').forEach((input) => {
+                    input.disabled = !visible;
+                });
+            });
+    };
+
+    const valueOrDefault = (value, fallback) => {
+        const normalized = typeof value === 'string' ? value.trim() : '';
+        return normalized !== '' ? value : fallback;
+    };
+
+    const applyProvider = (preserveValues = true) => {
+        const type = select.value || 'mock';
+        const definition = catalog[type] || {};
+        const values = providerValues[type] || {};
+
+        if (description) {
+            description.textContent = definition.description || '';
+        }
+        if (label && (!preserveValues || label.value.trim() === '')) {
+            label.value = valueOrDefault(values.label, definition.label || type);
+        }
+        if (model && (!preserveValues || model.value.trim() === '')) {
+            model.value = valueOrDefault(values.model, definition.default_model || '');
+        }
+        if (endpoint && (!preserveValues || endpoint.value.trim() === '')) {
+            endpoint.value = valueOrDefault(values.endpoint, definition.default_endpoint || '');
+        }
+        if (deployment && (!preserveValues || deployment.value.trim() === '')) {
+            deployment.value = valueOrDefault(values.deployment, definition.default_deployment || '');
+        }
+        if (apiVersion && (!preserveValues || apiVersion.value.trim() === '')) {
+            apiVersion.value = valueOrDefault(values.api_version, definition.default_api_version || '');
+        }
+        if (allowedLocales && (!preserveValues || allowedLocales.value.trim() === '')) {
+            allowedLocales.value = valueOrDefault(values.allowed_locales, 'en');
+        }
+        if (betaOnly && !preserveValues) {
+            betaOnly.checked = Boolean(values.beta_only);
+        }
+        if (secretLabel) {
+            secretLabel.textContent = definition.secret_label || 'API-Key';
+        }
+        if (secretState) {
+            secretState.textContent = values.secret_configured ? 'Ja' : 'Nein';
+        }
+
+        const fields = definition.fields || {};
+        toggleField('endpoint', Boolean(fields.endpoint));
+        toggleField('deployment', Boolean(fields.deployment));
+        toggleField('api_version', Boolean(fields.api_version));
+        toggleField('secret', Boolean(fields.secret));
+    };
+
+    select.addEventListener('change', () => {
+        if (label) {
+            label.value = '';
+        }
+        if (model) {
+            model.value = '';
+        }
+        if (endpoint) {
+            endpoint.value = '';
+        }
+        if (deployment) {
+            deployment.value = '';
+        }
+        if (apiVersion) {
+            apiVersion.value = '';
+        }
+        applyProvider(false);
+    });
+
+    applyProvider();
+})();
+</script>

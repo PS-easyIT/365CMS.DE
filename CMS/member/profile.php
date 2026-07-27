@@ -51,13 +51,20 @@ include __DIR__ . '/partials/header.php';
                         $isRequired = in_array($field, $requiredProfileFields, true) || !empty($definition['required']);
                         $value = $profileValue($field);
                         $inputType = in_array($type, ['email', 'url', 'date'], true) ? $type : 'text';
-                        $columnClass = $type === 'textarea' ? 'col-12' : 'col-md-6';
+                        $columnClass = in_array($type, ['textarea', 'wysiwyg'], true) ? 'col-12' : 'col-md-6';
                         ?>
                         <div class="<?= htmlspecialchars($columnClass, ENT_QUOTES, 'UTF-8') ?>">
                             <label class="form-label" for="<?= htmlspecialchars($field, ENT_QUOTES, 'UTF-8') ?>">
                                 <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?><?php if ($isRequired): ?> <span class="text-danger" aria-label="Pflichtfeld">*</span><?php endif; ?>
                             </label>
-                            <?php if ($type === 'textarea'): ?>
+                            <?php if ($type === 'wysiwyg'): ?>
+                                <?= \CMS\Services\EditorService::getInstance()->render($field, $value, [
+                                    'height' => 320,
+                                    'context' => 'member_' . $field,
+                                    'content_width' => 760,
+                                    'aria_label' => $label . ' Editor',
+                                ]) ?>
+                            <?php elseif ($type === 'textarea'): ?>
                                 <textarea class="form-control" id="<?= htmlspecialchars($field, ENT_QUOTES, 'UTF-8') ?>" name="<?= htmlspecialchars($field, ENT_QUOTES, 'UTF-8') ?>" rows="6" <?= $isRequired ? 'required' : '' ?>><?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8') ?></textarea>
                             <?php else: ?>
                                 <input class="form-control" id="<?= htmlspecialchars($field, ENT_QUOTES, 'UTF-8') ?>" name="<?= htmlspecialchars($field, ENT_QUOTES, 'UTF-8') ?>" type="<?= htmlspecialchars($inputType, ENT_QUOTES, 'UTF-8') ?>" value="<?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8') ?>" <?= $isRequired ? 'required' : '' ?>>

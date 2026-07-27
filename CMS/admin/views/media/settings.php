@@ -21,29 +21,6 @@ $allTypes = is_array($options['allowed_types'] ?? null) ? $options['allowed_type
 $memberTypes = is_array($options['member_allowed_types'] ?? null) ? $options['member_allowed_types'] : [];
 $thumbnailSizes = is_array($options['thumbnail_sizes'] ?? null) ? $options['thumbnail_sizes'] : [];
 $s = is_array($settings) ? $settings : [];
-
-$memberUploadsEnabled = !empty($s['member_uploads_enabled']);
-$memberMaxUpload = (int)($s['member_max_upload_size'] ?? 5);
-$memberAllowedActive = is_array($s['member_allowed_types'] ?? null) ? $s['member_allowed_types'] : [];
-$memberReadyChecks = [
-    'enabled' => [
-        'label' => 'Member-Uploads aktiviert',
-        'ok' => $memberUploadsEnabled,
-    ],
-    'limit' => [
-        'label' => 'Upload-Limit im zulässigen Bereich',
-        'ok' => $memberMaxUpload >= (int)($constraints['min_upload_size_mb'] ?? 1) && $memberMaxUpload <= (int)($constraints['max_upload_size_mb'] ?? 256),
-    ],
-    'types' => [
-        'label' => 'Mindestens ein erlaubter Dateityp gesetzt',
-        'ok' => count($memberAllowedActive) > 0,
-    ],
-    'controls' => [
-        'label' => 'Sicherheits-/Kontrollregeln aktiviert',
-        'ok' => !empty($s['block_dangerous_types']) && !empty($s['validate_image_content']) && !empty($s['protect_uploads_dir']),
-    ],
-];
-$memberReady = !in_array(false, array_map(static fn(array $check): bool => !empty($check['ok']), $memberReadyChecks), true);
 ?>
 
 <div class="page-header d-print-none">
@@ -229,21 +206,6 @@ $memberReady = !in_array(false, array_map(static fn(array $check): bool => !empt
                             </div>
                         </div>
                         <div class="card-body">
-                            <div class="alert <?php echo $memberReady ? 'alert-success' : 'alert-warning'; ?> py-2" role="note">
-                                <div class="fw-semibold mb-1">Readiness-Checkliste</div>
-                                <ul class="mb-0 ps-3 small">
-                                    <?php foreach ($memberReadyChecks as $check): ?>
-                                        <li>
-                                            <?php echo !empty($check['ok']) ? '✅' : '⚠️'; ?>
-                                            <?php echo htmlspecialchars((string)($check['label'] ?? 'Check')); ?>
-                                        </li>
-                                    <?php endforeach; ?>
-                                </ul>
-                                <?php if (!$memberReady): ?>
-                                    <div class="form-hint mt-1">Für einen auditfesten Member-Upload bitte alle Punkte auf „erfüllt“ bringen.</div>
-                                <?php endif; ?>
-                            </div>
-
                             <div class="row mb-3">
                                 <div class="col-sm-6">
                                     <label class="form-label" for="memberMaxUpload">Max. Upload-Größe (MB)</label>

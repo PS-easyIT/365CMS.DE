@@ -451,6 +451,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
                     <p><?php echo meridian_excerpt((string)($post->excerpt ?: $post->content), 100); ?></p>
                     <div class="card-footer">
                         <time><?php echo meridian_format_date($post->published_at ?? $post->created_at, true); ?></time>
+                        <?php echo meridian_post_update_badge($post); ?>
                         <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="read-link">Lesen →</a>
                     </div>
                 </div>

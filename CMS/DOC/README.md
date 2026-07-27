@@ -1,141 +1,96 @@
-# 365CMS – Dokumentation
-
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
-
-Willkommen in der Dokumentation von **365CMS** — dem modularen PHP-CMS für DACH-Profis.
-Diese Datei ist der zentrale **Doku-Hub**: Sie verlinkt in alle Fachbereiche. Für das
-Projekt-Aushängeschild (Pitch, Quick Start, Tech-Stack) siehe das
-[Root-`README.md`](../README.md), für die Versionshistorie den [`CHANGELOG.md`](../CHANGELOG.md).
+# 365CMS – Projektdokumentation
+> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
-- [Beschreibung](#beschreibung)
-- [Schnelleinstieg](#schnelleinstieg)
-- [Systemvoraussetzungen](#systemvoraussetzungen)
-- [Dokumentationsstruktur](#dokumentationsstruktur)
-- [Verzeichnisstruktur des CMS](#verzeichnisstruktur-des-cms)
-- [Sicherheit & Audits](#sicherheit--audits)
-- [Siehe auch](#siehe-auch)
+- [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
+- [Release-Fokus 3.3.44](#release-fokus-3344)
+- [Dokumentationsbereiche](#dokumentationsbereiche)
+- [Wichtige Hinweise](#wichtige-hinweise)
+- [Verwandte Einstiege](#verwandte-einstiege)
 
 ---
+<!-- UPDATED: 2026-05-31 -->
 
-## Beschreibung
+## Womit ihr anfangen solltet
 
-365CMS ist ein modulares, eigenständiges Content-Management-System auf Basis von
-**PHP 8.4+**, **MySQL/MariaDB** und Vanilla JavaScript. Die Architektur trennt klar
-zwischen schlanken Entry-Routen, Fachmodulen und Views, bietet ein **Hook-/Event-System**
-für Plugins, ein **capability-basiertes Rechtesystem**, einen **Plugin-/Theme-Marktplatz**
-sowie integrierte **KI-Services**, eine **SEO-Suite**, einen **Mitgliederbereich** und
-**DSGVO-Bausteine**.
-
----
-
-## Schnelleinstieg
-
-| Ich möchte … | Dokument |
+| Wenn ihr ... | dann startet hier |
 |---|---|
-| 365CMS installieren | [INSTALLATION.md](INSTALLATION.md) |
-| den Admin-Bereich verstehen | [admin/README.md](admin/README.md) |
-| Rollen & Rechte einrichten | [admin/users-groups/RBAC.md](admin/users-groups/RBAC.md) |
-| KI-Services nutzen | [ai/AI-SERVICES.md](ai/AI-SERVICES.md) |
-| SEO konfigurieren | [admin/seo/README.md](admin/seo/README.md) |
-| Sicherheit absichern | [admin/security/README.md](admin/security/README.md) |
-| die Dateistruktur nachvollziehen | [CMSFILESTRUCTUR.md](CMSFILESTRUCTUR.md) · [FILELIST.md](FILELIST.md) |
-| Assets/Bibliotheken nachschlagen | [ASSET.md](ASSET.md) |
+| das System neu aufsetzt | [INSTALLATION.md](INSTALLATION.md) |
+| die Runtime-Struktur aktuell verstehen wollt | [FILELIST.md](FILELIST.md) |
+| die technische Gesamtsicht braucht | [DEVLIST.md](DEVLIST.md) |
+| die Projektstruktur verstehen wollt | [core/ARCHITECTURE.md](core/ARCHITECTURE.md) |
+| einen Release-Snapshot des Core wollt | [core/STATUS.md](core/STATUS.md) |
+| das Admin-Panel nutzt | [admin/README.md](admin/README.md) |
+| die neue CMS-Loginpage steuern wollt | [admin/themes-design/CMS-LOGINPAGE.md](admin/themes-design/CMS-LOGINPAGE.md) |
+| den Member-Bereich betreut | [member/README.md](member/README.md) |
+| den Medienbereich nachvollziehen wollt | [admin/media/README.md](admin/media/README.md) |
+| Asset-/Vendor-Stände prüfen wollt | [assets/README.md](assets/README.md) |
+| neue Asset-Kandidaten bewerten wollt | [ASSETS_NEW.md](ASSETS_NEW.md) |
+| das geplante AI-/Translate-Zielbild prüfen wollt | [ai/AI-SERVICES.md](ai/AI-SERVICES.md) |
+| Fremd-Assets schrittweise ersetzen wollt | [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md) |
+| Plugins entwickelt | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) |
+| Themes entwickelt | [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) |
 
 ---
 
-## Systemvoraussetzungen
+## Release-Fokus 3.3.44
 
-| Komponente | Minimum | Empfohlen |
-|---|---|---|
-| PHP | 8.4 | 8.4+ |
-| MySQL / MariaDB | 8.0 / 10.6 | 8.0+ / 10.11+ |
-| Webserver | Apache 2.4 (`mod_rewrite`) / Nginx 1.18 | aktuelle stabile Version |
-| PHP-Erweiterungen | `pdo_mysql`, `mbstring`, `json`, `openssl`, `fileinfo` | + `curl`, `gd`/`imagick`, `zip`, `intl` |
-| Arbeitsspeicher | 128 MB | 256 MB+ |
+Der aktuelle Release-Fokus `3.3.44` zieht die Core-Anpassungen und Fehlerbehebungen der letzten drei Tage in der Dokumentation nach:
 
-Details: [INSTALLATION.md → Systemvoraussetzungen](INSTALLATION.md#systemvoraussetzungen).
-
----
-
-## Dokumentationsstruktur
-
-### 🛠️ Administration — [`admin/`](admin/README.md)
-
-| Bereich | Einstieg | Themen |
-|---|---|---|
-| Dashboard | [admin/dashboard/](admin/dashboard/README.md) | KPI-Übersicht, Widgets, Favoriten |
-| Seiten & Beiträge | [admin/pages-posts/](admin/pages-posts/README.md) | Seiten, Beiträge, Kommentare, Tabellen, TOC, Settings, Hub-Sites |
-| Medien | [admin/media/](admin/media/README.md) | Bibliothek, WebP/Thumbnails, Orphans, Duplikate |
-| Benutzer & Gruppen | [admin/users-groups/](admin/users-groups/README.md) | Users, Groups, [RBAC](admin/users-groups/RBAC.md), Auth-Settings |
-| Mitgliederbereich | [admin/member/](admin/member/README.md) | Member-Dashboard-Konfiguration |
-| Aboverwaltung | [admin/subscription/](admin/subscription/README.md) | Pakete, Bestellungen, Subscription-System |
-| Themes & Design | [admin/themes-design/](admin/themes-design/README.md) | Theme-Editor, Menüs, Fonts, Landing-Pages, Customizer, Login-Page |
-| SEO | [admin/seo/](admin/seo/README.md) | SEO, Analytics, Redirects |
-| Performance | [admin/performance/](admin/performance/README.md) | Cache, DB, Media, Sessions |
-| Recht & Datenschutz | [admin/legal/](admin/legal/README.md) | Cookies, DSGVO, Löschanfragen |
-| Sicherheit | [admin/security/](admin/security/README.md) | Firewall, AntiSpam, Security-Audit |
-| Plugins | [admin/plugins/](admin/plugins/README.md) | Plugins, Marktplatz, Updates |
-| System | [admin/system-settings/](admin/system-settings/README.md) | Settings, Backup, Updates, AI-Services, System |
-| Info & Diagnose | [admin/info/](admin/info/README.md) · [admin/diagnose/](admin/diagnose/README.md) | Systeminfo, Monitoring |
-| Landing-Page | [admin/landing-page/](admin/landing-page/README.md) | Landing-Page-Builder |
-
-Weitere Admin-Referenzen: [Panel-Integration](admin/PANEL-INTEGRATION.md) · [Dateistruktur](admin/FILESTRUCTURE.md) · [Guide](admin/GUIDE.md) · [Prüf-Checkliste](admin/PRUEF-CHECKLISTE.md).
-
-### 🤖 KI — [`ai/`](ai/AI-SERVICES.md)
-Provider, Übersetzung, Content-/SEO-Generierung, Prompt-Vorlagen, Quotas, Logging.
-
-### 📦 Assets — [`assets/`](ASSET.md)
-Runtime-Bibliotheken (CSS/JS/PHP-Libs), Synchronisations- und Build-Regeln.
-Übersicht: [ASSET.md](ASSET.md) · [ASSETS_NEW.md](ASSETS_NEW.md) · [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md).
-
-### 🗂️ Struktur & Referenz
-[CMSFILESTRUCTUR.md](CMSFILESTRUCTUR.md) · [FILELIST.md](FILELIST.md) · [DEVLIST.md](DEVLIST.md) · [INDEX.md](INDEX.md).
+- Admin-Pluginmenüs werden kollisionsfrei registriert: gleiche numerische Positionen überschreiben keine anderen aktiven Plugins mehr
+- die Sidebar sortiert Plugin-Gruppen natürlich nach sichtbarem Label, bleibt bei vielen aktiven Plugins scrollbar und hält Dropdowns im normalen Dokumentfluss
+- Plugin-Callbacks ohne vollständiges Admin-Layout erhalten automatisch den gemeinsamen `page-body`-/`container-xl`-Wrapper
+- Knowledgebase- und ausgewählte M365-Pluginrouten besitzen robuste Core-Fallbacks für verschachtelte `/admin/plugins/...`-Aufrufe
+- der TranslationService nutzt den eigenen Fallback-Katalog auch hinter Symfony Translation, wenn unbekannte Keys unverändert zurückgegeben werden
+- DE-/EN-Sprachdateien enthalten neue Detailseiten-Keys für Speaker, Experts, Companies und Events
+- `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, Marketplace-Metadaten und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `3.3.44`
 
 ---
 
-## Verzeichnisstruktur des CMS
+## Dokumentationsbereiche
 
-```
-CMS/
-├── admin/         # Backend: Entry-Routen, Module (admin/modules), Views (admin/views)
-├── core/          # Kern: Router, Hooks, RBAC, Security, Manager, Services, Auth
-├── includes/      # Globale Helfer (Escaping, Roles, Redirects/Auth, Options-Runtime)
-├── member/        # Mitgliederbereich (/member)
-├── plugins/       # Plugins
-├── themes/        # Themes
-├── views/         # Auth-/Public-Templates
-├── assets/        # Runtime-Bibliotheken
-├── config/        # Konfiguration (app.php) + Schutz-.htaccess
-├── marketplace/   # Marktplatz-Manifeste (core/plugins/themes)
-├── uploads/       # Hochgeladene Dateien
-├── vendor/        # gebündelte Abhängigkeiten (u. a. dompdf)
-├── DOC/           # Diese Dokumentation
-├── index.php      # Haupt-Einstiegspunkt
-├── install.php    # Installer
-└── cron.php       # geplante Aufgaben
-```
+### Core
 
-Ausführlich: [CMSFILESTRUCTUR.md](CMSFILESTRUCTUR.md).
+Die Kernsystem-Dokumente unter [`core/`](core/) beschreiben Bootstrap, Routing, Datenmodell, Services, Hooks und Sicherheit.
 
----
+### Admin
 
-## Sicherheit & Audits
+Die Admin-Dokumente unter [`admin/`](admin/) orientieren sich an der aktuellen Sidebar- und Modulstruktur aus `CMS/admin/`.
+Seit `3.3.44` ist insbesondere die Plugin-Panel-Integration mit kollisionsfreien Menüpositionen, natürlicher Label-Sortierung, scrollbar langer Plugin-Listen und automatischem Content-Wrapper dokumentiert.
+Dazu gehören jetzt auch die **CMS Loginpage** unter `/admin/cms-loginpage` und **CMS Logs** unter `/admin/cms-logs`, die bewusst als eigene Core-Bereiche für Auth-Branding bzw. Laufzeitdiagnose dokumentiert werden.
 
-365CMS folgt dem Prinzip **Security by default**. Interne Code-Audits sind dokumentiert:
+### Member
 
-- [AUDIT_core_2026-06-10.md](AUDIT_core_2026-06-10.md) — Kern-Framework
-- [AUDIT_admin_2026-06-10.md](AUDIT_admin_2026-06-10.md) — Admin-Bereich
-- [AUDIT_member-includes-views_2026-06-10.md](AUDIT_member-includes-views_2026-06-10.md) — Mitgliederbereich, Helfer, Auth-View
+Die Dokumente unter [`member/`](member/) beschreiben den persönlichen Mitgliederbereich unter `/member`, einschließlich Nachrichten, Profil, Datenschutz und Plugin-Integration.
 
-Ergebnis über alle Läufe: **0 kritische Funde**, alle gefundenen Defense-in-Depth-Punkte behoben.
-Sicherheitsthemen im Betrieb: [admin/security/](admin/security/README.md).
+### Theme und Plugins
+
+Die Bereiche [`theme/`](theme/) und [`plugins/`](plugins/) enthalten Entwicklungsleitfäden für Erweiterungen des Systems.
+
+### Workflows und Audits
+
+Die Ordner [`workflow/`](workflow/) und [`audit/`](audit/) dokumentieren operative Abläufe, Live-Audits und technische Bewertungen. Der Audit-Bereich ist jetzt bewusst auf **sechs Sammelaudits plus `ToDoPrüfung.md` und `BEWERTUNG.md`** verdichtet, damit die Pflege nicht mehr über dutzende Einzeldateien zerfällt.
 
 ---
 
-## Siehe auch
+## Wichtige Hinweise
 
-- [Root-README](../README.md) — Projektüberblick (DE/EN)
-- [CHANGELOG](../CHANGELOG.md) — Versionshistorie
-- [INSTALLATION.md](INSTALLATION.md) — Installation & Produktions-Checkliste
-- [INDEX.md](INDEX.md) — vollständiger Doku-Index
+- Für **Installations- und Konfigurationsfragen** gelten immer `CMS/config.php` als Stub und `CMS/config/app.php` als eigentliche Konfigurationsdatei.
+- Für **aktuelle Admin-Routen** gilt die Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php` als Referenz.
+- Für **Datenbankaussagen** ist [core/DATABASE-SCHEMA.md](core/DATABASE-SCHEMA.md) maßgeblich.
+- Für **Release-Änderungen** ist [../Changelog.md](../Changelog.md) die führende Datei.
+- Für **Medien- und Upload-Aussagen** gelten [admin/media/README.md](admin/media/README.md), [admin/media/MEDIA.md](admin/media/MEDIA.md) und [workflow/MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md).
+- Für **laufende Qualitätsstände** ist der Bereich [`audit/`](audit/) die erste Anlaufstelle.
+- Für **aktuelle Strukturfragen** ist [FILELIST.md](FILELIST.md) die führende lesbare Strukturkarte.
+- Für **historisch verifizierte Vollprüfscopes** bleibt [CMSFILESTRUCTUR.md](CMSFILESTRUCTUR.md) relevant, auch wenn es bewusst nicht jede aktuelle Runtime-Unterfläche vollständig ausrollt.
+
+---
+
+## Verwandte Einstiege
+
+- [Dokumentationsindex](INDEX.md)
+- [Root-README](../README.md)
+- [Projekt-Changelog](../Changelog.md)
+- [Audit-Bewertung](audit/BEWERTUNG.md)
+
+

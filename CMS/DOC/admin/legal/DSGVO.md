@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Bearbeitung von Datenschutzanfragen nach Art. 15 und Art. 17 DSGVO im aktuellen Admin-Workflow.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.759
 
 ---
 

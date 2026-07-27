@@ -18,8 +18,6 @@ final class UploadHandler
     private const MAX_EXTENSION_LENGTH = 16;
     private const PUBLIC_FILE_MODE = 0644;
     private const PRIVATE_FILE_MODE = 0640;
-    private const POST_UPLOAD_SAMPLE_BYTES = 131072;
-    private const POST_UPLOAD_TEXT_EXTENSIONS = ['xml', 'json', 'txt', 'csv', 'rtf'];
 
     private LoggerInterface $logger;
     private ?\Closure $uploadValidator;
@@ -122,13 +120,6 @@ final class UploadHandler
             return new WP_Error('upload_move_failed', 'Datei konnte nicht verschoben werden');
         }
 
-        $postUploadCheck = $this->runPostUploadPolicyChecks($targetPath);
-        if ($postUploadCheck instanceof WP_Error) {
-            @unlink($targetPath);
-
-            return $postUploadCheck;
-        }
-
         $relativePath = trim(($effectivePath !== '' ? trim($effectivePath, '/\\') . '/' : '') . basename($targetPath), '/');
         @chmod($targetPath, $this->resolveUploadFileMode($relativePath));
 
@@ -156,58 +147,6 @@ final class UploadHandler
             'url' => $this->repository->buildPublicUrl($relativePath),
             'category' => $category,
         ];
-    }
-
-    private function runPostUploadPolicyChecks(string $targetPath): true|WP_Error
-    {
-        if (!is_file($targetPath) || !is_readable($targetPath)) {
-            return new WP_Error('upload_postcheck_failed', 'Upload-Datei konnte nach dem Speichern nicht gelesen werden.');
-        }
-
-        $size = filesize($targetPath);
-        if ($size === false || $size < 1) {
-            return new WP_Error('upload_postcheck_empty', 'Upload-Datei ist nach dem Speichern leer oder beschädigt.');
-        }
-
-        $extension = strtolower((string) pathinfo($targetPath, PATHINFO_EXTENSION));
-        if (in_array($extension, self::POST_UPLOAD_TEXT_EXTENSIONS, true)) {
-            $sample = file_get_contents($targetPath, false, null, 0, self::POST_UPLOAD_SAMPLE_BYTES);
-            if (is_string($sample) && $sample !== '') {
-                if (preg_match('/<\?(?:php|=)/i', $sample) === 1) {
-                    return new WP_Error('upload_postcheck_polyglot', 'Upload blockiert: Verdächtiger eingebetteter Script-Code erkannt.');
-                }
-
-                if ($extension === 'xml' && stripos($sample, '<!DOCTYPE') !== false) {
-                    return new WP_Error('upload_postcheck_xml_doctype', 'Upload blockiert: XML-DOCTYPE ist aus Sicherheitsgründen nicht erlaubt.');
-                }
-            }
-        }
-
-        if (class_exists('CMS\\Hooks')) {
-            $scanResult = \CMS\Hooks::applyFilters('cms_media_post_upload_scan', [
-                'allowed' => true,
-                'code' => 'upload_postcheck_blocked',
-                'reason' => '',
-            ], [
-                'absolute_path' => $targetPath,
-                'filename' => basename($targetPath),
-                'extension' => $extension,
-                'size' => (int) $size,
-            ]);
-
-            if (!is_array($scanResult)) {
-                return new WP_Error('upload_postcheck_invalid_result', 'Upload-Post-Scan lieferte ein ungültiges Ergebnis.');
-            }
-
-            if (empty($scanResult['allowed'])) {
-                $reason = trim((string) ($scanResult['reason'] ?? 'Datei wurde durch Upload-Post-Scan blockiert.'));
-                $code = trim((string) ($scanResult['code'] ?? 'upload_postcheck_blocked'));
-
-                return new WP_Error($code !== '' ? $code : 'upload_postcheck_blocked', $reason !== '' ? $reason : 'Datei wurde durch Upload-Post-Scan blockiert.');
-            }
-        }
-
-        return true;
     }
 
     public function moveFile(string $sourcePath, string $targetPath): bool|WP_Error

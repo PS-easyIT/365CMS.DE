@@ -64,7 +64,7 @@ final class ThemeArchiveRepository
         $db = Database::instance();
         $prefix = $db->getPrefix();
         $categories = $db->get_results(
-            "SELECT id, name, slug, description, parent_id
+            "SELECT id, name, slug, slug_en, description, parent_id
              FROM {$prefix}post_categories
              ORDER BY name ASC"
         ) ?: [];
@@ -115,17 +115,20 @@ final class ThemeArchiveRepository
             $categoryId = (int) ($category->id ?? 0);
             $count = count($postIdsByCategory[$categoryId] ?? []);
             $slug = trim((string) ($category->slug ?? ''));
+            $slugEn = trim((string) ($category->slug_en ?? ''));
 
             if ($count <= 0 || $slug === '') {
                 continue;
             }
 
+            $localizedSlug = $locale === 'en' && $slugEn !== '' ? $slugEn : $slug;
+
             $items[] = [
                 'title' => trim((string) ($category->name ?? 'Kategorie')),
-                'slug' => $slug,
+                'slug' => $localizedSlug,
                 'description' => trim((string) ($category->description ?? '')),
                 'count' => $count,
-                'url' => \cms_get_archive_url('category', $slug, $locale),
+                'url' => \cms_get_archive_url('category', $localizedSlug, $locale),
             ];
         }
 
@@ -150,9 +153,10 @@ final class ThemeArchiveRepository
         $prefix = $db->getPrefix();
         $tagPostMap = [];
         $tagLabels = [];
+        $tagLocalizedSlugs = [];
 
         $relationRows = $db->get_results(
-            "SELECT p.id AS post_id, t.name, t.slug
+            "SELECT p.id AS post_id, t.name, t.slug, t.slug_en
              FROM {$prefix}post_tags t
              INNER JOIN {$prefix}post_tag_rel ptr ON ptr.tag_id = t.id
              INNER JOIN {$prefix}posts p ON p.id = ptr.post_id
@@ -162,6 +166,7 @@ final class ThemeArchiveRepository
 
         foreach ($relationRows as $row) {
             $slug = trim((string) ($row->slug ?? ''));
+            $slugEn = trim((string) ($row->slug_en ?? ''));
             $postId = (int) ($row->post_id ?? 0);
             if ($slug === '' || $postId <= 0) {
                 continue;
@@ -169,6 +174,7 @@ final class ThemeArchiveRepository
 
             $tagPostMap[$slug][$postId] = true;
             $tagLabels[$slug] = trim((string) ($row->name ?? $slug));
+            $tagLocalizedSlugs[$slug] = $locale === 'en' && $slugEn !== '' ? $slugEn : $slug;
         }
 
         $legacyRows = $db->get_results(
@@ -207,12 +213,13 @@ final class ThemeArchiveRepository
             }
 
             $title = trim((string) ($tagLabels[$slug] ?? $slug));
+            $localizedSlug = (string) ($tagLocalizedSlugs[$slug] ?? $slug);
             $items[] = [
                 'title' => $title !== '' ? $title : $slug,
-                'slug' => (string) $slug,
+                'slug' => $localizedSlug,
                 'description' => '',
                 'count' => $count,
-                'url' => \cms_get_archive_url('tag', (string) $slug, $locale),
+                'url' => \cms_get_archive_url('tag', $localizedSlug, $locale),
             ];
         }
 

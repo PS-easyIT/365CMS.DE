@@ -26,6 +26,8 @@ $pExcerpt = $pExcerptRaw !== '' ? htmlspecialchars($pExcerptRaw, ENT_QUOTES, 'UT
 $pPublishedAt = (string) ($post->published_at ?? $post->created_at ?? '');
 $pDate = $pPublishedAt !== '' ? meridian_format_date($pPublishedAt, false) : '';
 $pDateAgo = $pPublishedAt !== '' ? time_ago($pPublishedAt) : '';
+$pContentUpdatedAt = trim((string) ($post->content_updated_at ?? ''));
+$pUpdatedDate = $pContentUpdatedAt !== '' ? meridian_format_date($pContentUpdatedAt, false) : '';
 $pAuthor = trim((string) ($post->author_name ?? 'Redaktion'));
 $pAuthIni = meridian_author_initials($pAuthor);
 $pCat = trim((string) ($post->category_name ?? 'Blog'));
@@ -146,6 +148,9 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
             <?php endif; ?>
             <?php if ($pDateAgo !== ''): ?>
             <span><?php echo htmlspecialchars($pDateAgo, ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php endif; ?>
+            <?php if ($pUpdatedDate !== ''): ?>
+            <span><strong>Aktualisiert</strong> <?php echo htmlspecialchars($pUpdatedDate, ENT_QUOTES, 'UTF-8'); ?></span>
             <?php endif; ?>
             <?php if ($showViews && $pViews > 0): ?>
             <span><?php echo number_format($pViews, 0, ',', '.'); ?> Aufrufe</span>

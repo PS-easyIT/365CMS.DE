@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten, Diagnose und die inzwischen eingehängte AI-Steuerung im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
 
 Der Bereich „System" wurde in mehrere klar getrennte Einstiege aufgeteilt.
 

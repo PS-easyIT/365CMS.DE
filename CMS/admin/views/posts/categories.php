@@ -15,6 +15,7 @@ $formAlert = is_array($formAlert ?? null) ? $formAlert : null;
 $editCategoryId = (int) ($formValues['cat_id'] ?? ($editCategory['id'] ?? 0));
 $editCategoryName = (string) ($formValues['cat_name'] ?? ($editCategory['name'] ?? ''));
 $editCategorySlug = (string) ($formValues['cat_slug'] ?? ($editCategory['slug'] ?? ''));
+$editCategorySlugEn = (string) ($formValues['cat_slug_en'] ?? ($editCategory['slug_en'] ?? ''));
 $editCategoryParentId = (int) ($formValues['parent_id'] ?? ($editCategory['parent_id'] ?? 0));
 $editCategoryReplacementId = (int) ($formValues['replacement_category_id'] ?? ($editCategory['replacement_category_id'] ?? 0));
 $isEditing = $editCategoryId > 0;
@@ -74,6 +75,7 @@ $panelState = [
         'cat_id' => $editCategoryId,
         'cat_name' => $editCategoryName,
         'cat_slug' => $editCategorySlug,
+        'cat_slug_en' => $editCategorySlugEn,
         'parent_id' => $editCategoryParentId,
         'replacement_category_id' => $editCategoryReplacementId,
     ],
@@ -176,7 +178,12 @@ $panelStateJson = htmlspecialchars((string) json_encode($panelState, JSON_UNESCA
                                             <input class="form-check-input" type="checkbox" form="bulkCategoryForm" name="category_ids[]" value="<?php echo (int) ($category['id'] ?? 0); ?>" aria-label="Kategorie auswählen: <?php echo htmlspecialchars((string) ($category['name'] ?? ''), ENT_QUOTES); ?>">
                                         </td>
                                         <td class="fw-medium"><?php echo htmlspecialchars((string) ($category['option_label'] ?? $category['name'] ?? ''), ENT_QUOTES); ?></td>
-                                        <td><code><?php echo htmlspecialchars((string) ($category['slug'] ?? ''), ENT_QUOTES); ?></code></td>
+                                        <td>
+                                            <code><?php echo htmlspecialchars((string) ($category['slug'] ?? ''), ENT_QUOTES); ?></code>
+                                            <?php if (trim((string) ($category['slug_en'] ?? '')) !== ''): ?>
+                                                <div class="text-secondary small">EN: <code><?php echo htmlspecialchars((string) $category['slug_en'], ENT_QUOTES); ?></code></div>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <?php if (!empty($category['is_main_category'])): ?>
                                                 <span class="badge bg-azure-lt text-azure">Hauptkategorie</span>
@@ -250,6 +257,15 @@ $panelStateJson = htmlspecialchars((string) json_encode($panelState, JSON_UNESCA
                     <input type="text" class="form-control" id="postCategoryPanelSlug" name="cat_slug" value="<?php echo htmlspecialchars($editCategorySlug, ENT_QUOTES); ?>" placeholder="wird automatisch generiert" data-taxonomy-field="cat_slug" data-taxonomy-slug>
                 </div>
                 <div class="taxonomy-validation-error d-none" data-taxonomy-error-for="cat_slug"></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="postCategoryPanelSlugEn">Slug (EN)</label>
+                <div class="input-group">
+                    <span class="input-group-text">/</span>
+                    <input type="text" class="form-control" id="postCategoryPanelSlugEn" name="cat_slug_en" value="<?php echo htmlspecialchars($editCategorySlugEn, ENT_QUOTES); ?>" placeholder="optional – für englische Archiv-URLs" data-taxonomy-field="cat_slug_en">
+                </div>
+                <div class="form-hint">Optionaler zweiter Slug für das englische Kategorie-Archiv. Leer lassen, um den Haupt-Slug für alle Sprachen zu nutzen.</div>
+                <div class="taxonomy-validation-error d-none" data-taxonomy-error-for="cat_slug_en"></div>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="postCategoryPanelDescription">Beschreibung</label>

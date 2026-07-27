@@ -111,42 +111,18 @@ $sidebarCats = meridian_get_categories(8);
 // Sidebar: Tags sammeln
 $tagCloud = [];
 try {
-    $cacheManager = class_exists('\\CMS\\CacheManager') ? \CMS\CacheManager::instance() : null;
-    $tagCloudCacheTtl = 900;
-
-    $metaStmt = $pdo->query("SELECT COUNT(*) AS total, MAX(COALESCE(updated_at, published_at, created_at)) AS latest FROM posts WHERE status = 'published'");
-    $meta = $metaStmt ? (array)($metaStmt->fetch(\PDO::FETCH_ASSOC) ?: []) : [];
-    $tagCloudFreshnessKey = md5(((string)($meta['total'] ?? '0')) . '|' . ((string)($meta['latest'] ?? '')));
-    $tagCloudCacheKey = 'theme.cms-default.home.tagcloud.' . $tagCloudFreshnessKey;
-
-    if ($cacheManager !== null) {
-        $cachedTagCloud = $cacheManager->get($tagCloudCacheKey, null);
-        if (is_array($cachedTagCloud)) {
-            $tagCloud = array_values(array_filter(array_map(static fn(mixed $tag): string => trim((string)$tag), $cachedTagCloud), static fn(string $tag): bool => $tag !== ''));
-        }
-    }
-
-    if ($tagCloud === []) {
-        $stmt = $pdo->query("SELECT tags FROM posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
-        $tagRows = $stmt ? $stmt->fetchAll(\PDO::FETCH_COLUMN) : [];
-        $tagCounts = [];
-        foreach ($tagRows as $row) {
-            foreach (array_map('trim', explode(',', (string)$row)) as $tag) {
-                if ($tag !== '') {
-                    $tagCounts[$tag] = ($tagCounts[$tag] ?? 0) + 1;
-                }
+    $stmt = $pdo->query("SELECT tags FROM posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
+    $tagRows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+    $tagCounts = [];
+    foreach ($tagRows as $row) {
+        foreach (array_map('trim', explode(',', $row)) as $tag) {
+            if ($tag) {
+                $tagCounts[$tag] = ($tagCounts[$tag] ?? 0) + 1;
             }
         }
-
-        if ($tagCounts !== []) {
-            arsort($tagCounts);
-            $tagCloud = array_keys(array_slice($tagCounts, 0, 20));
-        }
-
-        if ($cacheManager !== null) {
-            $cacheManager->set($tagCloudCacheKey, $tagCloud, $tagCloudCacheTtl);
-        }
     }
+    arsort($tagCounts);
+    $tagCloud = array_keys(array_slice($tagCounts, 0, 20));
 } catch (\Exception $e) {
     $tagCloud = [];
 }
@@ -217,6 +193,7 @@ $numRecent        = count($recentSidebar);
             <span class="meta-sep">·</span>
             <?php endif; ?>
             <time class="meta-date"><?php echo meridian_format_date($heroPost->published_at ?? $heroPost->created_at); ?></time>
+            <?php echo meridian_post_update_badge($heroPost); ?>
             <?php if (meridian_setting('blog', 'show_reading_time', true)): ?>
             <span class="meta-sep">·</span>
             <span class="meta-read"><?php echo meridian_reading_time($heroPost->content); ?> Min. Lesezeit</span>
@@ -278,6 +255,7 @@ $numRecent        = count($recentSidebar);
                 <span class="dot"></span>
                 <span class="read-t"><?php echo meridian_reading_time($post->content); ?></span>
                 <?php endif; ?>
+                <?php echo meridian_post_update_badge($post); ?>
             </div>
         </div>
     </div>
@@ -325,6 +303,7 @@ $numRecent        = count($recentSidebar);
             <p><?php echo htmlspecialchars(meridian_excerpt($post->excerpt ?: $post->content, 100)); ?></p>
             <div class="card-footer">
                 <time><?php echo meridian_format_date($post->published_at ?? $post->created_at, true); ?></time>
+                <?php echo meridian_post_update_badge($post); ?>
                 <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="read-link">Lesen →</a>
             </div>
         </div>
@@ -345,6 +324,7 @@ $numRecent        = count($recentSidebar);
             </a>
         </h3>
         <p><?php echo htmlspecialchars(meridian_excerpt($post->excerpt ?: $post->content, 120)); ?></p>
+        <?php echo meridian_post_update_badge($post); ?>
         <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="feature-link">
             <?php echo htmlspecialchars($post->category_name ?: 'Weiterlesen'); ?> →
         </a>

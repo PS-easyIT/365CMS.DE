@@ -1,5 +1,5 @@
 # 365CMS – Datenbankschema
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-07-18 | **Version:** 3.3.66 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -17,26 +17,27 @@
 
 ---
 
-## Überblick <!-- UPDATED: 2026-06-10 -->
+## Überblick <!-- UPDATED: 2026-04-07 -->
 
 365CMS nutzt ein relationales Schema auf **MySQL / MariaDB** (Engine: InnoDB, Charset: `utf8mb4`).
 Alle Tabellen verwenden einen konfigurierbaren Präfix (Standard: `cms_`), definiert in `CMS/config/app.php` als `DB_PREFIX`.
 
-Wichtig für den Stand `3.3.44`: Nicht jede Laufzeitfunktion hängt heute primär an SQL-Tabellen. Die Medienbibliothek nutzt für Kategorien und Datei-Metadaten inzwischen vor allem `CMS/config/media-meta.json` plus Dateisystem-Repository; ältere Tabellenreferenzen sind daher als Legacy-/Migrationskontext zu lesen. Beitragskategorien besitzen keine Kategorie-Zusatzdomains mehr; Domain-Zuordnungen bleiben Hub-Site-Funktionalität.
+Wichtig für den Stand `3.3.66`: Nicht jede Laufzeitfunktion hängt heute primär an SQL-Tabellen. Die Medienbibliothek nutzt für Kategorien und Datei-Metadaten inzwischen vor allem `CMS/config/media-meta.json` plus Dateisystem-Repository; ältere Tabellenreferenzen sind daher als Legacy-/Migrationskontext zu lesen. Beitragskategorien besitzen keine Kategorie-Zusatzdomains mehr; Domain-Zuordnungen bleiben Hub-Site-Funktionalität.
 
 | Eigenschaft | Wert |
 |---|---|
 | Engine | InnoDB |
 | Charset | utf8mb4 |
 | Tabellen-Präfix | konfigurierbar (`cms_` Standard) |
-| Schema-Version (SchemaManager) | `v20` |
-| Schema-Version (MigrationManager) | `v11` |
+| Schema-Version (SchemaManager) | `v21` |
+| Schema-Version (MigrationManager) | `v21` |
 | Anzahl Core-Tabellen | 33 |
 
 Die Tabellenerstellung erfolgt über zwei zentrale Klassen:
 
-- **`CMS\SchemaManager`** – idempotente Erstellung aller Tabellen via `CREATE TABLE IF NOT EXISTS`. Wird beim ersten Request ausgeführt und über eine Flag-Datei (`cache/db_schema_v14.flag`) gesteuert.
+- **`CMS\SchemaManager`** – idempotente Erstellung aller Tabellen via `CREATE TABLE IF NOT EXISTS`. Wird beim ersten Request ausgeführt und über eine Flag-Datei (`cache/db_schema_v21.flag`) gesteuert.
 - **`CMS\MigrationManager`** – inkrementelle Schema-Migrationen (ALTER TABLE, neue Spalten/Indizes). Versioniert über `cms_settings.db_schema_version`.
+- **`CMS\DatabaseUpdateRunner`** – versionsgeführter Reparaturpfad für bestehende Installationen. Aktualisiert nach erfolgreicher Migration `installed_cms_version`, `installed_cms_updated_at` und `installed_cms_schema_version` in `cms_settings`; die öffentliche `CMS/update.php` ist nur für Administratoren mit CSRF-Schutz erreichbar und kann im CLI-Modus auch mit `--status` bzw. `--dry-run` genutzt werden.
 
 Zusätzlich existiert eine separate Tabellenliste in `CMS/install.php` (`createDatabaseTables()`), die bei Neuinstallationen verwendet wird und mit dem SchemaManager synchron gehalten werden muss.
 
@@ -246,19 +247,21 @@ Versionierung von Beitragsänderungen; speichert die zuletzt ersetzten Inhalte u
 
 ### `cms_post_categories` – Blog-Kategorien
 
-Hierarchische Kategorien für Blog-Beiträge und statische Seiten (Self-Referencing via `parent_id`). Standardmäßig werden u. a. Microsoft-365-Bereiche wie Teams, SharePoint Online, Exchange Online, Copilot, Intune, Defender oder Power Platform als auswählbare Redaktionskategorien vorgehalten. Seit `3.3.43` enthält das Core-Schema keine Kategorie-Domain-Alias-Spalte mehr; frühere `alias_domains_json`-Bestände sind Legacy-Kontext und werden von neuen Installationen nicht mehr angelegt.
+Hierarchische Kategorien für Blog-Beiträge und statische Seiten (Self-Referencing via `parent_id`). Standardmäßig werden u. a. Microsoft-365-Bereiche wie Teams, SharePoint Online, Exchange Online, Copilot, Intune, Defender oder Power Platform als auswählbare Redaktionskategorien vorgehalten. Seit `3.3.43` enthält das Core-Schema keine Kategorie-Domain-Alias-Spalte mehr; frühere `alias_domains_json`-Bestände sind Legacy-Kontext und werden von neuen Installationen nicht mehr angelegt. Seit `3.3.49` besitzen Kategorien zusätzlich einen optionalen englischen Archiv-Slug `slug_en`.
 
 | Feldname | Typ | Nullable | Default | Beschreibung |
 |---|---|---|---|---|
 | `id` | INT UNSIGNED | Nein | AUTO_INCREMENT | Primärschlüssel |
 | `name` | VARCHAR(100) | Nein | – | Kategoriename |
 | `slug` | VARCHAR(100) | Nein | – | URL-Slug (UNIQUE) |
+| `slug_en` | VARCHAR(100) | Ja | NULL | Optionaler englischer Archiv-Slug (EN-Locale) |
 | `description` | TEXT | Ja | NULL | Beschreibung |
 | `parent_id` | INT UNSIGNED | Ja | NULL | Übergeordnete Kategorie |
 | `sort_order` | INT | Ja | 0 | Sortierung |
+| `replacement_category_id` | INT UNSIGNED | Ja | NULL | Hinterlegte Ersatzkategorie für Löschvorgänge |
 | `created_at` | TIMESTAMP | Ja | CURRENT_TIMESTAMP | Erstellungszeitpunkt |
 
-**Indizes:** `idx_slug (slug)`, `idx_parent (parent_id)`, `UNIQUE (slug)`
+**Indizes:** `idx_slug (slug)`, `idx_slug_en (slug_en)`, `idx_parent (parent_id)`, `UNIQUE (slug)`
 
 ### `cms_comments` – Kommentare
 
@@ -281,7 +284,7 @@ Kommentarsystem für Blog-Beiträge mit Moderationsstatus.
 
 ### `cms_media` – Legacy-Medienindex
 
-Historische bzw. optionale Tabellenstruktur für hochgeladene Dateien. Im aktuellen Stand `3.3.47` arbeitet die produktive Medienbibliothek jedoch primär über `CMS/core/Services/MediaService.php`, `CMS/core/Services/Media/MediaRepository.php`, das Dateisystem unter `uploads/` und `CMS/config/media-meta.json`.
+Historische bzw. optionale Tabellenstruktur für hochgeladene Dateien. Im aktuellen Stand `2.9.0` arbeitet die produktive Medienbibliothek jedoch primär über `CMS/core/Services/MediaService.php`, `CMS/core/Services/Media/MediaRepository.php`, das Dateisystem unter `uploads/` und `CMS/config/media-meta.json`.
 
 | Feldname | Typ | Nullable | Default | Beschreibung |
 |---|---|---|---|---|
@@ -969,13 +972,13 @@ Das Schema-Management folgt einem zweistufigen Ansatz:
 
 ```
 ┌─────────────────────────┐     ┌──────────────────────────┐
-│   SchemaManager (v14)   │────▶│  MigrationManager (v11)  │
+│   SchemaManager (v21)   │────▶│  MigrationManager (v21)  │
 │                         │     │                          │
 │ CREATE TABLE IF NOT     │     │ ALTER TABLE ADD COLUMN   │
 │ EXISTS …                │     │ CREATE TABLE IF NOT …    │
 │                         │     │ ALTER TABLE ADD INDEX    │
 │ Flag: cache/db_schema_  │     │                          │
-│       v14.flag          │     │ Version: cms_settings    │
+│       v21.flag          │     │ Version: cms_settings    │
 │                         │     │ (db_schema_version)      │
 └─────────────────────────┘     └──────────────────────────┘
 ```
@@ -983,8 +986,8 @@ Das Schema-Management folgt einem zweistufigen Ansatz:
 ### SchemaManager (`CMS/core/SchemaManager.php`)
 
 - **Zweck:** Erstellt alle 33 Core-Tabellen idempotent via `CREATE TABLE IF NOT EXISTS`.
-- **Versionierung:** Konstante `SCHEMA_VERSION = 'v14'` – bei Schema-Änderungen erhöhen.
-- **Steuerung:** Flag-Datei unter `cache/db_schema_v14.flag`. Existiert die Datei, wird `createTables()` übersprungen.
+- **Versionierung:** Konstante `SCHEMA_VERSION = 'v21'` – bei Schema-Änderungen erhöhen.
+- **Steuerung:** Flag-Datei unter `cache/db_schema_v21.flag`. Existiert die Datei, wird `createTables()` übersprungen.
 - **Aufruf:** Automatisch beim ersten Request über `Database::__construct()`.
 - **Zusatz:** `ensureContentColumns()` ergänzt fehlende SEO-/Media-Spalten (`featured_image`, `meta_title`, `meta_description`) in den Tabellen `pages` und `posts` bei Altinstallationen.
 
@@ -998,7 +1001,7 @@ CREATE TABLE IF NOT EXISTS cms_settings ( … ) ENGINE=InnoDB DEFAULT CHARSET=ut
 ### MigrationManager (`CMS/core/MigrationManager.php`)
 
 - **Zweck:** Inkrementelle Spalten-/Index-/Tabellen-Migrationen (ALTER TABLE).
-- **Versionierung:** Konstante `SCHEMA_VERSION = 'v11'` – in `cms_settings` unter `option_name = 'db_schema_version'` gespeichert.
+- **Versionierung:** Konstante `SCHEMA_VERSION = 'v21'` – in `cms_settings` unter `option_name = 'db_schema_version'` gespeichert.
 - **Idempotenz:** PDOException für bereits vorhandene Spalten/Keys werden ignoriert (Duplicate column, already exists, etc.).
 - **Reparatur:** `repairTables()` setzt die Version zurück, führt `SchemaManager::createTables()` und dann alle Migrationen erneut aus.
 
@@ -1022,7 +1025,13 @@ Enthaltene Migrationen (Auszug):
 
 - **Zweck:** Separate Tabellenliste für Neuinstallationen über die Web-UI.
 - **Wichtig:** Muss mit dem SchemaManager synchron gehalten werden.
-- **Funktion:** `createDatabaseTables(PDO $pdo, string $prefix)` erstellt dieselben Tabellen wie der SchemaManager, enthält jedoch auch zusätzliche Tabellen wie `messages`, `audit_log` und `custom_fonts`.
+- **Funktion:** `createDatabaseTables(PDO $pdo, string $prefix)` erstellt dieselben Tabellen wie der SchemaManager. Neuinstallationen speichern zusätzlich `installed_cms_version`, `installed_cms_updated_at`, `installed_cms_schema_version` und `db_schema_version` in `cms_settings`.
+
+### Versionsgeführter Updater (`CMS/update.php`)
+
+- **Web:** Nur für angemeldete Administratoren mit Capability `manage_settings`; POST-Ausführung ist per CSRF-Token geschützt.
+- **CLI:** `php update.php --status` bzw. `php update.php --dry-run` zeigt den Stand, `php update.php` führt die Migration aus.
+- **Ablauf:** `DatabaseUpdateRunner` blockiert Downgrades, ruft `Database::repairTables()` auf und schreibt die installierte Core-/Schema-Version erst nach erfolgreicher Migration.
 
 ### Versions-Ablauf
 
@@ -1033,11 +1042,11 @@ Erster Request
     │   ├── 33× CREATE TABLE IF NOT EXISTS …
     │   ├── MigrationManager::run()
     │   │   ├── Prüfe db_schema_version in cms_settings
-    │   │   ├── Falls < v11: alle ALTER TABLE Statements ausführen
-    │   │   └── Speichere v11 in cms_settings
+    │   │   ├── Falls < v21: alle ALTER TABLE Statements ausführen
+    │   │   └── Speichere v21 in cms_settings
     │   ├── ensureContentColumns() (SEO-Spalten in pages/posts)
     │   ├── createDefaultAdmin() (falls kein Admin existiert)
-    │   └── Schreibe Flag-Datei: cache/db_schema_v14.flag
+    │   └── Schreibe Flag-Datei: cache/db_schema_v21.flag
     │
 Nächster Request
     │

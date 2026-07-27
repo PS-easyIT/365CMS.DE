@@ -50,7 +50,7 @@ final class EditorJsSanitizer
             'paragraph', 'header', 'list', 'checklist', 'quote', 'warning', 'alert',
             'code', 'raw', 'table', 'image', 'attaches', 'linkTool', 'delimiter',
             'embed', 'imageGallery', 'carousel', 'columns', 'accordion', 'drawingTool', 'spacer', 'mediaText',
-            'callout', 'terminal', 'codeTabs', 'mermaid', 'apiEndpoint', 'changelog', 'prosCons', 'details',
+            'callout', 'terminal', 'codeTabs', 'mermaid', 'apiEndpoint', 'changelog', 'prosCons', 'details', 'button',
         ];
 
         $type = (string) ($block['type'] ?? '');
@@ -209,6 +209,21 @@ final class EditorJsSanitizer
             case 'linkTool':
                 $data['link'] = EditorJsHtmlSanitizer::sanitizeUrl((string) ($data['link'] ?? ''), ['http', 'https', 'mailto', 'tel'], false);
                 $data['meta'] = $this->sanitizeLinkMeta(is_array($data['meta'] ?? null) ? $data['meta'] : []);
+                break;
+
+            case 'button':
+                $url = EditorJsHtmlSanitizer::sanitizeUrl((string) ($data['url'] ?? $data['link'] ?? ''), ['http', 'https', 'mailto', 'tel'], false);
+                $text = $cleanInline($data['text'] ?? $data['label'] ?? '');
+                $align = (string) ($data['align'] ?? $data['alignment'] ?? 'left');
+                $color = (string) ($data['color'] ?? $data['variant'] ?? 'primary');
+                $size = (string) ($data['size'] ?? 'medium');
+                $data = [
+                    'url' => $url,
+                    'text' => $text,
+                    'align' => in_array($align, ['left', 'center', 'right'], true) ? $align : 'left',
+                    'color' => in_array($color, ['primary', 'secondary', 'info', 'success', 'warning', 'danger', 'light', 'dark'], true) ? $color : 'primary',
+                    'size' => in_array($size, ['small', 'medium', 'large'], true) ? $size : 'medium',
+                ];
                 break;
 
             case 'delimiter':

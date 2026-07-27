@@ -3,7 +3,7 @@
  * Meridian CMS Default – Statische Seite Template
  *
  * Vom Router bereitgestellte Variable:
- *   $page – array: id, title, slug, content, meta_description, updated_at
+ *   $page – array: id, title, slug, content, meta_description, content_updated_at
  *
  * @package CMSv2\Themes\CmsDefault
  */
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 $pageTitleRaw = trim((string) ($page['title'] ?? ''));
 $pageTitle = htmlspecialchars($pageTitleRaw, ENT_QUOTES, 'UTF-8');
 $pageContent = (string) ($page['content'] ?? '');
-$pageUpdated = (string) ($page['updated_at'] ?? '');
+$pageUpdated = (string) ($page['content_updated_at'] ?? '');
 $pageUpdatedLabel = $pageUpdated !== '' ? meridian_format_date($pageUpdated, false) : '';
 $pageUpdatedAgo = $pageUpdated !== '' ? time_ago($pageUpdated) : '';
 $pageExcerptRaw = trim((string) ($page['meta_description'] ?? ''));

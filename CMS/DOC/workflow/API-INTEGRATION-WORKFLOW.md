@@ -1,8 +1,8 @@
 # API-Integration Workflow – 365CMS
 
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Referenz / konzeptionell
 >
-> **Bereich:** REST-API & externe Integrationen · **Version:** 3.3.47  
+> **Bereich:** REST-API & externe Integrationen · **Version:** 2.9.0  
 > **Core-Klasse:** `core/Api.php`  
 > **Base-URL:** `https://domain.de/api/v1/`
 
@@ -284,5 +284,5 @@ AUSGABE:
 
 - [core/Api.php](../../CMS/core/Api.php) – API-Core
 - [core/Router.php](../../CMS/core/Router.php) – Routing
-- [SECURITY-HARDENING-WORKFLOW.md](../admin/security/README.md) – API-Sicherheit
-- [ROADMAP_FEB2026.md](../core/STATUS.md) – API-Roadmap-Items
+- [SECURITY-HARDENING-WORKFLOW.md](SECURITY-HARDENING-WORKFLOW.md) – API-Sicherheit
+- [ROADMAP_FEB2026.md](../feature/ROADMAP_FEB2026.md) – API-Roadmap-Items

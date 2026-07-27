@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von Navigationsmenüs, Zuordnungen und Menüeinträgen im aktuellen Theme-/Design-Bereich.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 ---
 

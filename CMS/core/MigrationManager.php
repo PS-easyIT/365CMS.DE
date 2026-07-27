@@ -30,7 +30,7 @@ class MigrationManager
      * Aktuelle Schema-Version – erhöhen wenn neue Migrations hinzukommen.
      * Wird in cms_settings (option_name = 'db_schema_version') gespeichert.
      */
-    private const SCHEMA_VERSION = 'v13';
+    public const SCHEMA_VERSION = 'v21';
 
     public function __construct(Database $db)
     {

@@ -4,18 +4,6 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) {
     exit;
 }
-
-$customizerNavIcons = [
-    'header' => 'ti-layout-navbar',
-    'navigation' => 'ti-menu-2',
-    'layout' => 'ti-layout',
-    'colors' => 'ti-palette',
-    'typography' => 'ti-typography',
-    'footer' => 'ti-layout-bottombar',
-    'blog' => 'ti-article',
-    'homepage' => 'ti-home',
-    'advanced' => 'ti-settings-2',
-];
 ?>
 <div class="page-header d-print-none">
     <div class="container-xl">
@@ -55,10 +43,8 @@ $customizerNavIcons = [
             <div class="customizer-layout">
                 <nav class="customizer-nav">
                     <?php foreach ($config as $key => $tab): ?>
-                        <?php $iconClass = $customizerNavIcons[(string) $key] ?? 'ti-adjustments'; ?>
                         <a href="?tab=<?php echo htmlspecialchars((string) $key, ENT_QUOTES); ?>" class="<?php echo $activeTab === $key ? 'active' : ''; ?>">
-                            <span class="customizer-nav__icon" aria-hidden="true"><i class="ti <?php echo htmlspecialchars($iconClass, ENT_QUOTES); ?>"></i></span>
-                            <span class="customizer-nav__label"><?php echo htmlspecialchars((string) $tab['title']); ?></span>
+                            <?php echo htmlspecialchars((string) $tab['title']); ?>
                         </a>
                     <?php endforeach; ?>
                 </nav>

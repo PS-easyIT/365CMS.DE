@@ -1,6 +1,6 @@
 # 365CMS – Admin-Prüf-Checkliste
 
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-05-12 | **Version:** 2.9.765 | **Status:** Kompatibilitätsindex
 
 Diese Datei bleibt als stabiler Dokumentationsanker für ältere Changelog- und Audit-Verweise bestehen. Die aktive, konsolidierte Nice-to-have-Restliste wird inzwischen unter `CMS/DOC/audit/NiceToHave-CHECKLISTE.md` gepflegt.
 

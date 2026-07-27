@@ -1,5 +1,5 @@
 # 365CMS – Member-Bereich
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-05-10 | **Version:** 2.9.736 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-09 -->
 

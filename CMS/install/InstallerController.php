@@ -127,9 +127,14 @@ final class InstallerController
                         throw new \RuntimeException('Validierung fehlgeschlagen');
                     }
 
+                    $upgradeResult = $this->service->runInstalledDatabaseUpdate();
+                    if (empty($upgradeResult['success'])) {
+                        throw new \RuntimeException((string) ($upgradeResult['message'] ?? 'Datenbank-Update konnte nicht abgeschlossen werden.'));
+                    }
+
                     $dsn = "mysql:host={$this->existingConfig['db_host']};dbname={$this->existingConfig['db_name']};charset=utf8mb4";
                     $pdo = new PDO($dsn, $this->existingConfig['db_user'], $this->existingConfig['db_pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-                    $tableResults = $this->service->createDatabaseTables($pdo, $this->existingConfig['db_prefix'] ?? 'cms_');
+                    $tableResults = ['schema_update' => true];
 
                     $prefix = $this->existingConfig['db_prefix'] ?? 'cms_';
                     $settingStmt = $pdo->prepare(
@@ -147,8 +152,7 @@ final class InstallerController
                         }
                     }
 
-                    $newTables = array_keys(array_filter($tableResults, static fn ($value): bool => $value === true));
-                    $this->service->clearSchemaManagerFlagFile();
+                    $newTables = ['schema_update'];
                     $this->service->writeInstallerLockFile($this->existingConfig + ['site_url' => $newSiteUrl]);
                     $_SESSION['install_success'] = [
                         'username' => '',
@@ -157,7 +161,8 @@ final class InstallerController
                         'tables_created' => $newTables,
                     ];
                     $this->redirect('?step=5');
-                } catch (\RuntimeException) {
+                } catch (\RuntimeException $e) {
+                    $updateErrors[] = $e->getMessage();
                 } catch (PDOException $e) {
                     $updateErrors[] = 'Datenbankfehler: ' . $e->getMessage();
                 }

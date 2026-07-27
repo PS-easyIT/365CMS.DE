@@ -1,5 +1,5 @@
 # 365CMS – Core-/Admin-Struktur-Snapshot
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Release-Snapshot / enger Strukturscope
 
 Dieser Snapshot umfasst `CMS/core/`, `CMS/admin/`, `CMS/config/` sowie versionsrelevante Core-Metadaten. Nicht vollständig enthalten sind `/plugins/`, `/themes/` und die tiefe Struktur von `/CMS/assets/`.
 

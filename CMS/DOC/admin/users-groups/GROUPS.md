@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von Benutzergruppen, Mitgliedschaften und Paketbezügen im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-13 · Version 2.9.781
 
 ---
 

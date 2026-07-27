@@ -7,15 +7,8 @@ use PDO;
 use PDOException;
 use Throwable;
 
-if (!function_exists(__NAMESPACE__ . '\\terminate_installer_process')) {
-    function terminate_installer_process(int $code = 0): never
-    {
-        exit($code);
-    }
-}
-
 if (!defined('ABSPATH')) {
-    terminate_installer_process();
+    exit;
 }
 
 final class InstallerService
@@ -117,6 +110,42 @@ final class InstallerService
         require_once $this->rootDir . '/core/Version.php';
 
         return \CMS\Version::CURRENT;
+    }
+
+    public function getSchemaVersion(): string
+    {
+        require_once $this->rootDir . '/core/SchemaManager.php';
+
+        return \CMS\SchemaManager::SCHEMA_VERSION;
+    }
+
+    /**
+     * Führt für eine bestehende Installation den zentralen, versionsgeführten Schema-Updater aus.
+     *
+     * @return array{success:bool,message:string,before:array<string,mixed>,after:array<string,mixed>}
+     */
+    public function runInstalledDatabaseUpdate(): array
+    {
+        try {
+            $configStub = $this->rootDir . '/config.php';
+            if (!is_file($configStub)) {
+                throw new \RuntimeException('Die CMS-Konfiguration wurde nicht gefunden.');
+            }
+
+            require_once $configStub;
+            require_once $this->rootDir . '/core/autoload.php';
+
+            $runner = new \CMS\DatabaseUpdateRunner(\CMS\Database::instance());
+
+            return $runner->run();
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'message' => 'Der zentrale Datenbank-Updater konnte nicht gestartet werden.',
+                'before' => [],
+                'after' => [],
+            ];
+        }
     }
 
     /** @return list<array<string, mixed>> */
@@ -427,16 +456,6 @@ if (!defined('CMS_MIN_PHP_VERSION')) {
     define('CMS_MIN_PHP_VERSION', '8.4.0');
 }
 
-if (!function_exists('cms_config_terminate')) {
-    /**
-     * Zentraler Prozessabbruch für Konfigurations-Stub-Pfade.
-     */
-    function cms_config_terminate(int $code = 0): never
-    {
-        exit($code);
-    }
-}
-
 if (!defined('CMS_INSTALLER_RUNNING') && version_compare(PHP_VERSION, CMS_MIN_PHP_VERSION, '<')) {
     $requiredPhpVersion = CMS_MIN_PHP_VERSION;
     $currentPhpVersion = PHP_VERSION;
@@ -446,7 +465,7 @@ if (!defined('CMS_INSTALLER_RUNNING') && version_compare(PHP_VERSION, CMS_MIN_PH
             STDERR,
             '365CMS benötigt mindestens PHP ' . $requiredPhpVersion . '. Aktuell aktiv: ' . $currentPhpVersion . '.' . PHP_EOL
         );
-        cms_config_terminate(1);
+        exit(1);
     }
 
     http_response_code(503);
@@ -474,7 +493,7 @@ if (!defined('CMS_INSTALLER_RUNNING') && version_compare(PHP_VERSION, CMS_MIN_PH
     </body>
     </html>
     <?php
-    cms_config_terminate();
+    exit;
 }
 
 $_cmsAppConfig = __DIR__ . '/config/app.php';
@@ -485,17 +504,17 @@ if (!file_exists($_cmsAppConfig)) {
         if (defined('CMS_CRON_RUNNING')) {
             if (PHP_SAPI === 'cli') {
                 fwrite(STDERR, '365CMS Cron kann nicht starten: config/app.php fehlt. Bitte Installation abschließen.' . PHP_EOL);
-                cms_config_terminate(1);
+                exit(1);
             }
 
             http_response_code(503);
             header('Content-Type: text/plain; charset=UTF-8');
             echo '365CMS Cron kann nicht starten: Installation nicht abgeschlossen.';
-            cms_config_terminate();
+            exit;
         }
 
         header('Location: ' . rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/') . '/install.php');
-        cms_config_terminate();
+        exit;
     }
     return;
 }
@@ -516,13 +535,13 @@ if (!defined('CMS_INSTALLER_RUNNING')
     if (defined('CMS_CRON_RUNNING')) {
         if (PHP_SAPI === 'cli') {
             fwrite(STDERR, '365CMS Cron kann nicht starten: Datenbank-Konfiguration enthält Platzhalter. Bitte Installation abschließen.' . PHP_EOL);
-            cms_config_terminate(1);
+            exit(1);
         }
 
         http_response_code(503);
         header('Content-Type: text/plain; charset=UTF-8');
         echo '365CMS Cron kann nicht starten: Konfiguration nicht abgeschlossen.';
-        cms_config_terminate();
+        exit;
     }
 
     http_response_code(503);
@@ -551,7 +570,7 @@ if (!defined('CMS_INSTALLER_RUNNING')
     </body>
     </html>
     <?php
-    cms_config_terminate();
+    exit;
 }
 PHP;
     }
@@ -972,6 +991,10 @@ PHP;
                 ['site_tagline', 'Content Management System'],
                 ['site_name', $siteName],
                 ['admin_email', $adminEmail],
+                ['installed_cms_version', $this->getCmsVersion()],
+                ['installed_cms_updated_at', date(DATE_ATOM)],
+                ['installed_cms_schema_version', $this->getSchemaVersion()],
+                ['db_schema_version', $this->getSchemaVersion()],
                 ['timezone', 'Europe/Berlin'],
                 ['date_format', 'd.m.Y'],
                 ['time_format', 'H:i'],

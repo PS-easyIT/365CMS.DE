@@ -114,10 +114,12 @@ $encodeTableJson = static function (mixed $value): string {
                             </div>
                         </div>
                         <div class="card-body p-0">
+                            <div class="form-hint px-3 pt-3">Ziehe eine Spalte am Griff-Symbol, um die Reihenfolge zu ändern.</div>
                             <div class="table-responsive">
                                 <table class="table table-vcenter card-table mb-0" id="columnsTable">
                                     <thead>
                                         <tr>
+                                            <th class="w-1"></th>
                                             <th>Label</th>
                                             <th class="w-1"></th>
                                         </tr>
@@ -142,6 +144,7 @@ $encodeTableJson = static function (mixed $value): string {
                             </div>
                         </div>
                         <div class="card-body p-0">
+                            <div class="form-hint px-3 pt-3">Ziehe eine Zeile am Griff-Symbol, um die Reihenfolge zu ändern.</div>
                             <div class="table-responsive">
                                 <table class="table table-vcenter card-table mb-0" id="rowsTable">
                                     <thead id="rowsHead">

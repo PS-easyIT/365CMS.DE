@@ -38,13 +38,6 @@ class CookieManagerModule
     private const int MAX_SCAN_RESULTS = 25;
     private const int MAX_SCAN_SOURCES_PER_SERVICE = 5;
     private const int MAX_SCAN_SOURCE_LENGTH = 160;
-    /** @var array<string, array<string, string>> */
-    private const array TRACKING_HEALTH_INTEGRATIONS = [
-        'ga4' => ['label' => 'Google Analytics 4', 'enabled_key' => 'seo_analytics_ga4_enabled', 'value_key' => 'seo_analytics_ga4_id', 'type' => 'ga4', 'service_slug' => 'google_analytics'],
-        'gtm' => ['label' => 'Google Tag Manager', 'enabled_key' => 'seo_analytics_gtm_enabled', 'value_key' => 'seo_analytics_gtm_id', 'type' => 'gtm', 'service_slug' => 'google_tag_manager'],
-        'fb_pixel' => ['label' => 'Meta Pixel', 'enabled_key' => 'seo_analytics_fb_pixel_enabled', 'value_key' => 'seo_analytics_fb_pixel_id', 'type' => 'fb_pixel', 'service_slug' => 'facebook_pixel'],
-        'matomo' => ['label' => 'Matomo', 'enabled_key' => 'seo_analytics_matomo_enabled', 'value_key' => 'seo_analytics_matomo_url', 'type' => 'matomo', 'service_slug' => 'matomo'],
-    ];
     private const int MAX_SORT_ORDER = 10000;
     /** @var list<string> */
     private const array SCAN_SKIP_PATH_FRAGMENTS = [
@@ -267,18 +260,6 @@ class CookieManagerModule
             'cookie_matomo_dsgvo_note',
             'cookie_scan_results',
             'cookie_scan_last_run',
-            'seo_analytics_matomo_enabled',
-            'seo_analytics_matomo_code',
-            'seo_analytics_matomo_url',
-            'seo_analytics_matomo_site_id',
-            'seo_analytics_ga4_enabled',
-            'seo_analytics_ga4_id',
-            'seo_analytics_gtm_enabled',
-            'seo_analytics_gtm_id',
-            'seo_analytics_fb_pixel_enabled',
-            'seo_analytics_fb_pixel_id',
-            'seo_analytics_custom_head',
-            'seo_analytics_custom_body',
         ];
         $placeholders = implode(',', array_fill(0, count($settingKeys), '?'));
         $settings = $this->getSettingsMap($settingKeys, array_fill_keys($settingKeys, ''));
@@ -295,7 +276,6 @@ class CookieManagerModule
             'settings'   => $settings,
             'scan_results' => $scanResults,
             'curated_services' => self::CURATED_SERVICES,
-            'tracking_health' => $this->buildTrackingConsentHealthcheck(array_map(fn($s) => (array)$s, $services), $scanResults, $settings),
         ];
     }
 
@@ -833,172 +813,22 @@ class CookieManagerModule
         }
 
         $ga4Id = trim((string)($settings['seo_analytics_ga4_id'] ?? ''));
-        if (($settings['seo_analytics_ga4_enabled'] ?? '0') === '1' && $this->isValidTrackingValue($ga4Id, 'ga4') && !$this->isPlaceholderAnalyticsId($ga4Id)) {
+        if (($settings['seo_analytics_ga4_enabled'] ?? '0') === '1' && !$this->isPlaceholderAnalyticsId($ga4Id)) {
             $detected['google_analytics'] = self::CURATED_SERVICES['google_analytics']['name'];
             $sources['google_analytics'][] = 'System: Analytics-Einstellungen (GA4)';
         }
 
         $gtmId = trim((string)($settings['seo_analytics_gtm_id'] ?? ''));
-        if (($settings['seo_analytics_gtm_enabled'] ?? '0') === '1' && $this->isValidTrackingValue($gtmId, 'gtm') && !$this->isPlaceholderAnalyticsId($gtmId)) {
+        if (($settings['seo_analytics_gtm_enabled'] ?? '0') === '1' && !$this->isPlaceholderAnalyticsId($gtmId)) {
             $detected['google_tag_manager'] = self::CURATED_SERVICES['google_tag_manager']['name'];
             $sources['google_tag_manager'][] = 'System: Analytics-Einstellungen (GTM)';
         }
 
         $pixelId = trim((string)($settings['seo_analytics_fb_pixel_id'] ?? ''));
-        if (($settings['seo_analytics_fb_pixel_enabled'] ?? '0') === '1' && $this->isValidTrackingValue($pixelId, 'fb_pixel') && !$this->isPlaceholderAnalyticsId($pixelId)) {
+        if (($settings['seo_analytics_fb_pixel_enabled'] ?? '0') === '1' && !$this->isPlaceholderAnalyticsId($pixelId)) {
             $detected['facebook_pixel'] = self::CURATED_SERVICES['facebook_pixel']['name'];
             $sources['facebook_pixel'][] = 'System: Analytics-Einstellungen (Meta Pixel)';
         }
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $services
-     * @param array<int, mixed> $scanResults
-     * @param array<string, string> $settings
-     * @return array<string, mixed>
-     */
-    private function buildTrackingConsentHealthcheck(array $services, array $scanResults, array $settings): array
-    {
-        $consentEnabled = ($settings['cookie_consent_enabled'] ?? $settings['cookie_banner_enabled'] ?? '0') === '1';
-        $activeServiceSlugs = [];
-        foreach ($services as $service) {
-            $slug = trim((string)($service['slug'] ?? ''));
-            if ($slug !== '' && (int)($service['is_active'] ?? 0) === 1) {
-                $activeServiceSlugs[$slug] = true;
-            }
-        }
-
-        $detectedSlugs = [];
-        foreach ($scanResults as $result) {
-            if (!is_array($result)) {
-                continue;
-            }
-            $slug = trim((string)($result['slug'] ?? ''));
-            if ($slug !== '') {
-                $detectedSlugs[$slug] = true;
-            }
-        }
-
-        $integrations = [];
-        $issues = [];
-        $warnings = 0;
-        $critical = 0;
-        $configuredCount = 0;
-
-        foreach (self::TRACKING_HEALTH_INTEGRATIONS as $key => $integration) {
-            $enabled = ($settings[$integration['enabled_key']] ?? '0') === '1';
-            $value = trim((string)($settings[$integration['value_key']] ?? ''));
-            if ($key === 'matomo' && $value === '') {
-                $value = trim((string)($settings['seo_analytics_matomo_code'] ?? ''));
-            }
-
-            $type = (string)$integration['type'];
-            $serviceSlug = (string)$integration['service_slug'];
-            $hasValue = $value !== '';
-            $placeholder = $type !== 'matomo' && $this->isPlaceholderAnalyticsId($value);
-            $valid = $hasValue && !$placeholder && $this->isValidTrackingValue($value, $type);
-            $serviceActive = isset($activeServiceSlugs[$serviceSlug]);
-            $detected = isset($detectedSlugs[$serviceSlug]);
-            $status = 'missing';
-
-            if ($enabled && $valid) {
-                $configuredCount++;
-                $status = $serviceActive ? 'pass' : 'warning';
-                if (!$serviceActive) {
-                    $warnings++;
-                    $issues[] = (string)$integration['label'] . ': Tracking ist aktiv, aber kein aktiver Cookie-Service ist zugeordnet.';
-                }
-            } elseif ($enabled || $hasValue) {
-                $status = 'critical';
-                $critical++;
-                if (!$hasValue) {
-                    $issues[] = (string)$integration['label'] . ': aktiviert, aber ohne Kennung/URL.';
-                } elseif ($placeholder) {
-                    $issues[] = (string)$integration['label'] . ': Placeholder-Kennung erkannt.';
-                } else {
-                    $issues[] = (string)$integration['label'] . ': ungültiges Kennungs-/URL-Format.';
-                }
-            } elseif ($detected && !$serviceActive) {
-                $status = 'warning';
-                $warnings++;
-                $issues[] = (string)$integration['label'] . ': Scanner erkennt Tracking-Signaturen, aber kein aktiver Cookie-Service ist zugeordnet.';
-            }
-
-            $integrations[$key] = [
-                'label' => (string)$integration['label'],
-                'status' => $status,
-                'enabled' => $enabled,
-                'has_value' => $hasValue,
-                'is_valid' => $valid,
-                'uses_placeholder' => $placeholder,
-                'service_active' => $serviceActive,
-                'scanner_detected' => $detected,
-            ];
-        }
-
-        $hasCustomTrackingSnippet = $this->containsTrackingSnippet((string)($settings['seo_analytics_custom_head'] ?? ''))
-            || $this->containsTrackingSnippet((string)($settings['seo_analytics_custom_body'] ?? ''));
-        if ($hasCustomTrackingSnippet && !$consentEnabled) {
-            $critical++;
-            $issues[] = 'Custom Tracking-Snippet erkannt, aber Cookie-Consent ist deaktiviert.';
-        }
-
-        if (!$consentEnabled && ($configuredCount > 0 || $hasCustomTrackingSnippet)) {
-            $critical++;
-            $issues[] = 'Tracking ist konfiguriert, aber Cookie-Consent ist deaktiviert.';
-        }
-
-        $overall = 'pass';
-        if ($critical > 0) {
-            $overall = 'critical';
-        } elseif ($warnings > 0) {
-            $overall = 'warning';
-        }
-
-        return [
-            'overall' => $overall,
-            'gate_passed' => $critical === 0,
-            'consent_enabled' => $consentEnabled,
-            'configured_count' => $configuredCount,
-            'warning_count' => $warnings,
-            'critical_count' => $critical,
-            'has_custom_tracking_snippet' => $hasCustomTrackingSnippet,
-            'issues' => array_values(array_unique($issues)),
-            'integrations' => $integrations,
-        ];
-    }
-
-    private function isValidTrackingValue(string $value, string $type): bool
-    {
-        $value = trim($value);
-        if ($value === '') {
-            return false;
-        }
-
-        return match ($type) {
-            'ga4' => preg_match('/^G-[A-Z0-9-]+$/i', $value) === 1,
-            'gtm' => preg_match('/^GTM-[A-Z0-9-]+$/i', $value) === 1,
-            'fb_pixel' => preg_match('/^[0-9]{5,20}$/', $value) === 1,
-            'matomo' => $this->sanitizeOptionalUrl($value) !== '' || str_contains(strtolower($value), '_paq'),
-            default => false,
-        };
-    }
-
-    private function containsTrackingSnippet(string $value): bool
-    {
-        $value = strtolower(trim($value));
-        if ($value === '') {
-            return false;
-        }
-
-        return str_contains($value, '<script')
-            && (
-                str_contains($value, 'googletagmanager.com')
-                || str_contains($value, 'google-analytics.com')
-                || str_contains($value, 'connect.facebook.net')
-                || str_contains($value, '_paq')
-                || str_contains($value, 'fbq(')
-            );
     }
 
     private function scanSnippetSettings(array &$detected, array &$sources): void

@@ -204,7 +204,7 @@ final class MemberController
             'email' => ['label' => 'Mailadresse', 'type' => 'email', 'required' => true, 'locked' => true],
             'website' => ['label' => 'Website', 'type' => 'url'],
             'social' => ['label' => 'SocialMedia', 'type' => 'url'],
-            'bio' => ['label' => 'Biografie', 'type' => 'textarea'],
+            'bio' => ['label' => 'Biografie', 'type' => 'wysiwyg'],
             'phone' => ['label' => 'Telefon', 'type' => 'text'],
             'company' => ['label' => 'Firma', 'type' => 'text'],
             'position' => ['label' => 'Position', 'type' => 'text'],
@@ -309,19 +309,11 @@ final class MemberController
 
     public function redirect(string $path): void
     {
-        // Open-Redirect-Schutz: absolute URLs nur zulassen, wenn sie auf den
-        // eigenen Origin zeigen. Cross-Origin- oder unsichere Ziele fallen auf
-        // einen internen Pfad zurück. Relative Pfade bleiben unverändert.
-        if (preg_match('#^https?://#i', $path)) {
-            $normalized = \function_exists('cms_normalize_redirect_target')
-                ? \cms_normalize_redirect_target($path, false)
-                : null;
-            $path = ($normalized !== null && $normalized !== '') ? $normalized : '/';
-        } else {
+        if (!preg_match('#^https?://#i', $path)) {
             $path = '/' . ltrim($path, '/');
         }
 
-        header('Location: ' . $path, true, 302);
+        header('Location: ' . $path);
         exit;
     }
 
@@ -974,7 +966,7 @@ final class MemberController
             'first_name' => trim((string)($_POST['first_name'] ?? ($currentMeta['first_name'] ?? ''))),
             'last_name' => trim((string)($_POST['last_name'] ?? ($currentMeta['last_name'] ?? ''))),
             'email' => trim((string)($_POST['email'] ?? ($currentUser->email ?? ''))),
-            'bio' => trim((string)($_POST['bio'] ?? ($currentMeta['bio'] ?? ''))),
+            'bio' => $this->sanitizeWysiwygProfileFieldValue((string)($_POST['bio'] ?? ($currentMeta['bio'] ?? ''))),
             'website' => $this->sanitizeProfileUrl((string)($_POST['website'] ?? ($currentMeta['website'] ?? ''))),
             'phone' => trim((string)($_POST['phone'] ?? ($currentMeta['phone'] ?? ''))),
             'company' => trim((string)($_POST['company'] ?? ($currentMeta['company'] ?? ''))),
@@ -1044,6 +1036,33 @@ final class MemberController
         }
 
         $this->redirect('/member/profile');
+    }
+
+    /**
+     * Sanitiert den Block-Editor-Wert für Felder vom Typ „wysiwyg“ (z. B. Biografie).
+     * Speichert einen leeren String, wenn der Editor keine Blöcke enthält, damit
+     * Pflichtfeld-/Profilvollständigkeits-Prüfungen weiterhin korrekt greifen.
+     */
+    private function sanitizeWysiwygProfileFieldValue(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $sanitized = \CMS\Services\EditorService::getInstance()->sanitize($value);
+        if (trim($sanitized) === '') {
+            return '';
+        }
+
+        if (\CMS\Services\EditorService::isEditorJs()) {
+            $decoded = Json::decodeArray($sanitized, []);
+            if (empty($decoded['blocks'])) {
+                return '';
+            }
+        }
+
+        return $sanitized;
     }
 
     private function sanitizeDynamicProfileFieldValue(string $value, string $type): string

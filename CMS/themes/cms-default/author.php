@@ -26,7 +26,10 @@ $totalPages  = $totalPages  ?? 1;
 // Autor-Daten normalisieren
 $a            = (array)($author ?? []);
 $authorName   = htmlspecialchars($a['display_name'] ?? $a['username'] ?? 'Autor', ENT_QUOTES, 'UTF-8');
-$authorBio    = htmlspecialchars($a['bio'] ?? $a['description'] ?? '', ENT_QUOTES, 'UTF-8');
+$authorBioRaw = (string)($a['bio'] ?? $a['description'] ?? '');
+$authorBio    = $authorBioRaw !== ''
+    ? \CMS\Services\EditorService::getInstance()->renderContent($authorBioRaw)
+    : '';
 $authorAvatar = $a['avatar_url'] ?? '';
 $authorSlug   = $a['slug'] ?? $a['username'] ?? '';
 $authorInitials = meridian_author_initials($authorName);
@@ -66,8 +69,10 @@ foreach ($rawTagData as $t) {
             <div>
                 <p style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .25rem;">Autor</p>
                 <h1 style="font-family:var(--font-serif);font-size:clamp(1.4rem,3.5vw,2rem);font-weight:700;margin:0 0 .3rem;color:var(--ink);"><?php echo $authorName; ?></h1>
-                <?php if ($authorBio): ?>
-                <p style="font-size:.9rem;color:var(--ink-muted);margin:0;"><?php echo $authorBio; ?></p>
+                <?php if ($authorBio !== ''): ?>
+                <div class="author-bio editorjs-content" style="font-size:.9rem;color:var(--ink-muted);margin:.25rem 0 0;">
+                    <?php echo $authorBio; ?>
+                </div>
                 <?php endif; ?>
                 <p style="font-size:.8rem;color:var(--ink-ghost);margin:.35rem 0 0;">
                     <?php echo number_format($total); ?> veröffentlichte Artikel

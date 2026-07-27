@@ -1,0 +1,184 @@
+{
+    "signature": "84c2b8093a8eb41ab5fcb84a9c6da61390ae5ad16e9439eb53bbc992b95b9e3b",
+    "limit": 30,
+    "generated_at": "2026-06-13T08:34:06+02:00",
+    "compiled": 24,
+    "failed": [
+        {
+            "file": "plugins/cms-365network/includes/class-public.php",
+            "reason": "opcache_compile_file() lieferte false zurück."
+        },
+        {
+            "file": "plugins/cms-365NETexpertsandcompanie/includes/class-database.php",
+            "reason": "opcache_compile_file() lieferte false zurück."
+        },
+        {
+            "file": "plugins/cms-365network/includes/class-admin.php",
+            "reason": "opcache_compile_file() lieferte false zurück."
+        },
+        {
+            "file": "plugins/cms-m365azure/includes/class-catalog-expansion.php",
+            "reason": "opcache_compile_file() lieferte false zurück."
+        },
+        {
+            "file": "plugins/cms-m365tools/admin/class-admin-pages.php",
+            "reason": "opcache_compile_file() lieferte false zurück."
+        },
+        {
+            "file": "plugins/cms-365NETeventsandspeaker/includes/class-admin.php",
+            "reason": "opcache_compile_file() lieferte false zurück."
+        }
+    ],
+    "files": [
+        {
+            "path": "plugins/cms-m365azure/includes/class-installer.php",
+            "size": 205603,
+            "mtime": 1780156085
+        },
+        {
+            "path": "admin/modules/media/MediaModule.php",
+            "size": 161078,
+            "mtime": 1778943930
+        },
+        {
+            "path": "plugins/cms-365NETeventsandspeaker/includes/class-database.php",
+            "size": 141146,
+            "mtime": 1780946438
+        },
+        {
+            "path": "admin/modules/posts/PostsModule.php",
+            "size": 126858,
+            "mtime": 1780240073
+        },
+        {
+            "path": "admin/modules/system/SystemInfoModule.php",
+            "size": 116271,
+            "mtime": 1780168074
+        },
+        {
+            "path": "themes/cms-phinit/includes/theme-template-helpers.php",
+            "size": 114397,
+            "mtime": 1780734950
+        },
+        {
+            "path": "themes/cms-phinit/admin/customizer-schema.php",
+            "size": 95092,
+            "mtime": 1780734950
+        },
+        {
+            "path": "admin/modules/themes/FontManagerModule.php",
+            "size": 93702,
+            "mtime": 1778867460
+        },
+        {
+            "path": "admin/modules/seo/PerformanceModule.php",
+            "size": 89491,
+            "mtime": 1778943406
+        },
+        {
+            "path": "plugins/cms-feed/includes/class-feed-catalog.php",
+            "size": 88409,
+            "mtime": 1779734134
+        },
+        {
+            "path": "plugins/cms-365network/includes/class-public.php",
+            "size": 87353,
+            "mtime": 1780946438
+        },
+        {
+            "path": "admin/modules/member/MemberDashboardModule.php",
+            "size": 84672,
+            "mtime": 1779457570
+        },
+        {
+            "path": "admin/views/media/library.php",
+            "size": 84229,
+            "mtime": 1779020997
+        },
+        {
+            "path": "plugins/cms-365NETexpertsandcompanie/includes/class-database.php",
+            "size": 83702,
+            "mtime": 1780946438
+        },
+        {
+            "path": "plugins/cms-365network/includes/class-admin.php",
+            "size": 82026,
+            "mtime": 1780946438
+        },
+        {
+            "path": "core/Services/UpdateService.php",
+            "size": 79814,
+            "mtime": 1780934809
+        },
+        {
+            "path": "core/Services/MediaService.php",
+            "size": 78386,
+            "mtime": 1780934808
+        },
+        {
+            "path": "plugins/cms-feed/admin/views/page-admin.php",
+            "size": 77937,
+            "mtime": 1779734134
+        },
+        {
+            "path": "core/Services/EditorJsRenderer.php",
+            "size": 77127,
+            "mtime": 1780934808
+        },
+        {
+            "path": "admin/views/posts/edit.php",
+            "size": 76803,
+            "mtime": 1780687058
+        },
+        {
+            "path": "plugins/cms-feed/includes/class-database.php",
+            "size": 76745,
+            "mtime": 1779734133
+        },
+        {
+            "path": "admin/modules/legal/LegalSitesModule.php",
+            "size": 75949,
+            "mtime": 1778606615
+        },
+        {
+            "path": "core/Services/BackupService.php",
+            "size": 75693,
+            "mtime": 1780934808
+        },
+        {
+            "path": "plugins/cms-m365azure/includes/class-catalog-expansion.php",
+            "size": 75314,
+            "mtime": 1780156571
+        },
+        {
+            "path": "themes/cms-default/functions.php",
+            "size": 75177,
+            "mtime": 1778828648
+        },
+        {
+            "path": "admin/modules/settings/SettingsModule.php",
+            "size": 71297,
+            "mtime": 1778606616
+        },
+        {
+            "path": "core/Routing/ThemeRouter.php",
+            "size": 68414,
+            "mtime": 1780934807
+        },
+        {
+            "path": "admin/views/system/ai-services.php",
+            "size": 67468,
+            "mtime": 1779693882
+        },
+        {
+            "path": "plugins/cms-m365tools/admin/class-admin-pages.php",
+            "size": 66750,
+            "mtime": 1780322253
+        },
+        {
+            "path": "plugins/cms-365NETeventsandspeaker/includes/class-admin.php",
+            "size": 64271,
+            "mtime": 1780946437
+        }
+    ]
+}

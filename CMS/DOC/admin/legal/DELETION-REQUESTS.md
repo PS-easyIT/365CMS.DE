@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung und Durchführung von Datenlöschungsanfragen gemäß DSGVO Art. 17 (Recht auf Löschung).
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.625
 
 ---
 

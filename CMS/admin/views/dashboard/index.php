@@ -159,11 +159,11 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                             <?= htmlspecialchars((string) ($link['label'] ?? 'Aktion')) ?>
                         </a>
                     <?php endforeach; ?>
-                    <a href="/admin/pages?action=edit" class="btn btn-primary d-none d-sm-inline-block">
+                    <a href="/admin/pages?action=new" class="btn btn-primary d-none d-sm-inline-block">
                         <?= dashIcon('file-plus') ?>
                         Neue Seite
                     </a>
-                    <a href="/admin/posts?action=edit" class="btn btn-outline-primary d-none d-sm-inline-block">
+                    <a href="/admin/posts?action=new" class="btn btn-outline-primary d-none d-sm-inline-block">
                         <?= dashIcon('pencil-plus') ?>
                         Neuer Beitrag
                     </a>

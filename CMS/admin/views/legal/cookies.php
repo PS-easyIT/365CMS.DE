@@ -10,9 +10,6 @@ $settings        = $d['settings'] ?? [];
 $consentEnabled  = ($settings['cookie_consent_enabled'] ?? '0') === '1';
 $scanResults     = $d['scan_results'] ?? [];
 $curatedServices = $d['curated_services'] ?? [];
-$trackingHealth  = is_array($d['tracking_health'] ?? null) ? $d['tracking_health'] : [];
-$trackingIssues  = is_array($trackingHealth['issues'] ?? null) ? $trackingHealth['issues'] : [];
-$trackingIntegrations = is_array($trackingHealth['integrations'] ?? null) ? $trackingHealth['integrations'] : [];
 $cookieSettingsPublicUrl = '/cookie-einstellungen';
 $cookieManagerConfig = [
     'categoryModalId' => 'categoryModal',
@@ -47,40 +44,6 @@ $cookieManagerConfig = [
         $alertMarginClass = 'mb-4';
         require __DIR__ . '/../partials/flash-alert.php';
         ?>
-
-        <?php if ($trackingHealth !== [] && (string)($trackingHealth['overall'] ?? 'pass') !== 'pass'): ?>
-            <?php $trackingOverall = (string)($trackingHealth['overall'] ?? 'warning'); ?>
-            <div class="alert <?php echo $trackingOverall === 'critical' ? 'alert-danger' : 'alert-warning'; ?> mb-4" role="alert">
-                <div class="d-flex gap-2">
-                    <div><i class="ti ti-shield-exclamation" aria-hidden="true"></i></div>
-                    <div class="w-100">
-                        <h3 class="alert-title mb-1">Tracking-/Consent-Healthcheck</h3>
-                        <div>
-                            Status: <strong><?php echo $trackingOverall === 'critical' ? 'Deploy-Warnung' : 'Hinweis'; ?></strong> ·
-                            Consent <?php echo !empty($trackingHealth['consent_enabled']) ? 'aktiv' : 'deaktiviert'; ?> ·
-                            <?php echo (int)($trackingHealth['configured_count'] ?? 0); ?> Tracking-Integration(en) konfiguriert.
-                        </div>
-                        <?php if ($trackingIssues !== []): ?>
-                            <ul class="mb-0 mt-2 small">
-                                <?php foreach ($trackingIssues as $issue): ?>
-                                    <li><?php echo htmlspecialchars((string)$issue, ENT_QUOTES, 'UTF-8'); ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
-                        <?php if ($trackingIntegrations !== []): ?>
-                            <div class="d-flex flex-wrap gap-2 mt-3">
-                                <?php foreach ($trackingIntegrations as $integration): ?>
-                                    <?php $status = (string)($integration['status'] ?? 'missing'); ?>
-                                    <span class="badge bg-<?php echo $status === 'pass' ? 'success' : ($status === 'critical' ? 'danger' : ($status === 'warning' ? 'warning' : 'secondary')); ?>-lt">
-                                        <?php echo htmlspecialchars((string)($integration['label'] ?? 'Tracking'), ENT_QUOTES, 'UTF-8'); ?>: <?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>
-                                    </span>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-        <?php endif; ?>
 
         <div class="row row-deck row-cards mb-4 admin-metric-grid">
             <div class="col-sm-6 col-lg-3">

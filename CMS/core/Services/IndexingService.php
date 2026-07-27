@@ -28,6 +28,30 @@ final class IndexingService
     private static ?self $instance = null;
     private const MAX_INDEXNOW_KEY_FILE_SIZE = 4096;
 
+    /** Obergrenze für die je Zeitfenster an IndexNow gemeldeten URLs (Schutz vor Überlast bei sehr großen Zeiträumen). */
+    private const MAX_RECENT_CONTENT_URLS_PER_TYPE = 500;
+
+    /**
+     * Zeitfenster für die Massen-Meldung kürzlich veröffentlichter Inhalte an IndexNow.
+     *
+     * @var array<string, array{interval:string, label:string}>
+     */
+    private const RECENT_CONTENT_RANGES = [
+        '24h' => ['interval' => '-1 day', 'label' => 'Letzte 24 Stunden'],
+        '48h' => ['interval' => '-2 days', 'label' => 'Letzte 48 Stunden'],
+        '1w'  => ['interval' => '-1 week', 'label' => 'Letzte Woche'],
+        '1m'  => ['interval' => '-1 month', 'label' => 'Letzter Monat'],
+        '3m'  => ['interval' => '-3 months', 'label' => 'Letzte 3 Monate'],
+        '6m'  => ['interval' => '-6 months', 'label' => 'Letzte 6 Monate'],
+    ];
+
+    /** Erlaubte Ziel-Dienste für die Massen-Meldung kürzlich veröffentlichter Inhalte. */
+    private const RECENT_CONTENT_TARGETS = ['indexnow', 'google'];
+
+    /** Settings-Gruppe/Key für das dauerhaft (verschlüsselt) gespeicherte Google-Access-Token. */
+    private const GOOGLE_SETTINGS_GROUP = 'seo_indexing';
+    private const GOOGLE_ACCESS_TOKEN_KEY = 'google_access_token';
+
     private Database $db;
     private SettingsService $settings;
     private Logger $logger;
@@ -90,11 +114,12 @@ final class IndexingService
 
     /**
      * Sendet URLs an die Google Indexing API.
+     * Ohne explizit übergebenes Token wird automatisch das gespeicherte Google-Access-Token verwendet.
      */
-    public function submitGoogle(string|array $urls, string $accessToken): bool
+    public function submitGoogle(string|array $urls, string $accessToken = ''): bool
     {
         $urlList = $this->normalizeUrls($urls);
-        $token = trim($accessToken);
+        $token = trim($accessToken) !== '' ? trim($accessToken) : $this->resolveGoogleAccessToken();
 
         if ($urlList === [] || $token === '') {
             $this->logger->warning('Google-Submission verworfen: Token oder URLs fehlen.', [
@@ -118,11 +143,12 @@ final class IndexingService
 
     /**
      * Entfernt eine URL via Google Indexing API aus dem Index.
+     * Ohne explizit übergebenes Token wird automatisch das gespeicherte Google-Access-Token verwendet.
      */
-    public function deleteGoogle(string $url, string $accessToken): bool
+    public function deleteGoogle(string $url, string $accessToken = ''): bool
     {
         $normalizedUrl = trim($url);
-        $token = trim($accessToken);
+        $token = trim($accessToken) !== '' ? trim($accessToken) : $this->resolveGoogleAccessToken();
 
         if ($normalizedUrl === '' || $token === '') {
             $this->logger->warning('Google-Delete verworfen: URL oder Token fehlen.');
@@ -148,6 +174,215 @@ final class IndexingService
     public function getIndexNowKey(): string
     {
         return $this->resolveIndexNowKey();
+    }
+
+    /**
+     * Prüft, ob dauerhaft ein Google-Access-Token hinterlegt ist.
+     */
+    public function hasGoogleAccessToken(): bool
+    {
+        return $this->resolveGoogleAccessToken() !== '';
+    }
+
+    /**
+     * Speichert das Google-Access-Token verschlüsselt und dauerhaft in der Datenbank.
+     */
+    public function saveGoogleAccessToken(string $accessToken): bool
+    {
+        $token = trim($accessToken);
+        if ($token === '') {
+            return $this->clearGoogleAccessToken();
+        }
+
+        return $this->settings->set(self::GOOGLE_SETTINGS_GROUP, self::GOOGLE_ACCESS_TOKEN_KEY, $token, true, 0);
+    }
+
+    /**
+     * Entfernt ein zuvor gespeichertes Google-Access-Token.
+     */
+    public function clearGoogleAccessToken(): bool
+    {
+        return $this->settings->forget(self::GOOGLE_SETTINGS_GROUP, self::GOOGLE_ACCESS_TOKEN_KEY);
+    }
+
+    private function resolveGoogleAccessToken(): string
+    {
+        return $this->settings->getString(self::GOOGLE_SETTINGS_GROUP, self::GOOGLE_ACCESS_TOKEN_KEY, '');
+    }
+
+    /**
+     * Verfügbare Zeitfenster für die Massen-Meldung kürzlich veröffentlichter Inhalte.
+     *
+     * @return array<string, string>
+     */
+    public function getRecentContentRangeOptions(): array
+    {
+        $labels = [];
+        foreach (self::RECENT_CONTENT_RANGES as $range => $definition) {
+            $labels[$range] = (string) $definition['label'];
+        }
+
+        return $labels;
+    }
+
+    /**
+     * Verfügbare Ziel-Dienste für die Massen-Meldung kürzlich veröffentlichter Inhalte.
+     *
+     * @return list<string>
+     */
+    public function getRecentContentTargetOptions(): array
+    {
+        return self::RECENT_CONTENT_TARGETS;
+    }
+
+    /**
+     * Ermittelt die öffentlichen URLs aller veröffentlichten Seiten/Beiträge im gewählten Zeitfenster.
+     *
+     * @return list<string>
+     */
+    public function getRecentContentUrls(string $range): array
+    {
+        $interval = self::RECENT_CONTENT_RANGES[$range]['interval'] ?? null;
+        if ($interval === null) {
+            return [];
+        }
+
+        $cutoffTimestamp = strtotime($interval);
+        if ($cutoffTimestamp === false) {
+            return [];
+        }
+
+        $cutoff = date('Y-m-d H:i:s', $cutoffTimestamp);
+        $urls = [];
+
+        try {
+            $pageRows = $this->db->get_results(
+                "SELECT slug
+                 FROM {$this->prefix}pages
+                 WHERE status = 'published' AND updated_at >= ?
+                 ORDER BY updated_at DESC
+                 LIMIT " . self::MAX_RECENT_CONTENT_URLS_PER_TYPE,
+                [$cutoff]
+            ) ?: [];
+
+            foreach ($pageRows as $row) {
+                $slug = trim((string) ($row->slug ?? ''));
+                if ($slug === '') {
+                    continue;
+                }
+
+                $urls[] = $this->buildPagePathUrl($slug);
+            }
+
+            $postRows = $this->db->get_results(
+                "SELECT slug, published_at, created_at
+                 FROM {$this->prefix}posts
+                 WHERE " . \cms_post_publication_where() . "
+                   AND COALESCE(published_at, created_at) >= ?
+                 ORDER BY COALESCE(published_at, created_at) DESC
+                 LIMIT " . self::MAX_RECENT_CONTENT_URLS_PER_TYPE,
+                [$cutoff]
+            ) ?: [];
+
+            foreach ($postRows as $row) {
+                $slug = trim((string) ($row->slug ?? ''));
+                if ($slug === '') {
+                    continue;
+                }
+
+                $urls[] = PermalinkService::getInstance()->buildPostUrlFromValues(
+                    $slug,
+                    (string) ($row->published_at ?? ''),
+                    (string) ($row->created_at ?? '')
+                );
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error('IndexNow: Ermittlung kürzlich veröffentlichter Inhalte fehlgeschlagen.', [
+                'range' => $range,
+                'exception' => $e,
+            ]);
+
+            return [];
+        }
+
+        return array_values(array_unique($urls));
+    }
+
+    /**
+     * Meldet alle veröffentlichten Seiten/Beiträge des gewählten Zeitfensters an die gewählten Ziel-Dienste
+     * (IndexNow und/oder Google). Für Google wird automatisch das dauerhaft gespeicherte Access-Token verwendet.
+     *
+     * @param list<string> $targets Erlaubt: 'indexnow', 'google'
+     * @return array{success:bool, count:int, error:string, message:string}
+     */
+    public function submitRecentContent(string $range, array $targets = ['indexnow']): array
+    {
+        if (!array_key_exists($range, self::RECENT_CONTENT_RANGES)) {
+            return ['success' => false, 'count' => 0, 'error' => 'Ungültiger Zeitraum ausgewählt.', 'message' => ''];
+        }
+
+        $targets = array_values(array_unique(array_filter(
+            $targets,
+            static fn(mixed $target): bool => in_array($target, self::RECENT_CONTENT_TARGETS, true)
+        )));
+
+        if ($targets === []) {
+            return ['success' => false, 'count' => 0, 'error' => 'Bitte mindestens ein Ziel für die Meldung auswählen.', 'message' => ''];
+        }
+
+        $wantsIndexNow = in_array('indexnow', $targets, true);
+        $wantsGoogle = in_array('google', $targets, true);
+
+        if ($wantsIndexNow && !$this->hasIndexNowKey()) {
+            return ['success' => false, 'count' => 0, 'error' => 'IndexNow ist nicht aktiv: Es ist kein API-Key konfiguriert.', 'message' => ''];
+        }
+
+        if ($wantsGoogle && !$this->hasGoogleAccessToken()) {
+            return ['success' => false, 'count' => 0, 'error' => 'Google-Submission ist nicht aktiv: Es ist kein Access-Token hinterlegt.', 'message' => ''];
+        }
+
+        $urls = $this->getRecentContentUrls($range);
+        $label = self::RECENT_CONTENT_RANGES[$range]['label'] ?? $range;
+
+        if ($urls === []) {
+            return ['success' => false, 'count' => 0, 'error' => 'Für „' . $label . '“ wurden keine veröffentlichten Seiten oder Beiträge gefunden.', 'message' => ''];
+        }
+
+        $messages = [];
+        $errors = [];
+
+        if ($wantsIndexNow) {
+            if ($this->submitIndexNow($urls)) {
+                $messages[] = 'IndexNow: ' . count($urls) . ' URL(s) aus „' . $label . '“ gemeldet.';
+            } else {
+                $errors[] = 'IndexNow konnte die URLs nicht vollständig entgegennehmen.';
+            }
+        }
+
+        if ($wantsGoogle) {
+            if ($this->submitGoogle($urls)) {
+                $messages[] = 'Google: ' . count($urls) . ' URL(s) aus „' . $label . '“ gemeldet.';
+            } else {
+                $errors[] = 'Google konnte die URLs nicht verarbeiten (Access-Token evtl. abgelaufen).';
+            }
+        }
+
+        return [
+            'success' => $messages !== [] && $errors === [],
+            'count' => count($urls),
+            'error' => implode(' ', $errors),
+            'message' => implode(' ', $messages),
+        ];
+    }
+
+    private function buildPagePathUrl(string $slug): string
+    {
+        $slug = trim($slug);
+        if ($slug === '' || $slug === '/') {
+            return rtrim((string) SITE_URL, '/') . '/';
+        }
+
+        return rtrim((string) SITE_URL, '/') . '/' . ltrim($slug, '/');
     }
 
     /**

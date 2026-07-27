@@ -1,8 +1,8 @@
 # 365CMS – DEVLIST
 
-> Stand: 2026-06-10
+> Stand: 2026-04-07  
 > Zielgruppe: Entwickler, Integratoren, Auditoren, Betreiber  
-> Version: passend zum aktuellen 365CMS-Stand 3.3.47
+> Version: passend zum aktuellen 365CMS-Stand 2.9.0
 
 Diese Datei ist die zentrale technische Entwicklerreferenz für das laufende 365CMS. Sie soll möglichst viel Wissen an einer Stelle bündeln. Als begleitende Einstiegspunkte sind nur die Doku-Übersicht unter [`DOC/INDEX.md`](INDEX.md) und die Strukturübersicht unter [`DOC/FILELIST.md`](FILELIST.md) vorgesehen.
 

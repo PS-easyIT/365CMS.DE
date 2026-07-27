@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuellen Sicherheitswerkzeuge im Admin-Bereich mit AntiSpam, Firewall und Security-Audit.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
 
 Der Bereich bündelt die anwendungsnahen Schutzmechanismen des aktuellen 365CMS-Kerns. Maßgeblich ist die Sidebar-Gruppe **Sicherheit** aus `CMS/admin/partials/sidebar.php`.
 
@@ -32,5 +32,5 @@ Mehrere Admin-Aktionen werden zusätzlich über das zentrale `audit_log` nachvol
 
 - [ANTISPAM.md](ANTISPAM.md)
 - [FIREWALL.md](FIREWALL.md)
-- [SECURITY-AUDIT.md](SECURITY-AUDIT.md)
-- [../../audit/BEWERTUNG.md](../../audit/BEWERTUNG.md)
+- [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md)
+- [../legal/README.md](../legal/README.md)

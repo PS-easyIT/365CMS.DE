@@ -28,7 +28,6 @@ $currentLocale = function_exists('meridian_current_request_locale') ? meridian_c
 $isLoggedIn  = meridian_is_logged_in();
 $flashMsg    = meridian_get_flash();
 $accountPath = function_exists('meridian_account_path') ? meridian_account_path() : '/member/profile';
-$logoutUrl   = $isLoggedIn ? rtrim((string) SITE_URL, '/') . '/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->generateToken('logout')) : '';
 $logoImageUrl = $logoUrl !== '' && function_exists('meridian_normalize_public_media_url')
   ? meridian_normalize_public_media_url($logoUrl, false)
   : $logoUrl;
@@ -166,7 +165,7 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
 
       <?php if ($isLoggedIn): ?>
           <a href="<?php echo htmlspecialchars(rtrim((string) SITE_URL, '/') . $accountPath, ENT_QUOTES, 'UTF-8'); ?>" class="btn-ghost">Mein Bereich</a>
-          <a href="<?php echo htmlspecialchars($logoutUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn-ghost">Logout</a>
+          <a href="<?php echo SITE_URL; ?>/logout" class="btn-ghost">Logout</a>
       <?php else: ?>
           <?php if ($showLoginBtn): ?>
           <a href="<?php echo htmlspecialchars(meridian_auth_url('login'), ENT_QUOTES, 'UTF-8'); ?>" class="btn-ghost">Anmelden</a>
@@ -272,7 +271,7 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
 
     <?php if ($isLoggedIn): ?>
       <a href="<?php echo htmlspecialchars(rtrim((string) SITE_URL, '/') . $accountPath, ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link">👤 Mein Bereich</a>
-      <a href="<?php echo htmlspecialchars($logoutUrl, ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link">⬡ Logout</a>
+      <a href="<?php echo SITE_URL; ?>/logout" class="mobile-nav-link">⬡ Logout</a>
     <?php else: ?>
       <?php if ($showLoginBtn): ?>
       <a href="<?php echo htmlspecialchars(meridian_auth_url('login'), ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link">🔑 Anmelden</a>

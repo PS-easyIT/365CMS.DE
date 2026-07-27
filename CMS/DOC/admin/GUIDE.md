@@ -1,5 +1,5 @@
 # 365CMS – Admin-Handbuch
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Benutzer anlegen oder bearbeiten](#benutzer-anlegen-oder-bearbeiten)
@@ -26,7 +26,7 @@ Von dort aus erreicht ihr die zentralen Bereiche über die Sidebar.
 Die Anleitung beschreibt den aktuell vorgesehenen 2.9.0-Bedienfluss. Für Spezialseiten mit Query-Tabs, Modalen oder Bereichsbesonderheiten bleiben die jeweiligen Fachdokumente maßgeblich.
 
 ---
-<!-- UPDATED: 2026-06-10 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Benutzer anlegen oder bearbeiten
 

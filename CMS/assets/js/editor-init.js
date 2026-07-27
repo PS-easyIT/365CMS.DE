@@ -19,7 +19,8 @@
         'raw',
         'accordion',
         'imageGallery',
-        'mediaText'
+        'mediaText',
+        'button'
     ];
     var INLINE_TOOL_NAMES = ['inlineCode', 'underline', 'strikethrough', 'hyperlink', 'marker', 'spoiler', 'textColor'];
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
@@ -46,6 +47,7 @@
         accordion: ['Accordion', 'AccordionBlock'],
         imageGallery: ['CmsImageGalleryTool'],
         mediaText: ['CmsMediaTextTool'],
+        button: ['CmsButtonTool'],
         inlineCode: ['InlineCode'],
         underline: ['Underline'],
         strikethrough: ['Strikethrough'],
@@ -718,6 +720,11 @@
             return appendNormalizedTunes(block, normalizedBlock);
         }
 
+        if (type === 'button') {
+            normalizedBlock = { type: type, data: normalizeButtonData(data) };
+            return appendNormalizedTunes(block, normalizedBlock);
+        }
+
         if (type === 'raw') {
             normalizedBlock = { type: type, data: { html: String(data.html || data.text || data.content || '') } };
             return appendNormalizedTunes(block, normalizedBlock);
@@ -848,6 +855,31 @@
             type: type,
             align: align,
             message: sanitizeEditableHtml(source.message || source.text || source.content || '')
+        };
+    }
+
+    function normalizeButtonData(data) {
+        var source = data && typeof data === 'object' ? data : {};
+        var align = String(source.align || source.alignment || 'left').toLowerCase();
+        var color = String(source.color || source.variant || 'primary').toLowerCase();
+        var size = String(source.size || 'medium').toLowerCase();
+
+        if (['left', 'center', 'right'].indexOf(align) === -1) {
+            align = 'left';
+        }
+        if (['primary', 'secondary', 'info', 'success', 'warning', 'danger', 'light', 'dark'].indexOf(color) === -1) {
+            color = 'primary';
+        }
+        if (['small', 'medium', 'large'].indexOf(size) === -1) {
+            size = 'medium';
+        }
+
+        return {
+            url: sanitizeEditableUrl(source.url || source.link || ''),
+            text: stripTags(String(source.text || source.label || '')),
+            align: align,
+            color: color,
+            size: size
         };
     }
 
@@ -3701,6 +3733,144 @@
 
     window.CmsMediaTextTool = MediaTextTool;
 
+    class ButtonTool {
+        constructor(options) {
+            options = options || {};
+            this.data = normalizeButtonData(options.data || {});
+            this.api = options.api || null;
+            this.readOnly = !!options.readOnly;
+            this.nodes = {};
+        }
+        static get toolbox() {
+            return { title: 'Button', icon: '⬜' };
+        }
+        static get sanitize() {
+            return { url: true, text: true, align: true, color: true, size: true };
+        }
+        static get isReadOnlySupported() {
+            return true;
+        }
+        static get conversionConfig() {
+            return {
+                export: function (data) {
+                    var normalized = normalizeButtonData(data || {});
+                    return normalized.text || '';
+                },
+                import: function (text) {
+                    return normalizeButtonData({ text: stripTags(text || '') });
+                }
+            };
+        }
+        render() {
+            var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--button');
+            var preview = createElement('div', 'cms-editorjs-button-preview');
+            var link = createElement('a', 'cms-editorjs-button-preview__link', this.data.text || 'Button-Text');
+            var controls = createElement('div', 'cms-editorjs-floating-options cms-editorjs-button-options');
+            var label = createElement('span', 'cms-editorjs-floating-options__label', 'Button');
+            var text = createInput('text', 'form-control form-control-sm', this.data.text || '', 'Button-Text');
+            var url = createInput('url', 'form-control form-control-sm', this.data.url || '', 'https://…');
+            var align = this.createSelect([
+                ['left', 'Linksbündig'],
+                ['center', 'Mittig'],
+                ['right', 'Rechtsbündig']
+            ], this.data.align || 'left');
+            var color = this.createSelect([
+                ['primary', 'Primär'],
+                ['secondary', 'Sekundär'],
+                ['info', 'Info'],
+                ['success', 'Erfolg'],
+                ['warning', 'Warnung'],
+                ['danger', 'Kritisch'],
+                ['light', 'Hell'],
+                ['dark', 'Dunkel']
+            ], this.data.color || 'primary');
+            var size = this.createSelect([
+                ['small', 'Klein'],
+                ['medium', 'Mittel'],
+                ['large', 'Groß']
+            ], this.data.size || 'medium');
+            var updatePreview = this.updatePreview.bind(this, wrapper, preview, link, text, url, align, color, size);
+
+            controls.dataset.cmsEditorUi = 'true';
+            controls.dataset.mutationFree = 'true';
+            link.setAttribute('href', 'javascript:void(0)');
+            link.setAttribute('tabindex', '-1');
+            text.readOnly = this.readOnly;
+            url.readOnly = this.readOnly;
+            align.disabled = this.readOnly;
+            color.disabled = this.readOnly;
+            size.disabled = this.readOnly;
+
+            preview.appendChild(link);
+
+            controls.appendChild(label);
+            controls.appendChild(this.createSetting('Text', text));
+            controls.appendChild(this.createSetting('Link', url));
+            controls.appendChild(this.createSetting('Ausrichtung', align));
+            controls.appendChild(this.createSetting('Farbe', color));
+            controls.appendChild(this.createSetting('Größe', size));
+
+            [text, url, align, color, size].forEach(function (element) {
+                var handleChange = function () {
+                    updatePreview();
+                    notifyToolChanged(wrapper);
+                };
+
+                element.addEventListener('input', handleChange);
+                element.addEventListener('change', handleChange);
+            });
+
+            wrapper.appendChild(preview);
+            wrapper.appendChild(controls);
+            this.nodes = { wrapper: wrapper, preview: preview, link: link, text: text, url: url, align: align, color: color, size: size };
+            updatePreview();
+
+            return wrapper;
+        }
+        createSelect(options, value) {
+            var select = document.createElement('select');
+            select.className = 'form-select form-select-sm';
+            options.forEach(function (item) {
+                var option = document.createElement('option');
+                option.value = item[0];
+                option.textContent = item[1];
+                select.appendChild(option);
+            });
+            select.value = value;
+            return select;
+        }
+        createSetting(labelText, control) {
+            var label = createElement('label', 'cms-editorjs-button-options__field');
+            var text = createElement('span', '', labelText);
+            label.appendChild(text);
+            label.appendChild(control);
+            return label;
+        }
+        updatePreview(wrapper, preview, link, textInput, urlInput, alignInput, colorInput, sizeInput) {
+            var text = String(textInput.value || '').trim();
+            var url = sanitizeEditableUrl(urlInput.value || '');
+            var align = ['left', 'center', 'right'].indexOf(alignInput.value) !== -1 ? alignInput.value : 'left';
+            var color = ['primary', 'secondary', 'info', 'success', 'warning', 'danger', 'light', 'dark'].indexOf(colorInput.value) !== -1 ? colorInput.value : 'primary';
+            var size = ['small', 'medium', 'large'].indexOf(sizeInput.value) !== -1 ? sizeInput.value : 'medium';
+
+            link.textContent = text !== '' ? text : 'Button-Text';
+            preview.className = 'cms-editorjs-button-preview cms-editorjs-button-preview--align-' + align;
+            link.className = 'cms-editorjs-button-preview__link cms-editorjs-button-preview__link--' + color + ' cms-editorjs-button-preview__link--' + size;
+            wrapper.classList.toggle('is-empty', text === '' || url === '');
+        }
+        save() {
+            return normalizeButtonData({
+                url: this.nodes.url ? this.nodes.url.value.trim() : '',
+                text: this.nodes.text ? this.nodes.text.value.trim() : '',
+                align: this.nodes.align ? this.nodes.align.value : 'left',
+                color: this.nodes.color ? this.nodes.color.value : 'primary',
+                size: this.nodes.size ? this.nodes.size.value : 'medium'
+            });
+        }
+    }
+
+    window.CmsButtonTool = ButtonTool;
+
     class QuoteTool {
         constructor(options) {
             options = options || {};
@@ -3859,7 +4029,7 @@
         }
         static get sanitize() {
             return {
-                code: false
+                code: true
             };
         }
         static get enableLineBreaks() {
@@ -4473,13 +4643,13 @@
                 quotePlaceholder: 'Zitat',
                 captionPlaceholder: 'Quelle'
             }
-        }, availableBlockTunes), false);
+        }, availableBlockTunes), true);
 
-        addTool(tools, 'code', withBlockTunes({}, availableBlockTunes), false);
+        addTool(tools, 'code', withBlockTunes({}, availableBlockTunes), true);
         addTool(tools, 'table', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: { rows: 3, cols: 3, maxRows: 20, maxCols: 10, maxrows: 20, maxcols: 10 }
-        }, availableBlockTunes), false);
+        }, availableBlockTunes), true);
         addTool(tools, 'delimiter', withBlockTunes({
             config: {
                 styleOptions: ['line', 'dash', 'star'],
@@ -4489,7 +4659,7 @@
                 lineThicknessOptions: [1, 2, 3, 4, 5, 6],
                 defaultLineThickness: 2
             }
-        }, availableBlockTunes), false);
+        }, availableBlockTunes), true);
         addTool(tools, 'spacer', withBlockTunes({}, availableBlockTunes), true);
 
         addTool(tools, 'embed', withBlockTunes({
@@ -4551,6 +4721,8 @@
                 uploader: buildImageUploader(uploadUrl, csrfToken, getUploadContext)
             }
         }, availableBlockTunes), true);
+
+        addTool(tools, 'button', withBlockTunes({}, availableBlockTunes), true);
 
         return tools;
     }
@@ -4820,31 +4992,7 @@
     window.cmsNormalizeEditorJsData = normalizeInitialData;
     window.cmsEditorJsOrgAssetTools = TOOL_NAMES.slice();
     window.cmsEditorJsOrgAssetPlugins = PLUGIN_NAMES.slice();
-    window.cmsEditorJsCoreReady = new Promise(function (resolve, reject) {
-        var startedAt = Date.now();
-        var maxWaitMs = 7000;
-        var pollMs = 80;
-
-        function runtimeReady() {
-            return typeof window.EditorJS === 'function' && typeof window.createCmsEditor === 'function';
-        }
-
-        function pollRuntime() {
-            if (runtimeReady()) {
-                resolve(true);
-                return;
-            }
-
-            if (Date.now() - startedAt >= maxWaitMs) {
-                reject(new Error('EditorJS runtime incomplete: core=' + String(typeof window.EditorJS) + ', factory=' + String(typeof window.createCmsEditor)));
-                return;
-            }
-
-            window.setTimeout(pollRuntime, pollMs);
-        }
-
-        pollRuntime();
-    });
+    window.cmsEditorJsCoreReady = Promise.resolve(typeof window.EditorJS === 'function');
 
     if (!window.cmsEditorDebug || typeof window.cmsEditorDebug !== 'object') {
         window.cmsEditorDebug = {};

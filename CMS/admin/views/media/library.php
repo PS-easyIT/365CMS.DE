@@ -30,8 +30,6 @@ $confirmMember = !empty($data['confirm_member']);
 $memberFolderConfirmMessage = (string)($data['member_folder_confirm_message'] ?? 'Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?');
 $breadcrumbs = is_array($data['breadcrumbs'] ?? null) ? $data['breadcrumbs'] : [];
 $stats = is_array($data['stats'] ?? null) ? $data['stats'] : [];
-$altTextCompliance = is_array($data['alt_text_compliance'] ?? null) ? $data['alt_text_compliance'] : [];
-$altTextComplianceItems = is_array($altTextCompliance['items'] ?? null) ? $altTextCompliance['items'] : [];
 $categoryOptions = is_array($data['category_options'] ?? null) ? $data['category_options'] : [];
 $usageFilterOptions = is_array($data['usage_filter_options'] ?? null) ? $data['usage_filter_options'] : [];
 $fileTypeFilterOptions = is_array($data['file_type_filter_options'] ?? null) ? $data['file_type_filter_options'] : [];
@@ -415,7 +413,6 @@ if ($modifiedFilter !== 'all') {
                     <span><?php echo (int)($stats['folder_count'] ?? count($folders)); ?> Ordner</span>
                     <span><?php echo (int)($stats['category_count'] ?? count($categories)); ?> Kategorien</span>
                     <span><?php echo (int)($stats['used_file_count'] ?? 0); ?> eingebunden</span>
-                    <span>Alt-Text: <?php echo (int)($altTextCompliance['score'] ?? 100); ?>/100</span>
                     <span>Speicher: <?php echo htmlspecialchars((string)($stats['storage_label'] ?? ($diskUsage['formatted'] ?? '0 B'))); ?></span>
                 </div>
                 <div class="media-constraints-inline">
@@ -446,43 +443,6 @@ if ($modifiedFilter !== 'all') {
 
         <?php if (!empty($alert)): ?>
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
-        <?php endif; ?>
-
-        <?php if (!empty($altTextCompliance) && empty($altTextCompliance['gate_passed'])): ?>
-            <?php $altStatus = (string)($altTextCompliance['status'] ?? 'warning'); ?>
-            <div class="alert <?php echo $altStatus === 'critical' ? 'alert-danger' : 'alert-warning'; ?> mb-3" role="alert">
-                <div class="d-flex gap-2">
-                    <div><i class="ti ti-photo-exclamation" aria-hidden="true"></i></div>
-                    <div>
-                        <h3 class="alert-title mb-1">Alt-Text-Qualitätsgate nicht erfüllt</h3>
-                        <div>
-                            <?php echo htmlspecialchars((string)($altTextCompliance['message'] ?? 'Es fehlen Alt-Texte.')); ?>
-                            <?php if ((int)($altTextCompliance['used_missing_count'] ?? 0) > 0): ?>
-                                Davon sind <?php echo (int)$altTextCompliance['used_missing_count']; ?> Bild(er) bereits in Inhalten eingebunden.
-                            <?php endif; ?>
-                        </div>
-                        <div class="small text-secondary mt-1">
-                            Score <?php echo (int)($altTextCompliance['score'] ?? 0); ?>/100 ·
-                            <?php echo (int)($altTextCompliance['missing_count'] ?? 0); ?> von <?php echo (int)($altTextCompliance['image_count'] ?? 0); ?> sichtbaren Bild(ern) ohne Alt-Text.
-                        </div>
-                        <?php if ($altTextComplianceItems !== []): ?>
-                            <ul class="mb-0 mt-2 small">
-                                <?php foreach ($altTextComplianceItems as $item): ?>
-                                    <li>
-                                        <?php echo htmlspecialchars((string)($item['path'] ?? $item['name'] ?? 'Bild')); ?>
-                                        <?php if ((int)($item['usage_count'] ?? 0) > 0): ?>
-                                            <span class="badge bg-orange-lt ms-1"><?php echo (int)$item['usage_count']; ?> Verwendung(en)</span>
-                                        <?php endif; ?>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
-                        <?php if ($altTextBulkAvailable): ?>
-                            <div class="small mt-2">Nutzen Sie die sichtbaren Alt-Text-Felder oder die Bulk-Aktion „Alt-Texte aktualisieren“, um das Gate zu schließen.</div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
         <?php endif; ?>
 
         <!-- Breadcrumb & Filter -->

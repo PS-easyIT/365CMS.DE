@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuelle Aboarchitektur mit Paketen, Limits, Zuweisungen, Exporten, Historie und dem Member-Bezug.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.738
 
 ---
 

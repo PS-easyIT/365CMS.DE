@@ -1,7 +1,7 @@
 # 365CMS – Core-Klassen-Referenz
-<!-- UPDATED: 2026-06-10 -->
+<!-- UPDATED: 2026-04-07 -->
 
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 Dieses Dokument beschreibt die zentralen PHP-Klassen des 365CMS-Kerns. Alle Klassen
 befinden sich im Namespace `CMS\` (Kern) bzw. `CMS\Services\` (Service-Schicht) und
@@ -1533,40 +1533,10 @@ PSR-3-kompatibles Interface mit allen acht Log-Level-Methoden.
 Zentrale, leichtgewichtige Quelle für die aktuelle Release-Version, das Release-Datum und den Release-Status des Core. Die Datei ergänzt die Konstante `CMS_VERSION` um eine explizite Klassenreferenz für Fallbacks in Bootstrap-, API- und Update-Pfaden.
 
 ```php
-CMS\Version::CURRENT;       // '3.3.47'
-CMS\Version::RELEASE_DATE;  // '2026-06-05'
+CMS\Version::CURRENT;       // '2.9.0'
+CMS\Version::RELEASE_DATE;  // '2026-03-16'
 CMS\Version::STATUS;        // 'stable'
 ```
-
-### 20.2 TableOfContents
-
-| | |
-|---|---|
-| **Namespace** | `CMS\TableOfContents` |
-| **Pfad** | `CMS/core/TableOfContents.php` |
-| **Pattern** | Singleton |
-
-Erzeugt Inhaltsverzeichnisse (TOC) aus Überschriften, vergibt stabile Anker-IDs und stellt den `[cms_toc]`-Shortcode bereit. Wird sowohl im Frontend-Rendering als auch im Admin-TOC-Center (`/admin/table-of-contents`) genutzt.
-
-### 20.3 VendorRegistry
-
-| | |
-|---|---|
-| **Namespace** | `CMS\VendorRegistry` |
-| **Pfad** | `CMS/core/VendorRegistry.php` |
-| **Pattern** | Registry |
-
-Registry für die produktiv gebündelten Drittbibliotheken (`CMS/assets/`, `CMS/vendor/dompdf`) und die Plattformprüfung. Hält die führende Liste der Runtime-Bundles inkl. erwarteter Pfade und unterstützt Status-/Update-Prüfungen.
-
-### 20.4 SubscriptionManager
-
-| | |
-|---|---|
-| **Namespace** | `CMS\SubscriptionManager` |
-| **Pfad** | `CMS/core/SubscriptionManager.php` |
-| **Pattern** | Singleton |
-
-Kern der Aboverwaltung: Pakete, Gruppen-/Rollenzuordnung, Nutzungsgrenzen (Quotas) und automatische Standardpaket-Zuweisung für neue Mitglieder. Liefert die Datenbasis für `/admin/packages`, `/admin/orders` und die Member-seitigen Abo-Ansichten.
 
 ---
 
@@ -1621,5 +1591,5 @@ Funktionalität:
 
 ---
 
-*Aktualisiert am 2026-06-10 – Diese Dokumentation basiert auf dem Stand des
-365CMS-Quellcodes (Version 3.3.47). Führende Wahrheit bleibt der reale Code unter `CMS/core/`.*
+*Generiert am 2026-04-07 – Diese Dokumentation basiert auf dem aktuellen Stand des
+365CMS-Quellcodes (Version 2.9.0).*

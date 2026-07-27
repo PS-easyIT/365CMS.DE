@@ -30,6 +30,22 @@ if (class_exists(__NAMESPACE__ . '\\ThemeRouter', false)) {
 if (!class_exists(__NAMESPACE__ . '\\ThemeRouter', false)) {
 final class ThemeRouter
 {
+    /**
+     * Rückwärtskompatible Aliase für den Such-Scope (`?type=`).
+     * Ältere/gecachte Suchformulare können noch Singular-Werte senden;
+     * diese werden hier transparent auf die intern erwarteten Plural-Werte gemappt.
+     */
+    private const SEARCH_TYPE_ALIASES = [
+        'post' => 'posts',
+        'page' => 'pages',
+        'category' => 'categories',
+        'tag' => 'tags',
+        'company' => 'companies',
+        'event' => 'events',
+        'speaker' => 'speakers',
+        'expert' => 'experts',
+    ];
+
     private ThemeArchiveRepository $archiveRepository;
 
     public function __construct(private readonly Router $router, ?ThemeArchiveRepository $archiveRepository = null)
@@ -104,6 +120,7 @@ final class ThemeRouter
     {
         $query = trim((string)($_GET['q'] ?? ''));
         $type = (string)($_GET['type'] ?? '');
+        $type = self::SEARCH_TYPE_ALIASES[$type] ?? $type;
         $location = trim((string)($_GET['location'] ?? ''));
         $filter = trim((string)($_GET['filter'] ?? ''));
         $contentLocale = $this->getResolvedContentLocale();
@@ -251,7 +268,47 @@ final class ThemeRouter
             }
         }
 
-        if (($type === '' || $type === 'experts') && $pluginMgr->isPluginActive('cms-experts')) {
+        if ($type === '' || $type === 'categories') {
+            if ($query !== '') {
+                try {
+                    $like = '%' . $query . '%';
+                    $stmt = $db->prepare("SELECT * FROM {$prefix}post_categories WHERE (name LIKE ? OR description LIKE ?) ORDER BY name ASC LIMIT 20");
+                    $stmt->execute([$like, $like]);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                    foreach ($rows as $row) {
+                        $row['_type'] = 'category';
+                        $row['_type_label'] = 'Kategorie';
+                        $row['slug'] = 'category/' . rawurlencode((string) ($row['slug'] ?? ''));
+                        $row['title'] = $row['name'] ?? 'Kategorie';
+                        $row['meta_description'] = $row['description'] ?? '';
+                        $results[] = $row;
+                    }
+                } catch (\Throwable) {
+                }
+            }
+        }
+
+        if ($type === '' || $type === 'tags') {
+            if ($query !== '') {
+                try {
+                    $like = '%' . $query . '%';
+                    $stmt = $db->prepare("SELECT * FROM {$prefix}post_tags WHERE (name LIKE ? OR description LIKE ?) ORDER BY name ASC LIMIT 20");
+                    $stmt->execute([$like, $like]);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                    foreach ($rows as $row) {
+                        $row['_type'] = 'tag';
+                        $row['_type_label'] = 'Tag';
+                        $row['slug'] = 'tag/' . rawurlencode((string) ($row['slug'] ?? ''));
+                        $row['title'] = $row['name'] ?? 'Tag';
+                        $row['meta_description'] = $row['description'] ?? '';
+                        $results[] = $row;
+                    }
+                } catch (\Throwable) {
+                }
+            }
+        }
+
+        if ($type === 'experts' && $pluginMgr->isPluginActive('cms-experts')) {
             try {
                 $where = ["e.status = 'active'"];
                 $params = [];
@@ -288,7 +345,7 @@ final class ThemeRouter
             }
         }
 
-        if (($type === '' || $type === 'companies') && $pluginMgr->isPluginActive('cms-companies')) {
+        if ($type === 'companies' && $pluginMgr->isPluginActive('cms-companies')) {
             try {
                 $where = ["c.status = 'active'"];
                 $params = [];
@@ -325,7 +382,7 @@ final class ThemeRouter
             }
         }
 
-        if (($type === '' || $type === 'speakers') && $pluginMgr->isPluginActive('cms-speakers')) {
+        if ($type === 'speakers' && $pluginMgr->isPluginActive('cms-speakers')) {
             try {
                 $where = ["s.status = 'active'"];
                 $params = [];
@@ -360,7 +417,7 @@ final class ThemeRouter
             }
         }
 
-        if (($type === '' || $type === 'events') && $pluginMgr->isPluginActive('cms-events')) {
+        if ($type === 'events' && $pluginMgr->isPluginActive('cms-events')) {
             try {
                 $where = ["ev.status = 'active'"];
                 $params = [];
@@ -391,6 +448,8 @@ final class ThemeRouter
             }
         }
 
+        $results = $this->sortSearchResultsByRelevance($results, $query);
+
         ThemeManager::instance()->render('search', [
             'results' => $results,
             'query' => $query,
@@ -398,6 +457,60 @@ final class ThemeRouter
             'location' => $location,
             'filter' => $filter,
         ]);
+    }
+
+    /**
+     * Suchergebnisse über alle Typen hinweg nach Relevanz zum Suchbegriff sortieren.
+     * Exakte/beginnende Titeltreffer stehen dabei immer vor reinen Volltextfunden,
+     * unabhängig davon aus welchem Typ-Block (Seite/Beitrag/Kategorie/Tag) sie stammen.
+     *
+     * @param array<int, array<string, mixed>> $results
+     * @return array<int, array<string, mixed>>
+     */
+    private function sortSearchResultsByRelevance(array $results, string $query): array
+    {
+        if (trim($query) === '' || count($results) < 2) {
+            return $results;
+        }
+
+        $scored = array_map(fn(array $result): array => [
+            'score' => $this->scoreSearchResultRelevance($result, $query),
+            'result' => $result,
+        ], $results);
+
+        usort($scored, static fn(array $a, array $b): int => $a['score'] <=> $b['score']);
+
+        return array_map(static fn(array $item): array => $item['result'], $scored);
+    }
+
+    /**
+     * @param array<string, mixed> $result
+     */
+    private function scoreSearchResultRelevance(array $result, string $query): int
+    {
+        $title = trim((string) ($result['title'] ?? $result['name'] ?? ''));
+        $needle = trim($query);
+        if ($title === '' || $needle === '') {
+            return 5;
+        }
+
+        $titleLower = mb_strtolower($title, 'UTF-8');
+        $needleLower = mb_strtolower($needle, 'UTF-8');
+
+        if ($titleLower === $needleLower) {
+            return 0;
+        }
+        if (str_starts_with($titleLower, $needleLower)) {
+            return 1;
+        }
+        if (preg_match('/\b' . preg_quote($needleLower, '/') . '\b/u', $titleLower) === 1) {
+            return 2;
+        }
+        if (str_contains($titleLower, $needleLower)) {
+            return 3;
+        }
+
+        return 4;
     }
 
     public function renderContact(): void
@@ -474,7 +587,7 @@ final class ThemeRouter
         $offset = ($page - 1) * $perPage;
         $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts p WHERE " . \cms_post_publication_where('p') . " AND {$localeFilter}");
         $posts = $db->get_results(
-            "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+            "SELECT p.*, c.name AS category_name, " . $this->categorySlugSelectExpression($locale) . ",
                     COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
@@ -505,16 +618,23 @@ final class ThemeRouter
         $prefix = $db->getPrefix();
         $locale = $this->getResolvedContentLocale();
         $category = $db->get_row(
-            "SELECT id, name, slug, description, parent_id
+            "SELECT id, name, slug, slug_en, description, parent_id
              FROM {$prefix}post_categories
-             WHERE slug = ?
+             WHERE slug = ? OR (slug_en IS NOT NULL AND slug_en != '' AND slug_en = ?)
              LIMIT 1",
-            [$slug]
+            [$slug, $slug]
         );
 
         if ($category === null) {
             $this->router->render404();
             return;
+        }
+
+        $categoryData = (array) $category;
+        $categoryData['slug_de'] = trim((string) ($categoryData['slug'] ?? ''));
+        $categoryData['slug_en'] = trim((string) ($categoryData['slug_en'] ?? ''));
+        if ($locale === 'en' && $categoryData['slug_en'] !== '') {
+            $categoryData['slug'] = $categoryData['slug_en'];
         }
 
         $query = trim((string) ($_GET['q'] ?? ''));
@@ -555,7 +675,7 @@ final class ThemeRouter
         );
 
         $posts = $db->get_results(
-            "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+            "SELECT p.*, c.name AS category_name, " . $this->categorySlugSelectExpression($locale) . ",
                     COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
@@ -567,7 +687,7 @@ final class ThemeRouter
         ) ?: [];
 
         ThemeManager::instance()->render('category', [
-            'category' => (array) $category,
+            'category' => $categoryData,
             'posts' => $posts,
             'query' => $query,
             'total' => $total,
@@ -625,11 +745,11 @@ final class ThemeRouter
         $perPage = 10;
 
         $tagRow = $db->get_row(
-            "SELECT id, name, slug
+            "SELECT id, name, slug, slug_en
              FROM {$prefix}post_tags
-             WHERE slug = ?
+             WHERE slug = ? OR (slug_en IS NOT NULL AND slug_en != '' AND slug_en = ?)
              LIMIT 1",
-            [$normalizedSlug]
+            [$normalizedSlug, $normalizedSlug]
         );
 
         if ($tagRow !== null) {
@@ -656,7 +776,7 @@ final class ThemeRouter
             $offset = ($page - 1) * $perPage;
 
             $posts = $db->get_results(
-                "SELECT DISTINCT p.*, c.name AS category_name, c.slug AS category_slug,
+                "SELECT DISTINCT p.*, c.name AS category_name, " . $this->categorySlugSelectExpression($locale) . ",
                         COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name
                  FROM {$prefix}posts p
                  INNER JOIN {$prefix}post_tag_rel ptr ON ptr.post_id = p.id
@@ -668,10 +788,16 @@ final class ThemeRouter
                 $params
             ) ?: [];
 
+            $tagSlugDe = trim((string) ($tagRow->slug ?? $normalizedSlug));
+            $tagSlugEn = trim((string) ($tagRow->slug_en ?? ''));
+            $tagLocalizedSlug = $locale === 'en' && $tagSlugEn !== '' ? $tagSlugEn : $tagSlugDe;
+
             ThemeManager::instance()->render('tag', [
                 'tag' => [
                     'name' => (string) ($tagRow->name ?? str_replace('-', ' ', $normalizedSlug)),
-                    'slug' => (string) ($tagRow->slug ?? $normalizedSlug),
+                    'slug' => $tagLocalizedSlug,
+                    'slug_de' => $tagSlugDe,
+                    'slug_en' => $tagSlugEn,
                 ],
                 'posts' => $posts,
                 'query' => $query,
@@ -810,7 +936,7 @@ final class ThemeRouter
         );
 
         $posts = $db->get_results(
-            "SELECT p.*, c.name AS category_name, c.slug AS category_slug
+            "SELECT p.*, c.name AS category_name, " . $this->categorySlugSelectExpression($locale) . "
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
              WHERE p.author_id = ? AND " . \cms_post_publication_where('p') . " AND {$localeFilter}
@@ -925,7 +1051,7 @@ final class ThemeRouter
         $slugField = $locale === 'en' ? '(p.slug_en = ? OR p.slug = ?)' : 'p.slug = ?';
         $slugParams = $locale === 'en' ? [$slug, $slug] : [$slug];
         $postRow = $db->get_row(
-            "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
+            "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, " . $this->categorySlugSelectExpression($locale) . "
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
@@ -937,7 +1063,7 @@ final class ThemeRouter
             if ($locale === 'de') {
                 $englishAvailability = $this->buildPostLocaleAvailabilityExpression('p', 'en');
                 $englishRow = $db->get_row(
-                    "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
+                    "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, " . $this->categorySlugSelectExpression('en') . "
                      FROM {$prefix}posts p
                      LEFT JOIN {$prefix}users u ON u.id = p.author_id
                      LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
@@ -1226,17 +1352,26 @@ final class ThemeRouter
         ];
     }
 
+    /**
+     * SQL-Ausdruck für den sprachabhängigen Kategorie-Slug in Beitragslisten.
+     */
+    private function categorySlugSelectExpression(string $locale, string $alias = 'c'): string
+    {
+        return $locale === 'en'
+            ? "COALESCE(NULLIF({$alias}.slug_en, ''), {$alias}.slug) AS category_slug"
+            : "{$alias}.slug AS category_slug";
+    }
+
     private function resolveRequestedCategorySlug(string $value): string
     {
         $value = trim(rawurldecode($value));
         if ($value === '') {
             return '';
         }
-
         $db = Database::instance();
         $prefix = $db->getPrefix();
         $rows = $db->get_results(
-            "SELECT slug, name
+            "SELECT slug, slug_en, name
              FROM {$prefix}post_categories",
             []
         ) ?: [];
@@ -1246,13 +1381,14 @@ final class ThemeRouter
 
         foreach ($rows as $row) {
             $slug = trim((string) ($row->slug ?? ''));
+            $slugEn = trim((string) ($row->slug_en ?? ''));
             $name = trim((string) ($row->name ?? ''));
 
             if ($slug === '') {
                 continue;
             }
 
-            if ($slug === $value || mb_strtolower($name, 'UTF-8') === $needle) {
+            if ($slug === $value || ($slugEn !== '' && $slugEn === $value) || mb_strtolower($name, 'UTF-8') === $needle) {
                 return $slug;
             }
 
@@ -1286,7 +1422,7 @@ final class ThemeRouter
         $db = Database::instance();
         $prefix = $db->getPrefix();
         $rows = $db->get_results(
-            "SELECT slug, name
+            "SELECT slug, slug_en, name
              FROM {$prefix}post_tags",
             []
         ) ?: [];
@@ -1295,13 +1431,14 @@ final class ThemeRouter
 
         foreach ($rows as $row) {
             $slug = trim((string) ($row->slug ?? ''));
+            $slugEn = trim((string) ($row->slug_en ?? ''));
             $name = trim((string) ($row->name ?? ''));
 
             if ($slug === '') {
                 continue;
             }
 
-            if ($slug === $value || mb_strtolower($name, 'UTF-8') === $needle) {
+            if ($slug === $value || ($slugEn !== '' && $slugEn === $value) || mb_strtolower($name, 'UTF-8') === $needle) {
                 return $slug;
             }
 

@@ -54,7 +54,7 @@ function cms_admin_seo_allowed_page_configs(): array
             'view_file' => __DIR__ . '/views/seo/sitemap.php',
             'page_title' => 'SEO Sitemap',
             'active_page' => 'seo-sitemap',
-            'actions' => ['save_sitemap_settings', 'submit_indexing_urls', 'delete_google_url', 'regenerate_sitemap_bundle', 'save_robots'],
+            'actions' => ['save_sitemap_settings', 'submit_indexing_urls', 'submit_recent_content_indexnow', 'delete_google_url', 'save_google_access_token', 'clear_google_access_token', 'regenerate_sitemap_bundle', 'save_robots'],
         ],
         'technical' => [
             'route_path' => '/admin/seo-technical',

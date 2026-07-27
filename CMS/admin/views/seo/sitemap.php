@@ -196,6 +196,9 @@ $newsSitemapEnabled = !empty($settings['seo_sitemap_news_enabled']);
                             <span class="badge <?= !empty($indexing['indexnow_ready_for_submission']) ? 'bg-success' : 'bg-warning text-dark' ?>">
                                 Prüfung <?= !empty($indexing['indexnow_ready_for_submission']) ? 'ok' : 'offen' ?>
                             </span>
+                            <span class="badge <?= !empty($indexing['google_access_token_available']) ? 'bg-success' : 'bg-secondary' ?>">
+                                Google-Token <?= !empty($indexing['google_access_token_available']) ? 'gespeichert' : 'fehlt' ?>
+                            </span>
                         </div>
                     </div>
                     <div class="card-body">
@@ -243,6 +246,31 @@ $newsSitemapEnabled = !empty($settings['seo_sitemap_news_enabled']);
                                 <div>• <?= htmlspecialchars((string) $note) ?></div>
                             <?php endforeach; ?>
                         </div>
+
+                        <div class="border rounded p-3 mb-3">
+                            <div class="fw-semibold mb-2">Google-Access-Token dauerhaft speichern</div>
+                            <div class="text-secondary small mb-2">
+                                Einmal hinterlegt, wird das Token automatisch für alle Google-Meldungen (inkl. „Kürzlich veröffentlichte Inhalte“) verwendet — eine manuelle Eingabe ist dann nicht mehr nötig. Google-Access-Tokens laufen erfahrungsgemäß nach kurzer Zeit ab und müssen gelegentlich erneuert werden.
+                            </div>
+                            <form method="post" class="row g-2">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                <input type="hidden" name="action" value="save_google_access_token">
+                                <div class="col-md-8">
+                                    <input class="form-control" type="password" name="google_access_token" autocomplete="off" placeholder="ya29...">
+                                </div>
+                                <div class="col-md-4">
+                                    <button class="btn btn-outline-primary w-100" type="submit">Token speichern</button>
+                                </div>
+                            </form>
+                            <?php if (!empty($indexing['google_access_token_available'])): ?>
+                                <form method="post" class="mt-2">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                    <input type="hidden" name="action" value="clear_google_access_token">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">Gespeichertes Token entfernen</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+
                         <form method="post" class="row g-3">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                             <input type="hidden" name="action" value="submit_indexing_urls">
@@ -258,17 +286,62 @@ $newsSitemapEnabled = !empty($settings['seo_sitemap_news_enabled']);
                             </div>
                             <div class="col-md-6">
                                 <label class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="submission_target[]" value="google">
+                                    <input class="form-check-input" type="checkbox" name="submission_target[]" value="google" <?= !empty($indexing['google_access_token_available']) ? 'checked' : '' ?>>
                                     <span class="form-check-label">An Google senden</span>
                                 </label>
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Google Access-Token</label>
+                                <label class="form-label">Google Access-Token (optional)</label>
                                 <input class="form-control" type="password" name="google_access_token" autocomplete="off" placeholder="ya29...">
-                                <div class="form-hint">Nur für die aktuelle Aktion. Der Token wird nicht gespeichert.</div>
+                                <div class="form-hint">Nur für diese Aktion. Leer lassen, um automatisch das dauerhaft gespeicherte Token zu verwenden<?= !empty($indexing['google_access_token_available']) ? ' (aktuell vorhanden)' : ' (aktuell nicht vorhanden)' ?>.</div>
                             </div>
                             <div class="col-12">
                                 <button class="btn btn-primary" type="submit">URLs jetzt übermitteln</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title">Kürzlich veröffentlichte Inhalte melden</h3>
+                    </div>
+                    <div class="card-body">
+                        <?php $recentContentAnyTargetAvailable = !empty($indexing['indexnow_available']) || !empty($indexing['google_access_token_available']); ?>
+                        <?php if (!$recentContentAnyTargetAvailable): ?>
+                            <div class="alert alert-warning mb-3" role="alert">
+                                Weder IndexNow noch Google sind aktuell konfiguriert. Bitte zuerst unter „Technisches SEO“ einen IndexNow-API-Key oder oben ein Google-Access-Token hinterlegen.
+                            </div>
+                        <?php else: ?>
+                            <div class="text-secondary small mb-3">
+                                Meldet alle veröffentlichten Seiten und Beiträge aus dem gewählten Zeitfenster in einem Schritt an die gewählten Dienste — praktisch nach Importen, Backfills oder Massenänderungen.
+                            </div>
+                        <?php endif; ?>
+                        <form method="post" class="row g-3">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                            <input type="hidden" name="action" value="submit_recent_content_indexnow">
+                            <div class="col-md-8">
+                                <label class="form-label">Zeitraum</label>
+                                <select class="form-select" name="recent_content_range" <?= !$recentContentAnyTargetAvailable ? 'disabled' : '' ?>>
+                                    <?php foreach ((array) ($indexing['recent_content_ranges'] ?? []) as $rangeKey => $rangeLabel): ?>
+                                        <option value="<?= htmlspecialchars((string) $rangeKey) ?>"><?= htmlspecialchars((string) $rangeLabel) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="recent_content_target[]" value="indexnow" <?= !empty($indexing['indexnow_available']) ? 'checked' : '' ?> <?= empty($indexing['indexnow_available']) ? 'disabled' : '' ?>>
+                                    <span class="form-check-label">An IndexNow melden</span>
+                                </label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="recent_content_target[]" value="google" <?= !empty($indexing['google_access_token_available']) ? 'checked' : '' ?> <?= empty($indexing['google_access_token_available']) ? 'disabled' : '' ?>>
+                                    <span class="form-check-label">An Google melden</span>
+                                </label>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button class="btn btn-primary w-100" type="submit" <?= !$recentContentAnyTargetAvailable ? 'disabled' : '' ?>>Jetzt melden</button>
                             </div>
                         </form>
                     </div>
@@ -287,8 +360,9 @@ $newsSitemapEnabled = !empty($settings['seo_sitemap_news_enabled']);
                                 <input class="form-control" type="url" name="google_delete_url" placeholder="<?= htmlspecialchars($runtimeBaseUrl) ?>/veraltete-seite">
                             </div>
                             <div class="col-md-5">
-                                <label class="form-label">Google Access-Token</label>
+                                <label class="form-label">Google Access-Token (optional)</label>
                                 <input class="form-control" type="password" name="google_access_token" autocomplete="off" placeholder="ya29...">
+                                <div class="form-hint">Leer lassen, um das dauerhaft gespeicherte Token zu verwenden.</div>
                             </div>
                             <div class="col-12">
                                 <button class="btn btn-outline-danger" type="submit">URL bei Google löschen</button>
