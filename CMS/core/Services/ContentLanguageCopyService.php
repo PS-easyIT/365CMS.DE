@@ -39,7 +39,9 @@ final class ContentLanguageCopyService
         $slug = $this->normalizeSlug((string) ($page['slug'] ?? ''));
         $content = $this->normalizeEditorJson((string) ($page['content'] ?? ''));
 
-        if ($title === '' && trim($content) === '') {
+        // Require a real German body. Title-only payloads previously overwrote
+        // existing content_en with '' and wiped published English pages.
+        if (!$this->hasCopyableBodyContent($content)) {
             return [];
         }
 
@@ -66,7 +68,8 @@ final class ContentLanguageCopyService
         $content = $this->normalizeEditorJson((string) ($post['content'] ?? ''));
         $excerpt = $this->normalizeText((string) ($post['excerpt'] ?? ''), 2000);
 
-        if ($title === '' && trim($content) === '' && $excerpt === '') {
+        // Title/excerpt alone must not clear an existing English body.
+        if (!$this->hasCopyableBodyContent($content)) {
             return [];
         }
 
@@ -200,6 +203,59 @@ final class ContentLanguageCopyService
         $encoded = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         return is_string($encoded) ? $encoded : $rawContent;
+    }
+
+    /**
+     * Returns true when the German body has content worth copying to EN.
+     * Empty strings and EditorJS documents without blocks are rejected so
+     * DE→EN copy cannot silently erase an existing English body.
+     */
+    private function hasCopyableBodyContent(string $content): bool
+    {
+        $content = trim($content);
+        if ($content === '') {
+            return false;
+        }
+
+        try {
+            $decoded = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            return true;
+        }
+
+        if (!is_array($decoded)) {
+            return true;
+        }
+
+        $blocks = $decoded['blocks'] ?? null;
+        if (!is_array($blocks) || $blocks === []) {
+            return false;
+        }
+
+        foreach ($blocks as $block) {
+            if (!is_array($block)) {
+                continue;
+            }
+
+            $data = $block['data'] ?? null;
+            if (!is_array($data) || $data === []) {
+                continue;
+            }
+
+            foreach ($data as $value) {
+                if (is_string($value) && trim(strip_tags($value)) !== '') {
+                    return true;
+                }
+                if (is_numeric($value) || is_bool($value)) {
+                    return true;
+                }
+                if (is_array($value) && $value !== []) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function normalizeJsonObject(string $json): ?string
