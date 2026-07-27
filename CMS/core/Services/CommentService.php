@@ -358,6 +358,26 @@ class CommentService
         return $this->db->delete('comments', ['id' => $commentId]);
     }
 
+    /**
+     * Alle Kommentare im Papierkorb endgültig löschen
+     */
+    public function deleteAllTrashed(): int
+    {
+        $ids = $this->db->get_col(
+            "SELECT id FROM {$this->prefix}comments WHERE status = 'trash'"
+        ) ?: [];
+
+        if ($ids === []) {
+            return 0;
+        }
+
+        if (!$this->db->delete('comments', ['status' => 'trash'])) {
+            return 0;
+        }
+
+        return count($ids);
+    }
+
     private function sanitizeAuthorName(string $authorName): string
     {
         $authorName = trim(strip_tags($authorName));

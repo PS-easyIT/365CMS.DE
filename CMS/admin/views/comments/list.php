@@ -98,6 +98,29 @@ $actionClass = static function (string $variant): string {
                 </ul>
             </div>
 
+            <?php if ($status === 'trash' && $canDelete): ?>
+                <div class="card-body py-2 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="text-secondary small"><?php echo (int) ($counts['trash'] ?? 0); ?> Kommentar(e) im Papierkorb.</div>
+                    <?php if ((int) ($counts['trash'] ?? 0) > 0): ?>
+                        <form method="post"
+                              action="<?php echo htmlspecialchars($commentsBaseUrl); ?>"
+                              class="m-0"
+                              data-confirm-title="Papierkorb leeren"
+                              data-confirm-message="Alle Kommentare im Papierkorb endgültig löschen? Dies kann nicht rückgängig gemacht werden."
+                              data-confirm-text="Papierkorb leeren"
+                              data-confirm-class="btn-danger"
+                              data-confirm-status-class="bg-danger">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                            <input type="hidden" name="action" value="empty_trash">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><?php echo $renderCommentIcon('trash'); ?></svg>
+                                Papierkorb leeren
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <div class="card-body border-bottom">
                 <div class="content-listing-toolbar__label">Filter &amp; Suche</div>
                 <form method="get" action="<?php echo htmlspecialchars($commentsBaseUrl); ?>" class="content-listing-filters comments-listing-filters">

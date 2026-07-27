@@ -26,7 +26,7 @@ class CommentsModule
     private const LINK_SCOPES = ['all', 'linked', 'orphaned'];
     private const CONTENT_VIEWS = ['excerpt', 'full'];
     private const MODERATION_STATUSES = ['pending', 'approved', 'spam', 'trash'];
-    private const SUPPORTED_ACTIONS = ['status', 'delete', 'bulk'];
+    private const SUPPORTED_ACTIONS = ['status', 'delete', 'bulk', 'empty_trash'];
     private const BULK_ACTIONS = ['approve', 'spam', 'trash', 'delete'];
     private const MAX_BULK_IDS = 100;
     private const STATUS_META = [
@@ -367,6 +367,29 @@ class CommentsModule
         return [
             'success' => true,
             'message' => $processed . ' Kommentar(e) ' . ($labels[$action] ?? 'bearbeitet') . '.',
+        ];
+    }
+
+    /**
+     * Alle Kommentare im Papierkorb endgültig löschen
+     */
+    public function emptyTrash(): array
+    {
+        if (!$this->canDelete()) {
+            return $this->failResult('comments.trash.empty.denied', 'Sie dürfen Kommentare nicht löschen.');
+        }
+
+        $deletedCount = $this->service->deleteAllTrashed();
+
+        if ($deletedCount === 0) {
+            return ['success' => true, 'message' => 'Der Papierkorb ist bereits leer.'];
+        }
+
+        $this->logSuccess('comments.trash.empty.completed', 'Papierkorb geleert.', ['deleted_count' => $deletedCount]);
+
+        return [
+            'success' => true,
+            'message' => $deletedCount . ' Kommentar(e) endgültig gelöscht. Der Papierkorb ist jetzt leer.',
         ];
     }
 

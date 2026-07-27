@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 
-const CMS_ADMIN_COMMENTS_ALLOWED_ACTIONS = ['status', 'delete', 'bulk'];
+const CMS_ADMIN_COMMENTS_ALLOWED_ACTIONS = ['status', 'delete', 'bulk', 'empty_trash'];
 const CMS_ADMIN_COMMENTS_ALLOWED_STATUSES = ['pending', 'approved', 'spam', 'trash'];
 const CMS_ADMIN_COMMENTS_ALLOWED_BULK_ACTIONS = ['approve', 'spam', 'trash', 'delete'];
 const CMS_ADMIN_COMMENTS_MAX_BULK_IDS = 100;
@@ -107,6 +107,9 @@ function cms_admin_comments_handle_action(CommentsModule $module, array $payload
 
         case 'bulk':
             return $module->bulkAction($payload['bulk_action'], $payload['ids']);
+
+        case 'empty_trash':
+            return $module->emptyTrash();
     }
 
     return ['success' => false, 'error' => 'Aktion konnte nicht verarbeitet werden.'];
@@ -167,6 +170,10 @@ $sectionPageConfig = [
         }
 
         if ($payload['action'] === 'delete' && !$module->canDelete()) {
+            return ['success' => false, 'error' => 'Sie dürfen Kommentare nicht löschen.'];
+        }
+
+        if ($payload['action'] === 'empty_trash' && !$module->canDelete()) {
             return ['success' => false, 'error' => 'Sie dürfen Kommentare nicht löschen.'];
         }
 

@@ -94,7 +94,6 @@ class LegalSitesModule
         'legal_profile_register_court'      => '',
         'legal_profile_register_number'     => '',
         'legal_profile_vat_id'              => '',
-        'legal_profile_dispute_participation' => 'no',
         'legal_profile_hosting_provider'    => '',
         'legal_profile_hosting_address'     => '',
         'legal_profile_privacy_contact_name' => '',
@@ -125,6 +124,9 @@ class LegalSitesModule
         'legal_profile_has_external_media'  => '0',
         'legal_profile_has_webfonts'        => '0',
         'legal_profile_has_shop'            => '0',
+        'legal_profile_has_editorial_content' => '0',
+        'legal_profile_mstv_responsible_name' => '',
+        'legal_profile_mstv_responsible_address' => '',
     ];
 
     /** @var array<string, array<string, string>> */
@@ -584,6 +586,7 @@ class LegalSitesModule
             'legal_profile_has_shop',
             'legal_profile_minimal_privacy_mode',
             'legal_profile_analytics_self_hosted',
+            'legal_profile_has_editorial_content',
         ];
 
         if (in_array($key, $booleanKeys, true)) {
@@ -597,10 +600,6 @@ class LegalSitesModule
         if ($key === 'legal_template_profile') {
             $profile = strtolower(trim((string)$value));
             return isset(self::TEMPLATE_PROFILES[$profile]) ? $profile : 'dach_de';
-        }
-
-        if ($key === 'legal_profile_dispute_participation') {
-            return in_array((string)$value, ['yes', 'no'], true) ? (string)$value : 'no';
         }
 
         if ($key === 'legal_profile_terms_scope') {
@@ -647,6 +646,7 @@ class LegalSitesModule
             'legal_profile_hosting_address',
             'legal_profile_essential_cookie_purpose',
             'legal_profile_additional_service_purpose',
+            'legal_profile_mstv_responsible_address',
         ], true) ? self::MAX_PROFILE_TEXTAREA_LENGTH : self::MAX_PROFILE_VALUE_LENGTH;
 
         return $this->truncate($normalizedValue, $maxLength);
@@ -815,10 +815,15 @@ class LegalSitesModule
             $html .= '<h3>Inhaltlich verantwortlich</h3><p>' . $this->escape($contentResponsible) . '</p>';
         }
 
-        $html .= '<h3>EU-Streitschlichtung</h3><p>Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung bereit: <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer">https://ec.europa.eu/consumers/odr/</a>.</p>';
-        $html .= '<p>' . ($profile['legal_profile_dispute_participation'] === 'yes'
-            ? 'Wir nehmen an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teil.'
-            : 'Wir sind nicht verpflichtet und nicht bereit, an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.') . '</p>';
+        if ($this->profileValue($profile, 'legal_profile_has_editorial_content', '0') === '1') {
+            $mstvName = $this->profileValue($profile, 'legal_profile_mstv_responsible_name', $contentResponsible);
+            if ($mstvName !== '') {
+                $mstvAddress = $this->profileValue($profile, 'legal_profile_mstv_responsible_address');
+                $html .= '<h3>Verantwortlich gemäß § 18 Abs. 2 Medienstaatsvertrag (MStV)</h3>';
+                $html .= '<p>Da dieses Angebot journalistisch-redaktionell gestaltete Inhalte bereithält (z. B. Magazin-, Blog- oder News-Beiträge), wird zusätzlich ein Verantwortlicher im Sinne des § 18 Abs. 2 MStV benannt:</p>';
+                $html .= '<p><strong>' . $this->escape($mstvName) . '</strong><br>' . $this->nl2brEscaped($mstvAddress !== '' ? $mstvAddress : $this->buildAddress($profile)) . '</p>';
+            }
+        }
 
         $html .= '<h3>Haftung für Inhalte</h3><p>Die Inhalte dieser Website werden mit größtmöglicher Sorgfalt erstellt. Eine Gewähr für Vollständigkeit, Richtigkeit und Aktualität kann jedoch nicht in jedem Einzelfall übernommen werden. Bei Bekanntwerden konkreter Rechtsverletzungen werden betroffene Inhalte umgehend geprüft und gegebenenfalls entfernt.</p>';
         $html .= '<h3>Haftung für Links</h3><p>Diese Website kann Links zu externen Angeboten enthalten. Für Inhalte verlinkter Seiten sind ausschließlich deren jeweilige Betreiber verantwortlich. Zum Zeitpunkt der Verlinkung waren keine Rechtsverstöße erkennbar. Bei Bekanntwerden rechtswidriger Inhalte werden entsprechende Links entfernt.</p>';
