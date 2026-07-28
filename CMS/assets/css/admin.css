@@ -5974,6 +5974,19 @@ input:checked + .slider:before { transform: translateX(22px); }
     background: #ffffff;
 }
 
+.editorjs-holder .cms-editorjs-image-source-field {
+    display: grid;
+    gap: .3rem;
+    margin: 0 0 .65rem;
+    color: #64748b;
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.editorjs-holder .cms-editorjs-image-source {
+    margin: 0;
+}
+
 .editorjs-holder .cms-editorjs-header[data-level="2"] {
     font-size: var(--cms-editor-preview-h2-size, calc(var(--cms-editor-preview-font-size) * 1.9));
 }

@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.76
+﻿**Version:** 3.3.77
 
 # 365CMS Changelog
 
@@ -13,6 +13,17 @@
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.3.77 — 28.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.77** | 🛡️ security | PHINIT / Content-Fallback | Der PHINIT-Notfall-Sanitizer ist jetzt DOM-basiert und allowlistgesteuert. Sichere EditorJS-Bilder, Bildunterschriften und Quellenlinks bleiben sichtbar; unquotierte `javascript:`-URLs sowie Event-Attribute werden entfernt. Der Core-Purifier-Cache wird nach der Erweiterung erlaubter Linkattribute über eine neue Definition-Revision zuverlässig neu aufgebaut. |
+| **3.3.77** | 🔴 fix | EditorJS / Einzelbilder | Bildquellen werden client- und serverseitig nur als absolute HTTP(S)-URL akzeptiert und Public als sichere **„QUELLE ↗“**-Zeile nach der optionalen Bildunterschrift ausgegeben. Eine Regression, bei der Einzelbilder im PHINIT-Frontend durch einen HTML-escapenden Fallback verschwanden, ist behoben. |
+| **3.3.77** | 🔴 fix | EditorJS / Clipboard & Presets | Clipboard übernimmt Cropper-Tunes, verwendet keinen veralteten In-Memory-Paste-Fallback und meldet vollständige bzw. partielle Insert-Erfolge korrekt. Nicht unterstützte Delimiter-Breiten und Bild-Maximalhöhen werden konsistent auf die nächstgelegenen vorhandenen CSS-Presets gerundet. |
+| **3.3.77** | 🔵 docs | Audit | Renderer-, Sanitizer-, Purifier-, Clipboard- und PHINIT-Pfade wurden durch Runtime-/Purifier-/Regressionstests geprüft; JavaScript/PHP/JSON-Diagnosen sind fehlerfrei. |
 
 ---
 

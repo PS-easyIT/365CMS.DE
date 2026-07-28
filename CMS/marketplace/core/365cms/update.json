@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.76",
+  "version": "3.3.77",
   "min_php": "8.4",
   "released": "2026-07-28",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.76: Zitat-, Trennstrich- und Bildoptionen funktionieren zuverlässig. Einzelbilder unterstützen jetzt eine sichere Quellwebsite mit Public-Zeile QUELLE ↗. Block-Clipboard bewahrt Cropper-Tunes, meldet Teilerfolge korrekt und fügt keine veralteten Memory-Blöcke ein. Der PHINIT-Fallback erhält sichere Bildmarkups auch ohne Purifier/KSES.",
+  "notes": "Release-Stand 3.3.77: Audit- und Stabilitätsrelease für EditorJS/PHINIT. Einzelbilder bleiben im PHINIT-Public-Frontend auch bei Fallback-Sanitizing sichtbar, unterstützen sichere Quellenlinks (QUELLE ↗), Clipboard erhält Cropper-Tunes und meldet Teilerfolge korrekt; Delimiter- und Bildwerte werden auf echte CSS-Presets normalisiert.",
   "critical": false
 }

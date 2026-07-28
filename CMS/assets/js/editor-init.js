@@ -2769,6 +2769,7 @@
             var url = createInput('hidden', '', (this.data.file && this.data.file.url) || this.data.url || '', '');
             var caption = createInput('text', 'form-control mb-2', this.data.caption || '', 'Bildunterschrift');
             var sourceUrl = createInput('url', 'form-control mb-2', this.data.sourceUrl || '', 'https://quelle.example');
+            var sourceField = createElement('label', 'cms-editorjs-image-source-field');
             var upload = createInput('file', 'form-control form-control-sm', '', '');
             var libraryButton = createElement('button', 'btn btn-sm btn-outline-primary', 'Aus Mediathek wählen');
             var optionsPanel = createElement('div', 'cms-editorjs-floating-options cms-editorjs-image-options');
@@ -2816,6 +2817,8 @@
             sourceUrl.classList.add('cms-editorjs-image-source');
             sourceUrl.setAttribute('aria-label', 'Quellwebsite des Bildes');
             sourceUrl.readOnly = this.readOnly;
+            sourceField.appendChild(createElement('span', '', 'Quellwebsite'));
+            sourceField.appendChild(sourceUrl);
 
             [alignment, size, borderStyle, imageFit, maxHeight, withBackground.input, rounded.input, shadow.input].forEach((control) => {
                 control.disabled = this.readOnly;
@@ -2826,7 +2829,6 @@
             settings.appendChild(this.createSetting('Rahmen', borderStyle));
             settings.appendChild(this.createSetting('Skalierung', imageFit));
             settings.appendChild(this.createSetting('Max. Höhe', maxHeight));
-            settings.appendChild(this.createSetting('Quellwebsite (URL)', sourceUrl));
             settings.appendChild(withBackground.wrapper);
             settings.appendChild(rounded.wrapper);
             settings.appendChild(shadow.wrapper);
@@ -2848,7 +2850,7 @@
             wrapper.appendChild(url);
             wrapper.appendChild(preview);
             wrapper.appendChild(caption);
-            wrapper.appendChild(sourceUrl);
+            wrapper.appendChild(sourceField);
             optionsPanel.appendChild(optionsLabel);
             optionsPanel.appendChild(upload);
             optionsPanel.appendChild(libraryButton);
