@@ -8,6 +8,6 @@
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.76: Zitat-Designs und Inline-Formatierungen funktionieren zuverlässig; der Trennstrich respektiert Breite und Dicke. Der Bilder-Block übernimmt Breite, Ausrichtung, Skalierung und Maximalhöhe jetzt über zuverlässig gespeicherte Werte sowie sanitizer-feste Renderer-/CSS-Klassen ins Public-Frontend.",
+  "notes": "Release-Stand 3.3.76: Zitat-, Trennstrich- und Bilder-Optionen funktionieren zuverlässig. Zusätzlich kann jetzt jeder EditorJS-Block über den universellen Block-Clipboard-Tune oder als markierte Auswahl per Strg/Cmd+C kopiert und in einem anderen EditorJS-Bereich inklusive Blockdaten und Tunes wieder eingefügt werden.",
   "critical": false
 }

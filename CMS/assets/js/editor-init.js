@@ -23,10 +23,12 @@
         'button'
     ];
     var INLINE_TOOL_NAMES = ['inlineCode', 'underline', 'strikethrough', 'hyperlink', 'marker', 'spoiler', 'textColor'];
-    var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
+    var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant', 'blockClipboard'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
     var VERSION = 'cms-editorjs-org-assets-2026-06-05-paste-sanitize-warning-colors';
+    var CMS_BLOCK_CLIPBOARD_PREFIX = 'CMS_EDITORJS_BLOCKS_V1:';
+    var CMS_BLOCK_CLIPBOARD_MEMORY = null;
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -58,7 +60,8 @@
         anchor: ['Anchor'],
         alignmentTune: ['AlignmentBlockTune'],
         indentTune: ['IndentPlugin'],
-        textVariant: ['TextVariantTune']
+        textVariant: ['TextVariantTune'],
+        blockClipboard: ['CmsBlockClipboardTune']
     };
     var PLUGIN_GLOBALS = {
         undo: ['Undo'],
@@ -102,6 +105,124 @@
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+
+    function normalizeCmsClipboardBlock(block) {
+        var source = block && typeof block === 'object' ? block : {};
+        var type = String(source.type || source.tool || '');
+
+        type = TOOL_ALIASES[type] || type;
+        if (BLOCK_TOOL_NAMES.indexOf(type) === -1) {
+            return null;
+        }
+
+        return {
+            type: type,
+            data: source.data && typeof source.data === 'object' ? source.data : {},
+            tunes: source.tunes && typeof source.tunes === 'object' ? source.tunes : {}
+        };
+    }
+
+    function createCmsBlockClipboardText(blocks) {
+        var normalizedBlocks = (Array.isArray(blocks) ? blocks : [])
+            .map(normalizeCmsClipboardBlock)
+            .filter(Boolean);
+
+        if (normalizedBlocks.length === 0) {
+            return '';
+        }
+
+        return CMS_BLOCK_CLIPBOARD_PREFIX + JSON.stringify({
+            format: '365cms-editorjs-blocks',
+            version: 1,
+            blocks: normalizedBlocks
+        });
+    }
+
+    function parseCmsBlockClipboardText(value) {
+        var text = String(value || '').trim();
+        var payload;
+        var blocks;
+
+        if (text.indexOf(CMS_BLOCK_CLIPBOARD_PREFIX) !== 0 || text.length > 2 * 1024 * 1024) {
+            return [];
+        }
+
+        try {
+            payload = JSON.parse(text.slice(CMS_BLOCK_CLIPBOARD_PREFIX.length));
+        } catch (_error) {
+            return [];
+        }
+
+        if (!payload || payload.format !== '365cms-editorjs-blocks' || payload.version !== 1 || !Array.isArray(payload.blocks)) {
+            return [];
+        }
+
+        blocks = payload.blocks.slice(0, 100)
+            .map(normalizeCmsClipboardBlock)
+            .filter(Boolean)
+            .map(function (block) {
+                return normalizeBlock(block);
+            });
+
+        return blocks;
+    }
+
+    function fallbackCopyText(text) {
+        var textarea = document.createElement('textarea');
+        var copied = false;
+
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'readonly');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            copied = document.execCommand('copy');
+        } catch (_error) {
+            copied = false;
+        }
+        textarea.remove();
+
+        return copied;
+    }
+
+    function writeCmsBlocksToClipboard(blocks) {
+        var text = createCmsBlockClipboardText(blocks);
+
+        if (text === '') {
+            return Promise.reject(new Error('Der Block konnte nicht serialisiert werden.'));
+        }
+
+        CMS_BLOCK_CLIPBOARD_MEMORY = text;
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            return navigator.clipboard.writeText(text).then(function () {
+                return true;
+            }).catch(function () {
+                return fallbackCopyText(text);
+            });
+        }
+
+        return Promise.resolve(fallbackCopyText(text));
+    }
+
+    function showCmsEditorNotice(api, message, type) {
+        try {
+            if (api && api.notifier && typeof api.notifier.show === 'function') {
+                api.notifier.show({ message: message, style: type === 'error' ? 'error' : 'success' });
+                return;
+            }
+        } catch (_error) {
+            // Console fallback below.
+        }
+
+        if (type === 'error') {
+            logWarn(message);
+        } else {
+            logInfo(message);
+        }
     }
 
     function sanitizeEditableUrl(value) {
@@ -1667,11 +1788,12 @@
         return blocks.indexOf(blockElement);
     }
 
-    function insertEditorBlocksFromPaste(api, editable, blocks) {
+    function insertEditorBlocksFromPaste(api, editable, blocks, replaceEmptyCurrent) {
         var blocksApi = api && api.blocks ? api.blocks : null;
         var domIndex = getBlockIndexFromElement(editable);
         var currentIndex = domIndex;
-        var shouldReplaceCurrent = stripTags(editable ? editable.innerHTML || '' : '').trim() === '';
+        var shouldReplaceCurrent = replaceEmptyCurrent !== false
+            && stripTags(editable ? editable.innerHTML || '' : '').trim() === '';
         var insertIndex;
 
         if (!blocksApi || typeof blocksApi.insert !== 'function' || !Array.isArray(blocks) || blocks.length === 0) {
@@ -1698,8 +1820,21 @@
         }
 
         blocks.forEach(function (block, offset) {
+            var insertedBlock;
+
             try {
-                blocksApi.insert(block.type, block.data || {}, undefined, typeof insertIndex === 'number' ? insertIndex + offset : undefined, true);
+                insertedBlock = blocksApi.insert(block.type, block.data || {}, undefined, typeof insertIndex === 'number' ? insertIndex + offset : undefined, true);
+                if (
+                    insertedBlock
+                    && insertedBlock.id
+                    && block.tunes
+                    && Object.keys(block.tunes).length > 0
+                    && typeof blocksApi.update === 'function'
+                ) {
+                    Promise.resolve(blocksApi.update(insertedBlock.id, block.data || {}, block.tunes)).catch(function (tuneError) {
+                        logWarn('Copied block tunes could not be restored.', tuneError);
+                    });
+                }
             } catch (error) {
                 if (typeof insertIndex === 'number') {
                     logWarn('Indexed paste block insert failed.', error);
@@ -1707,7 +1842,18 @@
                 }
 
                 try {
-                    blocksApi.insert(block.type, block.data || {});
+                    insertedBlock = blocksApi.insert(block.type, block.data || {});
+                    if (
+                        insertedBlock
+                        && insertedBlock.id
+                        && block.tunes
+                        && Object.keys(block.tunes).length > 0
+                        && typeof blocksApi.update === 'function'
+                    ) {
+                        Promise.resolve(blocksApi.update(insertedBlock.id, block.data || {}, block.tunes)).catch(function (tuneError) {
+                            logWarn('Copied block tunes could not be restored.', tuneError);
+                        });
+                    }
                 } catch (fallbackError) {
                     logWarn('Paste block insert failed.', fallbackError);
                 }
@@ -1754,6 +1900,13 @@
                 return;
             }
 
+            var clipboardBlocks = parseCmsBlockClipboardText(text);
+            if (clipboardBlocks.length > 0 && insertEditorBlocksFromPaste(api, editable, clipboardBlocks, false)) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+
             structuredBlocks = getStructuredPasteBlocks(html);
             if (structuredBlocks.length > 0 && insertEditorBlocksFromPaste(api, editable, structuredBlocks)) {
                 event.preventDefault();
@@ -1783,6 +1936,99 @@
             insertHtmlAtSelection(editable, insertHtml);
             editable.dispatchEvent(new Event('input', { bubbles: true }));
         }, true);
+    }
+
+    function getSelectedCmsEditorBlockIndices(holder) {
+        if (!holder || typeof holder.querySelectorAll !== 'function') {
+            return [];
+        }
+
+        return Array.prototype.slice.call(holder.querySelectorAll('.ce-block--selected')).map(function (element) {
+            return getBlockIndexFromElement(element);
+        }).filter(function (index, position, indices) {
+            return index >= 0 && indices.indexOf(index) === position;
+        }).sort(function (left, right) {
+            return left - right;
+        });
+    }
+
+    function copySelectedCmsEditorBlocks(editor, holder) {
+        var indices = getSelectedCmsEditorBlockIndices(holder);
+        var blocksApi = editor && editor.blocks ? editor.blocks : null;
+
+        if (!blocksApi || typeof blocksApi.getBlockByIndex !== 'function' || indices.length === 0) {
+            return Promise.resolve(false);
+        }
+
+        return Promise.all(indices.map(function (index) {
+            var block = blocksApi.getBlockByIndex(index);
+
+            if (!block || typeof block.save !== 'function') {
+                return null;
+            }
+
+            return Promise.resolve(block.save()).then(function (saved) {
+                saved = saved && typeof saved === 'object' ? saved : {};
+                saved.type = saved.type || saved.tool || block.name || '';
+                return saved;
+            });
+        })).then(function (blocks) {
+            blocks = blocks.filter(Boolean);
+            return blocks.length > 0 ? writeCmsBlocksToClipboard(blocks) : false;
+        });
+    }
+
+    function bindCmsBlockClipboardBehavior(holder, editor) {
+        var pasteHandler;
+        var keydownHandler;
+
+        if (!holder || !editor || holder.dataset.cmsBlockClipboardBound === '1') {
+            return function () {};
+        }
+
+        pasteHandler = function (event) {
+            var clipboardData = event.clipboardData || window.clipboardData || null;
+            var text = clipboardData && typeof clipboardData.getData === 'function'
+                ? clipboardData.getData('text/plain')
+                : '';
+            var blocks = parseCmsBlockClipboardText(text || CMS_BLOCK_CLIPBOARD_MEMORY || '');
+
+            if (blocks.length === 0 || !insertEditorBlocksFromPaste(editor, event.target || holder, blocks, false)) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            showCmsEditorNotice(editor, blocks.length === 1 ? 'Block eingefügt.' : blocks.length + ' Blöcke eingefügt.', 'success');
+        };
+
+        keydownHandler = function (event) {
+            var copyShortcut = (event.ctrlKey || event.metaKey) && !event.altKey && String(event.key || '').toLowerCase() === 'c';
+
+            if (!copyShortcut || getSelectedCmsEditorBlockIndices(holder).length === 0) {
+                return;
+            }
+
+            event.preventDefault();
+            copySelectedCmsEditorBlocks(editor, holder).then(function (copied) {
+                if (!copied) {
+                    throw new Error('Markierte Blöcke konnten nicht kopiert werden.');
+                }
+                showCmsEditorNotice(editor, 'Markierte Blöcke kopiert.', 'success');
+            }).catch(function (error) {
+                showCmsEditorNotice(editor, error && error.message ? error.message : 'Blöcke konnten nicht kopiert werden.', 'error');
+            });
+        };
+
+        holder.dataset.cmsBlockClipboardBound = '1';
+        holder.addEventListener('paste', pasteHandler, true);
+        holder.addEventListener('keydown', keydownHandler, true);
+
+        return function () {
+            holder.removeEventListener('paste', pasteHandler, true);
+            holder.removeEventListener('keydown', keydownHandler, true);
+            delete holder.dataset.cmsBlockClipboardBound;
+        };
     }
 
     function createInput(type, className, value, placeholder) {
@@ -4485,6 +4731,63 @@
         })(window.Delimiter);
     }
 
+    class CmsBlockClipboardTune {
+        constructor(options) {
+            options = options || {};
+            this.api = options.api || null;
+            this.block = options.block || null;
+            this.readOnly = !!options.readOnly;
+        }
+
+        static get isTune() {
+            return true;
+        }
+
+        render() {
+            var self = this;
+
+            return {
+                icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+                label: 'Block kopieren',
+                closeOnActivate: true,
+                onActivate: function () {
+                    return self.copyBlock();
+                }
+            };
+        }
+
+        copyBlock() {
+            var self = this;
+
+            if (this.readOnly || !this.block || typeof this.block.save !== 'function') {
+                showCmsEditorNotice(this.api, 'Dieser Block kann nicht kopiert werden.', 'error');
+                return Promise.resolve(false);
+            }
+
+            return Promise.resolve(this.block.save()).then(function (saved) {
+                var block = saved && typeof saved === 'object' ? saved : {};
+
+                block.type = block.type || block.tool || self.block.name || '';
+                return writeCmsBlocksToClipboard([block]);
+            }).then(function (copied) {
+                if (!copied) {
+                    throw new Error('Zwischenablage ist nicht verfügbar.');
+                }
+                showCmsEditorNotice(self.api, 'Block kopiert. Er kann in einem anderen EditorJS-Bereich eingefügt werden.', 'success');
+                return true;
+            }).catch(function (error) {
+                showCmsEditorNotice(self.api, error && error.message ? error.message : 'Block konnte nicht kopiert werden.', 'error');
+                return false;
+            });
+        }
+
+        save() {
+            return {};
+        }
+    }
+
+    window.CmsBlockClipboardTune = CmsBlockClipboardTune;
+
     function resolveToolClass(toolName) {
         var globalNames = TOOL_GLOBALS[toolName];
         var toolClass = null;
@@ -4806,6 +5109,7 @@
             }
         }, false);
         addTool(tools, 'textVariant', {}, false);
+        addTool(tools, 'blockClipboard', {}, true);
         availableBlockTunes = getAvailableBlockTunes(tools);
 
         addTool(tools, 'paragraph', withBlockTunes({
@@ -4996,6 +5300,7 @@
         var changeSyncPending = false;
         var changeSyncDestroyed = false;
         var originalDestroy;
+        var cleanupBlockClipboard = function () {};
         var syncEditorChange;
         var runEditorChangeSync;
         var reportEditorError = function (stage, error) {
@@ -5105,6 +5410,9 @@
                 onReady: function () {
                     holder.dataset.editorState = 'editor';
                     holder.setAttribute('aria-busy', 'false');
+                    if (!resolvedOptions.readOnly) {
+                        cleanupBlockClipboard = bindCmsBlockClipboardBehavior(holder, editor);
+                    }
                     initializeEditorPlugins(editor, holder, normalizedData);
                     logInfo('Editor ready.', { holderId: holderId, tools: TOOL_NAMES });
                     if (typeof resolvedOptions.onReady === 'function') {
@@ -5158,6 +5466,7 @@
             if (holder.cmsEditorNativeChangeHandler === syncEditorChange) {
                 delete holder.cmsEditorNativeChangeHandler;
             }
+            cleanupBlockClipboard();
             holder.removeAttribute('aria-busy');
 
             destroyResult = originalDestroy ? originalDestroy() : undefined;
