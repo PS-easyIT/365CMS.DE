@@ -4683,53 +4683,150 @@
         })(window.Quote);
     }
 
-    if (typeof window.Delimiter === 'function') {
-        (function (BaseDelimiterTool) {
-            class CmsDelimiterTool extends BaseDelimiterTool {
-                constructor(options) {
-                    super(options);
-                    this._cmsBlock = options && options.block ? options.block : null;
-                    this._cmsDelimiterElement = null;
-                }
+    class CmsDelimiterTool {
+        constructor(options) {
+            options = options || {};
+            this.data = normalizeDelimiterData(options.data || {});
+            this.block = options.block || null;
+            this.readOnly = !!options.readOnly;
+            this.nodes = {};
+        }
 
-                render() {
-                    this._cmsDelimiterElement = super.render();
+        static get toolbox() {
+            return {
+                title: 'Trennstrich',
+                icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+            };
+        }
 
-                    return this._cmsDelimiterElement;
-                }
+        static get isReadOnlySupported() {
+            return true;
+        }
 
-                save(blockContent) {
-                    return normalizeDelimiterData(super.save(blockContent));
-                }
+        static get sanitize() {
+            return { style: false, lineWidth: false, lineThickness: false };
+        }
 
-                renderSettings() {
-                    var self = this;
+        createSelect(options, value, label) {
+            var select = document.createElement('select');
 
-                    return super.renderSettings().map(function (setting) {
-                        var activate = setting && typeof setting.onActivate === 'function'
-                            ? setting.onActivate
-                            : null;
+            select.className = 'form-select form-select-sm';
+            select.setAttribute('aria-label', label);
+            select.disabled = this.readOnly;
+            options.forEach(function (optionData) {
+                var option = document.createElement('option');
+                option.value = String(optionData[0]);
+                option.textContent = optionData[1];
+                select.appendChild(option);
+            });
+            select.value = String(value);
 
-                        if (!activate) {
-                            return setting;
-                        }
+            return select;
+        }
 
-                        return Object.assign({}, setting, {
-                            onActivate: function () {
-                                activate();
-                                if (self._cmsBlock && typeof self._cmsBlock.dispatchChange === 'function') {
-                                    self._cmsBlock.dispatchChange();
-                                }
-                                notifyToolChanged(self._cmsDelimiterElement);
-                            }
-                        });
-                    });
-                }
+        createSetting(label, control) {
+            var wrapper = createElement('label', 'cms-editorjs-delimiter-settings__field');
+            wrapper.appendChild(createElement('span', '', label));
+            wrapper.appendChild(control);
+            return wrapper;
+        }
+
+        render() {
+            var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--delimiter');
+            var preview = createElement('div', 'cms-editorjs-delimiter-preview');
+            var settings = createElement('div', 'cms-editorjs-delimiter-settings');
+            var style = this.createSelect([
+                ['line', 'Linie'],
+                ['dash', 'Striche'],
+                ['star', 'Sterne']
+            ], this.data.style || 'line', 'Trennstrich-Stil');
+            var width = this.createSelect([
+                [8, '8 %'],
+                [15, '15 %'],
+                [25, '25 %'],
+                [35, '35 %'],
+                [50, '50 %'],
+                [60, '60 %'],
+                [100, '100 %']
+            ], this.data.lineWidth || 35, 'Linienbreite');
+            var thickness = this.createSelect([
+                [1, '1 px'], [2, '2 px'], [3, '3 px'],
+                [4, '4 px'], [5, '5 px'], [6, '6 px']
+            ], this.data.lineThickness || 2, 'Liniendicke');
+            var self = this;
+
+            settings.appendChild(this.createSetting('Stil', style));
+            settings.appendChild(this.createSetting('Breite', width));
+            settings.appendChild(this.createSetting('Dicke', thickness));
+            wrapper.appendChild(preview);
+            if (!this.readOnly) {
+                wrapper.appendChild(settings);
             }
 
-            window.CmsDelimiterTool = CmsDelimiterTool;
-        })(window.Delimiter);
+            this.nodes = {
+                wrapper: wrapper,
+                preview: preview,
+                style: style,
+                width: width,
+                thickness: thickness,
+                settings: settings
+            };
+
+            [style, width, thickness].forEach(function (control) {
+                var handleChange = function () {
+                    self.updatePreview();
+                    if (self.block && typeof self.block.dispatchChange === 'function') {
+                        self.block.dispatchChange();
+                    }
+                    notifyToolChanged(wrapper);
+                };
+                control.addEventListener('input', handleChange);
+                control.addEventListener('change', handleChange);
+            });
+
+            this.updatePreview();
+            return wrapper;
+        }
+
+        updatePreview() {
+            var data = this.getCurrentData();
+            var preview = this.nodes.preview;
+            var visual;
+
+            if (!preview) {
+                return;
+            }
+
+            clearElement(preview);
+            preview.className = 'cms-editorjs-delimiter-preview cms-editorjs-delimiter-preview--' + data.style;
+            preview.dataset.lineWidth = String(data.lineWidth || 35);
+            preview.dataset.lineThickness = String(data.lineThickness || 2);
+
+            if (data.style === 'line') {
+                visual = document.createElement('hr');
+                visual.style.width = data.lineWidth + '%';
+                visual.style.borderTopWidth = data.lineThickness + 'px';
+            } else {
+                visual = createElement('span', '', data.style === 'dash' ? '———' : '***');
+            }
+            preview.appendChild(visual);
+        }
+
+        getCurrentData() {
+            return normalizeDelimiterData({
+                style: this.nodes.style ? this.nodes.style.value : this.data.style,
+                lineWidth: this.nodes.width ? this.nodes.width.value : this.data.lineWidth,
+                lineThickness: this.nodes.thickness ? this.nodes.thickness.value : this.data.lineThickness
+            });
+        }
+
+        save() {
+            this.data = this.getCurrentData();
+            return this.data;
+        }
     }
+
+    window.CmsDelimiterTool = CmsDelimiterTool;
 
     class CmsBlockClipboardTune {
         constructor(options) {
