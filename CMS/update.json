@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.75",
+  "version": "3.3.76",
   "min_php": "8.4",
-  "released": "2026-07-27",
+  "released": "2026-07-28",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.75: Impressum-Vorlage ergänzt einen Verantwortlichen nach § 18 Abs. 2 MStV für Magazin-/Blog-/News-Angebote und entfernt die veraltete EU-Streitschlichtung; die Kommentarverwaltung erhält einen 'Papierkorb leeren'-Button zur endgültigen Massenlöschung.",
+  "notes": "Release-Stand 3.3.76: Der EditorJS-Zitat-Block bietet 4 auswählbare Designs (Balken, Karte, Minimal, Anführungszeichen) mit einem abgeschwächten, dark-mode-sicheren Standard-Balken; der Trennstrich-Block respektiert die gewählte Linienbreite jetzt zuverlässig statt teils auf einen hartkodierten 25%-Fallback zurückzufallen.",
   "critical": false
 }

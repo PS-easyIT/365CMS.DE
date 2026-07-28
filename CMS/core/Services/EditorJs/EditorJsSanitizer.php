@@ -124,6 +124,7 @@ final class EditorJsSanitizer
                 $data['text'] = $cleanInline($data['text'] ?? '');
                 $data['caption'] = $cleanInline($data['caption'] ?? '');
                 $data['alignment'] = in_array(($data['alignment'] ?? 'left'), ['left', 'center'], true) ? (string) $data['alignment'] : 'left';
+                $data['design'] = in_array(($data['design'] ?? 'bar'), ['bar', 'card', 'minimal', 'mark'], true) ? (string) $data['design'] : 'bar';
                 break;
 
             case 'warning':

@@ -754,6 +754,14 @@
             return appendNormalizedTunes(block, normalizedBlock);
         }
 
+        if (type === 'quote') {
+            normalizedBlock = {
+                type: type,
+                data: normalizeQuoteData(data)
+            };
+            return appendNormalizedTunes(block, normalizedBlock);
+        }
+
         return appendNormalizedTunes(block, { type: type, data: data });
     }
 
@@ -1178,6 +1186,26 @@
         return style === 'line'
             ? { style: style, lineWidth: lineWidth, lineThickness: lineThickness }
             : { style: style };
+    }
+
+    function normalizeQuoteData(data) {
+        var source = data && typeof data === 'object' ? data : {};
+        var alignment = String(source.alignment || 'left');
+        var design = String(source.design || 'bar');
+
+        if (['left', 'center'].indexOf(alignment) === -1) {
+            alignment = 'left';
+        }
+        if (['bar', 'card', 'minimal', 'mark'].indexOf(design) === -1) {
+            design = 'bar';
+        }
+
+        return {
+            text: sanitizeEditableHtml(String(source.text || source.content || '')),
+            caption: sanitizeEditableHtml(String(source.caption || source.cite || '')),
+            alignment: alignment,
+            design: design
+        };
     }
 
     function normalizeListData(data) {
@@ -4287,6 +4315,93 @@
     }
 
     window.CmsMarkerTool = MarkerTool;
+
+    var QUOTE_DESIGNS = ['bar', 'card', 'minimal', 'mark'];
+    var QUOTE_DESIGN_LABELS = {
+        bar: 'Balken',
+        card: 'Karte',
+        minimal: 'Minimal',
+        mark: 'Anführungszeichen'
+    };
+    var QUOTE_DESIGN_ICONS = {
+        bar: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="2" height="12" rx="1" fill="currentColor"/><rect x="5.5" y="2" width="7.5" height="1.6" rx=".5" fill="currentColor"/><rect x="5.5" y="6.2" width="7.5" height="1.6" rx=".5" fill="currentColor"/><rect x="5.5" y="10.4" width="5" height="1.6" rx=".5" fill="currentColor"/></svg>',
+        card: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><rect x="3.2" y="4.2" width="7.6" height="1.3" rx=".4" fill="currentColor"/><rect x="3.2" y="7.2" width="5.5" height="1.3" rx=".4" fill="currentColor"/></svg>',
+        minimal: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="4.2" width="12" height="1.5" rx=".5" fill="currentColor"/><rect x="1" y="8.8" width="8" height="1.5" rx=".5" fill="currentColor"/></svg>',
+        mark: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 9V6.3C2 4.4 3.1 3 5 2.6v1.7c-1 .3-1.4.8-1.4 1.7H5V9H2Zm6.4 0V6.3c0-1.9 1.1-3.3 3-3.7v1.7c-1 .3-1.4.8-1.4 1.7h1.4V9H8.4Z" fill="currentColor"/></svg>'
+    };
+
+    function sanitizeQuoteDesign(value) {
+        var design = String(value || 'bar');
+
+        return QUOTE_DESIGNS.indexOf(design) !== -1 ? design : 'bar';
+    }
+
+    function applyQuoteDesignClass(wrapper, design) {
+        if (!wrapper || !wrapper.classList) {
+            return;
+        }
+
+        QUOTE_DESIGNS.forEach(function (name) {
+            wrapper.classList.remove('cms-quote-preview--' + name);
+        });
+        wrapper.classList.add('cms-quote-preview--' + sanitizeQuoteDesign(design));
+    }
+
+    if (typeof window.Quote === 'function') {
+        (function (BaseQuoteTool) {
+            class CmsQuoteTool extends BaseQuoteTool {
+                constructor(options) {
+                    super(options);
+                    var sourceData = options && options.data && typeof options.data === 'object' ? options.data : {};
+
+                    this.data.design = sanitizeQuoteDesign(sourceData.design);
+                }
+
+                render() {
+                    var wrapper = super.render();
+
+                    this._cmsWrapperEl = wrapper;
+                    applyQuoteDesignClass(wrapper, this.data.design);
+
+                    return wrapper;
+                }
+
+                save(blockContent) {
+                    var data = super.save(blockContent);
+
+                    data.design = sanitizeQuoteDesign(this.data.design);
+
+                    return data;
+                }
+
+                renderSettings() {
+                    var baseSettings = super.renderSettings();
+                    var self = this;
+                    var designSettings = QUOTE_DESIGNS.map(function (design) {
+                        return {
+                            icon: QUOTE_DESIGN_ICONS[design],
+                            label: self.api.i18n.t('Zitat-Design: ' + QUOTE_DESIGN_LABELS[design]),
+                            onActivate: function () {
+                                self.data.design = design;
+                                applyQuoteDesignClass(self._cmsWrapperEl, design);
+                                self.block.dispatchChange();
+                            },
+                            isActive: self.data.design === design,
+                            closeOnActivate: true
+                        };
+                    });
+
+                    return baseSettings.concat(designSettings);
+                }
+
+                static get sanitize() {
+                    return Object.assign({}, BaseQuoteTool.sanitize, { design: {} });
+                }
+            }
+
+            window.CmsQuoteTool = CmsQuoteTool;
+        })(window.Quote);
+    }
 
     function resolveToolClass(toolName) {
         var globalNames = TOOL_GLOBALS[toolName];

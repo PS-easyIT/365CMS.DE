@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.75
+﻿**Version:** 3.3.76
 
 # 365CMS Changelog
 
@@ -13,6 +13,16 @@
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.3.76 — 28.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.76** | 🟢 feat | EditorJS / Zitat-Block | **Der Zitat-Block bietet jetzt 4 auswählbare Designs: Balken (Standard), Karte, Minimal und Anführungszeichen**, umsetzbar direkt über die Block-Einstellungen im Editor (`CmsQuoteTool` in `editor-init.js`, erweitert den Standard-Quote-Tool um ein `design`-Feld). `EditorJsRenderer::renderQuote()`, `EditorJsSanitizer` und `EditorJsContentNormalizer` validieren/rendern das neue Feld serverseitig (`editorjs-quote--design-*`-Klasse). |
+| **3.3.76** | 🎨 style | EditorJS / Zitat-Block | Der Standard-Balken ("Balken"-Design) ist jetzt dünner und abgeschwächt (Farb- und Hintergrundmischung über `color-mix()` statt vollgesättigter Akzentfarbe) und nutzt Theme-Variablen, damit er auch im Dark Mode stimmig bleibt, statt hart auf Weiß gemischt zu werden (`CMS/assets/css/editorjs-content.css`). |
+| **3.3.76** | 🔴 fix | EditorJS / Trennstrich | **Der Trennstrich-Block (Delimiter) konnte unabhängig von der gewählten Linienbreite auf einen hartkodierten 25%-Fallback zurückfallen**, weil der vendorte `Delimiter`-Tool-Baustein (`CMS/assets/editorjs/delimiter.umd.js`) `DEFAULT_LINE_WIDTH` auf `25` statt auf den im restlichen System (JS-Normalizer, `EditorJsSanitizer`, `EditorJsContentNormalizer`, `EditorJsRenderer`, Editor-Konfiguration `defaultLineWidth`) einheitlich verwendeten Standard `35` gesetzt hatte. Der Fallback ist jetzt durchgängig `35`. |
 
 ---
 

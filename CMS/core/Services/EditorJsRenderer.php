@@ -493,11 +493,15 @@ final class EditorJsRenderer
         $caption = $this->sanitizeInline((string)($data['caption'] ?? ''));
         $alignment = (string)($data['alignment'] ?? 'left');
         $alignmentClass = in_array($alignment, ['left', 'center'], true) ? ' editorjs-quote--' . $alignment : '';
+        $design = (string)($data['design'] ?? 'bar');
+        if (!in_array($design, ['bar', 'card', 'minimal', 'mark'], true)) {
+            $design = 'bar';
+        }
         if ($text === '') {
             return '';
         }
 
-        $html = '<div class="editorjs-block editorjs-quote' . $alignmentClass . '"><blockquote><p>' . $text . '</p>';
+        $html = '<div class="editorjs-block editorjs-quote' . $alignmentClass . ' editorjs-quote--design-' . $design . '"><blockquote><p>' . $text . '</p>';
         if ($caption !== '') {
             $html .= '<cite>' . $caption . '</cite>';
         }

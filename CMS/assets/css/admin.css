@@ -9337,3 +9337,44 @@ body.admin-body .admin-section-toolbar__actions {
     align-items: center;
     justify-content: center;
 }
+
+/* EditorJS – Zitat-Block: leichte Design-Vorschau im Editorbereich */
+.cdx-quote.cms-quote-preview--bar {
+    border-left: 3px solid #2563eb;
+    background: rgba(37, 99, 235, .06);
+    border-radius: 8px;
+    padding: .35rem .75rem;
+}
+
+.cdx-quote.cms-quote-preview--card {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+    padding: .6rem .85rem;
+}
+
+.cdx-quote.cms-quote-preview--minimal {
+    padding: .1rem 0;
+}
+
+.cdx-quote.cms-quote-preview--minimal .cdx-quote__text {
+    font-style: italic;
+}
+
+.cdx-quote.cms-quote-preview--mark {
+    position: relative;
+    padding-top: 1.9rem;
+}
+
+.cdx-quote.cms-quote-preview--mark::before {
+    content: '\201C';
+    position: absolute;
+    top: -.3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2.2rem;
+    line-height: 1;
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #93a4bd;
+}

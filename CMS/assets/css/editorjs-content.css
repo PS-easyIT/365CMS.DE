@@ -132,15 +132,51 @@
 .editorjs-quote blockquote {
     margin: 0;
     padding: 1rem 1.2rem;
-    border-left: 4px solid var(--primary-color, var(--accent, #2563eb));
-    background: color-mix(in srgb, var(--primary-color, #2563eb) 7%, transparent);
+    border-left: 3px solid color-mix(in srgb, var(--primary-color, var(--accent, #2563eb)) 45%, var(--border-color, #e2e8f0));
+    background: color-mix(in srgb, var(--primary-color, var(--accent, #2563eb)) 6%, var(--bg-primary, #fff));
     border-radius: 12px;
 }
 
 .editorjs-quote--center blockquote {
     text-align: center;
     border-left: 0;
-    border-top: 4px solid var(--primary-color, var(--accent, #2563eb));
+    border-top: 3px solid color-mix(in srgb, var(--primary-color, var(--accent, #2563eb)) 45%, var(--border-color, #e2e8f0));
+}
+
+.editorjs-quote--design-card blockquote {
+    border-left: 0;
+    border-top: 0;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-secondary, #f8fafc);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+    padding: 1.25rem 1.5rem;
+}
+
+.editorjs-quote--design-minimal blockquote {
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+}
+
+.editorjs-quote--design-mark blockquote {
+    position: relative;
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+    padding: 2.4rem 1rem .2rem;
+}
+
+.editorjs-quote--design-mark blockquote::before {
+    content: '\201C';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 3rem;
+    line-height: 1;
+    font-family: Georgia, 'Times New Roman', serif;
+    color: color-mix(in srgb, var(--primary-color, var(--accent, #2563eb)) 55%, var(--border-color, #e2e8f0));
 }
 
 .editorjs-quote cite {
