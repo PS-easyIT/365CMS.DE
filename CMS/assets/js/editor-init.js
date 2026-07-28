@@ -36,7 +36,7 @@
         quote: ['CmsQuoteTool', 'Quote'],
         code: ['CmsCodeTool', 'CodeTool'],
         table: ['Table'],
-        delimiter: ['Delimiter'],
+        delimiter: ['CmsDelimiterTool', 'Delimiter'],
         spacer: ['CmsSpacerTool'],
         embed: ['Embed'],
         linkTool: ['LinkTool'],
@@ -4359,19 +4359,33 @@
 
                 render() {
                     var wrapper = super.render();
+                    var textEl = wrapper.querySelector('.' + this.css.text);
+                    var captionEl = wrapper.querySelector('.' + this.css.caption);
 
                     this._cmsWrapperEl = wrapper;
                     applyQuoteDesignClass(wrapper, this.data.design);
+
+                    // Stock-Quote-Tool implementiert kein onPaste/pasteConfig; EditorJS' generisches
+                    // Paste-Routing fügt formatierten Zwischenablage-Inhalt dadurch nicht zuverlässig ein.
+                    // Direkt an Text/Quelle die bewährte CMS-Paste-Behandlung binden (Capture-Phase,
+                    // stoppt Propagation -> EditorJS-eigener Paste-Handler wird gar nicht erst erreicht).
+                    if (textEl) {
+                        bindEditablePasteBehavior(textEl, this.api);
+                    }
+                    if (captionEl) {
+                        bindEditablePasteBehavior(captionEl, this.api);
+                    }
 
                     return wrapper;
                 }
 
                 save(blockContent) {
                     var data = super.save(blockContent);
+                    var normalized = normalizeQuoteData(data);
 
-                    data.design = sanitizeQuoteDesign(this.data.design);
+                    normalized.design = sanitizeQuoteDesign(this.data.design);
 
-                    return data;
+                    return normalized;
                 }
 
                 renderSettings() {
@@ -4382,6 +4396,17 @@
                             icon: QUOTE_DESIGN_ICONS[design],
                             label: self.api.i18n.t('Zitat-Design: ' + QUOTE_DESIGN_LABELS[design]),
                             onActivate: function () {
+                                if (self._cmsWrapperEl && self.css) {
+                                    var textEl = self._cmsWrapperEl.querySelector('.' + self.css.text);
+                                    var captionEl = self._cmsWrapperEl.querySelector('.' + self.css.caption);
+
+                                    if (textEl) {
+                                        self.data.text = textEl.innerHTML;
+                                    }
+                                    if (captionEl) {
+                                        self.data.caption = captionEl.innerHTML;
+                                    }
+                                }
                                 self.data.design = design;
                                 applyQuoteDesignClass(self._cmsWrapperEl, design);
                                 self.block.dispatchChange();
@@ -4395,12 +4420,65 @@
                 }
 
                 static get sanitize() {
-                    return Object.assign({}, BaseQuoteTool.sanitize, { design: {} });
+                    return {
+                        text: getInlineSanitizeConfig(),
+                        caption: getInlineSanitizeConfig(),
+                        alignment: false,
+                        design: false
+                    };
                 }
             }
 
             window.CmsQuoteTool = CmsQuoteTool;
         })(window.Quote);
+    }
+
+    if (typeof window.Delimiter === 'function') {
+        (function (BaseDelimiterTool) {
+            class CmsDelimiterTool extends BaseDelimiterTool {
+                constructor(options) {
+                    super(options);
+                    this._cmsBlock = options && options.block ? options.block : null;
+                    this._cmsDelimiterElement = null;
+                }
+
+                render() {
+                    this._cmsDelimiterElement = super.render();
+
+                    return this._cmsDelimiterElement;
+                }
+
+                save(blockContent) {
+                    return normalizeDelimiterData(super.save(blockContent));
+                }
+
+                renderSettings() {
+                    var self = this;
+
+                    return super.renderSettings().map(function (setting) {
+                        var activate = setting && typeof setting.onActivate === 'function'
+                            ? setting.onActivate
+                            : null;
+
+                        if (!activate) {
+                            return setting;
+                        }
+
+                        return Object.assign({}, setting, {
+                            onActivate: function () {
+                                activate();
+                                if (self._cmsBlock && typeof self._cmsBlock.dispatchChange === 'function') {
+                                    self._cmsBlock.dispatchChange();
+                                }
+                                notifyToolChanged(self._cmsDelimiterElement);
+                            }
+                        });
+                    });
+                }
+            }
+
+            window.CmsDelimiterTool = CmsDelimiterTool;
+        })(window.Delimiter);
     }
 
     function resolveToolClass(toolName) {

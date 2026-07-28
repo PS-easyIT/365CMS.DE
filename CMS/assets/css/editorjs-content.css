@@ -197,6 +197,21 @@
     text-align: center;
 }
 
+.editorjs-delimiter--width-8 { --cms-editorjs-delimiter-width: 8%; }
+.editorjs-delimiter--width-15 { --cms-editorjs-delimiter-width: 15%; }
+.editorjs-delimiter--width-25 { --cms-editorjs-delimiter-width: 25%; }
+.editorjs-delimiter--width-35 { --cms-editorjs-delimiter-width: 35%; }
+.editorjs-delimiter--width-50 { --cms-editorjs-delimiter-width: 50%; }
+.editorjs-delimiter--width-60 { --cms-editorjs-delimiter-width: 60%; }
+.editorjs-delimiter--width-100 { --cms-editorjs-delimiter-width: 100%; }
+
+.editorjs-delimiter--thickness-1 { --cms-editorjs-delimiter-thickness: 1px; }
+.editorjs-delimiter--thickness-2 { --cms-editorjs-delimiter-thickness: 2px; }
+.editorjs-delimiter--thickness-3 { --cms-editorjs-delimiter-thickness: 3px; }
+.editorjs-delimiter--thickness-4 { --cms-editorjs-delimiter-thickness: 4px; }
+.editorjs-delimiter--thickness-5 { --cms-editorjs-delimiter-thickness: 5px; }
+.editorjs-delimiter--thickness-6 { --cms-editorjs-delimiter-thickness: 6px; }
+
 .editorjs-delimiter hr {
     margin: 1.2rem auto;
     width: min(100%, var(--cms-editorjs-delimiter-width, 35%));

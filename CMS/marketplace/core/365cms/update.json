@@ -8,6 +8,6 @@
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.76: Der EditorJS-Zitat-Block bietet 4 auswählbare Designs (Balken, Karte, Minimal, Anführungszeichen) mit einem abgeschwächten, dark-mode-sicheren Standard-Balken; der Trennstrich-Block respektiert die gewählte Linienbreite jetzt zuverlässig statt teils auf einen hartkodierten 25%-Fallback zurückzufallen.",
+  "notes": "Release-Stand 3.3.76: Der EditorJS-Zitat-Block bietet 4 auswählbare Designs (Balken, Karte, Minimal, Anführungszeichen) mit abgeschwächtem Standard-Balken; der Trennstrich respektiert Breite und Dicke. Formatiertes Einfügen in Zitate funktioniert über die CMS-Paste-Behandlung. Fett, Kursiv, Links und weitere Inline-Formate bleiben nach dem Speichern erhalten, weil CmsQuoteTool.sanitize jetzt – wie ParagraphTool – die vollständige Inline-Allowlist statt der auf <br> begrenzten Stock-Quote-Konfiguration verwendet.",
   "critical": false
 }

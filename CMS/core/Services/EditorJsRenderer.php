@@ -797,6 +797,10 @@ final class EditorJsRenderer
         }
 
         $classes = ['editorjs-block', 'editorjs-delimiter', 'editorjs-delimiter--' . $style];
+        if ($style === 'line') {
+            $classes[] = 'editorjs-delimiter--width-' . $lineWidth;
+            $classes[] = 'editorjs-delimiter--thickness-' . $lineThickness;
+        }
         $attributes = ' class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '"'
             . ' data-style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '"';
 
