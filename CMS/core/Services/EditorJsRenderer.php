@@ -630,6 +630,11 @@ final class EditorJsRenderer
         }
 
         $caption = $this->sanitizeInline((string)($data['caption'] ?? ''));
+        $sourceUrl = EditorJsHtmlSanitizer::sanitizeUrl(
+            (string) ($data['sourceUrl'] ?? $data['source_url'] ?? $data['imageSource'] ?? $data['source'] ?? ''),
+            ['http', 'https'],
+            false
+        );
         $classes = ['editorjs-block', 'editorjs-image'];
         $alignment = (string) ($data['alignment'] ?? $data['align'] ?? 'center');
         $size = (string) ($data['size'] ?? $data['widthPreset'] ?? (!empty($data['stretched']) ? 'full' : 'normal'));
@@ -733,6 +738,12 @@ final class EditorJsRenderer
         if (!$isGeneratedCaption && $caption !== '') {
             $html .= '<figcaption>' . $caption . '</figcaption>';
         }
+        if ($sourceUrl !== '') {
+            $html .= '<a class="editorjs-image__source" href="' . htmlspecialchars($sourceUrl, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener noreferrer external nofollow" aria-label="Bildquelle in neuem Tab öffnen">';
+            $html .= '<span class="editorjs-image__source-label">QUELLE</span>';
+            $html .= '<span class="editorjs-image__source-icon" aria-hidden="true">↗</span>';
+            $html .= '</a>';
+        }
         $html .= '</figure>';
 
         return $html;
@@ -790,12 +801,8 @@ final class EditorJsRenderer
         if (!in_array($style, ['line', 'dash', 'star'], true)) {
             $style = 'line';
         }
-        if (!in_array($lineWidth, [8, 15, 25, 35, 50, 60, 100], true)) {
-            $lineWidth = max(8, min(100, $lineWidth));
-        }
-        if (!in_array($lineThickness, [1, 2, 3, 4, 5, 6], true)) {
-            $lineThickness = max(1, min(6, $lineThickness));
-        }
+        $lineWidth = $this->snapNumberToPreset($lineWidth, [8, 15, 25, 35, 50, 60, 100], 35);
+        $lineThickness = $this->snapNumberToPreset($lineThickness, [1, 2, 3, 4, 5, 6], 2);
 
         $classes = ['editorjs-block', 'editorjs-delimiter', 'editorjs-delimiter--' . $style];
         if ($style === 'line') {
@@ -930,11 +937,24 @@ final class EditorJsRenderer
         $height = (int) preg_replace('/[^0-9]/', '', (string) $value);
         $allowed = [0, 200, 300, 400, 500, 600, 800, 1000];
 
-        if (in_array($height, $allowed, true)) {
-            return $height;
+        return $this->snapNumberToPreset($height, $allowed, 0);
+    }
+
+    /** @param int[] $presets */
+    private function snapNumberToPreset(int $value, array $presets, int $fallback): int
+    {
+        if ($presets === []) {
+            return $fallback;
         }
 
-        return max(0, min(1000, $height));
+        $closest = in_array($fallback, $presets, true) ? $fallback : (int) $presets[0];
+        foreach ($presets as $preset) {
+            if (abs($preset - $value) < abs($closest - $value)) {
+                $closest = (int) $preset;
+            }
+        }
+
+        return $closest;
     }
 
     private function truncatePlainText(string $value, int $maxLength): string

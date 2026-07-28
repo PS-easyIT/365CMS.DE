@@ -245,12 +245,8 @@ final class EditorJsContentNormalizer
         if (!in_array($style, ['star', 'dash', 'line'], true)) {
             $style = 'line';
         }
-        if (!in_array($lineWidth, [8, 15, 25, 35, 50, 60, 100], true)) {
-            $lineWidth = max(8, min(100, $lineWidth));
-        }
-        if (!in_array($lineThickness, [1, 2, 3, 4, 5, 6], true)) {
-            $lineThickness = max(1, min(6, $lineThickness));
-        }
+        $lineWidth = self::snapNumberToPreset($lineWidth, [8, 15, 25, 35, 50, 60, 100], 35);
+        $lineThickness = self::snapNumberToPreset($lineThickness, [1, 2, 3, 4, 5, 6], 2);
 
         return $style === 'line'
             ? ['style' => $style, 'lineWidth' => $lineWidth, 'lineThickness' => $lineThickness]
@@ -273,6 +269,11 @@ final class EditorJsContentNormalizer
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
         $url = (string) ($file['url'] ?? $data['url'] ?? $data['src'] ?? '');
         $caption = (string) ($data['caption'] ?? $data['alt'] ?? '');
+        $sourceUrl = EditorJsHtmlSanitizer::sanitizeUrl(
+            (string) ($data['sourceUrl'] ?? $data['source_url'] ?? $data['imageSource'] ?? $data['source'] ?? ''),
+            ['http', 'https'],
+            false
+        );
         $alignment = (string) ($data['alignment'] ?? $data['align'] ?? 'center');
         $size = (string) ($data['size'] ?? $data['widthPreset'] ?? 'normal');
         $borderStyle = (string) ($data['borderStyle'] ?? (!empty($data['withBorder']) ? 'thin' : 'none'));
@@ -292,6 +293,7 @@ final class EditorJsContentNormalizer
         $normalized = [
             'file' => array_merge($file, ['url' => $url]),
             'caption' => self::sanitizeInline($caption),
+            'sourceUrl' => $sourceUrl,
             'alignment' => $alignment,
             'size' => $size,
             'widthPreset' => $size,
@@ -1076,11 +1078,24 @@ final class EditorJsContentNormalizer
         $height = (int) preg_replace('/[^0-9]/', '', (string) $value);
         $allowed = [0, 200, 300, 400, 500, 600, 800, 1000];
 
-        if (in_array($height, $allowed, true)) {
-            return (string) $height;
+        return (string) self::snapNumberToPreset($height, $allowed, 0);
+    }
+
+    /** @param int[] $presets */
+    private static function snapNumberToPreset(int $value, array $presets, int $fallback): int
+    {
+        if ($presets === []) {
+            return $fallback;
         }
 
-        return (string) max(0, min(1000, $height));
+        $closest = in_array($fallback, $presets, true) ? $fallback : (int) $presets[0];
+        foreach ($presets as $preset) {
+            if (abs($preset - $value) < abs($closest - $value)) {
+                $closest = (int) $preset;
+            }
+        }
+
+        return $closest;
     }
 
     private static function truncatePlainText(string $value, int $maxLength): string

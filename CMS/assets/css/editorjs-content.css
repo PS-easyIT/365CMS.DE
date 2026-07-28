@@ -401,6 +401,32 @@
     line-height: 1.55;
 }
 
+.editorjs-image__source {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin-top: .35rem;
+    color: var(--text-secondary, #64748b);
+    font-size: .72rem;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: .08em;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.editorjs-image__source:hover,
+.editorjs-image__source:focus-visible {
+    color: var(--primary-color, var(--accent, #2563eb));
+    text-decoration: underline;
+    text-underline-offset: .16em;
+}
+
+.editorjs-image__source-icon {
+    font-size: 1.05em;
+    line-height: 1;
+}
+
 .editorjs-image--rounded img,
 .editorjs-image[data-rounded="1"] img,
 .editorjs-gallery img {

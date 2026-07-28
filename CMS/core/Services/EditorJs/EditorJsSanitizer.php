@@ -173,6 +173,11 @@ final class EditorJsSanitizer
             case 'image':
                 $data['file'] = $this->sanitizeFileInfo(is_array($data['file'] ?? null) ? $data['file'] : []);
                 $data['caption'] = $cleanInline($data['caption'] ?? '');
+                $data['sourceUrl'] = EditorJsHtmlSanitizer::sanitizeUrl(
+                    (string) ($data['sourceUrl'] ?? $data['source_url'] ?? $data['imageSource'] ?? $data['source'] ?? ''),
+                    ['http', 'https'],
+                    false
+                );
                 $alignment = (string) ($data['alignment'] ?? $data['align'] ?? 'center');
                 if (!in_array($alignment, ['left', 'center', 'right'], true)) {
                     $alignment = 'center';
@@ -235,12 +240,8 @@ final class EditorJsSanitizer
                 if (!in_array($style, ['star', 'dash', 'line'], true)) {
                     $style = 'line';
                 }
-                if (!in_array($lineWidth, [8, 15, 25, 35, 50, 60, 100], true)) {
-                    $lineWidth = max(8, min(100, $lineWidth));
-                }
-                if (!in_array($lineThickness, [1, 2, 3, 4, 5, 6], true)) {
-                    $lineThickness = max(1, min(6, $lineThickness));
-                }
+                $lineWidth = $this->snapNumberToPreset($lineWidth, [8, 15, 25, 35, 50, 60, 100], 35);
+                $lineThickness = $this->snapNumberToPreset($lineThickness, [1, 2, 3, 4, 5, 6], 2);
 
                 $data = $style === 'line'
                     ? ['style' => $style, 'lineWidth' => $lineWidth, 'lineThickness' => $lineThickness]
@@ -739,11 +740,24 @@ final class EditorJsSanitizer
         $height = (int) preg_replace('/[^0-9]/', '', (string) $value);
         $allowed = [0, 200, 300, 400, 500, 600, 800, 1000];
 
-        if (in_array($height, $allowed, true)) {
-            return (string) $height;
+        return (string) $this->snapNumberToPreset($height, $allowed, 0);
+    }
+
+    /** @param int[] $presets */
+    private function snapNumberToPreset(int $value, array $presets, int $fallback): int
+    {
+        if ($presets === []) {
+            return $fallback;
         }
 
-        return (string) max(0, min(1000, $height));
+        $closest = in_array($fallback, $presets, true) ? $fallback : (int) $presets[0];
+        foreach ($presets as $preset) {
+            if (abs($preset - $value) < abs($closest - $value)) {
+                $closest = (int) $preset;
+            }
+        }
+
+        return $closest;
     }
 
     private function truncatePlainText(string $value, int $maxLength): string

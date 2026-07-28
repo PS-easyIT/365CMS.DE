@@ -28,7 +28,6 @@
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
     var VERSION = 'cms-editorjs-org-assets-2026-06-05-paste-sanitize-warning-colors';
     var CMS_BLOCK_CLIPBOARD_PREFIX = 'CMS_EDITORJS_BLOCKS_V1:';
-    var CMS_BLOCK_CLIPBOARD_MEMORY = null;
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -196,7 +195,6 @@
             return Promise.reject(new Error('Der Block konnte nicht serialisiert werden.'));
         }
 
-        CMS_BLOCK_CLIPBOARD_MEMORY = text;
         if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
             return navigator.clipboard.writeText(text).then(function () {
                 return true;
@@ -244,6 +242,12 @@
         }
 
         return /^(https?:|mailto:|tel:)$/i.test(parser.protocol) ? url : '';
+    }
+
+    function sanitizeImageSourceUrl(value) {
+        var url = sanitizeEditableUrl(value);
+
+        return /^https?:\/\//i.test(url) ? url : '';
     }
 
     function sanitizeEditableColor(value) {
@@ -919,6 +923,15 @@
             normalized.textVariant = textVariant;
         }
 
+        ['Cropper', 'CropperTune'].forEach(function (key) {
+            var tune = source[key] && typeof source[key] === 'object' ? source[key] : {};
+            var croppedImage = sanitizeEditableUrl(tune.croppedImage || '');
+
+            if (croppedImage !== '' && isImageUrlCandidate(croppedImage)) {
+                normalized[key] = { croppedImage: croppedImage };
+            }
+        });
+
         return normalized;
     }
 
@@ -1020,6 +1033,7 @@
         var borderStyle = String(imageData.borderStyle || (imageData.withBorder ? 'thin' : 'none'));
         var imageFit = normalizeImageFitValue(imageData.imageFit || imageData.objectFit || imageData.fit || 'contain', 'contain');
         var maxHeight = normalizeImageMaxHeightValue(imageData.maxHeight || imageData.imageMaxHeight || imageData.max_height || '0');
+        var sourceUrl = sanitizeImageSourceUrl(imageData.sourceUrl || imageData.source_url || imageData.imageSource || imageData.source || '');
 
         if (['left', 'center', 'right'].indexOf(alignment) === -1) {
             alignment = 'center';
@@ -1034,6 +1048,7 @@
         return Object.assign({}, imageData, {
             file: Object.assign({}, file, { url: String(file.url || imageData.url || '') }),
             caption: String(imageData.caption || ''),
+            sourceUrl: sourceUrl,
             alignment: alignment,
             size: size,
             widthPreset: size,
@@ -1059,11 +1074,7 @@
         var height = parseInt(String(value || '0').replace(/[^0-9]/g, ''), 10) || 0;
         var allowed = [0, 200, 300, 400, 500, 600, 800, 1000];
 
-        if (allowed.indexOf(height) !== -1) {
-            return String(height);
-        }
-
-        return String(Math.max(0, Math.min(1000, height)));
+        return String(snapNumberToPreset(height, allowed, 0));
     }
 
     function normalizeGalleryData(data) {
@@ -1297,12 +1308,8 @@
         if (['star', 'dash', 'line'].indexOf(style) === -1) {
             style = 'line';
         }
-        if ([8, 15, 25, 35, 50, 60, 100].indexOf(lineWidth) === -1) {
-            lineWidth = Math.max(8, Math.min(100, lineWidth));
-        }
-        if ([1, 2, 3, 4, 5, 6].indexOf(lineThickness) === -1) {
-            lineThickness = Math.max(1, Math.min(6, lineThickness));
-        }
+        lineWidth = snapNumberToPreset(lineWidth, [8, 15, 25, 35, 50, 60, 100], 35);
+        lineThickness = snapNumberToPreset(lineThickness, [1, 2, 3, 4, 5, 6], 2);
 
         return style === 'line'
             ? { style: style, lineWidth: lineWidth, lineThickness: lineThickness }
@@ -1327,6 +1334,19 @@
             alignment: alignment,
             design: design
         };
+    }
+
+    function snapNumberToPreset(value, presets, fallback) {
+        var number = parseInt(value, 10);
+        var values = Array.isArray(presets) ? presets : [];
+
+        if (!isFinite(number) || values.length === 0) {
+            return fallback;
+        }
+
+        return values.reduce(function (closest, preset) {
+            return Math.abs(preset - number) < Math.abs(closest - number) ? preset : closest;
+        }, values.indexOf(fallback) !== -1 ? fallback : values[0]);
     }
 
     function normalizeListData(data) {
@@ -1442,7 +1462,22 @@
             }
 
             if (tag === 'blockquote') {
-                blocks.push({ type: 'quote', data: { text: stripTags(text), caption: '' } });
+                var quoteClone = child.cloneNode(true);
+                var citation = quoteClone.querySelector('cite, footer');
+                var caption = citation ? sanitizeEditableHtml(citation.innerHTML || citation.textContent || '') : '';
+
+                if (citation && citation.parentNode) {
+                    citation.parentNode.removeChild(citation);
+                }
+                blocks.push({
+                    type: 'quote',
+                    data: normalizeQuoteData({
+                        text: quoteClone.innerHTML || quoteClone.textContent || '',
+                        caption: caption,
+                        alignment: 'left',
+                        design: 'bar'
+                    })
+                });
                 return;
             }
 
@@ -1795,9 +1830,11 @@
         var shouldReplaceCurrent = replaceEmptyCurrent !== false
             && stripTags(editable ? editable.innerHTML || '' : '').trim() === '';
         var insertIndex;
+        var insertedCount = 0;
+        var indexedInsertedCount = 0;
 
         if (!blocksApi || typeof blocksApi.insert !== 'function' || !Array.isArray(blocks) || blocks.length === 0) {
-            return false;
+            return 0;
         }
 
         if (currentIndex < 0 && typeof blocksApi.getCurrentBlockIndex === 'function') {
@@ -1808,22 +1845,19 @@
             }
         }
 
-        insertIndex = currentIndex >= 0 ? currentIndex + 1 : undefined;
+        insertIndex = currentIndex >= 0 ? currentIndex + (shouldReplaceCurrent ? 0 : 1) : undefined;
 
-        if (shouldReplaceCurrent && currentIndex >= 0 && typeof blocksApi.delete === 'function') {
-            try {
-                blocksApi.delete(currentIndex);
-                insertIndex = currentIndex;
-            } catch (_error) {
-                insertIndex = currentIndex + 1;
-            }
-        }
-
-        blocks.forEach(function (block, offset) {
+        blocks.forEach(function (block) {
             var insertedBlock;
 
             try {
-                insertedBlock = blocksApi.insert(block.type, block.data || {}, undefined, typeof insertIndex === 'number' ? insertIndex + offset : undefined, true);
+            insertedBlock = blocksApi.insert(block.type, block.data || {}, undefined, typeof insertIndex === 'number' ? insertIndex + indexedInsertedCount : undefined, true);
+                if (insertedBlock) {
+                    insertedCount += 1;
+                    if (typeof insertIndex === 'number') {
+                        indexedInsertedCount += 1;
+                    }
+                }
                 if (
                     insertedBlock
                     && insertedBlock.id
@@ -1836,13 +1870,13 @@
                     });
                 }
             } catch (error) {
-                if (typeof insertIndex === 'number') {
-                    logWarn('Indexed paste block insert failed.', error);
-                    return;
-                }
+                logWarn('Indexed paste block insert failed.', error);
 
                 try {
                     insertedBlock = blocksApi.insert(block.type, block.data || {});
+                    if (insertedBlock) {
+                        insertedCount += 1;
+                    }
                     if (
                         insertedBlock
                         && insertedBlock.id
@@ -1860,17 +1894,25 @@
             }
         });
 
-        if (api && api.caret && typeof api.caret.setToBlock === 'function') {
+        if (shouldReplaceCurrent && currentIndex >= 0 && insertedCount > 0 && typeof blocksApi.delete === 'function') {
+            try {
+                blocksApi.delete(currentIndex + indexedInsertedCount);
+            } catch (deleteError) {
+                logWarn('Original empty block could not be removed after paste.', deleteError);
+            }
+        }
+
+        if (insertedCount > 0 && api && api.caret && typeof api.caret.setToBlock === 'function') {
             window.setTimeout(function () {
                 try {
-                    api.caret.setToBlock(typeof insertIndex === 'number' ? insertIndex + blocks.length - 1 : currentIndex + blocks.length, 'end');
+                    api.caret.setToBlock(typeof insertIndex === 'number' ? insertIndex + insertedCount - 1 : currentIndex + insertedCount, 'end');
                 } catch (_error) {
                     // Caret placement is a UX enhancement; inserted blocks already exist.
                 }
             }, 0);
         }
 
-        return true;
+        return insertedCount;
     }
 
     function bindEditablePasteBehavior(editable, api) {
@@ -1991,15 +2033,28 @@
             var text = clipboardData && typeof clipboardData.getData === 'function'
                 ? clipboardData.getData('text/plain')
                 : '';
-            var blocks = parseCmsBlockClipboardText(text || CMS_BLOCK_CLIPBOARD_MEMORY || '');
+            var blocks = parseCmsBlockClipboardText(text);
+            var insertedCount;
 
-            if (blocks.length === 0 || !insertEditorBlocksFromPaste(editor, event.target || holder, blocks, false)) {
+            if (blocks.length === 0) {
+                return;
+            }
+
+            insertedCount = insertEditorBlocksFromPaste(editor, event.target || holder, blocks, false);
+            if (insertedCount === 0) {
+                showCmsEditorNotice(editor, 'Die kopierten Blöcke konnten in diesem Editor nicht eingefügt werden.', 'error');
                 return;
             }
 
             event.preventDefault();
             event.stopImmediatePropagation();
-            showCmsEditorNotice(editor, blocks.length === 1 ? 'Block eingefügt.' : blocks.length + ' Blöcke eingefügt.', 'success');
+            showCmsEditorNotice(
+                editor,
+                insertedCount === blocks.length
+                    ? (insertedCount === 1 ? 'Block eingefügt.' : insertedCount + ' Blöcke eingefügt.')
+                    : insertedCount + ' von ' + blocks.length + ' Blöcken eingefügt.',
+                insertedCount === blocks.length ? 'success' : 'error'
+            );
         };
 
         keydownHandler = function (event) {
@@ -2686,6 +2741,7 @@
                 imageFit: false,
                 objectFit: false,
                 maxHeight: false,
+                sourceUrl: false,
                 withBorder: false,
                 withBackground: false,
                 stretched: false,
@@ -2712,6 +2768,7 @@
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--image');
             var url = createInput('hidden', '', (this.data.file && this.data.file.url) || this.data.url || '', '');
             var caption = createInput('text', 'form-control mb-2', this.data.caption || '', 'Bildunterschrift');
+            var sourceUrl = createInput('url', 'form-control mb-2', this.data.sourceUrl || '', 'https://quelle.example');
             var upload = createInput('file', 'form-control form-control-sm', '', '');
             var libraryButton = createElement('button', 'btn btn-sm btn-outline-primary', 'Aus Mediathek wählen');
             var optionsPanel = createElement('div', 'cms-editorjs-floating-options cms-editorjs-image-options');
@@ -2756,6 +2813,9 @@
             caption.classList.add('cms-editorjs-image-caption');
             caption.setAttribute('aria-label', 'Bildunterschrift');
             caption.readOnly = this.readOnly;
+            sourceUrl.classList.add('cms-editorjs-image-source');
+            sourceUrl.setAttribute('aria-label', 'Quellwebsite des Bildes');
+            sourceUrl.readOnly = this.readOnly;
 
             [alignment, size, borderStyle, imageFit, maxHeight, withBackground.input, rounded.input, shadow.input].forEach((control) => {
                 control.disabled = this.readOnly;
@@ -2766,12 +2826,13 @@
             settings.appendChild(this.createSetting('Rahmen', borderStyle));
             settings.appendChild(this.createSetting('Skalierung', imageFit));
             settings.appendChild(this.createSetting('Max. Höhe', maxHeight));
+            settings.appendChild(this.createSetting('Quellwebsite (URL)', sourceUrl));
             settings.appendChild(withBackground.wrapper);
             settings.appendChild(rounded.wrapper);
             settings.appendChild(shadow.wrapper);
 
             preview.appendChild(previewImage);
-            [url, caption, alignment, size, borderStyle, imageFit, maxHeight, withBackground.input, rounded.input, shadow.input].forEach(function (element) {
+            [url, caption, sourceUrl, alignment, size, borderStyle, imageFit, maxHeight, withBackground.input, rounded.input, shadow.input].forEach(function (element) {
                 var handleControlChange = function () {
                     updatePreview();
                     if (self.block && typeof self.block.dispatchChange === 'function') {
@@ -2787,6 +2848,7 @@
             wrapper.appendChild(url);
             wrapper.appendChild(preview);
             wrapper.appendChild(caption);
+            wrapper.appendChild(sourceUrl);
             optionsPanel.appendChild(optionsLabel);
             optionsPanel.appendChild(upload);
             optionsPanel.appendChild(libraryButton);
@@ -2797,6 +2859,7 @@
                 wrapper: wrapper,
                 url: url,
                 caption: caption,
+                sourceUrl: sourceUrl,
                 upload: upload,
                 libraryButton: libraryButton,
                 alignment: alignment,
@@ -3074,6 +3137,7 @@
             return normalizeImageData({
                 file: { url: this.nodes.url ? this.nodes.url.value.trim() : '' },
                 caption: this.nodes.caption ? this.nodes.caption.value.trim() : '',
+                sourceUrl: this.nodes.sourceUrl ? this.nodes.sourceUrl.value.trim() : '',
                 alignment: this.nodes.alignment ? this.nodes.alignment.value : 'center',
                 size: size,
                 widthPreset: size,

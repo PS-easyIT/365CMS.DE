@@ -8,6 +8,6 @@
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.76: Zitat-, Trennstrich- und Bilder-Optionen funktionieren zuverlässig. Zusätzlich kann jetzt jeder EditorJS-Block über den universellen Block-Clipboard-Tune oder als markierte Auswahl per Strg/Cmd+C kopiert und in einem anderen EditorJS-Bereich inklusive Blockdaten und Tunes wieder eingefügt werden.",
+  "notes": "Release-Stand 3.3.76: Zitat-, Trennstrich- und Bildoptionen funktionieren zuverlässig. Einzelbilder unterstützen jetzt eine sichere Quellwebsite mit Public-Zeile QUELLE ↗. Block-Clipboard bewahrt Cropper-Tunes, meldet Teilerfolge korrekt und fügt keine veralteten Memory-Blöcke ein. Der PHINIT-Fallback erhält sichere Bildmarkups auch ohne Purifier/KSES.",
   "critical": false
 }
