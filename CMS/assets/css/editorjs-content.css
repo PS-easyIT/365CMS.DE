@@ -285,18 +285,23 @@
 }
 
 .editorjs-image {
+    --cms-editorjs-image-normal-width: auto;
+    --cms-editorjs-image-wide-width: 1000px;
     margin-inline: 0;
 }
 
-.editorjs-image[data-align="left"] {
+.editorjs-image[data-align="left"],
+.editorjs-image--align-left {
     text-align: left !important;
 }
 
-.editorjs-image[data-align="center"] {
+.editorjs-image[data-align="center"],
+.editorjs-image--align-center {
     text-align: center !important;
 }
 
-.editorjs-image[data-align="right"] {
+.editorjs-image[data-align="right"],
+.editorjs-image--align-right {
     text-align: right !important;
 }
 
@@ -313,21 +318,56 @@
     height: auto !important;
 }
 
-.editorjs-image img {
+.editorjs-image img,
+.editorjs-image--fit-contain img {
     object-fit: var(--cms-editorjs-image-fit, contain) !important;
 }
 
-.editorjs-image[data-size="full"] img {
+.editorjs-image--fit-cover img { object-fit: cover !important; }
+.editorjs-image--fit-fill img { object-fit: fill !important; }
+.editorjs-image--fit-none img { object-fit: none !important; }
+.editorjs-image--fit-scale-down img { object-fit: scale-down !important; }
+
+.editorjs-image[data-size="full"] img,
+.editorjs-image--full img {
     width: 100% !important;
 }
 
-.editorjs-image[data-size="normal"] img {
-    width: min(100%, var(--cms-editorjs-image-normal-width, 760px)) !important;
+.editorjs-image[data-size="normal"] img,
+.editorjs-image--normal img {
+    width: var(--cms-editorjs-image-normal-width, auto) !important;
 }
 
-.editorjs-image[data-size="wide"] img {
-    width: min(100%, var(--cms-editorjs-image-wide-width, 760px)) !important;
+.editorjs-image[data-size="wide"] img,
+.editorjs-image--wide img {
+    width: min(100%, var(--cms-editorjs-image-wide-width, 1000px)) !important;
 }
+
+.editorjs-image[data-align="left"] img,
+.editorjs-image--align-left img { margin-inline: 0 auto !important; }
+.editorjs-image[data-align="center"] img,
+.editorjs-image--align-center img { margin-inline: auto !important; }
+.editorjs-image[data-align="right"] img,
+.editorjs-image--align-right img { margin-inline: auto 0 !important; }
+
+.editorjs-image--max-height-200 img { max-height: 200px !important; }
+.editorjs-image--max-height-300 img { max-height: 300px !important; }
+.editorjs-image--max-height-400 img { max-height: 400px !important; }
+.editorjs-image--max-height-500 img { max-height: 500px !important; }
+.editorjs-image--max-height-600 img { max-height: 600px !important; }
+.editorjs-image--max-height-800 img { max-height: 800px !important; }
+.editorjs-image--max-height-1000 img { max-height: 1000px !important; }
+.editorjs-image--fit-cover.editorjs-image:not(.editorjs-image--max-height-0) img,
+.editorjs-image--fit-fill.editorjs-image:not(.editorjs-image--max-height-0) img {
+    height: var(--cms-editorjs-image-max-height, auto) !important;
+}
+.editorjs-image--max-height-200 { --cms-editorjs-image-max-height: 200px; }
+.editorjs-image--max-height-300 { --cms-editorjs-image-max-height: 300px; }
+.editorjs-image--max-height-400 { --cms-editorjs-image-max-height: 400px; }
+.editorjs-image--max-height-500 { --cms-editorjs-image-max-height: 500px; }
+.editorjs-image--max-height-600 { --cms-editorjs-image-max-height: 600px; }
+.editorjs-image--max-height-800 { --cms-editorjs-image-max-height: 800px; }
+.editorjs-image--max-height-1000 { --cms-editorjs-image-max-height: 1000px; }
 
 .editorjs-image[data-border="thin"] img,
 .editorjs-image--border-thin img {

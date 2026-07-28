@@ -2422,6 +2422,7 @@
             options = options || {};
             this.data = normalizeImageData(options.data || {});
             this.config = options.config || {};
+            this.block = options.block || null;
             this.readOnly = !!options.readOnly;
             this.nodes = {};
         }
@@ -2527,6 +2528,9 @@
             [url, caption, alignment, size, borderStyle, imageFit, maxHeight, withBackground.input, rounded.input, shadow.input].forEach(function (element) {
                 var handleControlChange = function () {
                     updatePreview();
+                    if (self.block && typeof self.block.dispatchChange === 'function') {
+                        self.block.dispatchChange();
+                    }
                     notifyToolChanged(self.nodes.wrapper || wrapper);
                 };
 

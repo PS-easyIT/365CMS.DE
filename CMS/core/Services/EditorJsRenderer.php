@@ -652,6 +652,7 @@ final class EditorJsRenderer
         $classes[] = 'editorjs-image--align-' . $alignment;
         $classes[] = 'editorjs-image--' . $size;
         $classes[] = 'editorjs-image--fit-' . $imageFit;
+        $classes[] = 'editorjs-image--max-height-' . $maxHeight;
         $figureStyles[] = '--cms-editorjs-image-fit:' . $imageFit;
 
         if ($borderStyle !== 'none') {
@@ -680,10 +681,10 @@ final class EditorJsRenderer
             $imageStyles[] = 'width:100%!important';
             $imageStyles[] = 'max-width:100%!important';
         } elseif ($size === 'wide') {
-            $imageStyles[] = 'width:min(100%,var(--cms-editorjs-image-wide-width,760px))!important';
+            $imageStyles[] = 'width:min(100%,var(--cms-editorjs-image-wide-width,1000px))!important';
             $imageStyles[] = 'max-width:100%!important';
         } else {
-            $imageStyles[] = 'width:min(100%,var(--cms-editorjs-image-normal-width,760px))!important';
+            $imageStyles[] = 'width:var(--cms-editorjs-image-normal-width,auto)!important';
             $imageStyles[] = 'max-width:100%!important';
         }
         $imageStyles[] = 'object-fit:' . $imageFit . '!important';
