@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.77
+﻿**Version:** 3.3.78
 
 # 365CMS Changelog
 
@@ -13,6 +13,14 @@
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.3.78 — 23.08.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.78** | 🔴 fix | EditorJS / Mehrfach-Editoren | Mehrere über `EditorJsAssetService` gerenderte EditorJS-Instanzen innerhalb desselben Formulars koordinieren beim Absenden ihre jeweiligen `save()`-Vorgänge. Der Save-Status wird pro Hidden-Editor-ID geführt und das Formular erst übermittelt, wenn alle registrierten Editoren erfolgreich gespeichert wurden, sodass kein zweiter Beschreibungseditor mit einem veralteten Hidden-JSON-Wert übergangen wird. |
 
 ---
 

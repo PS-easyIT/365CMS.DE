@@ -205,6 +205,12 @@ final class EditorJsAssetService
                 }
 
                 var editor;
+                var form = holderEl.closest('form');
+                var saveStateKey = String(<?php echo $hiddenIdJs; ?>);
+                if (form) {
+                    form.cmsEditorJsSaveStates = form.cmsEditorJsSaveStates || {};
+                    form.cmsEditorJsSaveStates[saveStateKey] = 'dirty';
+                }
                 var countEl = document.getElementById(<?php echo $countIdJs; ?>);
                 var updateBlockCount = function() {
                     if (!countEl || !editor || !editor.blocks) {
@@ -233,6 +239,9 @@ final class EditorJsAssetService
                             },
                             onChange: function(outputData) {
                                 syncHiddenValue(outputData);
+                                if (form && form.cmsEditorJsSaveStates) {
+                                    form.cmsEditorJsSaveStates[saveStateKey] = 'dirty';
+                                }
                             },
                             onError: function(error, context) {
                                 console.error('Editor.js runtime error:', context || {}, error || null);
@@ -335,7 +344,6 @@ final class EditorJsAssetService
                     }
                 }, { once: true });
 
-                var form = holderEl.closest('form');
                 if (form) {
                     var lastSubmitter = null;
                     var submitFormSafely = function(submitter) {
@@ -374,20 +382,32 @@ final class EditorJsAssetService
                     }, true);
 
                     form.addEventListener('submit', function(e) {
-                        if (form.dataset.editorjsSaving === 'true') {
+                        var saveStates = form.cmsEditorJsSaveStates || {};
+                        if (saveStates[saveStateKey] === 'saved') {
                             return;
                         }
 
                         e.preventDefault();
-                        form.dataset.editorjsSaving = 'true';
+                        if (saveStates[saveStateKey] === 'saving') {
+                            return;
+                        }
+
+                        saveStates[saveStateKey] = 'saving';
                         var submitter = e.submitter || lastSubmitter;
 
                         editor.save().then(function(outputData) {
                             syncHiddenValue(outputData);
-                            submitFormSafely(submitter);
+                            saveStates[saveStateKey] = 'saved';
+
+                            var allEditorsSaved = Object.keys(saveStates).every(function(key) {
+                                return saveStates[key] === 'saved';
+                            });
+                            if (allEditorsSaved) {
+                                submitFormSafely(submitter);
+                            }
                         }).catch(function(err) {
                             console.error('Editor.js save error:', err);
-                            delete form.dataset.editorjsSaving;
+                            saveStates[saveStateKey] = 'failed';
                             alert('Der Editor-Inhalt konnte nicht gespeichert werden. Bitte problematische Blöcke prüfen und erneut speichern.');
                             if (typeof holderEl.focus === 'function') {
                                 holderEl.focus({ preventScroll: true });

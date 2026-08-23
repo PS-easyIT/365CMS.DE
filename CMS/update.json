@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.77",
+  "version": "3.3.78",
   "min_php": "8.4",
-  "released": "2026-07-28",
+  "released": "2026-08-23",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.77: Audit- und Stabilitätsrelease für EditorJS/PHINIT. Einzelbilder bleiben im PHINIT-Public-Frontend auch bei Fallback-Sanitizing sichtbar, unterstützen sichere Quellenlinks (QUELLE ↗), Clipboard erhält Cropper-Tunes und meldet Teilerfolge korrekt; Delimiter- und Bildwerte werden auf echte CSS-Presets normalisiert.",
+  "notes": "Release-Stand 3.3.78: Mehrere EditorJS-Instanzen innerhalb desselben Formulars speichern ihre Inhalte vor dem Submit nun vollständig und koordiniert; abgesendet wird erst nach Abschluss aller Editor-Saves.",
   "critical": false
 }
