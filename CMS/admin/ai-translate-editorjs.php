@@ -66,6 +66,12 @@ if (!Security::instance()->verifyPersistentToken((string) ($_POST['csrf_token'] 
     exit;
 }
 
+// Große Editor.js-Dokumente werden in mehrere Provider-Batches übersetzt.
+// Das Laufzeitlimit entspricht dem maximal konfigurierbaren Provider-Timeout.
+if (function_exists('set_time_limit')) {
+    set_time_limit(300);
+}
+
 require_once __DIR__ . '/modules/system/AiEditorJsTranslationModule.php';
 
 $module = new AiEditorJsTranslationModule();

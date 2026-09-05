@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.78
+﻿**Version:** 3.3.79
 
 # 365CMS Changelog
 
@@ -13,6 +13,14 @@
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.3.79 — 05.09.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.79** | 🟠 perf | AI / EditorJS-Übersetzung | Große Artikel werden für den AI-Provider nun in geordnete, auf 3.500 Zeichen und 20 Segmente begrenzte Batches geteilt. Dadurch bleiben Anfrage und JSON-Antwort unter Modellgrenzen; die Zusammenführung erhält Blockreihenfolge und Vorschau unverändert. Die geschützte Route und der Browser erlauben für die Verarbeitung jeweils bis zu fünf Minuten statt pauschal 45 Sekunden im Browser. |
 
 ---
 

@@ -4206,7 +4206,17 @@
             return resolved.href;
         }
 
-        function requestJson(url, body) {
+        function resolveTranslationRequestTimeout(timeoutMs) {
+            var configuredTimeout = Number(timeoutMs);
+
+            if (!Number.isFinite(configuredTimeout)) {
+                return 300000;
+            }
+
+            return Math.min(Math.max(configuredTimeout, 30000), 900000);
+        }
+
+        function requestJson(url, body, timeoutMs) {
             var endpointUrl = resolveSameOriginUrl(url);
             var controller = typeof AbortController === 'function' ? new AbortController() : null;
             var timeoutId = null;
@@ -4219,7 +4229,7 @@
             if (controller) {
                 timeoutId = window.setTimeout(function () {
                     controller.abort();
-                }, 45000);
+                }, resolveTranslationRequestTimeout(timeoutMs));
             }
 
             return fetch(endpointUrl, {
@@ -4400,7 +4410,7 @@
                     var sourceData = savedStates[0];
                     var requestBody = buildTranslationPayload(aiTranslation, sourceData);
 
-                    return requestJson(aiTranslation.endpointUrl, requestBody).then(function (response) {
+                    return requestJson(aiTranslation.endpointUrl, requestBody, aiTranslation.requestTimeoutMs).then(function (response) {
                         var result = response.data || {};
                         var translation = result.translation || {};
                         var shouldConfirm = result.preview_required || result.result_mode === 'preview' || targetAlreadyHasContent(aiTranslation);

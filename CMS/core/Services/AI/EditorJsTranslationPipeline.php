@@ -10,6 +10,8 @@ if (!defined('ABSPATH')) {
 final class EditorJsTranslationPipeline
 {
     private static ?self $instance = null;
+    private const int MAX_TRANSLATION_BATCH_CHARACTERS = 3500;
+    private const int MAX_TRANSLATION_BATCH_SEGMENTS = 20;
 
     public static function getInstance(): self
     {
@@ -90,15 +92,13 @@ final class EditorJsTranslationPipeline
             $this->collectBlockSegments($segments, $type, $data, $targetBlockIndex);
         }
 
-        $translatedTexts = $provider->translateBatch(
-            array_values(array_map(static fn (array $segment): string => (string) ($segment['text'] ?? ''), $segments)),
-            [
-                'content_type' => (string) ($payload['content_type'] ?? 'editorjs'),
-                'source_locale' => (string) ($payload['source_locale'] ?? 'de'),
-                'target_locale' => (string) ($payload['target_locale'] ?? 'en'),
-                'prompt_template' => $promptTemplate,
-            ]
-        );
+        $translationContext = [
+            'content_type' => (string) ($payload['content_type'] ?? 'editorjs'),
+            'source_locale' => (string) ($payload['source_locale'] ?? 'de'),
+            'target_locale' => (string) ($payload['target_locale'] ?? 'en'),
+            'prompt_template' => $promptTemplate,
+        ];
+        [$translatedTexts, $translationBatchCount] = $this->translateSegmentsInBatches($segments, $provider, $translationContext);
 
         foreach ($segments as $segmentIndex => $segment) {
             $translatedText = (string) ($translatedTexts[$segmentIndex] ?? ($segment['text'] ?? ''));
@@ -134,11 +134,70 @@ final class EditorJsTranslationPipeline
                 'total_blocks' => count($blocks),
                 'translated_blocks' => count($translatedBlockIndexes),
                 'translated_segments' => count($segments),
+                'translation_batches' => $translationBatchCount,
                 'preserved_blocks' => $preservedBlockCount,
                 'dropped_blocks' => $droppedBlockCount,
                 'skipped_block_types' => array_values($skippedBlockTypes),
             ],
         ];
+    }
+
+    /**
+     * Translates compact batches to avoid response token limits and long-running provider requests.
+     *
+     * @param list<array<string, mixed>> $segments
+     * @param array<string, mixed> $context
+     * @return array{0:list<string>,1:int}
+     */
+    private function translateSegmentsInBatches(array $segments, AiProviderInterface $provider, array $context): array
+    {
+        if ($segments === []) {
+            return [[], 0];
+        }
+
+        $translatedTexts = [];
+        $batch = [];
+        $batchCharacterCount = 0;
+        $batchCount = 0;
+
+        $translateBatch = static function (array $texts) use ($provider, $context, &$translatedTexts, &$batchCount): void {
+            if ($texts === []) {
+                return;
+            }
+
+            $translations = $provider->translateBatch($texts, $context);
+            if (count($translations) !== count($texts)) {
+                throw new \RuntimeException('AI-Provider lieferte keine vollständige Übersetzungsantwort für einen Teilauftrag.');
+            }
+
+            foreach ($translations as $index => $translation) {
+                $translatedTexts[] = is_string($translation) && trim($translation) !== ''
+                    ? $translation
+                    : $texts[$index];
+            }
+            $batchCount++;
+        };
+
+        foreach ($segments as $segment) {
+            $text = (string) ($segment['text'] ?? '');
+            $textCharacterCount = $this->countCharacters($text);
+            $wouldExceedCharacterLimit = $batch !== []
+                && $batchCharacterCount + $textCharacterCount > self::MAX_TRANSLATION_BATCH_CHARACTERS;
+            $wouldExceedSegmentLimit = count($batch) >= self::MAX_TRANSLATION_BATCH_SEGMENTS;
+
+            if ($wouldExceedCharacterLimit || $wouldExceedSegmentLimit) {
+                $translateBatch($batch);
+                $batch = [];
+                $batchCharacterCount = 0;
+            }
+
+            $batch[] = $text;
+            $batchCharacterCount += $textCharacterCount;
+        }
+
+        $translateBatch($batch);
+
+        return [$translatedTexts, $batchCount];
     }
 
     /**
@@ -257,6 +316,13 @@ final class EditorJsTranslationPipeline
                 $this->collectListItemSegments($segments, [...$basePath, $itemIndex, 'items'], (array) $item['items']);
             }
         }
+    }
+
+    private function countCharacters(string $text): int
+    {
+        return function_exists('mb_strlen')
+            ? mb_strlen($text, 'UTF-8')
+            : strlen($text);
     }
 
     /**
