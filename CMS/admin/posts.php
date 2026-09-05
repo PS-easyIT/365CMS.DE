@@ -72,9 +72,30 @@ function cms_admin_posts_is_ai_seo_metadata_available(): bool
 
 function cms_admin_posts_normalize_editor_locale(mixed $locale): string
 {
-    $normalizedLocale = strtolower(trim((string) $locale));
+    $normalizedLocale = strtolower(trim(cms_admin_posts_scalar_string($locale)));
 
     return in_array($normalizedLocale, ['de', 'en'], true) ? $normalizedLocale : 'de';
+}
+
+function cms_admin_posts_scalar_string(mixed $value, string $fallback = ''): string
+{
+    return is_scalar($value) || $value === null ? (string) ($value ?? $fallback) : $fallback;
+}
+
+/** @param array<string,mixed> $post @return array<string,mixed> */
+function cms_admin_posts_sanitize_inline_post(array $post): array
+{
+    foreach ($post as $key => $value) {
+        if (in_array((string) $key, ['additional_category_ids', 'post_meta'], true)) {
+            continue;
+        }
+
+        if (!is_scalar($value) && $value !== null) {
+            $post[$key] = '';
+        }
+    }
+
+    return $post;
 }
 
 function cms_admin_posts_target_url(?int $id = null, string $editorLocale = 'de', bool $forceEditView = false): string
@@ -120,7 +141,7 @@ function cms_admin_posts_redirect(?int $id = null, string $editorLocale = 'de', 
 
 function cms_admin_posts_normalize_action(mixed $action): string
 {
-    $normalizedAction = trim((string) $action);
+    $normalizedAction = trim(cms_admin_posts_scalar_string($action));
 
     if (str_starts_with($normalizedAction, 'switch_locale:')) {
         $normalizedAction = 'switch_locale';
@@ -131,13 +152,13 @@ function cms_admin_posts_normalize_action(mixed $action): string
 
 function cms_admin_posts_extract_action_value(array $post): string
 {
-    return trim((string) ($post['_action'] ?? $post['action'] ?? ''));
+    return trim(cms_admin_posts_scalar_string($post['_action'] ?? $post['action'] ?? ''));
 }
 
 function cms_admin_posts_resolve_switch_target_locale(mixed $actionValue, mixed $fallbackLocale = 'de'): string
 {
     $fallbackLocale = cms_admin_posts_normalize_editor_locale($fallbackLocale);
-    $normalizedActionValue = trim((string) $actionValue);
+    $normalizedActionValue = trim(cms_admin_posts_scalar_string($actionValue));
 
     if (preg_match('/^switch_locale:(de|en)$/', $normalizedActionValue, $matches) === 1) {
         return cms_admin_posts_normalize_editor_locale($matches[1] ?? $fallbackLocale);
@@ -148,21 +169,21 @@ function cms_admin_posts_resolve_switch_target_locale(mixed $actionValue, mixed 
 
 function cms_admin_posts_normalize_view(mixed $view): string
 {
-    $normalizedView = trim((string) $view);
+    $normalizedView = trim(cms_admin_posts_scalar_string($view));
 
     return in_array($normalizedView, CMS_ADMIN_POSTS_ALLOWED_VIEWS, true) ? $normalizedView : 'list';
 }
 
 function cms_admin_posts_normalize_positive_id(mixed $id): int
 {
-    $normalizedId = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $normalizedId = filter_var(cms_admin_posts_scalar_string($id), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
     return $normalizedId === false ? 0 : (int) $normalizedId;
 }
 
 function cms_admin_posts_normalize_bulk_action(mixed $bulkAction): string
 {
-    $normalizedBulkAction = trim((string) $bulkAction);
+    $normalizedBulkAction = trim(cms_admin_posts_scalar_string($bulkAction));
 
     return in_array($normalizedBulkAction, CMS_ADMIN_POSTS_ALLOWED_BULK_ACTIONS, true) ? $normalizedBulkAction : '';
 }
@@ -242,6 +263,7 @@ function cms_admin_posts_reflection_matches_contract(\ReflectionClass $reflectio
 
 function cms_admin_posts_build_inline_edit_data(object $module, array $post): array
 {
+    $post = cms_admin_posts_sanitize_inline_post($post);
     $id = cms_admin_posts_normalize_positive_id($post['id'] ?? 0);
     $editData = $module->getEditData($id > 0 ? $id : null);
     $existingPost = is_array($editData['post'] ?? null) ? $editData['post'] : [];

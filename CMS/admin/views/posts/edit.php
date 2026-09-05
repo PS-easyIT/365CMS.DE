@@ -17,6 +17,15 @@ $aiSeoMetadataEnabled = !empty($aiSeoMetadataEnabled);
  */
 
 $post       = $data['post'] ?? null;
+if (is_array($post)) {
+    foreach ($post as $postField => $postValue) {
+        if (!is_scalar($postValue) && $postValue !== null) {
+            $post[$postField] = '';
+        }
+    }
+} elseif ($post !== null) {
+    $post = null;
+}
 $isNew      = $data['isNew'] ?? true;
 $categories = $data['categories'] ?? [];
 $assignedCategoryIds = array_values(array_unique(array_map('intval', (array) ($data['assignedCategoryIds'] ?? []))));

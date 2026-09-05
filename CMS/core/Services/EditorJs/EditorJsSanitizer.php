@@ -123,8 +123,10 @@ final class EditorJsSanitizer
             case 'quote':
                 $data['text'] = $cleanInline($data['text'] ?? '');
                 $data['caption'] = $cleanInline($data['caption'] ?? '');
-                $data['alignment'] = in_array(($data['alignment'] ?? 'left'), ['left', 'center'], true) ? (string) $data['alignment'] : 'left';
-                $data['design'] = in_array(($data['design'] ?? 'bar'), ['bar', 'card', 'minimal', 'mark'], true) ? (string) $data['design'] : 'bar';
+                $quoteAlignment = (string) ($data['alignment'] ?? 'left');
+                $quoteDesign = (string) ($data['design'] ?? 'bar');
+                $data['alignment'] = in_array($quoteAlignment, ['left', 'center'], true) ? $quoteAlignment : 'left';
+                $data['design'] = in_array($quoteDesign, ['bar', 'card', 'minimal', 'mark'], true) ? $quoteDesign : 'bar';
                 break;
 
             case 'warning':

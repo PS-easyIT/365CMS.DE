@@ -589,6 +589,11 @@ class PostsModule
      */
     public function save(array $post, int $userId): array
     {
+        $invalidInputField = $this->findUnexpectedNonScalarInput($post, ['additional_category_ids', 'post_meta']);
+        if ($invalidInputField !== '') {
+            return ['success' => false, 'error' => 'Ungültige Eingabe für das Feld „' . $invalidInputField . '“. Bitte die Seite neu laden und erneut speichern.'];
+        }
+
         $id         = (int)($post['id'] ?? 0);
         $editorLocale = in_array(strtolower(trim((string) ($post['editor_locale'] ?? 'de'))), ['de', 'en'], true)
             ? strtolower(trim((string) ($post['editor_locale'] ?? 'de')))
@@ -2519,6 +2524,28 @@ class PostsModule
         return function_exists('mb_substr')
             ? mb_substr($value, 0, $maxLength)
             : substr($value, 0, $maxLength);
+    }
+
+    /**
+     * @param array<string,mixed> $input
+     * @param list<string> $allowedArrayFields
+     */
+    private function findUnexpectedNonScalarInput(array $input, array $allowedArrayFields = []): string
+    {
+        foreach ($input as $key => $value) {
+            if (!is_array($value) && !is_object($value)) {
+                continue;
+            }
+
+            if (is_array($value) && in_array((string) $key, $allowedArrayFields, true)) {
+                continue;
+            }
+
+            $field = preg_replace('/[^a-z0-9_-]/i', '', (string) $key) ?? '';
+            return $field !== '' ? $field : 'Eingabe';
+        }
+
+        return '';
     }
 
     private function preserveOriginalEditorContentIfUnchanged(mixed $submittedValue, mixed $originalValue): string

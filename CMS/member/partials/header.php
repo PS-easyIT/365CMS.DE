@@ -38,7 +38,7 @@ $sanitizeMemberHeaderAsset = static function (mixed $value): string {
         return '';
     }
 
-    if (preg_match('/^[A-Za-z]:[\\\/]/', $asset) === 1 || str_starts_with($asset, '//')) {
+    if (preg_match('~^[A-Za-z]:[\\\\/]~', $asset) === 1 || str_starts_with($asset, '//')) {
         return '';
     }
 

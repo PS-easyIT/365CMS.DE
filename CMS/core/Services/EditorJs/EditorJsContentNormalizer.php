@@ -177,6 +177,9 @@ final class EditorJsContentNormalizer
     /** @return array<string,mixed> */
     private static function normalizeBlockData(string $type, array $data): array
     {
+        $quoteAlignment = (string) ($data['alignment'] ?? 'left');
+        $quoteDesign = (string) ($data['design'] ?? 'bar');
+
         return match ($type) {
             'paragraph' => self::normalizeTextBlockData($data),
             'header' => [
@@ -192,8 +195,8 @@ final class EditorJsContentNormalizer
             'quote' => [
                 'text' => self::sanitizeInline((string) ($data['text'] ?? $data['content'] ?? '')),
                 'caption' => self::sanitizeInline((string) ($data['caption'] ?? $data['cite'] ?? '')),
-                'alignment' => in_array(($data['alignment'] ?? 'left'), ['left', 'center'], true) ? (string) $data['alignment'] : 'left',
-                'design' => in_array(($data['design'] ?? 'bar'), ['bar', 'card', 'minimal', 'mark'], true) ? (string) $data['design'] : 'bar',
+                'alignment' => in_array($quoteAlignment, ['left', 'center'], true) ? $quoteAlignment : 'left',
+                'design' => in_array($quoteDesign, ['bar', 'card', 'minimal', 'mark'], true) ? $quoteDesign : 'bar',
             ],
             'raw' => ['html' => EditorJsHtmlSanitizer::sanitizeRawBlock((string) ($data['html'] ?? $data['content'] ?? $data['text'] ?? ''))],
             'delimiter' => self::normalizeDelimiterData($data),
