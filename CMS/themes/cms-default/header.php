@@ -59,7 +59,7 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
         }
     } catch (\Throwable $e) {}
     ?>
-    <title><?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
+    <title><?php echo htmlspecialchars(\CMS\Hooks::applyFilters('page_title', $siteTitle), ENT_QUOTES, 'UTF-8'); ?></title>
     <?php
     if (class_exists('\CMS\Hooks')) {
         \CMS\Hooks::doAction('head');

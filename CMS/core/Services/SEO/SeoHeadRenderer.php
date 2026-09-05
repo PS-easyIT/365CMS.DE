@@ -11,6 +11,9 @@ if (!defined('ABSPATH')) {
 
 final class SeoHeadRenderer
 {
+    /** @var array<string,mixed> */
+    private array $requestMeta = [];
+
     public function __construct(
         private readonly SeoMetaRepository $repository,
         private readonly SeoSettingsStore $settings,
@@ -83,6 +86,22 @@ final class SeoHeadRenderer
         return implode("\n", $lines) . "\n";
     }
 
+    /**
+     * Sets non-persistent metadata for the current request only.
+     *
+     * @param array<string,mixed> $payload
+     */
+    public function setRequestMeta(array $payload): void
+    {
+        $this->requestMeta = $this->normalizeRequestMeta($payload);
+    }
+
+    /** @return array<string,mixed> */
+    public function getRequestMeta(): array
+    {
+        return $this->requestMeta;
+    }
+
     private function getCurrentSeoPayload(): array
     {
         $analysis = SeoAnalysisService::getInstance();
@@ -90,6 +109,10 @@ final class SeoHeadRenderer
         $uri = isset($_SERVER['REQUEST_URI']) ? strtok((string) $_SERVER['REQUEST_URI'], '?') : '/';
         $uri = $uri !== false ? $uri : '/';
         $canonicalUrl = SITE_URL . ($uri === '/' ? '/' : $uri);
+
+        if ($this->requestMeta !== []) {
+            return $this->buildRequestMetaPayload($socialDefaults, $canonicalUrl);
+        }
 
         $pageData = $GLOBALS['page'] ?? null;
         $postData = $GLOBALS['post'] ?? null;
@@ -174,5 +197,111 @@ final class SeoHeadRenderer
         }
 
         return $source->{$key} ?? null;
+    }
+
+    /** @param array<string,mixed> $socialDefaults
+     *  @return array<string,mixed>
+     */
+    private function buildRequestMetaPayload(array $socialDefaults, string $fallbackCanonicalUrl): array
+    {
+        $title = (string) ($this->requestMeta['title'] ?? SITE_NAME);
+        $description = (string) ($this->requestMeta['description'] ?? $this->settings->getMetaDescription(''));
+        $canonicalUrl = (string) ($this->requestMeta['canonical_url'] ?? $fallbackCanonicalUrl);
+        $ogImage = (string) ($this->requestMeta['og_image'] ?? $socialDefaults['image']);
+
+        return [
+            'title' => $title,
+            'description' => $description,
+            'keywords' => (string) ($this->requestMeta['keywords'] ?? ''),
+            'canonical_url' => $canonicalUrl,
+            'robots_index' => !array_key_exists('robots_index', $this->requestMeta) || !empty($this->requestMeta['robots_index']),
+            'robots_follow' => !array_key_exists('robots_follow', $this->requestMeta) || !empty($this->requestMeta['robots_follow']),
+            'og_title' => (string) ($this->requestMeta['og_title'] ?? $title),
+            'og_description' => (string) ($this->requestMeta['og_description'] ?? $description),
+            'og_image' => $ogImage,
+            'og_type' => (string) ($this->requestMeta['og_type'] ?? 'website'),
+            'og_site_name' => (string) ($this->requestMeta['og_site_name'] ?? $socialDefaults['brand_name']),
+            'twitter_card' => (string) ($this->requestMeta['twitter_card'] ?? ($ogImage !== '' ? 'summary_large_image' : $socialDefaults['twitter_card'])),
+            'twitter_title' => (string) ($this->requestMeta['twitter_title'] ?? $title),
+            'twitter_description' => (string) ($this->requestMeta['twitter_description'] ?? $description),
+            'twitter_image' => (string) ($this->requestMeta['twitter_image'] ?? $ogImage),
+            'schema_type' => (string) ($this->requestMeta['schema_type'] ?? 'WebPage'),
+            'url' => $canonicalUrl,
+            'content_type' => 'request',
+            'updated_at' => date(DATE_W3C),
+        ];
+    }
+
+    /** @param array<string,mixed> $payload
+     *  @return array<string,mixed>
+     */
+    private function normalizeRequestMeta(array $payload): array
+    {
+        $normalized = [];
+        foreach (['title', 'description', 'keywords', 'og_title', 'og_description', 'og_site_name', 'twitter_title', 'twitter_description'] as $key) {
+            $value = $this->sanitizeRequestText($payload[$key] ?? '', $key === 'description' || str_contains($key, 'description') ? 500 : 255);
+            if ($value !== '') {
+                $normalized[$key] = $value;
+            }
+        }
+
+        foreach (['canonical_url', 'og_image', 'twitter_image'] as $key) {
+            $value = $this->sanitizeRequestUrl($payload[$key] ?? '');
+            if ($value !== '') {
+                $normalized[$key] = $value;
+            }
+        }
+
+        foreach (['robots_index', 'robots_follow'] as $key) {
+            if (array_key_exists($key, $payload)) {
+                $normalized[$key] = !empty($payload[$key]);
+            }
+        }
+
+        $ogType = strtolower(trim((string) ($payload['og_type'] ?? '')));
+        if (in_array($ogType, ['website', 'article'], true)) {
+            $normalized['og_type'] = $ogType;
+        }
+
+        $twitterCard = strtolower(trim((string) ($payload['twitter_card'] ?? '')));
+        if (in_array($twitterCard, ['summary', 'summary_large_image'], true)) {
+            $normalized['twitter_card'] = $twitterCard;
+        }
+
+        $schemaType = trim((string) ($payload['schema_type'] ?? ''));
+        if (in_array($schemaType, ['Article', 'BlogPosting', 'NewsArticle', 'WebPage', 'BreadcrumbList', 'Organization'], true)) {
+            $normalized['schema_type'] = $schemaType;
+        }
+
+        return $normalized;
+    }
+
+    private function sanitizeRequestText(mixed $value, int $maxLength): string
+    {
+        if (!is_scalar($value) && $value !== null) {
+            return '';
+        }
+
+        $value = trim(strip_tags((string) $value));
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '';
+        $value = preg_replace('/\s+/u', ' ', $value) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeRequestUrl(mixed $value): string
+    {
+        if (!is_scalar($value) && $value !== null) {
+            return '';
+        }
+
+        $url = trim((string) $value);
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return '';
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+
+        return in_array($scheme, ['http', 'https'], true) ? $url : '';
     }
 }

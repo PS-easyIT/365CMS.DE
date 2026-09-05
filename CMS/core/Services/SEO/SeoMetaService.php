@@ -43,6 +43,18 @@ final class SeoMetaService
         return $this->headRenderer->renderCurrentHeadTags();
     }
 
+    /** @param array<string,mixed> $payload */
+    public function setRequestMeta(array $payload): void
+    {
+        $this->headRenderer->setRequestMeta($payload);
+    }
+
+    /** @return array<string,mixed> */
+    public function getRequestMeta(): array
+    {
+        return $this->headRenderer->getRequestMeta();
+    }
+
     public function generateOrganizationSchema(): string
     {
         return $this->schemaRenderer->generateOrganizationSchema();

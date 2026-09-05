@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Database;
+use CMS\Hooks;
 use CMS\Http\Client as HttpClient;
 use CMS\Logger;
 use CMS\VendorRegistry;
@@ -34,10 +35,19 @@ class SEOService
     private readonly SeoMetaService $metaService;
     private readonly SeoSitemapService $sitemapService;
     private readonly SeoAuditService $auditService;
+    private bool $requestMetaHooksRegistered = false;
 
     public static function getInstance(): self
     {
         return self::$instance ??= new self();
+    }
+
+    /**
+     * Backwards-compatible singleton alias for existing plugins.
+     */
+    public static function instance(): self
+    {
+        return self::getInstance();
     }
 
     private function __construct()
@@ -69,6 +79,76 @@ class SEOService
     public function renderCurrentHeadTags(): string
     {
         return $this->metaService->renderCurrentHeadTags();
+    }
+
+    /**
+     * Stores metadata only for the active HTTP request. No database value is changed.
+     *
+     * @param array<string,mixed> $payload
+     */
+    public function setRequestMeta(array $payload): void
+    {
+        $this->metaService->setRequestMeta(array_merge($this->metaService->getRequestMeta(), $payload));
+        $this->registerRequestMetaHooks();
+    }
+
+    public function setTitle(string $title): void
+    {
+        $this->setRequestMeta(['title' => $title]);
+    }
+
+    public function setDescription(string $description): void
+    {
+        $this->setRequestMeta(['description' => $description]);
+    }
+
+    public function setCanonical(string $canonicalUrl): void
+    {
+        $this->setRequestMeta(['canonical_url' => $canonicalUrl]);
+    }
+
+    /** @param array<string,mixed> $values */
+    public function setOpenGraph(array $values): void
+    {
+        $map = [
+            'og:title' => 'og_title',
+            'og:description' => 'og_description',
+            'og:image' => 'og_image',
+            'og:type' => 'og_type',
+            'og:url' => 'canonical_url',
+            'og:site_name' => 'og_site_name',
+        ];
+        $payload = [];
+        foreach ($map as $source => $target) {
+            if (array_key_exists($source, $values)) {
+                $payload[$target] = $values[$source];
+            }
+        }
+
+        $this->setRequestMeta($payload);
+    }
+
+    public function addMeta(string $name, string $value, string $type = 'name'): void
+    {
+        $name = strtolower(trim($name));
+        $type = strtolower(trim($type));
+        $map = [
+            'description' => 'description',
+            'keywords' => 'keywords',
+            'og:title' => 'og_title',
+            'og:description' => 'og_description',
+            'og:image' => 'og_image',
+            'og:type' => 'og_type',
+            'og:url' => 'canonical_url',
+            'og:site_name' => 'og_site_name',
+            'twitter:card' => 'twitter_card',
+            'twitter:title' => 'twitter_title',
+            'twitter:description' => 'twitter_description',
+            'twitter:image' => 'twitter_image',
+        ];
+        if (($type === 'name' || $type === 'property') && isset($map[$name])) {
+            $this->setRequestMeta([$map[$name] => $value]);
+        }
     }
 
     /**
@@ -224,5 +304,62 @@ class SEOService
     public function getLastSitemapError(): ?string
     {
         return $this->sitemapService->getLastSitemapError();
+    }
+
+    private function registerRequestMetaHooks(): void
+    {
+        if ($this->requestMetaHooksRegistered || !class_exists(Hooks::class)) {
+            return;
+        }
+
+        $this->requestMetaHooksRegistered = true;
+        Hooks::addFilter('page_title', function (mixed $title): string {
+            $requestMeta = $this->metaService->getRequestMeta();
+            $requestTitle = trim((string) ($requestMeta['title'] ?? ''));
+
+            return $requestTitle !== '' ? $requestTitle : (string) $title;
+        }, 1000);
+        Hooks::addFilter('phinit_head_meta_data', function (mixed $metaData): array {
+            $metaData = is_array($metaData) ? $metaData : [];
+            $requestMeta = $this->metaService->getRequestMeta();
+            if ($requestMeta === []) {
+                return $metaData;
+            }
+
+            $title = trim((string) ($requestMeta['title'] ?? ''));
+            $description = trim((string) ($requestMeta['description'] ?? ''));
+            $canonicalUrl = trim((string) ($requestMeta['canonical_url'] ?? ''));
+            $imageUrl = trim((string) ($requestMeta['og_image'] ?? $requestMeta['twitter_image'] ?? ''));
+
+            if ($title !== '') {
+                $metaData['og_title'] = (string) ($requestMeta['og_title'] ?? $title);
+                $metaData['twitter_title'] = (string) ($requestMeta['twitter_title'] ?? $title);
+            }
+            if ($description !== '') {
+                $metaData['description'] = $description;
+                $metaData['og_description'] = (string) ($requestMeta['og_description'] ?? $description);
+                $metaData['twitter_description'] = (string) ($requestMeta['twitter_description'] ?? $description);
+            }
+            if ($canonicalUrl !== '') {
+                $metaData['canonical_url'] = $canonicalUrl;
+                $metaData['og_url'] = $canonicalUrl;
+                $metaData['canonical_self'] = true;
+            }
+            if ($imageUrl !== '') {
+                $metaData['og_image'] = $imageUrl;
+                $metaData['twitter_image'] = (string) ($requestMeta['twitter_image'] ?? $imageUrl);
+                $metaData['twitter_card'] = (string) ($requestMeta['twitter_card'] ?? 'summary_large_image');
+            }
+            if (!empty($requestMeta['og_type'])) {
+                $metaData['og_type'] = (string) $requestMeta['og_type'];
+            }
+            if (array_key_exists('robots_index', $requestMeta) || array_key_exists('robots_follow', $requestMeta)) {
+                $metaData['robots'] = (!array_key_exists('robots_index', $requestMeta) || !empty($requestMeta['robots_index']) ? 'index' : 'noindex')
+                    . ','
+                    . (!array_key_exists('robots_follow', $requestMeta) || !empty($requestMeta['robots_follow']) ? 'follow' : 'nofollow');
+            }
+
+            return $metaData;
+        }, 1000);
     }
 }
