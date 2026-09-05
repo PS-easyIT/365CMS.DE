@@ -50,7 +50,14 @@ function cms_admin_pages_is_ai_seo_metadata_available(): bool
                 continue;
             }
 
-            return !empty($provider['enabled']) && !empty($provider['seo_meta_enabled']);
+            $readiness = AiSettingsService::getInstance()->getProviderReadiness(
+                $configuration,
+                $provider,
+                'seo_metadata',
+                cms_admin_pages_normalize_editor_locale($_GET['lang'] ?? 'de')
+            );
+
+            return !empty($readiness['ready']);
         }
     } catch (\Throwable) {
         return false;

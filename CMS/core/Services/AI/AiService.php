@@ -270,7 +270,8 @@ final class AiService
                     $provider,
                     is_array($promptsConfig['seo_creator'] ?? null) ? $promptsConfig['seo_creator'] : []
                 );
-            }
+            },
+            $locale
         );
         $metadata = is_array($execution['result'] ?? null) ? $execution['result'] : [];
         $provider = $execution['provider'];
@@ -370,7 +371,8 @@ final class AiService
                     $provider,
                     is_array($promptsConfig['content_creator'] ?? null) ? $promptsConfig['content_creator'] : []
                 );
-            }
+            },
+            $locale
         );
         $draft = is_array($execution['result'] ?? null) ? $execution['result'] : [];
         $provider = $execution['provider'];

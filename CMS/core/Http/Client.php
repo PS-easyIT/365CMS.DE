@@ -146,13 +146,21 @@ final class Client
         $allowedPrivateHosts = $this->normalizeAllowedPrivateHosts((array) ($options['allowedPrivateHosts'] ?? []));
         $allowPrivateHosts = (bool) ($options['allowPrivateHosts'] ?? false)
             || $this->isExplicitlyAllowedPrivateHost($url, $allowedPrivateHosts);
+        $pinnedIp = '';
 
-        if (!$allowPrivateHosts && !$this->isSafeExternalUrl($url, (bool) ($options['allowUnresolvedHosts'] ?? false))) {
-            return $this->failure('URL wurde durch den SSRF-Schutz blockiert.');
+        if (!$allowPrivateHosts) {
+            $pinnedIp = $this->resolveSafeExternalIp($url);
+            if ($pinnedIp === '') {
+                return $this->failure('URL wurde durch den SSRF-Schutz blockiert.');
+            }
         }
 
         if (!extension_loaded('curl')) {
             return $this->failure('cURL ist nicht verfügbar.');
+        }
+
+        if ($pinnedIp !== '' && !defined('CURLOPT_RESOLVE')) {
+            return $this->failure('Der HTTP-Transport unterstützt keine sichere DNS-Pinnung.');
         }
 
         $responseHeaders = [];
@@ -206,6 +214,13 @@ final class Client
             $curlOptions[CURLOPT_REDIR_PROTOCOLS] = CURLPROTO_HTTP | CURLPROTO_HTTPS;
         }
 
+        if ($pinnedIp !== '') {
+            $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+            $port = (int) (parse_url($url, PHP_URL_PORT) ?: ($scheme === 'https' ? 443 : 80));
+            $resolveIp = str_contains($pinnedIp, ':') ? '[' . $pinnedIp . ']' : $pinnedIp;
+            $curlOptions[CURLOPT_RESOLVE] = [$host . ':' . $port . ':' . $resolveIp];
+        }
+
         $normalizedMethod = strtoupper($method);
 
         if ($normalizedMethod === 'POST') {
@@ -236,7 +251,7 @@ final class Client
             return $this->failure('HTTP-Request fehlgeschlagen: ' . $curlError, $status, $responseHeaders, '', $contentType);
         }
 
-        if (!$allowPrivateHosts && $primaryIp !== '' && $this->isPrivateOrReservedIp($primaryIp)) {
+        if (!$allowPrivateHosts && ($primaryIp === '' || !hash_equals($pinnedIp, $primaryIp) || $this->isPrivateOrReservedIp($primaryIp))) {
             return $this->failure('HTTP-Request wurde durch den SSRF-Schutz blockiert.', $status, $responseHeaders, '', $contentType);
         }
 
@@ -335,6 +350,36 @@ final class Client
         }
 
         return true;
+    }
+
+    private function resolveSafeExternalIp(string $url): string
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if ($host === '' || in_array($host, ['localhost', 'localhost.localdomain', 'ip6-localhost', 'ip6-loopback'], true)) {
+            return '';
+        }
+
+        $resolvedIps = $this->resolveHostIps($host);
+        if ($resolvedIps === []) {
+            \CMS\Logger::instance()->withChannel('http-client')->warning('External HTTP request blocked because the host could not be pinned to a safe IP.', [
+                'host' => $host,
+                'url' => $this->sanitizeUrlForLog($url),
+            ]);
+            return '';
+        }
+
+        foreach ($resolvedIps as $ip) {
+            if ($this->isPrivateOrReservedIp($ip)) {
+                \CMS\Logger::instance()->withChannel('http-client')->warning('External HTTP request blocked because the host resolved to a private IP.', [
+                    'host' => $host,
+                    'ip' => $ip,
+                    'url' => $this->sanitizeUrlForLog($url),
+                ]);
+                return '';
+            }
+        }
+
+        return (string) $resolvedIps[0];
     }
 
     private function sanitizeUrlForLog(string $url): string

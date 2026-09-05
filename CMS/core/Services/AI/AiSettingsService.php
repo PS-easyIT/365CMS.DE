@@ -199,6 +199,46 @@ final class AiSettingsService
         return $this->getProviderSecret($providerId, $providerType) !== '';
     }
 
+    /**
+     * @param array<string, mixed> $configuration
+     * @param array<string, mixed> $provider
+     * @return array{ready:bool,reason:string}
+     */
+    public function getProviderReadiness(array $configuration, array $provider, string $feature, string $targetLocale = ''): array
+    {
+        try {
+            $features = is_array($configuration['features'] ?? null) ? $configuration['features'] : [];
+            (new AiProviderPolicyService())->assertFeatureAllowed($features, $provider, $feature);
+            AiProviderFactory::getInstance()->assertReady($provider, $targetLocale);
+
+            return ['ready' => true, 'reason' => ''];
+        } catch (\Throwable $e) {
+            return ['ready' => false, 'reason' => $this->sanitizeReadinessMessage($e->getMessage())];
+        }
+    }
+
+    public function deleteProviderSecrets(string $providerId, string $providerType): bool
+    {
+        $providerId = $this->sanitizeProviderId($providerId);
+        if ($providerId === '') {
+            return false;
+        }
+
+        $keys = [$this->buildProviderSecretKey($providerId)];
+        $legacyKey = $this->resolveLegacySecretKey(strtolower(trim($providerType)));
+        if ($legacyKey !== '') {
+            $keys[] = $legacyKey;
+        }
+
+        foreach (array_values(array_unique($keys)) as $key) {
+            if (!$this->settings->forget(self::GROUP_PROVIDERS, $key)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /** @return array<string, mixed> */
     public function getConfiguration(): array
     {
@@ -209,15 +249,28 @@ final class AiSettingsService
         $quotas = $this->normalizeQuotas($this->settings->getGroup(self::GROUP_QUOTAS));
         $prompts = $this->normalizePromptTemplates($this->settings->getGroup(self::GROUP_PROMPTS));
 
-        return [
+        $configuration = [
             'providers' => $providers,
             'features' => $features,
             'translation' => $translation,
             'logging' => $logging,
             'quotas' => $quotas,
             'prompts' => $prompts,
-            'summary' => $this->buildSummary($providers, $features, $translation, $logging, $quotas, $prompts),
         ];
+        $configuration['providers']['entries'] = $this->attachProviderReadiness(
+            (array) ($configuration['providers']['entries'] ?? []),
+            $configuration
+        );
+        $configuration['summary'] = $this->buildSummary(
+            (array) $configuration['providers'],
+            $features,
+            $translation,
+            $logging,
+            $quotas,
+            $prompts
+        );
+
+        return $configuration;
     }
 
     /**
@@ -548,7 +601,7 @@ final class AiSettingsService
                 $enabledProviders++;
             }
 
-            if (!empty($provider['enabled']) && !empty($provider['translation_enabled']) && !empty($provider['editorjs_enabled'])) {
+            if (!empty($provider['readiness']['translation']['ready'])) {
                 $translationReadyProviders++;
             }
         }
@@ -583,6 +636,36 @@ final class AiSettingsService
         ];
     }
 
+    /**
+     * @param list<array<string, mixed>> $providers
+     * @param array<string, mixed> $configuration
+     * @return list<array<string, mixed>>
+     */
+    private function attachProviderReadiness(array $providers, array $configuration): array
+    {
+        $featureLocales = [
+            'translation' => (string) ($configuration['translation']['default_target_locale'] ?? ''),
+            'seo_metadata' => (string) ($configuration['translation']['default_source_locale'] ?? ''),
+            'content_summary' => (string) ($configuration['translation']['default_source_locale'] ?? ''),
+            'content_rewrite' => (string) ($configuration['translation']['default_source_locale'] ?? ''),
+            'health' => '',
+        ];
+
+        foreach ($providers as $index => $provider) {
+            if (!is_array($provider)) {
+                continue;
+            }
+
+            $readiness = [];
+            foreach ($featureLocales as $feature => $locale) {
+                $readiness[$feature] = $this->getProviderReadiness($configuration, $provider, $feature, $locale);
+            }
+            $providers[$index]['readiness'] = $readiness;
+        }
+
+        return $providers;
+    }
+
     /** @return array<string, mixed> */
     private function defaultProviders(): array
     {
@@ -609,7 +692,7 @@ final class AiSettingsService
                 'summary_enabled' => true,
                 'seo_meta_enabled' => true,
                 'editorjs_enabled' => true,
-                'allowed_locales' => ['en'],
+                'allowed_locales' => ['de', 'en'],
                 'allowed_internal_hosts' => [],
                 'beta_only' => false,
             ],
@@ -626,7 +709,7 @@ final class AiSettingsService
                 'summary_enabled' => true,
                 'seo_meta_enabled' => true,
                 'editorjs_enabled' => true,
-                'allowed_locales' => ['en'],
+                'allowed_locales' => ['de', 'en'],
                 'allowed_internal_hosts' => [],
                 'beta_only' => true,
             ],
@@ -643,7 +726,7 @@ final class AiSettingsService
                 'summary_enabled' => true,
                 'seo_meta_enabled' => true,
                 'editorjs_enabled' => true,
-                'allowed_locales' => ['en'],
+                'allowed_locales' => ['de', 'en'],
                 'allowed_internal_hosts' => [],
                 'beta_only' => true,
             ],
@@ -660,7 +743,7 @@ final class AiSettingsService
                 'summary_enabled' => true,
                 'seo_meta_enabled' => true,
                 'editorjs_enabled' => true,
-                'allowed_locales' => ['en'],
+                'allowed_locales' => ['de', 'en'],
                 'allowed_internal_hosts' => [],
                 'beta_only' => true,
             ],
@@ -677,7 +760,7 @@ final class AiSettingsService
                 'summary_enabled' => true,
                 'seo_meta_enabled' => false,
                 'editorjs_enabled' => true,
-                'allowed_locales' => ['en'],
+                'allowed_locales' => ['de', 'en'],
                 'allowed_internal_hosts' => ['127.0.0.1', 'localhost'],
                 'beta_only' => true,
             ],
@@ -694,7 +777,7 @@ final class AiSettingsService
                 'summary_enabled' => true,
                 'seo_meta_enabled' => true,
                 'editorjs_enabled' => true,
-                'allowed_locales' => ['en'],
+                'allowed_locales' => ['de', 'en'],
                 'allowed_internal_hosts' => [],
                 'beta_only' => true,
             ],
@@ -711,7 +794,7 @@ final class AiSettingsService
                 'summary_enabled' => false,
                 'seo_meta_enabled' => false,
                 'editorjs_enabled' => false,
-                'allowed_locales' => ['en'],
+                'allowed_locales' => ['de', 'en'],
                 'allowed_internal_hosts' => [],
                 'beta_only' => true,
             ],
@@ -822,6 +905,15 @@ final class AiSettingsService
         $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $value) ?? '';
 
         return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeReadinessMessage(string $value): string
+    {
+        $value = trim(strip_tags($value));
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '';
+        $value = preg_replace('/\s+/u', ' ', $value) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, 300, 'UTF-8') : substr($value, 0, 300);
     }
 
     /** @param mixed $value

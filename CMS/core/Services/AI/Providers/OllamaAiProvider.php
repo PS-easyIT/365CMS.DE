@@ -117,6 +117,7 @@ final class OllamaAiProvider extends AbstractPromptingAiProvider
     private function buildTransportError(array $response, string $providerLabel): string
     {
         $message = trim((string) ($response['error'] ?? ''));
+        $status = max(0, (int) ($response['status'] ?? 0));
         $body = trim((string) ($response['body'] ?? ''));
 
         if ($body !== '') {
@@ -133,6 +134,6 @@ final class OllamaAiProvider extends AbstractPromptingAiProvider
 
         $message = $message !== '' ? $message : $providerLabel . '-Request ist fehlgeschlagen.';
 
-        return $providerLabel . ': ' . $message;
+        return $providerLabel . ': ' . ($status > 0 ? 'HTTP-Status ' . $status . '. ' : '') . $message;
     }
 }

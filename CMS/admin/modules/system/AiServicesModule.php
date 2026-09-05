@@ -560,6 +560,7 @@ final class AiServicesModule
             $current = $this->settings->getConfiguration();
             $remainingEntries = [];
             $found = false;
+            $deletedProviderType = '';
             foreach ((array) ($current['providers']['entries'] ?? []) as $entry) {
                 if (!is_array($entry)) {
                     continue;
@@ -567,6 +568,7 @@ final class AiServicesModule
 
                 if ($this->sanitizeProviderId((string) ($entry['id'] ?? '')) === $providerId) {
                     $found = true;
+                    $deletedProviderType = (string) ($entry['type'] ?? '');
                     continue;
                 }
 
@@ -585,6 +587,9 @@ final class AiServicesModule
             ];
             if (!$this->settings->saveProviders($meta, $remainingEntries, [], [$providerId])) {
                 return ['success' => false, 'error' => 'AI-Provider konnte nicht gelöscht werden.'];
+            }
+            if (!$this->settings->deleteProviderSecrets($providerId, $deletedProviderType)) {
+                return ['success' => false, 'error' => 'AI-Provider wurde entfernt, aber sein Secret konnte nicht vollständig gelöscht werden. Bitte die AI-Einstellungen prüfen.'];
             }
 
             AuditLogger::instance()->log(

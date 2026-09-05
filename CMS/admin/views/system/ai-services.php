@@ -178,14 +178,14 @@ $renderPromptTemplateForm = static function (string $action, array $template, st
     </form>
     <?php
 };
-$translationReadyProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && !empty($provider['translation_enabled'])));
-$contentAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && (!empty($provider['rewrite_enabled']) || !empty($provider['summary_enabled']))));
-$seoAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && !empty($provider['seo_meta_enabled'])));
+$translationReadyProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['readiness']['translation']['ready'])));
+$contentAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['readiness']['content_rewrite']['ready']) || !empty($provider['readiness']['content_summary']['ready'])));
+$seoAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['readiness']['seo_metadata']['ready'])));
 $contentCreatorTasks = [];
-if (!empty($features['ai_services_enabled']) && !empty($activeProvider['enabled']) && !empty($features['ai_summary_enabled']) && !empty($activeProvider['summary_enabled'])) {
+if (!empty($activeProvider['readiness']['content_summary']['ready'])) {
     $contentCreatorTasks['summary'] = 'Kurzfassung erstellen';
 }
-if (!empty($features['ai_services_enabled']) && !empty($activeProvider['enabled']) && !empty($features['ai_rewrite_enabled']) && !empty($activeProvider['rewrite_enabled'])) {
+if (!empty($activeProvider['readiness']['content_rewrite']['ready'])) {
     $contentCreatorTasks['outline'] = 'Gliederung erstellen';
     $contentCreatorTasks['cta'] = 'CTA-Varianten erstellen';
 }

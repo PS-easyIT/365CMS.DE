@@ -199,11 +199,14 @@ if (!function_exists('cms_admin_updates_render_preflight_badge')) {
                     <form method="post" class="d-inline" data-confirm-message="Core-Update jetzt installieren?" data-confirm-title="Core-Update installieren" data-confirm-text="Installieren" data-confirm-class="btn-warning" data-confirm-status-class="bg-warning">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                         <input type="hidden" name="action" value="install_core">
-                        <button type="submit" class="btn btn-warning" <?php echo empty($corePreflight['ready']) ? 'disabled aria-disabled="true"' : ''; ?>>
+                        <button type="submit" class="btn btn-warning" <?php echo (empty($corePreflight['ready']) || empty($core['install_supported'])) ? 'disabled aria-disabled="true"' : ''; ?>>
                             Update installieren
                         </button>
                     </form>
                 </div>
+                <?php if (empty($core['install_supported']) && !empty($core['manual_reason'])): ?>
+                    <div class="text-secondary small mt-3"><strong>Manuelle Installation erforderlich:</strong> <?php echo htmlspecialchars((string) $core['manual_reason']); ?></div>
+                <?php endif; ?>
                 <?php if (empty($corePreflight['ready']) && !empty($corePreflight['blocking_messages'])): ?>
                     <div class="text-secondary small mt-3"><strong>Installationssperre:</strong> <?php echo htmlspecialchars(implode(' | ', array_values((array) $corePreflight['blocking_messages']))); ?></div>
                 <?php endif; ?>

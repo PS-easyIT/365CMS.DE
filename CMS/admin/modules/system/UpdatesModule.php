@@ -41,6 +41,7 @@ class UpdatesModule
         $core    = $this->getCoreData();
         $plugins = $this->getPluginData();
         $theme   = $this->getThemeData();
+        $databaseStatus = $this->getDatabaseStatus();
 
         return [
             'core'     => $core,
@@ -49,10 +50,13 @@ class UpdatesModule
             'history'  => $this->getHistoryData(),
             'requirements' => $this->getRequirementsData(),
             'preflight' => $this->getPreflightData(),
-            'database_status' => $this->getDatabaseStatus(),
+            'database_status' => $databaseStatus,
             'has_updates'  => ($core['update_available'] ?? false)
                 || !empty(array_filter($plugins, fn($p) => !empty($p['new_version'])))
-                || ($theme['update_available'] ?? false),
+                || ($theme['update_available'] ?? false)
+                || !empty($databaseStatus['schema_update_required'])
+                || !empty($databaseStatus['version_update_required'])
+                || !empty($databaseStatus['downgrade_detected']),
         ];
     }
 
@@ -99,6 +103,10 @@ class UpdatesModule
             $check = $this->getCoreData();
             if (empty($check['update_available'])) {
                 return ['success' => false, 'error' => 'Kein Core-Update verfügbar.'];
+            }
+
+            if (empty($check['install_supported'])) {
+                return ['success' => false, 'error' => (string) ($check['manual_reason'] ?? 'Für dieses Core-Update fehlt eine gültige SHA-256-Prüfsumme.')];
             }
 
             $preflightError = $this->getPreflightBlockMessage('core');
