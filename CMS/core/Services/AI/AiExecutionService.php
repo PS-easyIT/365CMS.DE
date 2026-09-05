@@ -95,12 +95,14 @@ final class AiExecutionService
             return ['provider' => $provider, 'provider_config' => $providerConfig, 'attempts' => 1];
         }
 
+        $quotaAwareProvider = new QuotaAwareAiProvider($provider, $this->quotaService, $quotas);
+
         $attempts = 0;
         $retryCount = min(2, max(0, (int) ($quotas['retry_count'] ?? 0)));
         do {
             ++$attempts;
             try {
-                $response = $provider->complete([
+                $response = $quotaAwareProvider->complete([
                     ['role' => 'system', 'content' => 'You are a service health probe. Return exactly OK.'],
                     ['role' => 'user', 'content' => 'health-check'],
                 ], ['temperature' => 0]);

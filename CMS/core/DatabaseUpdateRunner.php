@@ -43,10 +43,10 @@ final class DatabaseUpdateRunner
     public function getStatus(): array
     {
         $installedVersion = $this->readSetting(self::INSTALLED_VERSION_OPTION);
-        $installedSchemaVersion = $this->readSetting(self::DATABASE_SCHEMA_OPTION);
-        if ($installedSchemaVersion === '') {
-            $installedSchemaVersion = $this->readSetting(self::INSTALLED_SCHEMA_OPTION);
-        }
+        $installedSchemaVersion = $this->resolveHighestSchemaVersion(
+            $this->readSetting(self::DATABASE_SCHEMA_OPTION),
+            $this->readSetting(self::INSTALLED_SCHEMA_OPTION)
+        );
         $targetVersion = Version::CURRENT;
         $targetSchemaVersion = SchemaManager::SCHEMA_VERSION;
         $coreDowngradeDetected = $installedVersion !== ''
@@ -175,6 +175,20 @@ final class DatabaseUpdateRunner
         return preg_match('/^v(\d+)$/i', trim($version), $matches) === 1
             ? (int) $matches[1]
             : null;
+    }
+
+    private function resolveHighestSchemaVersion(string $databaseSchemaVersion, string $installedSchemaVersion): string
+    {
+        if ($databaseSchemaVersion === '') {
+            return $installedSchemaVersion;
+        }
+        if ($installedSchemaVersion === '') {
+            return $databaseSchemaVersion;
+        }
+
+        return $this->compareSchemaVersions($databaseSchemaVersion, $installedSchemaVersion) >= 0
+            ? $databaseSchemaVersion
+            : $installedSchemaVersion;
     }
 
     private function isTargetSchemaReady(): bool

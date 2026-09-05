@@ -21,6 +21,16 @@ final class AiSettingsService
     /** @var list<string> */
     public const PROVIDER_SLUGS = ['mock', 'openai', 'mistral', 'azure_openai', 'ollama', 'openrouter'];
 
+    /** @var array<string, string> */
+    public const PROVIDER_PROFILES = [
+        'all' => 'Alle Funktionen',
+        'editor-translation' => 'Editor.js-Übersetzung',
+        'content-assist' => 'Content Assist',
+        'seo-assist' => 'SEO Assist',
+        'beta' => 'Nur Beta',
+        'disabled' => 'Deaktiviert',
+    ];
+
     private const PROVIDER_SECRET_PREFIX = 'provider_secret_';
 
     /** @var array<string, array<string, mixed>> */
@@ -155,6 +165,12 @@ final class AiSettingsService
         $definition = self::getProviderTypeDefinition($providerType);
 
         return !empty($definition['addable']);
+    }
+
+    /** @return array<string, string> */
+    public static function getProviderProfiles(): array
+    {
+        return self::PROVIDER_PROFILES;
     }
 
     /** @return array<string, mixed> */
@@ -430,6 +446,7 @@ final class AiSettingsService
             'fallback_provider_id' => $fallbackProviderId,
             'entries' => $entries,
             'catalog' => $this->buildProviderCatalog(),
+            'profiles' => self::getProviderProfiles(),
         ];
     }
 
@@ -438,10 +455,10 @@ final class AiSettingsService
     {
         $definition = self::getProviderTypeDefinition($providerType);
         $defaults = $this->defaultProviderConfig($providerType);
-        $profile = (string) ($stored['profile'] ?? $defaults['profile']);
-        if (!in_array($profile, ['disabled', 'beta', 'editor-translation', 'content-assist', 'seo-assist'], true)) {
-            $profile = (string) $defaults['profile'];
-        }
+        $profile = $this->normalizeProviderProfile(
+            (string) ($stored['profile'] ?? $defaults['profile']),
+            (string) $defaults['profile']
+        );
 
         $label = trim((string) ($stored['label'] ?? $defaults['label']));
         if ($label === '') {
@@ -501,11 +518,16 @@ final class AiSettingsService
         if (!in_array($resultMode, ['preview', 'localized-field', 'overwrite-current-draft'], true)) {
             $resultMode = (string) $defaults['result_mode'];
         }
+        $defaultTargetLocale = $this->normalizeLocale((string) ($stored['default_target_locale'] ?? $defaults['default_target_locale']), (string) $defaults['default_target_locale']);
+        $allowedTargetLocales = $this->normalizeStringList($stored['allowed_target_locales'] ?? $defaults['allowed_target_locales'], ['en']);
+        if (!in_array($defaultTargetLocale, $allowedTargetLocales, true)) {
+            array_unshift($allowedTargetLocales, $defaultTargetLocale);
+        }
 
         return [
             'default_source_locale' => $this->normalizeLocale((string) ($stored['default_source_locale'] ?? $defaults['default_source_locale']), (string) $defaults['default_source_locale']),
-            'default_target_locale' => $this->normalizeLocale((string) ($stored['default_target_locale'] ?? $defaults['default_target_locale']), (string) $defaults['default_target_locale']),
-            'allowed_target_locales' => $this->normalizeStringList($stored['allowed_target_locales'] ?? $defaults['allowed_target_locales'], ['en']),
+            'default_target_locale' => $defaultTargetLocale,
+            'allowed_target_locales' => $allowedTargetLocales,
             'supported_block_types' => $this->normalizeSupportedBlockTypes($stored['supported_block_types'] ?? $defaults['supported_block_types'], (array) $defaults['supported_block_types']),
             'preview_required' => true,
             'preserve_unsupported_blocks' => (bool) ($stored['preserve_unsupported_blocks'] ?? $defaults['preserve_unsupported_blocks']),
@@ -996,6 +1018,16 @@ final class AiSettingsService
         return $value !== '' ? $value : $fallback;
     }
 
+    private function normalizeProviderProfile(string $value, string $fallback): string
+    {
+        $value = strtolower(trim($value));
+        if (isset(self::PROVIDER_PROFILES[$value])) {
+            return $value;
+        }
+
+        return isset(self::PROVIDER_PROFILES[$fallback]) ? $fallback : 'editor-translation';
+    }
+
     /** @return list<array<string, mixed>> */
     private function extractStoredProviderEntries(array $stored): array
     {
@@ -1106,7 +1138,7 @@ final class AiSettingsService
             'type' => $providerType,
             'label' => trim((string) ($entry['label'] ?? $defaults['label'])) !== '' ? trim((string) ($entry['label'] ?? $defaults['label'])) : (string) $defaults['label'],
             'enabled' => (bool) ($entry['enabled'] ?? $defaults['enabled']),
-            'profile' => (string) ($entry['profile'] ?? $defaults['profile']),
+            'profile' => $this->normalizeProviderProfile((string) ($entry['profile'] ?? $defaults['profile']), (string) $defaults['profile']),
             'default_model' => trim((string) ($entry['default_model'] ?? $defaults['default_model'])),
             'endpoint' => trim((string) ($entry['endpoint'] ?? $defaults['endpoint'])),
             'deployment' => trim((string) ($entry['deployment'] ?? $defaults['deployment'])),

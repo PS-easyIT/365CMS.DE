@@ -1219,7 +1219,7 @@ final class AiServicesModule
     private function sanitizeProviderProfile(string $value): string
     {
         $value = strtolower(trim($value));
-        $allowed = ['disabled', 'beta', 'editor-translation', 'content-assist', 'seo-assist'];
+        $allowed = array_keys(AiSettingsService::getProviderProfiles());
 
         return in_array($value, $allowed, true) ? $value : 'editor-translation';
     }

@@ -15,6 +15,14 @@ $providers = array_values(array_filter(
     static fn (mixed $entry): bool => is_array($entry)
 ));
 $providerCatalog = is_array($providersData['catalog'] ?? null) ? $providersData['catalog'] : [];
+$providerProfiles = is_array($providersData['profiles'] ?? null) ? $providersData['profiles'] : [
+    'all' => 'Alle Funktionen',
+    'editor-translation' => 'Editor.js-Übersetzung',
+    'content-assist' => 'Content Assist',
+    'seo-assist' => 'SEO Assist',
+    'beta' => 'Nur Beta',
+    'disabled' => 'Deaktiviert',
+];
 $providerOptions = [];
 $providerValuesByType = [];
 foreach ($providers as $provider) {
@@ -781,10 +789,11 @@ if (empty($summary['translation_ready'])) {
                             <div class="col-md-6">
                                 <label class="form-label" for="aiProviderProfile">Betriebsprofil</label>
                                 <select class="form-select" name="provider_profile" id="aiProviderProfile">
-                                    <?php foreach (['editor-translation' => 'Editor.js-Übersetzung', 'content-assist' => 'Content Assist', 'seo-assist' => 'SEO Assist', 'beta' => 'Nur Beta', 'disabled' => 'Deaktiviert'] as $profileValue => $profileLabel): ?>
+                                    <?php foreach ($providerProfiles as $profileValue => $profileLabel): ?>
                                         <option value="<?php echo htmlspecialchars($profileValue, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($activeProvider['profile'] ?? 'editor-translation'), $profileValue); ?>><?php echo htmlspecialchars($profileLabel); ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                                <div class="form-hint">„Alle Funktionen“ erlaubt alle aktivierten Provider-Scopes. Globale Features, Berechtigungen, Locale-, Beta- und Datenfreigabe-Gates bleiben weiterhin verpflichtend.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="aiFallbackProvider">Fallback-Provider</label>
