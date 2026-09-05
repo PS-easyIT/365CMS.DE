@@ -158,9 +158,14 @@ $extractEditorPlainText = static function (string $rawContent): string {
 
     $parts = [];
     foreach ($decoded['blocks'] as $block) {
+        if (!is_array($block)) {
+            continue;
+        }
+
         $data = is_array($block['data'] ?? null) ? $block['data'] : [];
         foreach (['text', 'message', 'title', 'code', 'caption', 'content', 'html'] as $key) {
-            $value = isset($data[$key]) ? trim((string) $data[$key]) : '';
+            $rawValue = $data[$key] ?? '';
+            $value = is_scalar($rawValue) ? trim((string) $rawValue) : '';
             if ($value !== '') {
                 $parts[] = trim(strip_tags(str_replace('<br>', "\n", $value)));
                 break;
