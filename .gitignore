@@ -26,6 +26,7 @@ desktop.ini
 .settings/
 .classpath
 *.txt
+!RELEASE/365CMS-3.4.0-SHA256SUMS.txt
 *.log
 
 # Node.js

@@ -57,9 +57,6 @@ class MigrationManager
         }
 
         $schemaManager->createTables();
-        // Bei Reparatur Schema-Version zurücksetzen damit run() erneut durchläuft
-        $this->resetVersion();
-        $this->run();
     }
 
     /**
@@ -70,8 +67,13 @@ class MigrationManager
      */
     public function run(): void
     {
-        // Nur ausführen wenn Version noch nicht aktuell
-        if ($this->getCurrentVersion() === self::SCHEMA_VERSION) {
+        $currentVersion = $this->getCurrentVersion();
+        if ($currentVersion !== '' && preg_match('/^v\d+$/i', $currentVersion) !== 1) {
+            error_log('MigrationManager: Unbekannte Schema-Version wird nicht automatisch überschrieben: ' . $currentVersion);
+            return;
+        }
+        // Höhere bekannte Schema-Marker dürfen bei älterem Code niemals überschrieben werden.
+        if ($this->compareSchemaVersions($currentVersion, self::SCHEMA_VERSION) >= 0) {
             return;
         }
 
@@ -237,15 +239,16 @@ class MigrationManager
         }
     }
 
-    /**
-     * Schema-Version zurücksetzen (für repairTables).
-     */
-    private function resetVersion(): void
+    private function compareSchemaVersions(string $left, string $right): int
     {
-        try {
-            $this->db->getPdo()->exec(
-                "DELETE FROM `{$this->prefix}settings` WHERE option_name = 'db_schema_version'"
-            );
-        } catch (\Throwable) {}
+        $leftNumber = preg_match('/^v(\d+)$/i', trim($left), $leftMatches) === 1 ? (int) $leftMatches[1] : null;
+        $rightNumber = preg_match('/^v(\d+)$/i', trim($right), $rightMatches) === 1 ? (int) $rightMatches[1] : null;
+
+        if ($leftNumber !== null && $rightNumber !== null) {
+            return $leftNumber <=> $rightNumber;
+        }
+
+        return $left === $right ? 0 : -1;
     }
+
 }

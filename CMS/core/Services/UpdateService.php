@@ -1266,9 +1266,13 @@ class UpdateService
 
         } catch (\Throwable $e) {
             if (file_exists($tmpFile)) { unlink($tmpFile); } // M-03
+            $message = str_contains($e->getMessage(), 'automatische Wiederherstellung ist unvollständig')
+                ? 'Update konnte nicht vollständig zurückgerollt werden. Das Recovery-Verzeichnis wurde erhalten; bitte die CMS-Logs prüfen.'
+                : 'Update konnte nicht installiert werden.';
+
             return $this->failInstallResult(
                 'updates.install.failed',
-                'Update konnte nicht installiert werden.',
+                $message,
                 [
                     'type' => $type,
                     'name' => $name,

@@ -568,9 +568,9 @@ Zweck:
 | `max_blocks_per_request` | `int` | Blockobergrenze pro Lauf |
 | `timeout_seconds` | `int` | Request-Timeout |
 | `retry_count` | `int` | höchstens zwei Wiederholungen bei Timeout, 429, 5xx oder vergleichbaren transienten Fehlern |
-| `daily_requests_per_user` | `int` | Tagesbudget pro Benutzer |
+| `daily_requests_per_user` | `int` | Tagesbudget pro Benutzeraktion; Retry, Batch und Fallback zählen nicht mehrfach |
 | `daily_chars_per_user` | `int` | Zeichenbudget pro Benutzer/Tag |
-| `monthly_requests_per_provider` | `int` | monatliches Budget pro Provider |
+| `monthly_requests_per_provider` | `int` | monatliches Budget je tatsächlichem Provider-Aufruf; Batches, Retries und Fallbacks werden einzeln reserviert |
 
 ### 6. `ai.prompts`
 
@@ -618,6 +618,7 @@ Bereits umgesetzt:
 - `CMS/core/Services/AI/ContentDraftGenerationPipeline.php`
 - `CMS/core/Services/AI/AiProviderPolicyService.php`
 - `CMS/core/Services/AI/AiQuotaService.php`
+- `CMS/core/Services/AI/QuotaAwareAiProvider.php`
 - `CMS/core/Services/AI/AiExecutionService.php`
 - `CMS/admin/ai-services.php`
 - `CMS/admin/ai-translate-editorjs.php`
@@ -639,7 +640,8 @@ Bereits umgesetzt:
 - harte Feld-Whitelist für den SEO-Entwurf: kein Dokumenttitel, kein Slug, keine Canonical-/Bild-URLs und keine hreflang-Zuordnung können von der AI-Antwort übernommen werden
 - Content Creator mit admin-only Briefing-Formular und Human-in-the-Loop-Ausgabe: Kurzfassung, Markdown-Gliederung oder CTA-Varianten werden weder automatisch gespeichert noch veröffentlicht
 - zentrale Policy erzwingt zur Laufzeit globale Feature-Gates, Provider-Scopes, Editor.js-Scopes, Profil-/Beta-Freigaben sowie die explizite Freigabe externer Datenweitergabe
-- zentraler Executor reserviert Nutzer-/Providerkontingente atomar, verwendet höchstens zwei Wiederholungen für transiente Fehler und wechselt ausschließlich zu einem erneut geprüften Fallback
+- zentraler Executor reserviert Nutzeroperationen sowie jeden tatsächlichen Provider-Aufruf atomar, verwendet höchstens zwei Wiederholungen für transiente Fehler und wechselt ausschließlich zu einem erneut policy-, locale- und quota-geprüften Fallback
+- zentrale requestfreie Readiness-Prüfung verbindet Policy, Provider-Endpoint, Secret, Profil, Beta-/Egress-Freigabe und Locale-Gates, damit der Admin blockierte Funktionen nicht als nutzbar darstellt
 - inhaltsfreier, explizit ausgelöster Provider-Healthcheck und sichere Provider-Löschung inklusive Secret-Bereinigung im Admin
 - Cloud-Provider benötigen HTTPS; private Ollama-Ziele werden nur über die explizite Host-Allowlist an den HTTP-Client durchgereicht
 - AI-Admin-JavaScript ist als `CMS/assets/js/admin-ai-services.js` ausgelagert; die AI-View enthält keine CSP-inkompatiblen Inline-Skripte

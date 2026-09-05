@@ -7,7 +7,7 @@
   "released": "2026-09-05",
   "download_url": "https://365cms.de/marketplace/core/365cms/365CMS-3.4.0-update.zip",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
-  "checksum_sha256": "38a0485e93d68f093f15236f2f1468a855a8cc89ee76526beae53b9ce0ba9e78",
+  "checksum_sha256": "88cbc288bca64d3d7be89a998056afd730eab601eef06b34c309eb379e7bf824",
   "notes": "Release-Stand 3.4.00: AI Services erzwingt im Adminbereich zentral Provider-Policy, HTTPS-/Ollama-Egress-Schutz, atomare Quotas, Retry/Fallback, Healthchecks und CSP-konforme Admin-Assets; es gibt keine Public-AI-Routen oder automatische Veröffentlichung.",
   "critical": false
 }

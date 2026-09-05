@@ -13,4 +13,4 @@ Das Updatepaket muss unter folgendem Pfad erreichbar sein:
 
 Die Datei `CMS/marketplace/core/365cms/update.json` muss am selben Marketplace-Pfad liegen. Nach einem Core-Update den Adminbereich neu laden und unter **Admin → Updates** bei Bedarf das idempotente Datenbankschema-Update auf `v22` ausführen.
 
-Der Core-Swap bewahrt `config/`, `config.php`, `uploads/`, `cache/`, `logs/` und `backups/`.
+Die automatische Installation setzt eine gültige SHA-256-Prüfsumme im Manifest voraus; Pakete ohne Prüfsumme werden bewusst nur zur manuellen Installation angeboten. Der Core-Swap bewahrt `config/`, `config.php`, `uploads/`, `cache/`, `logs/` und `backups/`. Bei einer unvollständigen automatischen Wiederherstellung bleibt das Recovery-Verzeichnis erhalten und wird im CMS-Log dokumentiert.
