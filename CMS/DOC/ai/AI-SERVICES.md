@@ -186,6 +186,19 @@ Für den ersten sinnvollen Start genügt:
 - `allowed_locales = ['en']`
 - konservative Limits für Zeichen und Blöcke
 
+### Betriebsprofile
+
+| Profil | Bedeutung |
+|---|---|
+| `all` | **Alle Funktionen** – alle aktivierten Scopes des Providers dürfen genutzt werden |
+| `editor-translation` | redaktioneller Schwerpunkt auf Editor.js-Übersetzungen |
+| `content-assist` | redaktioneller Schwerpunkt auf Kurzfassungen und Content-Entwürfen |
+| `seo-assist` | redaktioneller Schwerpunkt auf SEO-Metadaten-Entwürfen |
+| `beta` | nur bei aktivierter Beta-Freigabe nutzbar |
+| `disabled` | Provider ist unabhängig von seinen Scopes vollständig gesperrt |
+
+Das Profil `all` ist kein Sicherheitsbypass: aktivierte globale Features, Berechtigungen, einzelne Provider-Scopes, Locale-Allowlists, Quotas sowie Beta- und Datenfreigabe-Gates werden weiterhin bei jedem Aufruf geprüft.
+
 ---
 
 ## Capability- und Rollenmodell

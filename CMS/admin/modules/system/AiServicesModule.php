@@ -655,10 +655,16 @@ final class AiServicesModule
                 return $this->runtimeUnavailableResult('Translation-Einstellungen konnten nicht gespeichert werden.');
             }
 
+            $defaultTargetLocale = $this->sanitizeLocale((string) ($post['default_target_locale'] ?? 'en'), 'en');
+            $allowedTargetLocales = $this->sanitizeCsvList((string) ($post['allowed_target_locales'] ?? 'en'), ['en']);
+            if (!in_array($defaultTargetLocale, $allowedTargetLocales, true)) {
+                array_unshift($allowedTargetLocales, $defaultTargetLocale);
+            }
+
             $values = [
                 'default_source_locale' => $this->sanitizeLocale((string) ($post['default_source_locale'] ?? 'de'), 'de'),
-                'default_target_locale' => $this->sanitizeLocale((string) ($post['default_target_locale'] ?? 'en'), 'en'),
-                'allowed_target_locales' => $this->sanitizeCsvList((string) ($post['allowed_target_locales'] ?? 'en'), ['en']),
+                'default_target_locale' => $defaultTargetLocale,
+                'allowed_target_locales' => $allowedTargetLocales,
                 'supported_block_types' => $this->sanitizeSupportedBlockTypes((string) ($post['supported_block_types'] ?? 'paragraph,header,list,checklist,quote,image,table,attaches,linkTool,callout,warning,alert,accordion,imageGallery,mediaText'), ['paragraph', 'header', 'list', 'checklist', 'quote', 'image', 'table', 'attaches', 'linkTool', 'callout', 'warning', 'alert', 'accordion', 'imageGallery', 'mediaText']),
                 'preview_required' => true,
                 'preserve_unsupported_blocks' => !empty($post['preserve_unsupported_blocks']),
