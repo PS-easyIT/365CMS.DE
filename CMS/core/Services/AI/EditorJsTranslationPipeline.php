@@ -181,6 +181,9 @@ final class EditorJsTranslationPipeline
         foreach ($segments as $segment) {
             $text = (string) ($segment['text'] ?? '');
             $textCharacterCount = $this->countCharacters($text);
+            if ($textCharacterCount > self::MAX_TRANSLATION_BATCH_CHARACTERS) {
+                throw new \InvalidArgumentException('Ein einzelnes Editor.js-Textsegment überschreitet das sichere AI-Batch-Limit. Bitte den betreffenden Block in kleinere Absätze aufteilen.');
+            }
             $wouldExceedCharacterLimit = $batch !== []
                 && $batchCharacterCount + $textCharacterCount > self::MAX_TRANSLATION_BATCH_CHARACTERS;
             $wouldExceedSegmentLimit = count($batch) >= self::MAX_TRANSLATION_BATCH_SEGMENTS;

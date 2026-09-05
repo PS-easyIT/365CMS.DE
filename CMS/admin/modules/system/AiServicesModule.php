@@ -11,6 +11,7 @@ use CMS\Database;
 use CMS\Logger;
 use CMS\Services\AI\AiService;
 use CMS\Services\AI\AiSettingsService;
+use CMS\Services\AI\AiQuotaService;
 
 final class AiServicesModule
 {
@@ -48,6 +49,7 @@ final class AiServicesModule
     ];
 
     private ?AiSettingsService $settings = null;
+    private ?AiQuotaService $quotaService = null;
     private ?Database $db = null;
     private string $dbPrefix = '';
     private string $initializationError = '';
@@ -58,6 +60,7 @@ final class AiServicesModule
             $this->settings = AiSettingsService::getInstance();
             $this->db = Database::instance();
             $this->dbPrefix = $this->db->getPrefix();
+            $this->quotaService = new AiQuotaService($this->db);
         } catch (\Throwable $e) {
             $this->initializationError = 'AI-Services konnten nicht initialisiert werden. Bitte Datenbank-/Runtime-Logs prüfen.';
             Logger::instance()->withChannel('admin.ai-services')->error('AI-Services Initialisierung fehlgeschlagen.', [
@@ -128,6 +131,7 @@ final class AiServicesModule
             $providerLabels = $this->buildProviderLabelMap($configuration);
             $entries = $this->loadUsageEntries($providerLabels);
             $configuration['monitoring'] = $this->buildUsageMonitoring($entries, $configuration, $providerLabels);
+            $this->attachQuotaMonitoring($configuration);
             $configuration['generation_history'] = array_slice($entries, 0, self::USAGE_HISTORY_LIMIT);
 
             return $configuration;
@@ -197,6 +201,35 @@ final class AiServicesModule
         }
 
         return $labels;
+    }
+
+    /** @param array<string, mixed> $configuration */
+    private function attachQuotaMonitoring(array &$configuration): void
+    {
+        if ($this->quotaService === null) {
+            return;
+        }
+
+        $quotas = is_array($configuration['quotas'] ?? null) ? $configuration['quotas'] : [];
+        $activeProviderId = $this->sanitizeProviderId((string) ($configuration['providers']['active_provider_id'] ?? ''));
+        $usage = $this->quotaService->getCurrentUsage($this->getCurrentUserId(), $activeProviderId, $quotas);
+        $monitoring = is_array($configuration['monitoring'] ?? null) ? $configuration['monitoring'] : [];
+        $monitoring['current_user'] = array_merge(is_array($monitoring['current_user'] ?? null) ? $monitoring['current_user'] : [], [
+            'requests_24h' => $usage['requests_24h'],
+            'request_limit' => $usage['request_limit'],
+            'request_usage_percent' => $this->calculateUsagePercent($usage['requests_24h'], $usage['request_limit']),
+            'chars_24h' => $usage['chars_24h'],
+            'char_limit' => $usage['char_limit'],
+            'char_usage_percent' => $this->calculateUsagePercent($usage['chars_24h'], $usage['char_limit']),
+            'char_metrics_available' => true,
+        ]);
+        $monitoring['active_provider'] = array_merge(is_array($monitoring['active_provider'] ?? null) ? $monitoring['active_provider'] : [], [
+            'requests_30d' => $usage['requests_30d'],
+            'request_limit' => $usage['provider_request_limit'],
+            'usage_percent' => $this->calculateUsagePercent($usage['requests_30d'], $usage['provider_request_limit']),
+            'quota_period_label' => 'aktueller UTC-Monat',
+        ]);
+        $configuration['monitoring'] = $monitoring;
     }
 
     /**
@@ -471,7 +504,7 @@ final class AiServicesModule
 
             $meta = [
                 'active_provider_id' => $providerId,
-                'fallback_provider_id' => '',
+                'fallback_provider_id' => $this->sanitizeProviderId((string) ($post['fallback_provider_id'] ?? '')),
             ];
 
             $secretValues = [];
@@ -512,6 +545,65 @@ final class AiServicesModule
     }
 
     /** @return array<string, mixed> */
+    public function deleteProvider(array $post): array
+    {
+        try {
+            if ($this->settings === null) {
+                return $this->runtimeUnavailableResult('AI-Provider konnte nicht gelöscht werden.');
+            }
+
+            $providerId = $this->sanitizeProviderId((string) ($post['provider_id'] ?? ''));
+            if ($providerId === '' || $providerId === 'mock') {
+                return ['success' => false, 'error' => 'Der integrierte Mock-Provider kann nicht gelöscht werden.'];
+            }
+
+            $current = $this->settings->getConfiguration();
+            $remainingEntries = [];
+            $found = false;
+            foreach ((array) ($current['providers']['entries'] ?? []) as $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+
+                if ($this->sanitizeProviderId((string) ($entry['id'] ?? '')) === $providerId) {
+                    $found = true;
+                    continue;
+                }
+
+                $remainingEntries[] = $entry;
+            }
+
+            if (!$found) {
+                return ['success' => false, 'error' => 'Der AI-Provider wurde nicht gefunden.'];
+            }
+
+            $activeProviderId = $this->sanitizeProviderId((string) ($current['providers']['active_provider_id'] ?? ''));
+            $fallbackProviderId = $this->sanitizeProviderId((string) ($current['providers']['fallback_provider_id'] ?? ''));
+            $meta = [
+                'active_provider_id' => $activeProviderId === $providerId ? '' : $activeProviderId,
+                'fallback_provider_id' => $fallbackProviderId === $providerId ? '' : $fallbackProviderId,
+            ];
+            if (!$this->settings->saveProviders($meta, $remainingEntries, [], [$providerId])) {
+                return ['success' => false, 'error' => 'AI-Provider konnte nicht gelöscht werden.'];
+            }
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'setting.ai.provider.delete',
+                'AI-Provider und zugehöriges Secret wurden gelöscht.',
+                'ai_provider',
+                null,
+                ['provider_id' => $providerId],
+                'warning'
+            );
+
+            return ['success' => true, 'message' => 'AI-Provider und zugehöriges Secret wurden gelöscht.'];
+        } catch (\Throwable $e) {
+            return $this->failResult('setting.ai.provider.delete_failed', 'AI-Provider konnte nicht gelöscht werden.', $e);
+        }
+    }
+
+    /** @return array<string, mixed> */
     public function saveFeatures(array $post): array
     {
         try {
@@ -526,6 +618,8 @@ final class AiServicesModule
                 'ai_summary_enabled' => !empty($post['ai_summary_enabled']),
                 'ai_seo_meta_enabled' => !empty($post['ai_seo_meta_enabled']),
                 'ai_editorjs_enabled' => !empty($post['ai_editorjs_enabled']),
+                'ai_beta_providers_enabled' => !empty($post['ai_beta_providers_enabled']),
+                'ai_external_provider_data_sharing_enabled' => !empty($post['ai_external_provider_data_sharing_enabled']),
             ];
 
             if (!$this->settings->saveFeatures($values)) {
@@ -615,6 +709,7 @@ final class AiServicesModule
 
             $userId = (int) (Auth::instance()->getCurrentUser()->id ?? 0);
             $result = AiService::getInstance()->generateContentDraft([
+                'user_id' => $userId,
                 'task' => (string) ($post['content_task'] ?? ''),
                 'brief' => (string) ($post['content_brief'] ?? ''),
                 'context' => (string) ($post['content_context'] ?? ''),
@@ -635,7 +730,7 @@ final class AiServicesModule
                     'provider' => (string) ($result['provider']['slug'] ?? ''),
                     'task' => (string) ($draft['task'] ?? ''),
                     'locale' => (string) ($telemetry['locale'] ?? ''),
-                    'input_char_count' => (int) ($telemetry['input_char_count'] ?? 0),
+                    'input_char_count' => isset($telemetry['input_char_count']) ? (int) $telemetry['input_char_count'] : null,
                     'source_truncated' => !empty($telemetry['source_truncated']),
                     'duration_ms' => (int) ($telemetry['duration_ms'] ?? 0),
                     'source_hash' => (string) ($telemetry['source_hash'] ?? ''),
@@ -755,12 +850,14 @@ final class AiServicesModule
                 'store_content_hashes' => !empty($post['store_content_hashes']),
                 'store_request_metrics' => !empty($post['store_request_metrics']),
                 'store_error_context' => !empty($post['store_error_context']),
-                'store_prompt_preview' => !empty($post['store_prompt_preview']),
+                'store_prompt_preview' => false,
             ];
 
             if (!$this->settings->saveLogging($values)) {
                 return ['success' => false, 'error' => 'Logging-Einstellungen konnten nicht gespeichert werden.'];
             }
+
+            $this->pruneAiOperationalData($values['retention_days']);
 
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SETTING,
@@ -794,7 +891,7 @@ final class AiServicesModule
                 'max_chars_per_request' => $this->sanitizeInt((int) ($post['max_chars_per_request'] ?? 12000), 250, 250000),
                 'max_blocks_per_request' => $this->sanitizeInt((int) ($post['max_blocks_per_request'] ?? 40), 1, 500),
                 'timeout_seconds' => $this->sanitizeInt((int) ($post['timeout_seconds'] ?? 25), 5, 300),
-                'retry_count' => $this->sanitizeInt((int) ($post['retry_count'] ?? 1), 0, 10),
+                'retry_count' => $this->sanitizeInt((int) ($post['retry_count'] ?? 1), 0, 2),
                 'daily_requests_per_user' => $this->sanitizeInt((int) ($post['daily_requests_per_user'] ?? 40), 1, 5000),
                 'daily_chars_per_user' => $this->sanitizeInt((int) ($post['daily_chars_per_user'] ?? 120000), 500, 2000000),
                 'monthly_requests_per_provider' => $this->sanitizeInt((int) ($post['monthly_requests_per_provider'] ?? 5000), 10, 1000000),
@@ -817,6 +914,42 @@ final class AiServicesModule
             return ['success' => true, 'message' => 'Quota- und Limit-Einstellungen gespeichert.'];
         } catch (\Throwable $e) {
             return $this->failResult('setting.ai.quotas.save_failed', 'Quota- und Limit-Einstellungen konnten nicht gespeichert werden.', $e);
+        }
+    }
+
+    private function pruneAiOperationalData(int $retentionDays): void
+    {
+        if ($this->db === null || $this->dbPrefix === '') {
+            return;
+        }
+
+        $retentionDays = max(31, min(3650, $retentionDays));
+        $cutoff = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
+            ->modify('-' . $retentionDays . ' days')
+            ->format('Y-m-d H:i:s');
+        $actions = [
+            'ai.editorjs.translate.processed',
+            'ai.editorjs.translate.failed',
+            'ai.editorjs.seo_metadata.processed',
+            'ai.editorjs.seo_metadata.failed',
+            'ai.content.creator.processed',
+            'ai.content.creator.failed',
+            'ai.provider.healthcheck.processed',
+            'ai.provider.healthcheck.failed',
+        ];
+        $placeholders = implode(', ', array_fill(0, count($actions), '?'));
+
+        try {
+            $this->db->execute(
+                "DELETE FROM {$this->dbPrefix}audit_log WHERE action IN ({$placeholders}) AND created_at < ?",
+                [...$actions, $cutoff]
+            );
+            (new \CMS\Services\AI\AiQuotaService($this->db))->prune($retentionDays);
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.ai-services')->warning('AI-Aufbewahrung konnte nicht vollständig bereinigt werden.', [
+                'exception' => $e::class,
+                'message' => $this->sanitizeText($e->getMessage(), self::MAX_TEXT_LENGTH),
+            ]);
         }
     }
 
@@ -989,11 +1122,25 @@ final class AiServicesModule
         }
 
         $sanitized = $this->sanitizeUrl($value, true);
+        if (in_array($providerType, ['openai', 'mistral', 'openrouter', 'azure_openai'], true)
+            && $sanitized !== ''
+            && strtolower((string) parse_url($sanitized, PHP_URL_SCHEME)) !== 'https'
+        ) {
+            return '';
+        }
         if ($sanitized !== '') {
             return $sanitized;
         }
 
-        return $fallback !== '' ? $this->sanitizeUrl($fallback, true) : '';
+        $fallback = $fallback !== '' ? $this->sanitizeUrl($fallback, true) : '';
+        if (in_array($providerType, ['openai', 'mistral', 'openrouter', 'azure_openai'], true)
+            && $fallback !== ''
+            && strtolower((string) parse_url($fallback, PHP_URL_SCHEME)) !== 'https'
+        ) {
+            return '';
+        }
+
+        return $fallback;
     }
 
     private function sanitizeApiVersion(string $value, string $fallback = ''): string
@@ -1048,19 +1195,64 @@ final class AiServicesModule
             'type' => $providerType,
             'label' => $this->sanitizeText((string) ($post['provider_label'] ?? ($currentEntry['label'] ?? $defaultEntry['label'] ?? '')), self::MAX_TEXT_LENGTH) ?: (string) ($defaultEntry['label'] ?? $providerType),
             'enabled' => $enabled,
-            'profile' => 'editor-translation',
+            'profile' => $this->sanitizeProviderProfile((string) ($post['provider_profile'] ?? ($currentEntry['profile'] ?? $defaultEntry['profile'] ?? 'editor-translation'))),
             'default_model' => $this->sanitizeText((string) ($post['provider_model'] ?? ($currentEntry['default_model'] ?? $defaultEntry['default_model'] ?? '')), self::MAX_TEXT_LENGTH),
             'endpoint' => $this->sanitizeProviderEndpoint($providerType, (string) ($post['provider_endpoint'] ?? ($currentEntry['endpoint'] ?? $defaultEntry['endpoint'] ?? '')), (string) ($defaultEntry['endpoint'] ?? '')),
             'deployment' => $this->sanitizeText((string) ($post['provider_deployment'] ?? ($currentEntry['deployment'] ?? $defaultEntry['deployment'] ?? '')), self::MAX_TEXT_LENGTH),
             'api_version' => $this->sanitizeApiVersion((string) ($post['provider_api_version'] ?? ($currentEntry['api_version'] ?? $defaultEntry['api_version'] ?? '')), (string) ($defaultEntry['api_version'] ?? '')),
-            'translation_enabled' => true,
-            'rewrite_enabled' => true,
-            'summary_enabled' => true,
-            'seo_meta_enabled' => true,
-            'editorjs_enabled' => true,
+            'translation_enabled' => !empty($post['provider_translation_enabled']),
+            'rewrite_enabled' => !empty($post['provider_rewrite_enabled']),
+            'summary_enabled' => !empty($post['provider_summary_enabled']),
+            'seo_meta_enabled' => !empty($post['provider_seo_meta_enabled']),
+            'editorjs_enabled' => !empty($post['provider_editorjs_enabled']),
             'allowed_locales' => $this->sanitizeCsvList((string) ($post['provider_allowed_locales'] ?? implode(',', (array) ($currentEntry['allowed_locales'] ?? $defaultEntry['allowed_locales'] ?? ['en']))), ['en']),
+            'allowed_internal_hosts' => $this->sanitizeCsvList((string) ($post['provider_allowed_internal_hosts'] ?? implode(',', (array) ($currentEntry['allowed_internal_hosts'] ?? $defaultEntry['allowed_internal_hosts'] ?? []))), (array) ($defaultEntry['allowed_internal_hosts'] ?? [])),
             'beta_only' => !empty($post['provider_beta_only']),
         ];
+    }
+
+    private function sanitizeProviderProfile(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $allowed = ['disabled', 'beta', 'editor-translation', 'content-assist', 'seo-assist'];
+
+        return in_array($value, $allowed, true) ? $value : 'editor-translation';
+    }
+
+    /** @return array<string, mixed> */
+    public function checkProviderHealth(array $post): array
+    {
+        try {
+            if ($this->settings === null) {
+                return $this->runtimeUnavailableResult('Provider-Healthcheck konnte nicht ausgeführt werden.');
+            }
+
+            $providerId = $this->sanitizeProviderId((string) ($post['provider_id'] ?? ''));
+            $result = AiService::getInstance()->checkProviderHealth($providerId);
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'ai.provider.healthcheck.processed',
+                'AI-Provider-Healthcheck im Admin ausgeführt.',
+                'ai_provider',
+                null,
+                [
+                    'provider' => (string) ($result['provider']['slug'] ?? ''),
+                    'status' => (string) ($result['status'] ?? 'unknown'),
+                    'attempts' => (int) ($result['attempts'] ?? 0),
+                    'duration_ms' => (int) ($result['duration_ms'] ?? 0),
+                ],
+                'info'
+            );
+
+            return [
+                'success' => true,
+                'render_inline' => true,
+                'message' => 'Provider-Healthcheck erfolgreich.',
+                'report_payload' => ['provider_health' => $result],
+            ];
+        } catch (\Throwable $e) {
+            return $this->failResult('ai.provider.healthcheck.failed', 'Provider-Healthcheck ist fehlgeschlagen.', $e);
+        }
     }
 
     /** @return array<string, mixed> */

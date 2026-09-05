@@ -417,6 +417,7 @@ final class AiSettingsService
             'seo_meta_enabled' => (bool) ($stored['seo_meta_enabled'] ?? $defaults['seo_meta_enabled']),
             'editorjs_enabled' => (bool) ($stored['editorjs_enabled'] ?? $defaults['editorjs_enabled']),
             'allowed_locales' => $this->normalizeStringList($stored['allowed_locales'] ?? $defaults['allowed_locales'], ['en']),
+            'allowed_internal_hosts' => $this->normalizeStringList($stored['allowed_internal_hosts'] ?? ($defaults['allowed_internal_hosts'] ?? []), (array) ($defaults['allowed_internal_hosts'] ?? [])),
             'beta_only' => (bool) ($stored['beta_only'] ?? $defaults['beta_only']),
             'secret_configured' => $this->hasProviderSecret($providerId, $providerType),
         ];
@@ -434,6 +435,8 @@ final class AiSettingsService
             'ai_summary_enabled' => (bool) ($stored['ai_summary_enabled'] ?? $defaults['ai_summary_enabled']),
             'ai_seo_meta_enabled' => (bool) ($stored['ai_seo_meta_enabled'] ?? $defaults['ai_seo_meta_enabled']),
             'ai_editorjs_enabled' => (bool) ($stored['ai_editorjs_enabled'] ?? $defaults['ai_editorjs_enabled']),
+            'ai_beta_providers_enabled' => (bool) ($stored['ai_beta_providers_enabled'] ?? $defaults['ai_beta_providers_enabled']),
+            'ai_external_provider_data_sharing_enabled' => (bool) ($stored['ai_external_provider_data_sharing_enabled'] ?? $defaults['ai_external_provider_data_sharing_enabled']),
         ];
     }
 
@@ -473,7 +476,7 @@ final class AiSettingsService
             'store_content_hashes' => (bool) ($stored['store_content_hashes'] ?? $defaults['store_content_hashes']),
             'store_request_metrics' => (bool) ($stored['store_request_metrics'] ?? $defaults['store_request_metrics']),
             'store_error_context' => (bool) ($stored['store_error_context'] ?? $defaults['store_error_context']),
-            'store_prompt_preview' => (bool) ($stored['store_prompt_preview'] ?? $defaults['store_prompt_preview']),
+            'store_prompt_preview' => false,
         ];
     }
 
@@ -607,6 +610,7 @@ final class AiSettingsService
                 'seo_meta_enabled' => true,
                 'editorjs_enabled' => true,
                 'allowed_locales' => ['en'],
+                'allowed_internal_hosts' => [],
                 'beta_only' => false,
             ],
             'openai' => [
@@ -623,6 +627,7 @@ final class AiSettingsService
                 'seo_meta_enabled' => true,
                 'editorjs_enabled' => true,
                 'allowed_locales' => ['en'],
+                'allowed_internal_hosts' => [],
                 'beta_only' => true,
             ],
             'mistral' => [
@@ -639,6 +644,7 @@ final class AiSettingsService
                 'seo_meta_enabled' => true,
                 'editorjs_enabled' => true,
                 'allowed_locales' => ['en'],
+                'allowed_internal_hosts' => [],
                 'beta_only' => true,
             ],
             'azure_openai' => [
@@ -655,6 +661,7 @@ final class AiSettingsService
                 'seo_meta_enabled' => true,
                 'editorjs_enabled' => true,
                 'allowed_locales' => ['en'],
+                'allowed_internal_hosts' => [],
                 'beta_only' => true,
             ],
             'ollama' => [
@@ -671,6 +678,7 @@ final class AiSettingsService
                 'seo_meta_enabled' => false,
                 'editorjs_enabled' => true,
                 'allowed_locales' => ['en'],
+                'allowed_internal_hosts' => ['127.0.0.1', 'localhost'],
                 'beta_only' => true,
             ],
             'openrouter' => [
@@ -687,6 +695,7 @@ final class AiSettingsService
                 'seo_meta_enabled' => true,
                 'editorjs_enabled' => true,
                 'allowed_locales' => ['en'],
+                'allowed_internal_hosts' => [],
                 'beta_only' => true,
             ],
             default => [
@@ -703,6 +712,7 @@ final class AiSettingsService
                 'seo_meta_enabled' => false,
                 'editorjs_enabled' => false,
                 'allowed_locales' => ['en'],
+                'allowed_internal_hosts' => [],
                 'beta_only' => true,
             ],
         };
@@ -718,6 +728,8 @@ final class AiSettingsService
             'ai_summary_enabled' => false,
             'ai_seo_meta_enabled' => false,
             'ai_editorjs_enabled' => true,
+            'ai_beta_providers_enabled' => false,
+            'ai_external_provider_data_sharing_enabled' => false,
         ];
     }
 
@@ -946,6 +958,7 @@ final class AiSettingsService
             'seo_meta_enabled',
             'editorjs_enabled',
             'allowed_locales',
+            'allowed_internal_hosts',
             'beta_only',
         ];
 
@@ -1012,6 +1025,7 @@ final class AiSettingsService
             'seo_meta_enabled' => (bool) ($entry['seo_meta_enabled'] ?? $defaults['seo_meta_enabled']),
             'editorjs_enabled' => (bool) ($entry['editorjs_enabled'] ?? $defaults['editorjs_enabled']),
             'allowed_locales' => $this->normalizeStringList($entry['allowed_locales'] ?? $defaults['allowed_locales'], ['en']),
+            'allowed_internal_hosts' => $this->normalizeStringList($entry['allowed_internal_hosts'] ?? ($defaults['allowed_internal_hosts'] ?? []), (array) ($defaults['allowed_internal_hosts'] ?? [])),
             'beta_only' => (bool) ($entry['beta_only'] ?? $defaults['beta_only']),
         ];
     }
@@ -1040,6 +1054,7 @@ final class AiSettingsService
                     'deployment' => $providerType === 'azure_openai',
                     'api_version' => $providerType === 'azure_openai',
                     'secret' => !empty($definition['requires_secret']),
+                    'internal_hosts' => $providerType === 'ollama',
                 ],
             ];
         }

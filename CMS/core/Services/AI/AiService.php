@@ -20,6 +20,7 @@ final class AiService
     private EditorJsTranslationPipeline $pipeline;
     private SeoMetadataGenerationPipeline $seoMetadataPipeline;
     private ContentDraftGenerationPipeline $contentDraftPipeline;
+    private AiExecutionService $executionService;
     private EditorJsSanitizer $editorJsSanitizer;
 
     public static function getInstance(): self
@@ -34,6 +35,11 @@ final class AiService
         $this->pipeline = EditorJsTranslationPipeline::getInstance();
         $this->seoMetadataPipeline = new SeoMetadataGenerationPipeline();
         $this->contentDraftPipeline = new ContentDraftGenerationPipeline();
+        $this->executionService = new AiExecutionService(
+            $this->providerFactory,
+            new AiQuotaService(),
+            new AiProviderPolicyService()
+        );
         $this->editorJsSanitizer = new EditorJsSanitizer();
     }
 
@@ -48,26 +54,61 @@ final class AiService
     {
         $startedAt = microtime(true);
         $configuration = $this->settings->getConfiguration();
-        $features = is_array($configuration['features'] ?? null) ? $configuration['features'] : [];
-        $quotaConfig = is_array($configuration['quotas'] ?? null) ? $configuration['quotas'] : [];
-        $providersConfig = is_array($configuration['providers'] ?? null) ? $configuration['providers'] : [];
+        $messages = $this->sanitizeMessages($messages);
+        $feature = trim((string) ($options['feature'] ?? ''));
+        if (!in_array($feature, ['content_summary', 'content_rewrite'], true)) {
+            throw new \InvalidArgumentException('Generische AI-Aufrufe benötigen einen zulässigen expliziten Feature-Scope.');
+        }
 
-        $this->assertAiEnabled($features);
+        $characterCount = 0;
+        foreach ($messages as $message) {
+            $characterCount += $this->countCharacters((string) ($message['content'] ?? ''));
+        }
 
-        $providerConfig = $this->resolveGlobalProviderConfig($providersConfig);
-        $this->providerFactory->assertReady($providerConfig);
-        $provider = $this->providerFactory->create($providerConfig, $quotaConfig);
-        $content = $provider->complete($this->sanitizeMessages($messages), $options);
+        $execution = $this->executionService->execute(
+            $configuration,
+            $feature,
+            max(0, (int) ($options['user_id'] ?? 0)),
+            $characterCount,
+            static fn (AiProviderInterface $provider): string => $provider->complete($messages, $options),
+            (string) ($options['locale'] ?? '')
+        );
+        $content = (string) ($execution['result'] ?? '');
+        $provider = $execution['provider'];
+        $providerConfig = $execution['provider_config'];
 
         return [
-            'provider' => $this->buildProviderMeta($provider, $providerConfig, 'global'),
+            'provider' => $this->buildProviderMeta($provider, $providerConfig, (string) ($execution['resolved_via'] ?? 'global')),
             'content' => $content,
             'telemetry' => [
                 'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
                 'resolved_provider' => $provider->getSlug(),
                 'resolved_provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
-                'resolved_via' => 'global',
+                'resolved_via' => (string) ($execution['resolved_via'] ?? 'global'),
+                'attempts' => (int) ($execution['attempts'] ?? 1),
+                'used_fallback' => !empty($execution['used_fallback']),
             ],
+        ];
+    }
+
+    /**
+     * Runs an explicit, content-free provider health probe for the admin settings page.
+     *
+     * @return array<string, mixed>
+     */
+    public function checkProviderHealth(string $providerId = ''): array
+    {
+        $startedAt = microtime(true);
+        $configuration = $this->settings->getConfiguration();
+        $execution = $this->executionService->checkHealth($configuration, $providerId);
+        $provider = $execution['provider'];
+        $providerConfig = $execution['provider_config'];
+
+        return [
+            'provider' => $this->buildProviderMeta($provider, $providerConfig, 'healthcheck'),
+            'status' => 'healthy',
+            'attempts' => (int) ($execution['attempts'] ?? 1),
+            'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
         ];
     }
 
@@ -103,32 +144,42 @@ final class AiService
         $blocks = is_array($editorData['blocks'] ?? null) ? $editorData['blocks'] : [];
 
         $this->enforceQuotas($title, $excerpt, $sanitizedJson, count($blocks), $quotaConfig);
-
-        $providerConfig = $this->resolveGlobalProviderConfig($providersConfig);
-        $this->providerFactory->assertReady($providerConfig, $targetLocale);
-        $provider = $this->providerFactory->create($providerConfig, $quotaConfig);
-
-        $pipelineResult = $this->pipeline->translate(
-            [
-                'title' => $title,
-                'excerpt' => $excerpt,
-                'slug' => $slug,
-                'content_type' => $contentType,
-                'source_locale' => $sourceLocale,
-                'target_locale' => $targetLocale,
-                'editor_data' => $editorData,
-            ],
-            $provider,
-            $translationConfig,
-            is_array($promptsConfig['translation'] ?? null) ? $promptsConfig['translation'] : []
+        $execution = $this->executionService->execute(
+            $configuration,
+            'translation',
+            max(0, (int) ($request['user_id'] ?? 0)),
+            $this->measureCharCount($title, $excerpt, $sanitizedJson),
+            function (AiProviderInterface $provider) use ($title, $excerpt, $slug, $contentType, $sourceLocale, $targetLocale, $editorData, $translationConfig, $promptsConfig): array {
+                return $this->pipeline->translate(
+                    [
+                        'title' => $title,
+                        'excerpt' => $excerpt,
+                        'slug' => $slug,
+                        'content_type' => $contentType,
+                        'source_locale' => $sourceLocale,
+                        'target_locale' => $targetLocale,
+                        'editor_data' => $editorData,
+                    ],
+                    $provider,
+                    $translationConfig,
+                    is_array($promptsConfig['translation'] ?? null) ? $promptsConfig['translation'] : []
+                );
+            },
+            $targetLocale
         );
+        $pipelineResult = is_array($execution['result'] ?? null) ? $execution['result'] : [];
+        $provider = $execution['provider'];
+        $providerConfig = $execution['provider_config'];
+        $this->sanitizeTranslationResult($pipelineResult);
 
         $telemetry = [
             'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
             'requested_provider' => (string) ($providersConfig['active_provider_id'] ?? 'mock'),
             'resolved_provider' => $provider->getSlug(),
             'resolved_provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
-            'resolved_via' => 'global',
+            'resolved_via' => (string) ($execution['resolved_via'] ?? 'global'),
+            'attempts' => (int) ($execution['attempts'] ?? 1),
+            'used_fallback' => !empty($execution['used_fallback']),
             'content_type' => $contentType,
             'source_locale' => $sourceLocale,
             'target_locale' => $targetLocale,
@@ -156,7 +207,7 @@ final class AiService
         ]);
 
         return [
-            'provider' => $this->buildProviderMeta($provider, $providerConfig, 'global'),
+            'provider' => $this->buildProviderMeta($provider, $providerConfig, (string) ($execution['resolved_via'] ?? 'global')),
             'preview_required' => !empty($translationConfig['preview_required']),
             'result_mode' => (string) ($translationConfig['result_mode'] ?? 'localized-field'),
             'warnings' => array_values(array_filter((array) ($pipelineResult['warnings'] ?? []))),
@@ -204,34 +255,46 @@ final class AiService
         if ($sourceWasTruncated) {
             $sourceText = $this->truncateText($sourceText, $maxCharacters);
         }
+        $sourceCharacterCount = $this->countCharacters($sourceText);
 
-        $providerConfig = $this->resolveGlobalProviderConfig($providersConfig);
-        $this->assertSeoMetadataEnabled($features, $providerConfig);
-        $this->providerFactory->assertReady($providerConfig);
-        $provider = $this->providerFactory->create($providerConfig, $quotaConfig);
-        $metadata = $this->seoMetadataPipeline->generate(
-            $sourceText,
-            $contentType,
-            $locale,
-            $provider,
-            is_array($promptsConfig['seo_creator'] ?? null) ? $promptsConfig['seo_creator'] : []
+        $execution = $this->executionService->execute(
+            $configuration,
+            'seo_metadata',
+            max(0, (int) ($request['user_id'] ?? 0)),
+            $sourceCharacterCount,
+            function (AiProviderInterface $provider) use ($sourceText, $contentType, $locale, $promptsConfig): array {
+                return $this->seoMetadataPipeline->generate(
+                    $sourceText,
+                    $contentType,
+                    $locale,
+                    $provider,
+                    is_array($promptsConfig['seo_creator'] ?? null) ? $promptsConfig['seo_creator'] : []
+                );
+            }
         );
+        $metadata = is_array($execution['result'] ?? null) ? $execution['result'] : [];
+        $provider = $execution['provider'];
+        $providerConfig = $execution['provider_config'];
 
         $telemetry = [
             'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
             'resolved_provider' => $provider->getSlug(),
             'resolved_provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
-            'resolved_via' => 'global',
+            'resolved_via' => (string) ($execution['resolved_via'] ?? 'global'),
+            'attempts' => (int) ($execution['attempts'] ?? 1),
+            'used_fallback' => !empty($execution['used_fallback']),
             'content_type' => $contentType,
             'locale' => $locale,
-            'source_char_count' => $this->countCharacters($sourceText),
-            'source_block_count' => max(0, (int) ($request['block_count'] ?? 0)),
             'source_truncated' => $sourceWasTruncated,
             'prompt_template_enabled' => !empty($promptsConfig['seo_creator']['enabled']),
         ];
 
         if (!empty($loggingConfig['store_content_hashes'])) {
             $telemetry['source_hash'] = hash('sha256', $sourceText);
+        }
+        if (!empty($loggingConfig['store_request_metrics'])) {
+            $telemetry['source_char_count'] = $sourceCharacterCount;
+            $telemetry['source_block_count'] = max(0, (int) ($request['block_count'] ?? 0));
         }
 
         Logger::instance()->withChannel('ai.service')->info('SEO-Metadaten wurden über den globalen AI-Provider als Entwurf erzeugt.', [
@@ -240,17 +303,17 @@ final class AiService
             'content_type' => $contentType,
             'locale' => $locale,
             'duration_ms' => $telemetry['duration_ms'],
-            'source_char_count' => $telemetry['source_char_count'],
+            'source_char_count' => $sourceCharacterCount,
             'source_truncated' => $sourceWasTruncated,
         ]);
 
         return [
-            'provider' => $this->buildProviderMeta($provider, $providerConfig, 'global'),
+            'provider' => $this->buildProviderMeta($provider, $providerConfig, (string) ($execution['resolved_via'] ?? 'global')),
             'metadata' => $metadata,
             'stats' => [
                 'generated_field_count' => count($metadata),
-                'source_char_count' => $telemetry['source_char_count'],
-                'source_block_count' => $telemetry['source_block_count'],
+                'source_char_count' => $sourceCharacterCount,
+                'source_block_count' => max(0, (int) ($request['block_count'] ?? 0)),
                 'source_truncated' => $sourceWasTruncated,
             ],
             'telemetry' => $telemetry,
@@ -290,35 +353,47 @@ final class AiService
             $brief = '';
             $sourceText = $context;
         }
+        $inputCharacterCount = $this->countCharacters($sourceText);
 
-        $providerConfig = $this->resolveGlobalProviderConfig($providersConfig);
-        $this->assertContentDraftEnabled($features, $providerConfig, $task);
-        $this->providerFactory->assertReady($providerConfig);
-        $provider = $this->providerFactory->create($providerConfig, $quotaConfig);
-        $draft = $this->contentDraftPipeline->generate(
-            $task,
-            $brief,
-            $context,
-            $tone,
-            $locale,
-            $provider,
-            is_array($promptsConfig['content_creator'] ?? null) ? $promptsConfig['content_creator'] : []
+        $execution = $this->executionService->execute(
+            $configuration,
+            $task === 'summary' ? 'content_summary' : 'content_rewrite',
+            max(0, (int) ($request['user_id'] ?? 0)),
+            $inputCharacterCount,
+            function (AiProviderInterface $provider) use ($task, $brief, $context, $tone, $locale, $promptsConfig): array {
+                return $this->contentDraftPipeline->generate(
+                    $task,
+                    $brief,
+                    $context,
+                    $tone,
+                    $locale,
+                    $provider,
+                    is_array($promptsConfig['content_creator'] ?? null) ? $promptsConfig['content_creator'] : []
+                );
+            }
         );
+        $draft = is_array($execution['result'] ?? null) ? $execution['result'] : [];
+        $provider = $execution['provider'];
+        $providerConfig = $execution['provider_config'];
 
         $telemetry = [
             'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
             'resolved_provider' => $provider->getSlug(),
             'resolved_provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
-            'resolved_via' => 'global',
+            'resolved_via' => (string) ($execution['resolved_via'] ?? 'global'),
+            'attempts' => (int) ($execution['attempts'] ?? 1),
+            'used_fallback' => !empty($execution['used_fallback']),
             'task' => $task,
             'locale' => $locale,
-            'input_char_count' => $this->countCharacters($sourceText),
             'source_truncated' => $sourceWasTruncated,
             'prompt_template_enabled' => !empty($promptsConfig['content_creator']['enabled']),
         ];
 
         if (!empty($loggingConfig['store_content_hashes'])) {
             $telemetry['source_hash'] = hash('sha256', $sourceText);
+        }
+        if (!empty($loggingConfig['store_request_metrics'])) {
+            $telemetry['input_char_count'] = $inputCharacterCount;
         }
 
         Logger::instance()->withChannel('ai.service')->info('Content-Entwurf wurde über den globalen AI-Provider erzeugt.', [
@@ -327,15 +402,15 @@ final class AiService
             'task' => $task,
             'locale' => $locale,
             'duration_ms' => $telemetry['duration_ms'],
-            'input_char_count' => $telemetry['input_char_count'],
+            'input_char_count' => $inputCharacterCount,
             'source_truncated' => $sourceWasTruncated,
         ]);
 
         return [
-            'provider' => $this->buildProviderMeta($provider, $providerConfig, 'global'),
+            'provider' => $this->buildProviderMeta($provider, $providerConfig, (string) ($execution['resolved_via'] ?? 'global')),
             'draft' => $draft,
             'stats' => [
-                'input_char_count' => $telemetry['input_char_count'],
+                'input_char_count' => $inputCharacterCount,
                 'source_truncated' => $sourceWasTruncated,
             ],
             'telemetry' => $telemetry,
@@ -474,6 +549,25 @@ final class AiService
         $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $value) ?? '';
 
         return trim(preg_replace('/\s+/u', ' ', $value) ?? '');
+    }
+
+    /** @param array<string, mixed> $pipelineResult */
+    private function sanitizeTranslationResult(array &$pipelineResult): void
+    {
+        $editorData = is_array($pipelineResult['editor_data'] ?? null) ? $pipelineResult['editor_data'] : ['blocks' => []];
+        $encoded = json_encode($editorData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_string($encoded) || $encoded === '') {
+            throw new \RuntimeException('Die übersetzte Editor.js-Struktur konnte nicht serialisiert werden.');
+        }
+
+        $sanitized = $this->editorJsSanitizer->sanitize($encoded);
+        $sanitizedData = Json::decodeArray($sanitized, ['blocks' => []]);
+        if (!is_array($sanitizedData['blocks'] ?? null)) {
+            throw new \RuntimeException('Die übersetzte Editor.js-Struktur ist ungültig.');
+        }
+
+        $pipelineResult['editor_data'] = $sanitizedData;
+        $pipelineResult['editor_json'] = $sanitized;
     }
 
     private function sanitizeContentDraftInput(string $value, int $maxLength): string

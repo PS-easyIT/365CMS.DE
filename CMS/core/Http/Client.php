@@ -30,6 +30,7 @@ final class Client
      *   maxBytes?: int,
      *   allowedContentTypes?: string[],
     *   allowPrivateHosts?: bool,
+    *   allowedPrivateHosts?: string[],
     *   allowUnresolvedHosts?: bool
      * } $options
      * @return array{success: bool, status: int, body: string, headers: array<string,string>, contentType: string, error?: string}
@@ -49,6 +50,7 @@ final class Client
      *   maxBytes?: int,
      *   allowedContentTypes?: string[],
     *   allowPrivateHosts?: bool,
+    *   allowedPrivateHosts?: string[],
     *   allowUnresolvedHosts?: bool
      * } $options
      * @return array{success: bool, status: int, body: string, headers: array<string,string>, contentType: string, error?: string}
@@ -70,6 +72,7 @@ final class Client
      *   maxBytes?: int,
      *   allowedContentTypes?: string[],
     *   allowPrivateHosts?: bool,
+    *   allowedPrivateHosts?: string[],
     *   allowUnresolvedHosts?: bool
      * } $options
      * @return array{success: bool, status: int, body: string, headers: array<string,string>, contentType: string, error?: string}
@@ -94,6 +97,7 @@ final class Client
      *   maxBytes?: int,
      *   allowedContentTypes?: string[],
     *   allowPrivateHosts?: bool,
+    *   allowedPrivateHosts?: string[],
     *   allowUnresolvedHosts?: bool
      * } $options
      * @return array{success: bool, status: int, body: string, headers: array<string,string>, contentType: string, error?: string}
@@ -139,7 +143,11 @@ final class Client
             return $this->failure('URL-Port ist ungültig.');
         }
 
-        if (!(bool) ($options['allowPrivateHosts'] ?? false) && !$this->isSafeExternalUrl($url, (bool) ($options['allowUnresolvedHosts'] ?? false))) {
+        $allowedPrivateHosts = $this->normalizeAllowedPrivateHosts((array) ($options['allowedPrivateHosts'] ?? []));
+        $allowPrivateHosts = (bool) ($options['allowPrivateHosts'] ?? false)
+            || $this->isExplicitlyAllowedPrivateHost($url, $allowedPrivateHosts);
+
+        if (!$allowPrivateHosts && !$this->isSafeExternalUrl($url, (bool) ($options['allowUnresolvedHosts'] ?? false))) {
             return $this->failure('URL wurde durch den SSRF-Schutz blockiert.');
         }
 
@@ -228,7 +236,7 @@ final class Client
             return $this->failure('HTTP-Request fehlgeschlagen: ' . $curlError, $status, $responseHeaders, '', $contentType);
         }
 
-        if (!(bool) ($options['allowPrivateHosts'] ?? false) && $primaryIp !== '' && $this->isPrivateOrReservedIp($primaryIp)) {
+        if (!$allowPrivateHosts && $primaryIp !== '' && $this->isPrivateOrReservedIp($primaryIp)) {
             return $this->failure('HTTP-Request wurde durch den SSRF-Schutz blockiert.', $status, $responseHeaders, '', $contentType);
         }
 
@@ -334,6 +342,36 @@ final class Client
         $url = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass|code)=)[^&\s]+/i', '$1***', $url) ?? $url;
 
         return (string) preg_replace('/[\x00-\x1F\x7F]+/u', '', $url);
+    }
+
+    /** @param list<mixed> $hosts
+     *  @return list<string>
+     */
+    private function normalizeAllowedPrivateHosts(array $hosts): array
+    {
+        $normalized = [];
+        foreach ($hosts as $host) {
+            $host = strtolower(trim((string) $host));
+            if ($host === '' || preg_match('/^[a-z0-9.-]+$/', $host) !== 1) {
+                continue;
+            }
+
+            $normalized[$host] = $host;
+        }
+
+        return array_values($normalized);
+    }
+
+    /** @param list<string> $allowedHosts */
+    private function isExplicitlyAllowedPrivateHost(string $url, array $allowedHosts): bool
+    {
+        if ($allowedHosts === []) {
+            return false;
+        }
+
+        $host = strtolower(trim((string) parse_url($url, PHP_URL_HOST)));
+
+        return $host !== '' && in_array($host, $allowedHosts, true);
     }
 
     /**

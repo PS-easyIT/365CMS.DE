@@ -40,6 +40,7 @@ final class AiEditorJsSeoMetadataModule
             }
 
             $result = $this->aiService->generateSeoMetadataDraft([
+                'user_id' => $userId,
                 'content_type' => $contentType,
                 'locale' => $locale,
                 'source_text' => $sourceText,
@@ -59,8 +60,8 @@ final class AiEditorJsSeoMetadataModule
                     'user_id' => $userId,
                     'provider' => (string) ($result['provider']['slug'] ?? ''),
                     'locale' => $locale,
-                    'source_char_count' => (int) ($telemetry['source_char_count'] ?? 0),
-                    'source_block_count' => (int) ($telemetry['source_block_count'] ?? 0),
+                    'source_char_count' => isset($telemetry['source_char_count']) ? (int) $telemetry['source_char_count'] : null,
+                    'source_block_count' => isset($telemetry['source_block_count']) ? (int) $telemetry['source_block_count'] : null,
                     'source_truncated' => !empty($telemetry['source_truncated']),
                     'generated_field_count' => (int) ($result['stats']['generated_field_count'] ?? 0),
                     'duration_ms' => (int) ($telemetry['duration_ms'] ?? 0),

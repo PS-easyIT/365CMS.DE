@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.81
+﻿**Version:** 3.4.00
 
 # 365CMS Changelog
 
@@ -13,6 +13,14 @@
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.4.00 — 05.09.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.4.00** | 🛡️ security | AI Services / Admin-only | Vollständige zentrale Härtung und Fertigstellung der AI-Workflows: Runtime-Policy erzwingt Feature-/Provider-/Editor.js-Scopes, Beta- und External-Egress-Freigaben; Cloud-Provider benötigen HTTPS, Ollama nutzt eine exakte interne Host-Allowlist. Atomare UTC-Tages-/Monatsquoten, maximal zwei Retries, policy-/quota-geprüfter Fallback, inhaltsfreier Healthcheck, Secret-bereinigte Provider-Löschung, serverseitige Re-Sanitierung von Übersetzungen und unveränderliche Prompt-Verträge sind umgesetzt. AI-Admin-JavaScript ist CSP-konform ausgelagert; PublicRouter, Themes und Member-Bereich erhalten keine AI-Route, kein Asset und keine automatische Persistenz. |
 
 ---
 

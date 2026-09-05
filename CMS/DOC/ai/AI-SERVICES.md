@@ -2,9 +2,9 @@
 
 Kurzbeschreibung: Kanonische Konzept- und Architektur-Dokumentation für den Bereich **AI Services** in 365CMS. Der Fokus liegt auf Provider-Scope, Feature-Gates, Admin-Steuerung, Editor.js-Übersetzung und einem kontrollierten, ausbaufähigen KI-Betriebsmodell.
 
-Letzte Aktualisierung: 2026-09-05 · Version 3.3.81
+Letzte Aktualisierung: 2026-09-05 · Version 3.4.00
 
-> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, Live-Adapter für `ollama`, `azure_openai` und OpenAI-kompatible Endpunkte, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. Seit `2.9.616` ist dieser Review-Schritt serverseitig verpflichtend und kann im Admin nicht mehr abgeschaltet werden. Seit `2.9.702` verdichtet das AI-Dashboard zusätzlich request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus `audit_log`, ohne Rohprompts oder Volltexte offenzulegen. Seit `3.3.80` erzeugt der geschützte Endpoint **`/admin/ai-generate-seo-metadata`** aus erlaubten Editor.js-Textsegmenten einen übernehmbaren SEO-Entwurf direkt im Page-/Post-Editor. Technisch zugelassen sind nur Kurzfassung, Fokus-Keyphrase, Keywords, Meta-/Social-Texte, Twitter Card, Schema, Sitemap und Robots; Dokumenttitel, Slug, Canonical-, Bild- und hreflang-Felder sind ausgeschlossen. Seit `3.3.81` erzeugt der **Content Creator** unter `/admin/ai-content-creator` ungespeicherte Kurzfassungen, Gliederungen oder CTA-Varianten aus einem redaktionellen Briefing und optionalem Kontext. Die Vorschau bleibt ausschließlich im Admin und kann nur bewusst manuell kopiert werden. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und provider-spezifische Health-/Governance-Policies.
+> **Wichtig:** Der AI-Bereich ist ausschließlich unter `/admin/*` erreichbar; `PublicRouter`, Themes und Member-Bereich registrieren keine AI-Funktion. Seit `3.4.00` erzwingt jeder produktive AI-Lauf zentral Provider-Scopes, Profil-/Beta-Freigaben, die explizite Freigabe externer Datenweitergabe, atomare UTC-Tages-/Monatskontingente, begrenzte Wiederholungen und einen policy-/quota-geprüften Fallback. Cloud-Provider benötigen HTTPS; Ollama darf private Ziele ausschließlich aus seiner exakten internen Host-Allowlist verwenden. Admins können einen inhaltsfreien Healthcheck ausführen und Provider samt zugehörigem Secret entfernen. Editor.js-Übersetzungen werden nach der Provider-Antwort nochmals serverseitig sanitisiert. Konfigurierbare Prompt-Vorlagen können den unveränderlichen strukturierten Input-/Output-Vertrag nicht aufheben; Rohprompts werden nie gespeichert. Translation, SEO-Entwürfe und Content-Creator-Ausgaben bleiben Review-getrieben und werden niemals automatisch veröffentlicht.
 
 ## Inhaltsverzeichnis
 - [Ziel und Abgrenzung](#ziel-und-abgrenzung)
@@ -158,10 +158,10 @@ Eine Funktion ist nur dann verfügbar, wenn alle folgenden Bedingungen erfüllt 
 | `max_chars_per_request` | Zeichenlimit pro Lauf |
 | `max_blocks_per_request` | Blocklimit pro Lauf |
 | `timeout_seconds` | technisches Timeout |
-| `retry_count` | kontrollierte Wiederholungen |
+| `retry_count` | höchstens zwei Wiederholungen bei transienten Fehlern |
 | `beta_only` | nur Beta-/Pilotbetrieb |
 | `logging_mode` | Minimal / technisch / Debug ohne Rohinhalt |
-| `allow_sensitive_content` | nur nach bewusster Freigabe |
+| `allowed_internal_hosts` | exakte Ollama-Allowlist für private Hosts |
 
 ### Empfohlene globale Feature-Gates
 
@@ -173,6 +173,8 @@ Eine Funktion ist nur dann verfügbar, wenn alle folgenden Bedingungen erfüllt 
 | `ai_summary_enabled` | Zusammenfassungen global erlaubt |
 | `ai_seo_meta_enabled` | SEO-/Meta-Generierung global erlaubt |
 | `ai_editorjs_enabled` | Editor.js-Integration global erlaubt |
+| `ai_beta_providers_enabled` | Beta-Provider und Beta-Profile explizit freigeben |
+| `ai_external_provider_data_sharing_enabled` | Inhaltsweitergabe an externe Cloud-Provider explizit freigeben |
 
 ### Priorisierte Kombination für Phase 1
 
@@ -515,6 +517,8 @@ Zweck:
 | `ai_summary_enabled` | `bool` | Zusammenfassungen global erlauben |
 | `ai_seo_meta_enabled` | `bool` | SEO-/Meta-Helfer global erlauben |
 | `ai_editorjs_enabled` | `bool` | Editor.js-Anbindung global erlauben |
+| `ai_beta_providers_enabled` | `bool` | Beta-Provider und Beta-Profile explizit freigeben |
+| `ai_external_provider_data_sharing_enabled` | `bool` | Inhaltsweitergabe an externe Cloud-Provider explizit freigeben |
 
 ### 3. `ai.translation`
 
@@ -549,7 +553,7 @@ Zweck:
 | `store_content_hashes` | `bool` | Hashes statt Rohinhalt speichern |
 | `store_request_metrics` | `bool` | Laufzeit-/Metrikdaten protokollieren |
 | `store_error_context` | `bool` | technischen Fehlerkontext speichern |
-| `store_prompt_preview` | `bool` | bewusst restriktive Prompt-Vorschau |
+| `store_prompt_preview` | `bool` | aus Datenschutzgründen stets `false`; Rohprompts werden nie persistiert |
 
 ### 5. `ai.quotas`
 
@@ -563,7 +567,7 @@ Zweck:
 | `max_chars_per_request` | `int` | Zeichenobergrenze pro Lauf |
 | `max_blocks_per_request` | `int` | Blockobergrenze pro Lauf |
 | `timeout_seconds` | `int` | Request-Timeout |
-| `retry_count` | `int` | kontrollierte Wiederholungen |
+| `retry_count` | `int` | höchstens zwei Wiederholungen bei Timeout, 429, 5xx oder vergleichbaren transienten Fehlern |
 | `daily_requests_per_user` | `int` | Tagesbudget pro Benutzer |
 | `daily_chars_per_user` | `int` | Zeichenbudget pro Benutzer/Tag |
 | `monthly_requests_per_provider` | `int` | monatliches Budget pro Provider |
@@ -612,6 +616,9 @@ Bereits umgesetzt:
 - `CMS/core/Services/AI/EditorJsTranslationPipeline.php`
 - `CMS/core/Services/AI/SeoMetadataGenerationPipeline.php`
 - `CMS/core/Services/AI/ContentDraftGenerationPipeline.php`
+- `CMS/core/Services/AI/AiProviderPolicyService.php`
+- `CMS/core/Services/AI/AiQuotaService.php`
+- `CMS/core/Services/AI/AiExecutionService.php`
 - `CMS/admin/ai-services.php`
 - `CMS/admin/ai-translate-editorjs.php`
 - `CMS/admin/ai-generate-seo-metadata.php`
@@ -625,12 +632,17 @@ Bereits umgesetzt:
 - Preview-/Diff-Review vor der bewussten Übernahme in EN-Felder direkt im Editor
 - Provider-Liste mit bewusstem `+`-Anlegen neuer Einträge statt fixer Komplettübersicht
 - Live-Übersetzungen über Ollama und Azure AI im bestehenden Editor.js-Workflow
-- request- und quota-nahes Nutzungsmonitoring im AI-Dashboard auf Basis von `audit_log`
+- request- und quota-nahes Nutzungsmonitoring im AI-Dashboard; harte Kontingente werden atomar in `ai_quota_usage` geführt
 - Verlaufstabelle der letzten AI-Generierungsläufe ohne Rohprompt-/Volltextanzeige
 - Prompt-/Vorlagenverwaltung je Bereich; die Translation-Vorlage wird direkt in `AbstractPromptingAiProvider::buildTranslationPrompt()` berücksichtigt und serverseitig mit Pflicht-Sicherheitsregeln ergänzt
 - SEO-Metadaten-Entwurf aus dem aktuellen Editor.js-Haupttext für Page-/Post-Editoren: Kurzfassung, Keyphrase, Keywords, Meta-/Social-Texte, Twitter Card, Schema, Sitemap und Robots werden als nicht persistierter Formularentwurf zurückgeführt
 - harte Feld-Whitelist für den SEO-Entwurf: kein Dokumenttitel, kein Slug, keine Canonical-/Bild-URLs und keine hreflang-Zuordnung können von der AI-Antwort übernommen werden
 - Content Creator mit admin-only Briefing-Formular und Human-in-the-Loop-Ausgabe: Kurzfassung, Markdown-Gliederung oder CTA-Varianten werden weder automatisch gespeichert noch veröffentlicht
+- zentrale Policy erzwingt zur Laufzeit globale Feature-Gates, Provider-Scopes, Editor.js-Scopes, Profil-/Beta-Freigaben sowie die explizite Freigabe externer Datenweitergabe
+- zentraler Executor reserviert Nutzer-/Providerkontingente atomar, verwendet höchstens zwei Wiederholungen für transiente Fehler und wechselt ausschließlich zu einem erneut geprüften Fallback
+- inhaltsfreier, explizit ausgelöster Provider-Healthcheck und sichere Provider-Löschung inklusive Secret-Bereinigung im Admin
+- Cloud-Provider benötigen HTTPS; private Ollama-Ziele werden nur über die explizite Host-Allowlist an den HTTP-Client durchgereicht
+- AI-Admin-JavaScript ist als `CMS/assets/js/admin-ai-services.js` ausgelagert; die AI-View enthält keine CSP-inkompatiblen Inline-Skripte
 - eigener AI-Hauptbereich in der Sidebar
 - vorbereitete Default-Capabilities für AI-Verwaltung/Nutzung in `CMS/includes/functions/roles.php`
 
@@ -641,7 +653,7 @@ Der aktuelle Scope dieser Umsetzung ist bewusst:
 - **Rückführung in lokalisierte EN-Felder von Posts/Pages**
 - **keine** automatische Persistenz oder Veröffentlichung von AI-Ergebnissen
 
-Damit steht jetzt der **betriebliche Rahmen plus eine erste echte Live-Runtime-Stufe**, auf der weitere AI-Funktionen und zusätzliche Provider später sauber aufsetzen können.
+Damit steht ein vollständiger, zentral durchgesetzter Admin-Runtime-Workflow für die vorhandenen AI-Funktionen bereit.
 
 ---
 
@@ -716,15 +728,14 @@ Was `AI Services` am Anfang **nicht** sein soll:
 
 ## Offene Punkte / Was noch fehlt
 
-Folgende Punkte sind **trotz der neuen Live-Runtime-Stufe** noch nicht vollständig umgesetzt und müssten für den weiteren Ausbau ergänzt werden:
+Die vollständigen Admin-Workflows sind umgesetzt. Optionale spätere Erweiterungen bleiben bewusst außerhalb des aktuellen Scopes:
 
-1. **feingranulares Capability-Modell** für Nutzung vs. Verwaltung im echten Workflow
-2. **Provider-spezifische Policies** für Live-Modelle, Secrets, Datenschutzfreigaben und Health-Checks
-4. **Fehler- und Statusmodell** für Teilfehler pro Block/Batches inklusive Retry-/Review-UX
-5. **produktive Datenschutz- und Audit-Integration** mit sauberer Daily-/Monthly-Quota-Erzwingung
-6. **Tests / Smoke-Checks** für Scope, Limits, Provider-Fallback, Preview-Übernahme und Blockerhaltung
+1. **Circuit Breaker und persistente Health-Historie** für große Provider-Flotten
+2. **providerübergreifende Token-/Kostenabrechnung**, sofern alle Provider kompatible Usage-Daten liefern
+3. **asynchrone Hintergrundjobs** für extrem lange Dokumente oberhalb des sicheren Einzelsegmentlimits
+4. **mehrere AI-Varianten/Diff-Ansichten** pro Content- oder SEO-Feld
 
-Kurz gesagt: **Struktur, Persistenz, Prompt-Vorlagen, Provider-Liste, Gateway, Preview-/Diff-Übernahme sowie erste Live-Ausführung über Ollama und Azure AI stehen jetzt – weitere Provider und tiefere Governance-Schichten folgen.**
+Kurz gesagt: **Provider-Policy, sichere Egress-Regeln, Admin-Healthchecks, atomare Quotas, Retry/Fallback, Prompt-Verträge, CSP-konforme Admin-Assets, Preview-/Review-Workflows und Regressionstests stehen vollständig im geschützten Adminbereich.**
 
 ---
 

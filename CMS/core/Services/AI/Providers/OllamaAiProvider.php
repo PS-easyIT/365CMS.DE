@@ -14,6 +14,8 @@ final class OllamaAiProvider extends AbstractPromptingAiProvider
     private Client $httpClient;
     private string $endpoint;
     private int $timeoutSeconds;
+    /** @var list<string> */
+    private array $allowedInternalHosts;
 
     public function __construct(
         string $providerId,
@@ -21,13 +23,18 @@ final class OllamaAiProvider extends AbstractPromptingAiProvider
         string $defaultModel,
         string $endpoint,
         Client $httpClient,
-        int $timeoutSeconds
+        int $timeoutSeconds,
+        array $allowedInternalHosts = []
     ) {
         parent::__construct($providerId, $label, $defaultModel);
 
         $this->endpoint = rtrim(trim($endpoint), '/');
         $this->httpClient = $httpClient;
         $this->timeoutSeconds = max(5, $timeoutSeconds);
+        $this->allowedInternalHosts = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $host): string => strtolower(trim((string) $host)),
+            $allowedInternalHosts
+        ), static fn (string $host): bool => $host !== '')));
     }
 
     /**
@@ -84,7 +91,7 @@ final class OllamaAiProvider extends AbstractPromptingAiProvider
                 'connectTimeout' => min(5, $this->timeoutSeconds),
                 'maxBytes' => 2 * 1024 * 1024,
                 'allowedContentTypes' => ['application/json', 'text/plain'],
-                'allowPrivateHosts' => true,
+                'allowedPrivateHosts' => $this->allowedInternalHosts,
             ]
         );
 

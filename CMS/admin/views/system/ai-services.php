@@ -34,6 +34,13 @@ foreach ($providers as $provider) {
             'deployment' => (string) ($provider['deployment'] ?? ''),
             'api_version' => (string) ($provider['api_version'] ?? ''),
             'allowed_locales' => implode(',', (array) ($provider['allowed_locales'] ?? ['en'])),
+            'allowed_internal_hosts' => implode(',', (array) ($provider['allowed_internal_hosts'] ?? [])),
+            'profile' => (string) ($provider['profile'] ?? 'editor-translation'),
+            'translation_enabled' => !empty($provider['translation_enabled']),
+            'rewrite_enabled' => !empty($provider['rewrite_enabled']),
+            'summary_enabled' => !empty($provider['summary_enabled']),
+            'seo_meta_enabled' => !empty($provider['seo_meta_enabled']),
+            'editorjs_enabled' => !empty($provider['editorjs_enabled']),
             'beta_only' => !empty($provider['beta_only']),
             'secret_configured' => !empty($provider['secret_configured']),
         ];
@@ -43,6 +50,8 @@ $activeProviderId = (string) ($providersData['active_provider_id'] ?? '');
 $activeProvider = is_array($providerOptions[$activeProviderId] ?? null) ? $providerOptions[$activeProviderId] : (is_array($providers[0] ?? null) ? $providers[0] : []);
 $activeProviderType = (string) ($activeProvider['type'] ?? 'mock');
 $activeProviderLabel = (string) (($providerOptions[$activeProviderId]['label'] ?? '') ?: '—');
+$fallbackProviderId = (string) ($providersData['fallback_provider_id'] ?? '');
+$providerHealth = is_array($alert['report_payload']['provider_health'] ?? null) ? $alert['report_payload']['provider_health'] : [];
 $features = is_array($data['features'] ?? null) ? $data['features'] : [];
 $translation = is_array($data['translation'] ?? null) ? $data['translation'] : [];
 $logging = is_array($data['logging'] ?? null) ? $data['logging'] : [];
@@ -248,7 +257,7 @@ if (empty($summary['translation_ready'])) {
             <div class="row row-cards mb-4">
                 <?php $renderMetricCard('AI-Läufe · 24h', (string) (int) ($monitoring['runs_24h'] ?? 0), ((int) ($monitoring['failures_24h'] ?? 0)) > 0 ? (string) (int) ($monitoring['failures_24h'] ?? 0) . ' fehlgeschlagen' : 'keine Fehler protokolliert'); ?>
                 <?php $renderMetricCard('Erfolgsquote · 30 Tage', (string) (int) ($monitoring['success_rate_30d'] ?? 0) . ' %', (string) ((int) ($monitoring['successes_30d'] ?? 0) + (int) ($monitoring['failures_30d'] ?? 0)) . ' dokumentierte Läufe'); ?>
-                <?php $renderMetricCard('Dein Tagesbudget', (string) (int) ($currentUserMonitoring['requests_24h'] ?? 0) . ' / ' . (string) max(0, (int) ($currentUserMonitoring['request_limit'] ?? 0)), 'Requests der letzten 24 Stunden'); ?>
+                <?php $renderMetricCard('Dein Tagesbudget', (string) (int) ($currentUserMonitoring['requests_24h'] ?? 0) . ' / ' . (string) max(0, (int) ($currentUserMonitoring['request_limit'] ?? 0)), 'atomar reservierte Requests im UTC-Tag'); ?>
                 <?php $renderMetricCard('Ø Laufzeit · 30 Tage', (string) (int) ($monitoring['avg_duration_ms_30d'] ?? 0) . ' ms', 'auf Basis erfolgreicher Läufe'); ?>
             </div>
 
@@ -282,7 +291,8 @@ if (empty($summary['translation_ready'])) {
                             <li class="mb-2">✅ Prompt-Vorlagen lassen sich je Bereich verwalten; die Translation-Vorlage wirkt direkt in der Live-Pipeline und bleibt durch serverseitige Pflicht-Leitplanken abgesichert.</li>
                             <li class="mb-2">✅ Der SEO-Assistent erzeugt im Page-/Post-Editor aus dem Haupttext einen übernehmbaren Entwurf für Meta-, Social-, Schema-, Sitemap- und Robots-Felder; Dokumenttitel, Slug und URL-Felder bleiben ausgeschlossen.</li>
                             <li class="mb-2">✅ Der Content Creator erzeugt im geschützten AI-Adminbereich ungespeicherte Kurzfassungen, Gliederungen und CTA-Varianten aus Briefing und Kontext; Veröffentlichung oder automatische Übernahme ist ausgeschlossen.</li>
-                            <li>⚠️ Feingranulare Daily-/Monthly-Quota-Erzwingung und echte providerübergreifende Tokenkosten bleiben Follow-up-Arbeit, solange Live-Provider ihre Usage-Daten nicht konsistent zurückmelden.</li>
+                            <li>✅ UTC-Tages-/Monatsquoten werden vor jedem AI-Lauf atomar reserviert. Retries sind auf zwei transiente Wiederholungen begrenzt; ein optionaler Fallback durchläuft dieselbe Policy und Provider-Quota.</li>
+                            <li>⚠️ Providerübergreifende Token-/Kostenabrechnung bleibt optional, solange Live-Provider ihre Usage-Daten nicht konsistent zurückmelden.</li>
                         </ul>
                     </div>
                 </div>
@@ -326,9 +336,9 @@ if (empty($summary['translation_ready'])) {
                         <div class="card-header"><h3 class="card-title">Nutzungsmonitoring & Kontingente</h3></div>
                         <div class="card-body">
                             <dl class="row mb-4 small">
-                                <dt class="col-7">Dein Tagesbudget</dt>
+                                <dt class="col-7">Dein Tagesbudget · UTC</dt>
                                 <dd class="col-5"><?php echo (int) ($currentUserMonitoring['requests_24h'] ?? 0); ?> / <?php echo (int) ($currentUserMonitoring['request_limit'] ?? 0); ?> Requests</dd>
-                                <dt class="col-7">Dein Zeichenbudget</dt>
+                                <dt class="col-7">Dein Zeichenbudget · UTC</dt>
                                 <dd class="col-5">
                                     <?php if (!empty($currentUserMonitoring['char_metrics_available'])): ?>
                                         <?php echo number_format((int) ($currentUserMonitoring['chars_24h'] ?? 0), 0, ',', '.'); ?> / <?php echo number_format((int) ($currentUserMonitoring['char_limit'] ?? 0), 0, ',', '.'); ?>
@@ -338,7 +348,7 @@ if (empty($summary['translation_ready'])) {
                                 </dd>
                                 <dt class="col-7">Aktiver Provider</dt>
                                 <dd class="col-5"><?php echo htmlspecialchars((string) ($activeProviderMonitoring['provider_label'] ?? '—')); ?></dd>
-                                <dt class="col-7">Provider-Budget · 30 Tage</dt>
+                                <dt class="col-7">Provider-Budget · Monat</dt>
                                 <dd class="col-5"><?php echo (int) ($activeProviderMonitoring['requests_30d'] ?? 0); ?> / <?php echo (int) ($activeProviderMonitoring['request_limit'] ?? 0); ?></dd>
                             </dl>
 
@@ -720,11 +730,29 @@ if (empty($summary['translation_ready'])) {
                             <div class="col-md-4">
                                 <?php $renderSwitch('ai_seo_meta_enabled', 'SEO-/Meta-Helfer erlauben', !empty($features['ai_seo_meta_enabled'])); ?>
                                 <?php $renderSwitch('ai_editorjs_enabled', 'Editor.js-Integration erlauben', !empty($features['ai_editorjs_enabled'])); ?>
+                                <?php $renderSwitch('ai_beta_providers_enabled', 'Beta-Provider ausdrücklich erlauben', !empty($features['ai_beta_providers_enabled']), 'Erforderlich für Provider mit dem Profil „Nur Beta“.'); ?>
+                                <?php $renderSwitch('ai_external_provider_data_sharing_enabled', 'Externe Datenweitergabe erlauben', !empty($features['ai_external_provider_data_sharing_enabled']), 'Erforderlich, bevor Inhalte an Cloud-Provider übermittelt werden.'); ?>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
+
+            <?php if ($activeProviderId !== '' && $activeProviderId !== 'mock'): ?>
+                <div class="col-12">
+                    <form method="post" class="card border-danger mb-4" data-cms-ai-delete-provider="1">
+                        <?php $renderFormContext('delete_provider'); ?>
+                        <input type="hidden" name="provider_id" value="<?php echo htmlspecialchars($activeProviderId, ENT_QUOTES); ?>">
+                        <div class="card-body d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                            <div>
+                                <div class="fw-semibold text-danger">Provider dauerhaft löschen</div>
+                                <div class="text-secondary small">Entfernt <strong><?php echo htmlspecialchars((string) ($activeProvider['label'] ?? $activeProviderId)); ?></strong> inklusive zugehörigem API-Secret. Der aktive bzw. Fallback-Provider wird anschließend sicher neu aufgelöst.</div>
+                            </div>
+                            <button type="submit" class="btn btn-outline-danger">Provider löschen</button>
+                        </div>
+                    </form>
+                </div>
+            <?php endif; ?>
 
             <div class="col-12">
                 <form method="post" class="card mb-4">
@@ -751,6 +779,26 @@ if (empty($summary['translation_ready'])) {
                                 <?php $renderSwitch('provider_enabled', 'Globalen Provider aktivieren', !empty($activeProvider['enabled']), 'Mock ist immer aktiv; echte Provider benötigen Endpoint/Modell und ggf. Secret.'); ?>
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label" for="aiProviderProfile">Betriebsprofil</label>
+                                <select class="form-select" name="provider_profile" id="aiProviderProfile">
+                                    <?php foreach (['editor-translation' => 'Editor.js-Übersetzung', 'content-assist' => 'Content Assist', 'seo-assist' => 'SEO Assist', 'beta' => 'Nur Beta', 'disabled' => 'Deaktiviert'] as $profileValue => $profileLabel): ?>
+                                        <option value="<?php echo htmlspecialchars($profileValue, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($activeProvider['profile'] ?? 'editor-translation'), $profileValue); ?>><?php echo htmlspecialchars($profileLabel); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="aiFallbackProvider">Fallback-Provider</label>
+                                <select class="form-select" name="fallback_provider_id" id="aiFallbackProvider">
+                                    <option value="">Kein Fallback</option>
+                                    <?php foreach ($providers as $provider): ?>
+                                        <?php $providerId = (string) ($provider['id'] ?? ''); ?>
+                                        <?php if ($providerId === '' || $providerId === $activeProviderId): continue; endif; ?>
+                                        <option value="<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>" <?php echo $isSelected($fallbackProviderId, $providerId); ?>><?php echo htmlspecialchars((string) ($provider['label'] ?? $providerId)); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-hint">Wird nur nach einem transienten Fehler und erneutem Policy-/Quota-Check genutzt.</div>
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label">Anzeigename</label>
                                 <input type="text" class="form-control" name="provider_label" id="aiProviderLabel" maxlength="120" value="<?php echo htmlspecialchars((string) ($activeProvider['label'] ?? $activeProviderLabel), ENT_QUOTES); ?>">
                             </div>
@@ -774,6 +822,11 @@ if (empty($summary['translation_ready'])) {
                                 <label class="form-label">Erlaubte Zielsprachen</label>
                                 <input type="text" class="form-control" name="provider_allowed_locales" id="aiProviderAllowedLocales" value="<?php echo htmlspecialchars(implode(',', (array) ($activeProvider['allowed_locales'] ?? ['en'])), ENT_QUOTES); ?>" placeholder="en,de">
                             </div>
+                            <div class="col-md-6" data-provider-field="internal_hosts">
+                                <label class="form-label">Erlaubte interne Ollama-Hosts</label>
+                                <input type="text" class="form-control" name="provider_allowed_internal_hosts" id="aiProviderAllowedInternalHosts" value="<?php echo htmlspecialchars(implode(',', (array) ($activeProvider['allowed_internal_hosts'] ?? [])), ENT_QUOTES); ?>" placeholder="127.0.0.1,localhost">
+                                <div class="form-hint">Nur für Ollama. Private Ziele sind ausschließlich über diese exakte Allowlist erlaubt.</div>
+                            </div>
                             <div class="col-md-6 d-flex align-items-end">
                                 <label class="form-check form-switch mb-3">
                                     <input class="form-check-input" type="checkbox" name="provider_beta_only" id="aiProviderBetaOnly" value="1" <?php echo !empty($activeProvider['beta_only']) ? 'checked' : ''; ?>>
@@ -790,12 +843,43 @@ if (empty($summary['translation_ready'])) {
                                 </label>
                             </div>
                             <div class="col-12">
+                                <div class="border rounded p-3">
+                                    <div class="fw-semibold mb-2">Feature-Scopes dieses Providers</div>
+                                    <div class="row">
+                                        <div class="col-md-4"><?php $renderSwitch('provider_translation_enabled', 'Übersetzung', !empty($activeProvider['translation_enabled'])); ?></div>
+                                        <div class="col-md-4"><?php $renderSwitch('provider_summary_enabled', 'Zusammenfassungen', !empty($activeProvider['summary_enabled'])); ?></div>
+                                        <div class="col-md-4"><?php $renderSwitch('provider_rewrite_enabled', 'Content-Entwürfe', !empty($activeProvider['rewrite_enabled'])); ?></div>
+                                        <div class="col-md-6"><?php $renderSwitch('provider_seo_meta_enabled', 'SEO-Metadaten', !empty($activeProvider['seo_meta_enabled'])); ?></div>
+                                        <div class="col-md-6"><?php $renderSwitch('provider_editorjs_enabled', 'Editor.js-Kontext', !empty($activeProvider['editorjs_enabled'])); ?></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
                                 <div class="alert alert-info mb-0 small">
-                                    Beispiel-API-Call: <code>\CMS\Services\AI\AiService::getInstance()->complete([['role' =&gt; 'user', 'content' =&gt; 'Erzeuge eine kurze Zusammenfassung.']]);</code>
+                                    Jeder AI-Lauf benötigt einen expliziten Feature-Scope und durchläuft Policy, Quota, Retry und optionalen Fallback zentral über <code>AiService</code>.
                                 </div>
                             </div>
                         </div>
                     </div>
+                </form>
+            </div>
+
+            <div class="col-12">
+                <form method="post" class="card mb-4">
+                    <?php $renderFormContext('check_provider_health'); ?>
+                    <div class="card-body d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                        <div>
+                            <div class="fw-semibold">Provider-Healthcheck</div>
+                            <div class="text-secondary small">Sendet keine Redaktionsinhalte und prüft Konfiguration, Policy sowie bei Live-Providern einen minimalen Modellaufruf.</div>
+                        </div>
+                        <input type="hidden" name="provider_id" value="<?php echo htmlspecialchars($activeProviderId, ENT_QUOTES); ?>">
+                        <button type="submit" class="btn btn-outline-primary">Aktiven Provider prüfen</button>
+                    </div>
+                    <?php if ($providerHealth !== []): ?>
+                        <div class="card-footer text-secondary small">
+                            <strong class="text-success">Erreichbar:</strong> <?php echo htmlspecialchars((string) ($providerHealth['provider']['label'] ?? 'Provider')); ?> · <?php echo (int) ($providerHealth['duration_ms'] ?? 0); ?> ms · <?php echo (int) ($providerHealth['attempts'] ?? 1); ?> Versuch(e)
+                        </div>
+                    <?php endif; ?>
                 </form>
             </div>
 
@@ -823,7 +907,7 @@ if (empty($summary['translation_ready'])) {
                             <div class="col-md-6"><?php $renderSwitch('store_content_hashes', 'Content-Hashes speichern', !empty($logging['store_content_hashes'])); ?></div>
                             <div class="col-md-6"><?php $renderSwitch('store_request_metrics', 'Request-Metriken speichern', !empty($logging['store_request_metrics'])); ?></div>
                             <div class="col-md-6"><?php $renderSwitch('store_error_context', 'Fehlerkontext speichern', !empty($logging['store_error_context'])); ?></div>
-                            <div class="col-md-6"><?php $renderSwitch('store_prompt_preview', 'Prompt-Preview speichern', !empty($logging['store_prompt_preview']), 'Nur mit Vorsicht – weiterhin ohne Rohinhalt empfohlen.'); ?></div>
+                            <div class="col-md-6"><div class="form-hint pt-2">Rohprompts und Inhaltsvorschauen werden aus Datenschutzgründen niemals gespeichert.</div></div>
                         </div>
                     </div>
                 </form>
@@ -852,7 +936,7 @@ if (empty($summary['translation_ready'])) {
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Retry Count</label>
-                                <input type="number" class="form-control" name="retry_count" min="0" max="10" value="<?php echo (int) ($quotas['retry_count'] ?? 1); ?>">
+                                <input type="number" class="form-control" name="retry_count" min="0" max="2" value="<?php echo (int) ($quotas['retry_count'] ?? 1); ?>">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Requests pro Nutzer / Tag</label>
@@ -873,140 +957,3 @@ if (empty($summary['translation_ready'])) {
         </div>
     <?php endif; ?>
 </div>
-
-<script>
-(() => {
-    const form = document.getElementById('aiProviderForm');
-    const select = document.getElementById('aiProviderType');
-    if (!form || !select) {
-        return;
-    }
-
-    let catalog = {};
-    try {
-        catalog = JSON.parse(form.dataset.providerCatalog || '{}');
-    } catch (error) {
-        catalog = {};
-    }
-    let providerValues = {};
-    try {
-        providerValues = JSON.parse(form.dataset.providerValues || '{}');
-    } catch (error) {
-        providerValues = {};
-    }
-
-    const description = document.getElementById('aiProviderDescription');
-    const label = document.getElementById('aiProviderLabel');
-    const model = document.getElementById('aiProviderModel');
-    const endpoint = document.getElementById('aiProviderEndpoint');
-    const deployment = document.getElementById('aiProviderDeployment');
-    const apiVersion = document.getElementById('aiProviderApiVersion');
-    const allowedLocales = document.getElementById('aiProviderAllowedLocales');
-    const betaOnly = document.getElementById('aiProviderBetaOnly');
-    const secretLabel = document.getElementById('aiProviderSecretLabel');
-    const secretState = document.getElementById('aiProviderSecretState');
-    const fieldGroups = Array.from(form.querySelectorAll('[data-provider-field]'));
-
-    const toggleField = (field, visible) => {
-        fieldGroups
-            .filter((group) => group.dataset.providerField === field)
-            .forEach((group) => {
-                group.hidden = !visible;
-                group.querySelectorAll('input, select, textarea').forEach((input) => {
-                    input.disabled = !visible;
-                });
-            });
-    };
-
-    const valueOrDefault = (value, fallback) => {
-        const normalized = typeof value === 'string' ? value.trim() : '';
-        return normalized !== '' ? value : fallback;
-    };
-
-    const applyProvider = (preserveValues = true) => {
-        const type = select.value || 'mock';
-        const definition = catalog[type] || {};
-        const values = providerValues[type] || {};
-
-        if (description) {
-            description.textContent = definition.description || '';
-        }
-        if (label && (!preserveValues || label.value.trim() === '')) {
-            label.value = valueOrDefault(values.label, definition.label || type);
-        }
-        if (model && (!preserveValues || model.value.trim() === '')) {
-            model.value = valueOrDefault(values.model, definition.default_model || '');
-        }
-        if (endpoint && (!preserveValues || endpoint.value.trim() === '')) {
-            endpoint.value = valueOrDefault(values.endpoint, definition.default_endpoint || '');
-        }
-        if (deployment && (!preserveValues || deployment.value.trim() === '')) {
-            deployment.value = valueOrDefault(values.deployment, definition.default_deployment || '');
-        }
-        if (apiVersion && (!preserveValues || apiVersion.value.trim() === '')) {
-            apiVersion.value = valueOrDefault(values.api_version, definition.default_api_version || '');
-        }
-        if (allowedLocales && (!preserveValues || allowedLocales.value.trim() === '')) {
-            allowedLocales.value = valueOrDefault(values.allowed_locales, 'en');
-        }
-        if (betaOnly && !preserveValues) {
-            betaOnly.checked = Boolean(values.beta_only);
-        }
-        if (secretLabel) {
-            secretLabel.textContent = definition.secret_label || 'API-Key';
-        }
-        if (secretState) {
-            secretState.textContent = values.secret_configured ? 'Ja' : 'Nein';
-        }
-
-        const fields = definition.fields || {};
-        toggleField('endpoint', Boolean(fields.endpoint));
-        toggleField('deployment', Boolean(fields.deployment));
-        toggleField('api_version', Boolean(fields.api_version));
-        toggleField('secret', Boolean(fields.secret));
-    };
-
-    select.addEventListener('change', () => {
-        if (label) {
-            label.value = '';
-        }
-        if (model) {
-            model.value = '';
-        }
-        if (endpoint) {
-            endpoint.value = '';
-        }
-        if (deployment) {
-            deployment.value = '';
-        }
-        if (apiVersion) {
-            apiVersion.value = '';
-        }
-        applyProvider(false);
-    });
-
-    applyProvider();
-})();
-</script>
-
-<script>
-(() => {
-    const button = document.getElementById('copyAiContentDraftButton');
-    const output = document.getElementById('aiContentDraftOutput');
-
-    if (!button || !output || !navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
-        return;
-    }
-
-    button.addEventListener('click', () => {
-        navigator.clipboard.writeText(output.value || '').then(() => {
-            button.textContent = 'Kopiert';
-            window.setTimeout(() => {
-                button.textContent = 'Entwurf kopieren';
-            }, 1800);
-        }).catch(() => {
-            button.textContent = 'Kopieren fehlgeschlagen';
-        });
-    });
-})();
-</script>

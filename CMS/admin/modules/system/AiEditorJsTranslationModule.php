@@ -38,6 +38,7 @@ final class AiEditorJsTranslationModule
             $editorData = $this->sanitizeEditorJson((string) ($post['editor_data'] ?? ''));
 
             $result = $this->aiService->translateEditorJsDraft([
+                'user_id' => $userId,
                 'content_type' => $contentType,
                 'title' => $title,
                 'excerpt' => $excerpt,

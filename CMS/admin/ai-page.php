@@ -43,7 +43,7 @@ const CMS_ADMIN_AI_ALLOWED_ACTIONS_BY_SECTION = [
     'translation' => ['save_translation', 'save_translation_prompts'],
     'content_creator' => ['save_content_prompts', 'generate_content_draft'],
     'seo_creator' => ['save_seo_prompts'],
-    'settings' => ['save_providers', 'save_features', 'save_logging', 'save_quotas'],
+    'settings' => ['save_providers', 'delete_provider', 'save_features', 'save_logging', 'save_quotas', 'check_provider_health'],
 ];
 
 function cms_admin_ai_has_any_capability(array $capabilities): bool
@@ -132,6 +132,7 @@ function cms_admin_ai_handle_action(AiServicesModule $module, string $action, ar
 {
     return match ($action) {
         'save_providers' => $module->saveProviders($post),
+        'delete_provider' => $module->deleteProvider($post),
         'save_features' => $module->saveFeatures($post),
         'save_translation' => $module->saveTranslation($post),
         'save_translation_prompts' => $module->saveTranslationPrompts($post),
@@ -140,6 +141,7 @@ function cms_admin_ai_handle_action(AiServicesModule $module, string $action, ar
         'save_seo_prompts' => $module->saveSeoPrompts($post),
         'save_logging' => $module->saveLogging($post),
         'save_quotas' => $module->saveQuotas($post),
+        'check_provider_health' => $module->checkProviderHealth($post),
         default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
     };
 }
@@ -189,6 +191,9 @@ $sectionPageConfig = [
     'page_title' => $aiPageConfig['page_title'],
     'active_page' => $aiPageConfig['active_page'],
     'section' => $aiPageConfig['section'],
+    'page_assets' => [
+        'js' => [cms_asset_url('js/admin-ai-services.js')],
+    ],
     'csrf_action' => 'admin_ai_services',
     'guard_constant' => 'CMS_ADMIN_AI_VIEW',
     'module_file' => __DIR__ . '/modules/system/AiServicesModule.php',

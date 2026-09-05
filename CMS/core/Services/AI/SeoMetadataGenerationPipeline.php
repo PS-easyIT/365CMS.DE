@@ -65,7 +65,7 @@ final class SeoMetadataGenerationPipeline
             . '- Do not return a document title, URL, slug, canonical_url, og_image, twitter_image or hreflang_group.\n'
             . '- Do not modify or propose the CMS document title or its URL.\n'
             . '- meta_title, og_title and twitter_title are SEO snippets only, not the document title.\n'
-            . '- Use the exact JSON response contract and no markdown or explanation.';
+            . '- Return only the exact JSON response contract ' . $contract . ' and no markdown or explanation.';
 
         $payload = [
             'task' => 'generate_seo_metadata',
@@ -78,11 +78,12 @@ final class SeoMetadataGenerationPipeline
         if (!empty($promptTemplate['enabled']) && trim((string) ($promptTemplate['user_template'] ?? '')) !== '') {
             $templatedPrompt = $this->renderTemplate((string) $promptTemplate['user_template'], $sourceText, $contentType, $locale, true);
             if ($templatedPrompt !== '') {
-                $userPrompt = str_contains($templatedPrompt, $sourceText)
-                    ? $templatedPrompt
-                    : $templatedPrompt . "\n\nINPUT_JSON:\n" . (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $userPrompt = $templatedPrompt;
             }
         }
+
+        // The structured payload remains mandatory even when an admin customizes the template.
+        $userPrompt .= "\n\nINPUT_JSON:\n" . (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         return [
             'system' => $systemPrompt,

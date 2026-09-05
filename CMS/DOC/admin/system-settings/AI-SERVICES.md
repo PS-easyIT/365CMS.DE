@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Admin-spezifische Einordnung des Bereichs `AI Services` als **eigener Admin-Hauptbereich**. Die führende Fach- und Architektur-Dokumentation liegt unter [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md); die Admin-Seiten `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator` und `/admin/ai-settings` sind als Settings- und Runtime-Steuerflächen im Core eingehängt.
 
-Letzte Aktualisierung: 2026-09-05 · Version 3.3.81
+Letzte Aktualisierung: 2026-09-05 · Version 3.4.00
 
 > **Wichtig:** Diese Datei ist bewusst nur der **Admin- und Routing-Kontext**. Die vollständige Konzeption, Provider-Logik, Editor.js-Übersetzungsphase und offene Punkte werden kanonisch in [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md) gepflegt.
 
@@ -52,6 +52,7 @@ Aktueller Runtime-Hinweis:
 - seit `3.3.80` erzeugt `/admin/ai-generate-seo-metadata` als geschützter Live-Endpoint einen SEO-Entwurf aus freigegebenen Editor.js-Textsegmenten; übernommen werden nur Kurzfassung, Keyphrase, Keywords, Meta-/Social-Texte, Twitter Card, Schema, Sitemap und Robots. Dokumenttitel, Slug, Canonical-, Bild- und hreflang-Felder sind technisch ausgeschlossen; die normale Formularspeicherung bleibt erforderlich.
 - seit `3.3.81` erzeugt der Content Creator auf `/admin/ai-content-creator` aus Briefing und optionalem Kontext geschützte, nicht persistierte Entwürfe für Kurzfassungen, Gliederungen oder CTA-Varianten. Die Ergebnisse erscheinen ausschließlich im Admin und können nur manuell kopiert werden.
 - Prompt-Vorlagen lassen sich je Bereich verwalten; Translation, SEO und Content Creator wirken direkt in ihren jeweiligen Live-Pipelines
+- seit `3.4.00` erzwingt die zentrale Ausführungsschicht Provider-Scopes, Profil-/Beta-Freigaben, explizite External-Egress-Freigaben, atomare UTC-Tages-/Monatsquoten, begrenzte Wiederholungen und policy-/quota-geprüfte Fallbacks. Healthchecks, Fallback-Auswahl, Provider-Scopes sowie interne Ollama-Hosts werden ausschließlich unter `/admin/ai-settings` gepflegt; Cloud-Provider benötigen HTTPS und AI-Assets werden nur auf AI-Adminseiten geladen.
 - seit `2.9.705` nutzt das Admin-Modul wieder die korrekte `Database::instance()`-API und fällt bei Initialisierungsproblemen fail-soft mit sicheren Default-Daten sowie datensparsamer Logger-Ausgabe zurück, statt alle AI-Unterseiten als Full-Page-Fatal zu beenden
 - seit `2.9.707` bleibt die Provider-Konfiguration auch nach Lösch- oder Speichervorgängen konsistent: Solange mindestens ein Provider-Eintrag vorhanden ist, hält die Settings-Logik automatisch einen gültigen `active_provider_id`; Secret-Felder werben zudem nicht mehr unnötig für Browser-Autofill
 - wenn `store_request_metrics` aktiv ist, protokolliert die Editor.js-Translation zusätzlich Zeichen- und Blockmetriken für nutzbare Verlauf-/Budgetanzeigen

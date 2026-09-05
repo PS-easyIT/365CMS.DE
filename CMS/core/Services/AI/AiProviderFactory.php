@@ -51,7 +51,8 @@ final class AiProviderFactory
                 $defaultModel !== '' ? $defaultModel : 'llama3.1:8b',
                 (string) ($providerConfig['endpoint'] ?? 'http://127.0.0.1:11434'),
                 $this->httpClient,
-                $timeoutSeconds
+                $timeoutSeconds,
+                (array) ($providerConfig['allowed_internal_hosts'] ?? [])
             ),
             'azure_openai' => new AzureOpenAiProvider(
                 $providerId !== '' ? $providerId : 'azure_openai',
@@ -116,6 +117,10 @@ final class AiProviderFactory
             throw new \RuntimeException('Der Provider-Endpoint fehlt.');
         }
 
+        if (in_array($providerType, ['openai', 'mistral', 'openrouter', 'azure_openai'], true)) {
+            $this->assertHttpsEndpoint((string) ($providerConfig['endpoint'] ?? ''));
+        }
+
         if ($providerType === 'ollama') {
             if (trim((string) ($providerConfig['endpoint'] ?? '')) === '') {
                 throw new \RuntimeException('Der Ollama-Endpoint fehlt.');
@@ -123,6 +128,7 @@ final class AiProviderFactory
             if (trim((string) ($providerConfig['default_model'] ?? '')) === '') {
                 throw new \RuntimeException('Das Ollama-Modell fehlt.');
             }
+            $this->assertAllowedOllamaEndpoint($providerConfig);
         }
 
         if ($providerType === 'azure_openai') {
@@ -153,5 +159,28 @@ final class AiProviderFactory
         $value = preg_replace('/[^a-z0-9_-]+/', '', $value) ?? '';
 
         return $value;
+    }
+
+    private function assertHttpsEndpoint(string $endpoint): void
+    {
+        $scheme = strtolower((string) parse_url(trim($endpoint), PHP_URL_SCHEME));
+        if ($scheme !== 'https') {
+            throw new \RuntimeException('Cloud-AI-Provider dürfen nur über einen HTTPS-Endpoint angesprochen werden.');
+        }
+    }
+
+    /** @param array<string, mixed> $providerConfig */
+    private function assertAllowedOllamaEndpoint(array $providerConfig): void
+    {
+        $endpoint = trim((string) ($providerConfig['endpoint'] ?? ''));
+        $host = strtolower((string) parse_url($endpoint, PHP_URL_HOST));
+        $allowedHosts = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $value): string => strtolower(trim((string) $value)),
+            (array) ($providerConfig['allowed_internal_hosts'] ?? [])
+        ), static fn (string $value): bool => $value !== '')));
+
+        if ($host === '' || $allowedHosts === [] || !in_array($host, $allowedHosts, true)) {
+            throw new \RuntimeException('Der Ollama-Endpoint ist nicht in der expliziten internen Host-Allowlist freigegeben.');
+        }
     }
 }
