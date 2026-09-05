@@ -139,7 +139,10 @@ final class AiExecutionService
         $this->policyService->assertFeatureAllowed($features, $providerConfig, $feature);
         $this->providerFactory->assertReady($providerConfig, $targetLocale);
         $provider = $this->providerFactory->create($providerConfig, $quotas);
-        $this->quotaService->reserve($userId, (string) ($providerConfig['id'] ?? ''), $characterCount, $quotas, $countUserQuota);
+        if ($countUserQuota) {
+            $this->quotaService->reserveUserOperation($userId, $characterCount, $quotas);
+        }
+        $provider = new QuotaAwareAiProvider($provider, $this->quotaService, $quotas);
 
         $attempts = 0;
         $retryCount = min(2, max(0, (int) ($quotas['retry_count'] ?? 0)));

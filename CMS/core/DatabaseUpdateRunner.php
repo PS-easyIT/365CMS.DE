@@ -35,7 +35,9 @@ final class DatabaseUpdateRunner
      *     target_schema_version:string,
      *     version_update_required:bool,
      *     schema_update_required:bool,
-     *     downgrade_detected:bool
+    *     downgrade_detected:bool,
+    *     schema_downgrade_detected:bool,
+    *     schema_integrity_ok:bool
      * }
      */
     public function getStatus(): array
@@ -47,8 +49,11 @@ final class DatabaseUpdateRunner
         }
         $targetVersion = Version::CURRENT;
         $targetSchemaVersion = SchemaManager::SCHEMA_VERSION;
-        $downgradeDetected = $installedVersion !== ''
+        $coreDowngradeDetected = $installedVersion !== ''
             && version_compare($installedVersion, $targetVersion, '>');
+        $schemaDowngradeDetected = $installedSchemaVersion !== ''
+            && $this->compareSchemaVersions($installedSchemaVersion, $targetSchemaVersion) > 0;
+        $schemaIntegrityOk = !$schemaDowngradeDetected && $this->isTargetSchemaReady();
 
         return [
             'installed_version' => $installedVersion,
@@ -57,8 +62,14 @@ final class DatabaseUpdateRunner
             'target_schema_version' => $targetSchemaVersion,
             'version_update_required' => $installedVersion === ''
                 || version_compare($targetVersion, $installedVersion, '>'),
-            'schema_update_required' => $installedSchemaVersion !== $targetSchemaVersion,
-            'downgrade_detected' => $downgradeDetected,
+            'schema_update_required' => !$schemaDowngradeDetected && (
+                $installedSchemaVersion === ''
+                || $this->compareSchemaVersions($targetSchemaVersion, $installedSchemaVersion) > 0
+                || !$schemaIntegrityOk
+            ),
+            'downgrade_detected' => $coreDowngradeDetected || $schemaDowngradeDetected,
+            'schema_downgrade_detected' => $schemaDowngradeDetected,
+            'schema_integrity_ok' => $schemaIntegrityOk,
         ];
     }
 
@@ -82,6 +93,9 @@ final class DatabaseUpdateRunner
             // repairTables() löscht nur die Schema-Flag-Datei und führt die zentralen,
             // idempotenten CREATE-/ALTER-Migrationen erneut aus. Es löscht keine Daten.
             $this->db->repairTables();
+            if (!$this->isTargetSchemaReady()) {
+                throw new \RuntimeException('Das Zielschema ist nach der Migration nicht vollständig verfügbar.');
+            }
 
             $this->writeSetting(self::INSTALLED_VERSION_OPTION, Version::CURRENT);
             $this->writeSetting(self::INSTALLED_AT_OPTION, date(DATE_ATOM));
@@ -142,6 +156,41 @@ final class DatabaseUpdateRunner
              ON DUPLICATE KEY UPDATE option_value = VALUES(option_value), autoload = VALUES(autoload)",
             [$optionName, $value]
         );
+    }
+
+    private function compareSchemaVersions(string $left, string $right): int
+    {
+        $leftVersion = $this->extractSchemaVersionNumber($left);
+        $rightVersion = $this->extractSchemaVersionNumber($right);
+
+        if ($leftVersion !== null && $rightVersion !== null) {
+            return $leftVersion <=> $rightVersion;
+        }
+
+        return version_compare($left, $right);
+    }
+
+    private function extractSchemaVersionNumber(string $version): ?int
+    {
+        return preg_match('/^v(\d+)$/i', trim($version), $matches) === 1
+            ? (int) $matches[1]
+            : null;
+    }
+
+    private function isTargetSchemaReady(): bool
+    {
+        $quotaTable = $this->db->getPrefix() . 'ai_quota_usage';
+        if (!$this->db->tableExists($quotaTable)) {
+            return false;
+        }
+
+        foreach (['scope_name', 'period_key', 'user_id', 'provider_id', 'request_count', 'character_count'] as $column) {
+            if (!$this->db->columnExists($quotaTable, $column)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function sanitizeDiagnosticText(string $value): string

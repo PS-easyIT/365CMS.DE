@@ -128,6 +128,7 @@ final class OpenAiCompatibleProvider extends AbstractPromptingAiProvider
     private function buildTransportError(array $response): string
     {
         $message = trim((string) ($response['error'] ?? ''));
+        $status = max(0, (int) ($response['status'] ?? 0));
         $body = trim((string) ($response['body'] ?? ''));
 
         if ($body !== '') {
@@ -142,6 +143,8 @@ final class OpenAiCompatibleProvider extends AbstractPromptingAiProvider
             }
         }
 
-        return $this->getLabel() . ': ' . ($message !== '' ? $message : 'AI-Request ist fehlgeschlagen.');
+        $message = $message !== '' ? $message : 'AI-Request ist fehlgeschlagen.';
+
+        return $this->getLabel() . ': ' . ($status > 0 ? 'HTTP-Status ' . $status . '. ' : '') . $message;
     }
 }

@@ -129,6 +129,8 @@ class UpdateService
             $latestVersion = (string) ($marketplaceRelease['version'] ?? $marketplaceRelease['latest_version'] ?? '');
 
             if ($latestVersion !== '') {
+                $downloadUrl = $this->resolveAllowedUpdateUrl((string) ($marketplaceRelease['download_url'] ?? ''));
+                $sha256 = $this->resolveIntegrityHashValue($marketplaceRelease);
                 $result = [
                     'current_version' => $currentVersion,
                     'latest_version' => $latestVersion,
@@ -136,8 +138,10 @@ class UpdateService
                     'changelog' => $this->normalizeChangelogText($marketplaceRelease['changelog'] ?? $marketplaceRelease['notes'] ?? ''),
                     'changelog_items' => $this->normalizeChangelogList($marketplaceRelease['changelog'] ?? []),
                     'release_date' => (string) ($marketplaceRelease['released'] ?? $marketplaceRelease['published_at'] ?? ''),
-                    'download_url' => $this->resolveAllowedUpdateUrl((string) ($marketplaceRelease['download_url'] ?? '')),
-                    'sha256' => $this->resolveIntegrityHashValue($marketplaceRelease),
+                    'download_url' => $downloadUrl,
+                    'sha256' => $sha256,
+                    'install_supported' => $downloadUrl !== '' && $sha256 !== '',
+                    'manual_reason' => $sha256 === '' ? 'Automatische Installation benötigt eine gültige SHA-256-Prüfsumme im Update-Manifest.' : '',
                     'release_notes' => (string) ($marketplaceRelease['notes'] ?? ''),
                     'purchase_url' => $this->resolveAllowedUpdateUrl((string) ($marketplaceRelease['purchase_url'] ?? '')),
                     'is_paid' => $this->normalizeBooleanValue($marketplaceRelease['is_paid'] ?? false),
@@ -172,6 +176,8 @@ class UpdateService
         $latestVersion = ltrim($release['tag_name'] ?? $currentVersion, 'v');
         $updateAvailable = version_compare($latestVersion, $currentVersion, '>');
         
+        $downloadUrl = $this->resolveAllowedUpdateUrl((string) ($release['zipball_url'] ?? ''));
+        $sha256 = $this->resolveIntegrityHashValue($release);
         $result = [
             'current_version' => $currentVersion,
             'latest_version' => $latestVersion,
@@ -181,8 +187,10 @@ class UpdateService
             'release_date' => isset($release['published_at']) 
                 ? date('Y-m-d', strtotime($release['published_at'])) 
                 : '',
-            'download_url' => $this->resolveAllowedUpdateUrl((string) ($release['zipball_url'] ?? '')),
-            'sha256' => $this->resolveIntegrityHashValue($release),
+            'download_url' => $downloadUrl,
+            'sha256' => $sha256,
+            'install_supported' => $downloadUrl !== '' && $sha256 !== '',
+            'manual_reason' => $sha256 === '' ? 'Automatische Installation benötigt eine gültige SHA-256-Prüfsumme im Release-Manifest.' : '',
             'release_notes' => $release['body'] ?? '',
         ];
         
@@ -222,6 +230,7 @@ class UpdateService
             }
 
             $downloadUrl = $this->resolveAllowedUpdateUrl((string) ($updateInfo['download_url'] ?? ''));
+            $sha256 = $this->resolveIntegrityHashValue($updateInfo);
             $purchaseUrl = $this->resolveAllowedUpdateUrl((string) ($updateInfo['purchase_url'] ?? ''));
             $isPaid = $this->normalizeBooleanValue($updateInfo['is_paid'] ?? false);
 
@@ -231,7 +240,7 @@ class UpdateService
                 'new_version' => $latestVersion,
                 'update_available' => true,
                 'download_url' => $downloadUrl,
-                'sha256' => $this->resolveIntegrityHashValue($updateInfo),
+                'sha256' => $sha256,
                 'changelog' => $this->normalizeChangelogText($updateInfo['changelog'] ?? $updateInfo['notes'] ?? ''),
                 'purchase_url' => $purchaseUrl,
                 'is_paid' => $isPaid,
@@ -239,8 +248,8 @@ class UpdateService
                 'price_currency' => strtoupper((string) ($updateInfo['price_currency'] ?? 'EUR')),
                 'requires_cms' => (string) ($updateInfo['requires_cms'] ?? $updateInfo['min_cms_version'] ?? ''),
                 'requires_php' => (string) ($updateInfo['requires_php'] ?? $updateInfo['min_php'] ?? ''),
-                'install_supported' => $downloadUrl !== '',
-                'manual_reason' => $this->buildMarketplaceReason($downloadUrl, $purchaseUrl, $isPaid, 'Plugin'),
+                'install_supported' => $downloadUrl !== '' && $sha256 !== '',
+                'manual_reason' => $this->buildIntegrityAwareMarketplaceReason($downloadUrl, $sha256, $purchaseUrl, $isPaid, 'Plugin'),
             ];
         }
         
@@ -278,6 +287,7 @@ class UpdateService
         
         $updateAvailable = version_compare($latestVersion, $currentVersion, '>');
         $downloadUrl = $this->resolveAllowedUpdateUrl((string) ($updateInfo['download_url'] ?? ''));
+        $sha256 = $this->resolveIntegrityHashValue($updateInfo);
         $purchaseUrl = $this->resolveAllowedUpdateUrl((string) ($updateInfo['purchase_url'] ?? ''));
         $isPaid = $this->normalizeBooleanValue($updateInfo['is_paid'] ?? false);
         
@@ -292,11 +302,11 @@ class UpdateService
             'is_paid' => $isPaid,
             'price_amount' => (string) ($updateInfo['price_amount'] ?? $updateInfo['price'] ?? ''),
             'price_currency' => strtoupper((string) ($updateInfo['price_currency'] ?? 'EUR')),
-            'sha256' => $this->resolveIntegrityHashValue($updateInfo),
+            'sha256' => $sha256,
             'requires_cms' => (string) ($updateInfo['requires_cms'] ?? $updateInfo['min_cms_version'] ?? ''),
             'requires_php' => (string) ($updateInfo['requires_php'] ?? $updateInfo['min_php'] ?? ''),
-            'install_supported' => $downloadUrl !== '',
-            'manual_reason' => $this->buildMarketplaceReason($downloadUrl, $purchaseUrl, $isPaid, 'Theme'),
+            'install_supported' => $downloadUrl !== '' && $sha256 !== '',
+            'manual_reason' => $this->buildIntegrityAwareMarketplaceReason($downloadUrl, $sha256, $purchaseUrl, $isPaid, 'Theme'),
         ];
     }
 
@@ -688,6 +698,18 @@ class UpdateService
         }
 
         return '';
+    }
+
+    private function buildIntegrityAwareMarketplaceReason(string $downloadUrl, string $sha256, string $purchaseUrl, bool $isPaid, string $type): string
+    {
+        $reason = $this->buildMarketplaceReason($downloadUrl, $purchaseUrl, $isPaid, $type);
+        if ($reason !== '') {
+            return $reason;
+        }
+
+        return $sha256 === ''
+            ? 'Automatische Installation benötigt eine gültige SHA-256-Prüfsumme im Update-Manifest.'
+            : '';
     }
     
     /**
@@ -1083,6 +1105,15 @@ class UpdateService
         string $name,
         string $version
     ): array {
+        $sha256 = strtolower(trim($sha256));
+        if (preg_match('/^[0-9a-f]{64}$/', $sha256) !== 1) {
+            return $this->failInstallResult(
+                'updates.install.integrity_hash_missing',
+                'Automatische Updates benötigen eine gültige SHA-256-Prüfsumme.',
+                ['type' => $type, 'name' => $name, 'version' => $version]
+            );
+        }
+
         if (!$this->isAllowedSensitiveRemoteUrl($downloadUrl)) {
             return $this->failInstallResult(
                 'updates.install.invalid_download_host',
@@ -1141,14 +1172,19 @@ class UpdateService
             );
         }
 
-        // Temporäre Datei erstellen (eigene .zip-Benennung, kein tempnam-Leak)
-        $tmpFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR
-            . '365cms_upd_' . bin2hex(random_bytes(8)) . '.zip';
-
-        $stagingRoot = $this->createAdjacentTemporaryDirectory($targetParentDir, '365cms_upd_stage_');
-        $backupPath = $this->buildAdjacentTemporaryPath($targetParentDir, '365cms_upd_backup_');
+        $lockHandle = $this->acquireInstallLock();
+        $tmpFile = '';
+        $stagingRoot = '';
+        $backupPath = '';
+        $installationCompleted = false;
 
         try {
+            // Temporäre Datei erstellen (eigene .zip-Benennung, kein tempnam-Leak)
+            $tmpFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR
+                . '365cms_upd_' . bin2hex(random_bytes(8)) . '.zip';
+            $stagingRoot = $this->createAdjacentTemporaryDirectory($targetParentDir, '365cms_upd_stage_');
+            $backupPath = $this->buildAdjacentTemporaryPath($targetParentDir, '365cms_upd_backup_');
+
             $response = $this->httpClient->get($downloadUrl, [
                 'timeout' => 120,
                 'connectTimeout' => 10,
@@ -1171,21 +1207,11 @@ class UpdateService
                 throw new \RuntimeException('Temporäre Datei nicht beschreibbar: ' . $tmpFile);
             }
 
-            // H-19: SHA-256-Verifikation
-            $sha256Verified = false;
-            if (!empty($sha256)) {
-                if (!$this->verifyDownloadIntegrity($tmpFile, $sha256)) {
-                    if (file_exists($tmpFile)) { unlink($tmpFile); } // M-03
-                    return ['success' => false, 'message' => 'SHA-256-Prüfsumme stimmt nicht überein! Update abgebrochen.', 'sha256_verified' => false];
-                }
-                $sha256Verified = true;
-            } else {
-                Logger::instance()->withChannel('updates.service')->warning('Update installation continues without SHA-256 verification.', [
-                    'name' => $name,
-                    'type' => $type,
-                    'version' => $version,
-                ]);
+            if (!$this->verifyDownloadIntegrity($tmpFile, $sha256)) {
+                if (file_exists($tmpFile)) { unlink($tmpFile); }
+                return ['success' => false, 'message' => 'SHA-256-Prüfsumme stimmt nicht überein! Update abgebrochen.', 'sha256_verified' => false];
             }
+            $sha256Verified = true;
 
             // ZIP extrahieren
             if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true)) {
@@ -1218,18 +1244,23 @@ class UpdateService
             if (!$this->directoryHasContents($installSource)) {
                 throw new \RuntimeException('Update-Paket enthält keine installierbaren Dateien.');
             }
+            $this->assertInstallSourceSafe($installSource, $type);
 
             if ($this->canUseAtomicDirectorySwap($type, $targetDir)) {
                 $this->swapDirectoryAtomically($installSource, $targetDir, $backupPath);
             } else {
                 $this->swapDirectoryContentsWithRollback($installSource, $targetDir, $backupPath, $type);
             }
+            $installationCompleted = true;
 
             // Temporäre Datei löschen
             if (file_exists($tmpFile)) { unlink($tmpFile); } // M-03
 
             // Update protokollieren
             $this->logUpdate($type, $name, $version);
+            if ($type === 'core') {
+                $this->clearCacheEntry('core_update_check');
+            }
 
             return ['success' => true, 'message' => "Update {$name} v{$version} erfolgreich installiert.", 'sha256_verified' => $sha256Verified];
 
@@ -1252,13 +1283,15 @@ class UpdateService
                 unlink($tmpFile);
             }
 
-            if (is_dir($stagingRoot)) {
+            if ($stagingRoot !== '' && is_dir($stagingRoot)) {
                 $this->removeDirectory($stagingRoot);
             }
 
-            if (is_dir($backupPath)) {
+            if ($installationCompleted && $backupPath !== '' && is_dir($backupPath)) {
                 $this->removeDirectory($backupPath);
             }
+
+            $this->releaseInstallLock($lockHandle);
         }
     }
 
@@ -1711,6 +1744,67 @@ class UpdateService
         }
     }
 
+    private function clearCacheEntry(string $key): void
+    {
+        try {
+            $this->db->execute(
+                "DELETE FROM {$this->db->getPrefix()}cache WHERE cache_key = ?",
+                [$key]
+            );
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('updates.service')->warning('Update cache entry could not be invalidated.', [
+                'cache_key' => $key,
+                'exception' => $e,
+            ]);
+        }
+    }
+
+    /** @return resource */
+    private function acquireInstallLock()
+    {
+        $lockDirectory = rtrim((string) ABSPATH, '/\\') . DIRECTORY_SEPARATOR . 'cache';
+        if (!is_dir($lockDirectory) && !mkdir($lockDirectory, 0755, true) && !is_dir($lockDirectory)) {
+            throw new \RuntimeException('Update-Sperrverzeichnis konnte nicht vorbereitet werden.');
+        }
+
+        $handle = fopen($lockDirectory . DIRECTORY_SEPARATOR . '.update-install.lock', 'c');
+        if ($handle === false) {
+            throw new \RuntimeException('Update-Sperrdatei konnte nicht geöffnet werden.');
+        }
+
+        if (!flock($handle, LOCK_EX | LOCK_NB)) {
+            fclose($handle);
+            throw new \RuntimeException('Ein anderes Update wird bereits installiert.');
+        }
+
+        return $handle;
+    }
+
+    /** @param resource $handle */
+    private function releaseInstallLock($handle): void
+    {
+        if (!is_resource($handle)) {
+            return;
+        }
+
+        flock($handle, LOCK_UN);
+        fclose($handle);
+    }
+
+    private function assertInstallSourceSafe(string $sourceDir, string $type): void
+    {
+        if ($type !== 'core') {
+            return;
+        }
+
+        $runtimeEntries = ['backups', 'cache', 'config', 'config.php', 'logs', 'uploads'];
+        foreach ($this->listDirectoryEntries($sourceDir) as $entry) {
+            if (in_array($entry, $runtimeEntries, true)) {
+                throw new \RuntimeException('Core-Update-Paket enthält einen installationsspezifischen Laufzeitpfad: ' . $entry);
+            }
+        }
+    }
+
     private function validateZipEntries(\ZipArchive $zip): bool
     {
         $hasEntries = false;
@@ -1909,7 +2003,9 @@ class UpdateService
 
         if (!rename($sourceDir, $targetDir)) {
             if ($backupCreated && !is_dir($targetDir) && is_dir($backupPath)) {
-                rename($backupPath, $targetDir);
+                if (!rename($backupPath, $targetDir)) {
+                    throw new \RuntimeException('Staging-Verzeichnis konnte nicht installiert werden und das Backup konnte nicht automatisch wiederhergestellt werden. Das Recovery-Verzeichnis bleibt erhalten: ' . $backupPath);
+                }
             }
 
             throw new \RuntimeException('Staging-Verzeichnis konnte nicht atomar in das Ziel verschoben werden: ' . $targetDir);
@@ -1971,12 +2067,15 @@ class UpdateService
                 $movedEntries[] = $entry;
             }
         } catch (\Throwable $e) {
+            $rollbackFailures = [];
             foreach (array_reverse($movedEntries) as $entry) {
                 $current = $targetDir . DIRECTORY_SEPARATOR . $entry;
                 $rollback = $sourceDir . DIRECTORY_SEPARATOR . $entry;
 
                 if (file_exists($current)) {
-                    @rename($current, $rollback);
+                    if (!rename($current, $rollback)) {
+                        $rollbackFailures[] = 'Neuer Eintrag konnte nicht ins Staging zurückverschoben werden: ' . $entry;
+                    }
                 }
             }
 
@@ -1985,8 +2084,19 @@ class UpdateService
                 $rollback = $targetDir . DIRECTORY_SEPARATOR . $entry;
 
                 if (file_exists($current)) {
-                    @rename($current, $rollback);
+                    if (!rename($current, $rollback)) {
+                        $rollbackFailures[] = 'Backup-Eintrag konnte nicht wiederhergestellt werden: ' . $entry;
+                    }
                 }
+            }
+
+            if ($rollbackFailures !== []) {
+                throw new \RuntimeException(
+                    'Update fehlgeschlagen und die automatische Wiederherstellung ist unvollständig. Das Recovery-Verzeichnis bleibt erhalten: '
+                    . $backupPath . '. Details: ' . implode('; ', $rollbackFailures),
+                    0,
+                    $e
+                );
             }
 
             throw $e;

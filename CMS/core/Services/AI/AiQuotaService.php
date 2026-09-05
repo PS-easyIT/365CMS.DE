@@ -104,6 +104,50 @@ final class AiQuotaService
     }
 
     /**
+     * Reserves the user-visible AI operation exactly once before execution starts.
+     *
+     * @param array<string, mixed> $quotaConfig
+     */
+    public function reserveUserOperation(int $userId, int $characterCount, array $quotaConfig): void
+    {
+        if ($userId <= 0) {
+            throw new \RuntimeException('AI-Quota kann keinem angemeldeten Benutzer zugeordnet werden.');
+        }
+
+        $characterCount = max(0, $characterCount);
+        $today = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d');
+        $limits = [
+            self::USER_DAILY_REQUESTS => max(1, (int) ($quotaConfig['daily_requests_per_user'] ?? 40)),
+            self::USER_DAILY_CHARACTERS => max(500, (int) ($quotaConfig['daily_chars_per_user'] ?? 120000)),
+        ];
+
+        $this->reserveRows([
+            [self::USER_DAILY_REQUESTS, $today, $userId, '', 1, 0],
+            [self::USER_DAILY_CHARACTERS, $today, $userId, '', 0, $characterCount],
+        ], $limits);
+    }
+
+    /**
+     * Reserves every actual provider call, including a batch, retry or fallback call.
+     *
+     * @param array<string, mixed> $quotaConfig
+     */
+    public function reserveProviderCall(string $providerId, array $quotaConfig): void
+    {
+        $providerId = $this->normalizeProviderId($providerId);
+        if ($providerId === '') {
+            throw new \RuntimeException('AI-Quota kann keinem Provider zugeordnet werden.');
+        }
+
+        $month = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m');
+        $this->reserveRows([
+            [self::PROVIDER_MONTHLY_REQUESTS, $month, 0, $providerId, 1, 0],
+        ], [
+            self::PROVIDER_MONTHLY_REQUESTS => max(10, (int) ($quotaConfig['monthly_requests_per_provider'] ?? 5000)),
+        ]);
+    }
+
+    /**
      * @param array<string, mixed> $quotaConfig
      * @return array{requests_24h:int,request_limit:int,chars_24h:int,char_limit:int,requests_30d:int,provider_request_limit:int}
      */
@@ -128,6 +172,59 @@ final class AiQuotaService
         $retentionDays = max(31, min(3650, $retentionDays));
         $cutoff = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->modify('-' . $retentionDays . ' days')->format('Y-m-d');
         $this->db->execute("DELETE FROM {$this->table} WHERE period_key < ?", [$cutoff]);
+    }
+
+    /**
+     * @param list<array{0:string,1:string,2:int,3:string,4:int,5:int}> $reservations
+     * @param array<string, int> $limits
+     */
+    private function reserveRows(array $reservations, array $limits): void
+    {
+        usort($reservations, static fn (array $left, array $right): int => implode('|', $left) <=> implode('|', $right));
+
+        $pdo = $this->db->getPdo();
+        try {
+            $pdo->beginTransaction();
+
+            foreach ($reservations as [$scope, $period, $reservedUserId, $reservedProviderId, $requests, $characters]) {
+                $this->db->execute(
+                    "INSERT IGNORE INTO {$this->table} (scope_name, period_key, user_id, provider_id, request_count, character_count, updated_at)
+                     VALUES (?, ?, ?, ?, 0, 0, NOW())",
+                    [$scope, $period, $reservedUserId, $reservedProviderId]
+                );
+
+                $row = $this->db->get_row(
+                    "SELECT request_count, character_count
+                     FROM {$this->table}
+                     WHERE scope_name = ? AND period_key = ? AND user_id = ? AND provider_id = ?
+                     FOR UPDATE",
+                    [$scope, $period, $reservedUserId, $reservedProviderId]
+                );
+                $currentValue = $scope === self::USER_DAILY_CHARACTERS
+                    ? (int) ($row->character_count ?? 0)
+                    : (int) ($row->request_count ?? 0);
+                $increment = $scope === self::USER_DAILY_CHARACTERS ? $characters : $requests;
+
+                if ($currentValue + $increment > ($limits[$scope] ?? 0)) {
+                    throw new \RuntimeException($this->getLimitMessage($scope));
+                }
+
+                $this->db->execute(
+                    "UPDATE {$this->table}
+                     SET request_count = request_count + ?, character_count = character_count + ?, updated_at = NOW()
+                     WHERE scope_name = ? AND period_key = ? AND user_id = ? AND provider_id = ?",
+                    [$requests, $characters, $scope, $period, $reservedUserId, $reservedProviderId]
+                );
+            }
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw $e;
+        }
     }
 
     private function ensureTable(): void
