@@ -87,6 +87,13 @@ function cms_admin_posts_sanitize_inline_post(array $post): array
 {
     foreach ($post as $key => $value) {
         if (in_array((string) $key, ['additional_category_ids', 'post_meta'], true)) {
+            if (is_array($value)) {
+                foreach ($value as $nestedKey => $nestedValue) {
+                    if (!is_scalar($nestedValue) && $nestedValue !== null) {
+                        $post[$key][$nestedKey] = '';
+                    }
+                }
+            }
             continue;
         }
 

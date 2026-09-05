@@ -645,7 +645,7 @@ final class SeoSuiteModule
 
 	private function getAnalyticsData(array $auditRows): array
 	{
-		$hasPageViews = (bool)$this->db->get_var("SHOW TABLES LIKE '{$this->prefix}page_views'");
+		$hasPageViews = $this->db->tableExists($this->prefix . 'page_views');
 		$dailyTraffic = [];
 		$topPages = [];
 		$referrers = [];

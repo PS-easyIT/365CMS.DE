@@ -114,16 +114,13 @@ abstract class AbstractPromptingAiProvider implements AiProviderInterface
     protected function extractTranslationsFromResponse(string $rawContent, array $segments): array
     {
         $payload = $this->decodeStructuredPayload($rawContent);
-        $translations = [];
-
-        if ($this->isListOfStrings($payload)) {
-            $translations = $payload;
-        } elseif (is_array($payload) && $this->isListOfStrings($payload['translations'] ?? null)) {
-            $translations = $payload['translations'];
-        }
+        $translations = $this->extractTranslationList($payload, count($segments));
 
         if (count($translations) !== count($segments)) {
-            throw new \RuntimeException('AI-Provider lieferte keine valide Batch-Antwort mit passender Segmentanzahl zurück.');
+            throw new \RuntimeException(
+                'AI-Provider-Antwort verletzt den Übersetzungs-Batch-Vertrag (erwartet: '
+                . count($segments) . ', erhalten: ' . count($translations) . ').'
+            );
         }
 
         $normalized = [];
@@ -133,6 +130,68 @@ abstract class AbstractPromptingAiProvider implements AiProviderInterface
         }
 
         return $normalized;
+    }
+
+    /**
+     * Accepts the canonical list-of-strings response and indexed object variants
+     * that several OpenAI-compatible models emit despite the JSON-only contract.
+     *
+     * @param array<string,mixed>|list<mixed> $payload
+     * @return list<string>
+     */
+    private function extractTranslationList(array $payload, int $expectedCount): array
+    {
+        if ($this->isListOfStrings($payload)) {
+            return array_values($payload);
+        }
+
+        if (!is_array($payload) || !array_key_exists('translations', $payload) || !is_array($payload['translations'])) {
+            return [];
+        }
+
+        $translations = $payload['translations'];
+        if ($this->isListOfStrings($translations)) {
+            return array_values($translations);
+        }
+
+        $indexedTranslations = array_fill(0, $expectedCount, null);
+        foreach ($translations as $key => $entry) {
+            $index = $this->normalizeTranslationIndex($key);
+            $value = $entry;
+
+            if (is_array($entry)) {
+                $index = $this->normalizeTranslationIndex(
+                    $entry['index'] ?? $entry['id'] ?? $entry['segment_index'] ?? $key
+                );
+                $value = $entry['translation'] ?? $entry['translated'] ?? $entry['text'] ?? $entry['content'] ?? null;
+            }
+
+            if ($index === null || $index < 0 || $index >= $expectedCount || !is_string($value) || $indexedTranslations[$index] !== null) {
+                return [];
+            }
+
+            $indexedTranslations[$index] = $value;
+        }
+
+        if (in_array(null, $indexedTranslations, true)) {
+            return [];
+        }
+
+        /** @var list<string> $indexedTranslations */
+        return $indexedTranslations;
+    }
+
+    private function normalizeTranslationIndex(mixed $value): ?int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && preg_match('/^\d+$/', $value) === 1) {
+            return (int) $value;
+        }
+
+        return null;
     }
 
     /** @return array<string, mixed>|list<string> */

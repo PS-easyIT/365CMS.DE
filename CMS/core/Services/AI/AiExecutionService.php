@@ -189,6 +189,8 @@ final class AiExecutionService
             || str_contains($message, 'curl error 28')
             || str_contains($message, 'status 429')
             || preg_match('/status 5\d\d\b/', $message) === 1
+            || str_contains($message, 'übersetzungs-batch-vertrag')
+            || str_contains($message, 'übersetzungsnutzlast gelesen werden')
             || str_contains($message, 'temporarily unavailable')
             || str_contains($message, 'connection reset');
     }

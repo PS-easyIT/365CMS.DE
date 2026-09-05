@@ -166,7 +166,7 @@ function cms_admin_section_shell_normalize_csrf_actions(mixed $actions, string $
 
 function cms_admin_section_shell_verify_csrf_token(mixed $token, array $csrfActions, bool $persistentValidation): ?string
 {
-    $token = is_string($token) ? $token : (string) $token;
+    $token = is_string($token) ? $token : '';
     if ($token === '') {
         return null;
     }

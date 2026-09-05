@@ -118,7 +118,7 @@ class OrdersModule
     private function ensureTable(): void
     {
         $table = $this->prefix . 'orders';
-        $exists = $this->db->get_var("SHOW TABLES LIKE '{$table}'");
+        $exists = $this->db->tableExists($table);
         if (!$exists) {
             $this->db->getPdo()->exec("CREATE TABLE {$table} (
                 id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

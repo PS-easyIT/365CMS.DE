@@ -22,7 +22,7 @@ class AnalyticsModule
 
     public function getData(): array
     {
-        $hasTable = (bool)$this->db->get_var("SHOW TABLES LIKE '{$this->prefix}page_views'");
+        $hasTable = $this->db->tableExists($this->prefix . 'page_views');
 
         $stats = [
             'today'      => 0,

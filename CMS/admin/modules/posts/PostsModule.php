@@ -2438,6 +2438,9 @@ class PostsModule
             $entries = is_array($value) ? $value : (preg_split('/[\r\n,;]+/', (string) $value) ?: []);
             $normalized = [];
             foreach ($entries as $entry) {
+                if (!is_scalar($entry) && $entry !== null) {
+                    continue;
+                }
                 $text = $this->sanitizePlainText((string) $entry, 180);
                 if ($text !== '') {
                     $normalized[] = $text;
@@ -2538,6 +2541,12 @@ class PostsModule
             }
 
             if (is_array($value) && in_array((string) $key, $allowedArrayFields, true)) {
+                foreach ($value as $entry) {
+                    if (!is_scalar($entry) && $entry !== null) {
+                        $field = preg_replace('/[^a-z0-9_-]/i', '', (string) $key) ?? '';
+                        return $field !== '' ? $field : 'Eingabe';
+                    }
+                }
                 continue;
             }
 
@@ -3177,6 +3186,9 @@ class PostsModule
         }
 
         foreach ((array) $additionalCategoryIds as $categoryId) {
+            if (!is_scalar($categoryId) && $categoryId !== null) {
+                continue;
+            }
             $normalizedId = (int) $categoryId;
             if ($normalizedId > 0) {
                 $requestedIds[] = $normalizedId;
@@ -3224,7 +3236,7 @@ class PostsModule
             return [];
         }
 
-        $tableExists = (bool) $this->db->get_var("SHOW TABLES LIKE '{$this->prefix}post_category_rel'");
+        $tableExists = $this->db->tableExists($this->prefix . 'post_category_rel');
         $categoryIds = [];
 
         if ($tableExists) {
@@ -3262,7 +3274,7 @@ class PostsModule
             return;
         }
 
-        $tableExists = (bool) $this->db->get_var("SHOW TABLES LIKE '{$this->prefix}post_category_rel'");
+        $tableExists = $this->db->tableExists($this->prefix . 'post_category_rel');
         if (!$tableExists) {
             return;
         }

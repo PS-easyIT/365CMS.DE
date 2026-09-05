@@ -10,8 +10,8 @@ if (!defined('ABSPATH')) {
 final class EditorJsTranslationPipeline
 {
     private static ?self $instance = null;
-    private const int MAX_TRANSLATION_BATCH_CHARACTERS = 3500;
-    private const int MAX_TRANSLATION_BATCH_SEGMENTS = 20;
+    private const int MAX_TRANSLATION_BATCH_CHARACTERS = 2400;
+    private const int MAX_TRANSLATION_BATCH_SEGMENTS = 12;
 
     public static function getInstance(): self
     {
