@@ -31,7 +31,7 @@ if (!class_exists(__NAMESPACE__ . '\\SchemaManager', false)) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v21';
+    public const SCHEMA_VERSION = 'v22';
 
     private Database $db;
     private string $prefix;
@@ -610,6 +610,20 @@ class SchemaManager
                 INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
+            'ai_quota_usage' => "CREATE TABLE IF NOT EXISTS {$p}ai_quota_usage (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                scope_name VARCHAR(40) NOT NULL,
+                period_key VARCHAR(10) NOT NULL,
+                user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                provider_id VARCHAR(80) NOT NULL DEFAULT '',
+                request_count INT UNSIGNED NOT NULL DEFAULT 0,
+                character_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_ai_quota_scope_period (scope_name, period_key, user_id, provider_id),
+                INDEX idx_ai_quota_updated (updated_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
+
             'mail_log' => "CREATE TABLE IF NOT EXISTS {$p}mail_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 recipient VARCHAR(255) NOT NULL,
@@ -954,6 +968,15 @@ class SchemaManager
                 $this->db->getPdo()->exec($siteTablesSql);
             } catch (\Throwable $e) {
                 error_log('SchemaManager::ensureRuntimeSchema() site_tables failed: ' . $this->sanitizeDiagnosticText($e->getMessage()));
+            }
+        }
+
+        $aiQuotaSql = self::getSchemaQueries($this->prefix, $this->charset)['ai_quota_usage'] ?? '';
+        if ($aiQuotaSql !== '') {
+            try {
+                $this->db->getPdo()->exec($aiQuotaSql);
+            } catch (\Throwable $e) {
+                error_log('SchemaManager::ensureRuntimeSchema() ai_quota_usage failed: ' . $this->sanitizeDiagnosticText($e->getMessage()));
             }
         }
 

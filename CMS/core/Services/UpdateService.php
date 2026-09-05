@@ -1222,7 +1222,7 @@ class UpdateService
             if ($this->canUseAtomicDirectorySwap($type, $targetDir)) {
                 $this->swapDirectoryAtomically($installSource, $targetDir, $backupPath);
             } else {
-                $this->swapDirectoryContentsWithRollback($installSource, $targetDir, $backupPath);
+                $this->swapDirectoryContentsWithRollback($installSource, $targetDir, $backupPath, $type);
             }
 
             // Temporäre Datei löschen
@@ -1920,7 +1920,7 @@ class UpdateService
         }
     }
 
-    private function swapDirectoryContentsWithRollback(string $sourceDir, string $targetDir, string $backupPath): void
+    private function swapDirectoryContentsWithRollback(string $sourceDir, string $targetDir, string $backupPath, string $type = ''): void
     {
         if (!is_dir($sourceDir)) {
             throw new \RuntimeException('Staging-Quelle für das Update fehlt: ' . $sourceDir);
@@ -1936,9 +1936,16 @@ class UpdateService
 
         $backedUpEntries = [];
         $movedEntries = [];
+        $preservedCoreEntries = $type === 'core'
+            ? ['backups', 'cache', 'config', 'config.php', 'logs', 'uploads']
+            : [];
 
         try {
             foreach ($this->listDirectoryEntries($targetDir) as $entry) {
+                if (in_array($entry, $preservedCoreEntries, true)) {
+                    continue;
+                }
+
                 $from = $targetDir . DIRECTORY_SEPARATOR . $entry;
                 $to = $backupPath . DIRECTORY_SEPARATOR . $entry;
 
@@ -1950,6 +1957,10 @@ class UpdateService
             }
 
             foreach ($this->listDirectoryEntries($sourceDir) as $entry) {
+                if (in_array($entry, $preservedCoreEntries, true)) {
+                    throw new \RuntimeException('Core-Update-Paket enthält einen installationsspezifischen Laufzeitpfad: ' . $entry);
+                }
+
                 $from = $sourceDir . DIRECTORY_SEPARATOR . $entry;
                 $to = $targetDir . DIRECTORY_SEPARATOR . $entry;
 

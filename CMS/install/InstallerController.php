@@ -93,6 +93,7 @@ final class InstallerController
 
         $updateErrors = [];
         $tableResults = [];
+        $updateStatus = $this->service->getInstalledDatabaseUpdateStatus();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_update'])) {
             $newSiteName = trim((string) ($_POST['site_name'] ?? $this->existingConfig['site_name'] ?? ''));
@@ -177,6 +178,7 @@ final class InstallerController
             'fSiteUrl' => (string) ($_POST['site_url'] ?? $this->existingConfig['site_url'] ?? $this->service->autoDetectUrl()),
             'fAdminEmail' => (string) ($_POST['admin_email'] ?? $this->existingConfig['admin_email'] ?? ''),
             'fDebugMode' => (($this->existingConfig['debug_mode'] ?? 'false') === 'true'),
+            'updateStatus' => $updateStatus,
         ]);
     }
 

@@ -4,6 +4,12 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) {
     exit;
 }
+
+$updateStatus = is_array($updateStatus ?? null) ? $updateStatus : [];
+$installedVersion = (string) ($updateStatus['installed_version'] ?? '—');
+$targetVersion = (string) ($updateStatus['target_version'] ?? (defined('CMS_VERSION') ? CMS_VERSION : '—'));
+$installedSchemaVersion = (string) ($updateStatus['installed_schema_version'] ?? '—');
+$targetSchemaVersion = (string) ($updateStatus['target_schema_version'] ?? '—');
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -49,6 +55,13 @@ if (!defined('ABSPATH')) {
             @ <code><?php echo $escape($existingConfig['db_host'] ?? ''); ?></code>
             · Benutzer: <code><?php echo $escape($existingConfig['db_user'] ?? ''); ?></code><br>
             <small style="color: #065f46;">DB-Zugangsdaten und Security-Keys werden unverändert übernommen.</small>
+        </div>
+
+        <div class="info-box">
+            <strong>🔎 Installationsstatus:</strong><br>
+            Core: <code><?php echo $escape($installedVersion); ?></code> → <code><?php echo $escape($targetVersion); ?></code><br>
+            Schema: <code><?php echo $escape($installedSchemaVersion); ?></code> → <code><?php echo $escape($targetSchemaVersion); ?></code><br>
+            <small style="color: #065f46;">Das Update ergänzt fehlende Tabellen wie <code>ai_quota_usage</code> idempotent und löscht keine Inhalte, Benutzer oder Einstellungen.</small>
         </div>
 
         <form method="post">

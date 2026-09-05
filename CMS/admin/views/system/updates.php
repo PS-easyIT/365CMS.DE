@@ -20,6 +20,7 @@ $theme    = $data['theme'];
 $history  = $data['history'];
 $hasUpdates = $data['has_updates'];
 $preflight = is_array($data['preflight'] ?? null) ? $data['preflight'] : [];
+$databaseStatus = is_array($data['database_status'] ?? null) ? $data['database_status'] : [];
 $globalPreflight = is_array($preflight['global'] ?? null) ? $preflight['global'] : ['ready' => true, 'checks' => [], 'blocking_messages' => []];
 $corePreflight = is_array($preflight['core'] ?? null) ? $preflight['core'] : ['ready' => true, 'blocking_messages' => []];
 $themePreflight = is_array($preflight['theme'] ?? null) ? $preflight['theme'] : ['ready' => true, 'blocking_messages' => []];
@@ -133,6 +134,39 @@ if (!function_exists('cms_admin_updates_render_preflight_badge')) {
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">Datenbankschema</h3>
+            <div class="card-actions">
+                <?php if (!empty($databaseStatus['downgrade_detected'])): ?>
+                    <span class="badge bg-danger-lt text-danger">Downgrade blockiert</span>
+                <?php elseif (!empty($databaseStatus['schema_update_required']) || !empty($databaseStatus['version_update_required'])): ?>
+                    <span class="badge bg-warning-lt text-warning">Update erforderlich</span>
+                <?php else: ?>
+                    <span class="badge bg-success-lt text-success">Aktuell</span>
+                <?php endif; ?>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-8 text-secondary small">
+                    Core: <code><?php echo htmlspecialchars((string) ($databaseStatus['installed_version'] ?? '—')); ?></code> → <code><?php echo htmlspecialchars((string) ($databaseStatus['target_version'] ?? '—')); ?></code><br>
+                    Schema: <code><?php echo htmlspecialchars((string) ($databaseStatus['installed_schema_version'] ?? '—')); ?></code> → <code><?php echo htmlspecialchars((string) ($databaseStatus['target_schema_version'] ?? '—')); ?></code><br>
+                    Das Schema-Update ergänzt fehlende Tabellen wie <code>ai_quota_usage</code> idempotent und verändert keine redaktionellen Inhalte.
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <?php if (empty($databaseStatus['downgrade_detected']) && (!empty($databaseStatus['schema_update_required']) || !empty($databaseStatus['version_update_required']))): ?>
+                        <form method="post" class="d-inline" data-confirm-message="Datenbankschema jetzt idempotent aktualisieren? Inhalte und Benutzer bleiben erhalten." data-confirm-title="Datenbankschema aktualisieren" data-confirm-text="Aktualisieren" data-confirm-class="btn-primary" data-confirm-status-class="bg-primary">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                            <input type="hidden" name="action" value="run_database_update">
+                            <button type="submit" class="btn btn-primary">Schema aktualisieren</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>

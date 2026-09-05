@@ -83,6 +83,7 @@ function cms_admin_updates_allowed_actions(): array
 {
     return [
         'check_updates' => true,
+        'run_database_update' => true,
         'install_core' => true,
         'install_plugin' => true,
         'install_theme' => true,
@@ -100,6 +101,7 @@ function cms_admin_updates_handle_action(UpdatesModule $module, string $action, 
         'check_updates' => ['success' => true, 'type' => 'info', 'message' => 'Update-Prüfung abgeschlossen.', 'callback' => static function () use ($module): void {
             cms_admin_updates_store_snapshot($module->checkAllUpdates());
         }],
+        'run_database_update' => $module->runDatabaseUpdate(),
         'install_core' => $module->installCoreUpdate(),
         'install_plugin' => $module->installPluginUpdate(cms_admin_updates_normalize_plugin_slug($post)),
         'install_theme' => $module->installThemeUpdate(),
@@ -132,11 +134,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'message' => (string) ($result['message'] ?? 'Update-Prüfung abgeschlossen.'),
         ]);
     } else {
-        $fallbackMessage = $action === 'install_core'
+        $fallbackMessage = $action === 'run_database_update'
+            ? 'Datenbankschema-Update konnte nicht verarbeitet werden.'
+            : ($action === 'install_core'
             ? 'Core-Update konnte nicht verarbeitet werden.'
             : ($action === 'install_theme'
                 ? 'Theme-Update konnte nicht verarbeitet werden.'
-                : 'Plugin-Update konnte nicht verarbeitet werden.');
+                : 'Plugin-Update konnte nicht verarbeitet werden.'));
 
         cms_admin_updates_flash_result($result, $fallbackMessage);
     }

@@ -12,6 +12,8 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\AuditLogger;
+use CMS\Database;
+use CMS\DatabaseUpdateRunner;
 use CMS\Logger;
 use CMS\Services\UpdateService;
 
@@ -24,6 +26,7 @@ class UpdatesModule
     private ?array $historyData = null;
     private ?array $requirementsData = null;
     private ?array $preflightData = null;
+    private ?array $databaseStatusData = null;
 
     public function __construct()
     {
@@ -46,6 +49,7 @@ class UpdatesModule
             'history'  => $this->getHistoryData(),
             'requirements' => $this->getRequirementsData(),
             'preflight' => $this->getPreflightData(),
+            'database_status' => $this->getDatabaseStatus(),
             'has_updates'  => ($core['update_available'] ?? false)
                 || !empty(array_filter($plugins, fn($p) => !empty($p['new_version'])))
                 || ($theme['update_available'] ?? false),
@@ -124,6 +128,24 @@ class UpdatesModule
                 'Core-Update konnte nicht installiert werden.',
                 $e,
                 ['component' => 'core']
+            );
+        }
+    }
+
+    /** @return array<string, mixed> */
+    public function runDatabaseUpdate(): array
+    {
+        try {
+            $result = (new DatabaseUpdateRunner(Database::instance()))->run();
+            $this->databaseStatusData = is_array($result['after'] ?? null) ? $result['after'] : null;
+
+            return $result;
+        } catch (\Throwable $e) {
+            return $this->failResult(
+                'updates.database.run_failed',
+                'Datenbankschema-Update konnte nicht ausgeführt werden.',
+                $e,
+                ['component' => 'database']
             );
         }
     }
@@ -430,6 +452,31 @@ class UpdatesModule
             'theme' => $this->buildComponentPreflight('theme', $theme, $requirements, $globalBlockingMessages),
             'plugins' => $pluginPreflight,
         ];
+    }
+
+    /** @return array<string, mixed> */
+    private function getDatabaseStatus(): array
+    {
+        if ($this->databaseStatusData !== null) {
+            return $this->databaseStatusData;
+        }
+
+        try {
+            return $this->databaseStatusData = (new DatabaseUpdateRunner(Database::instance()))->getStatus();
+        } catch (\Throwable $e) {
+            $this->logFailure('updates.database.status_failed', 'Datenbankschema-Status konnte nicht geladen werden.', $e);
+
+            return $this->databaseStatusData = [
+                'installed_version' => '',
+                'target_version' => defined('CMS_VERSION') ? CMS_VERSION : '?.?.?',
+                'installed_schema_version' => '',
+                'target_schema_version' => '',
+                'version_update_required' => false,
+                'schema_update_required' => false,
+                'downgrade_detected' => false,
+                'error' => 'Datenbankschema-Status konnte nicht geladen werden.',
+            ];
+        }
     }
 
     private function buildComponentPreflight(string $component, array $payload, array $requirements, array $globalBlockingMessages): array

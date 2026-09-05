@@ -148,6 +148,24 @@ final class InstallerService
         }
     }
 
+    /** @return array<string, mixed> */
+    public function getInstalledDatabaseUpdateStatus(): array
+    {
+        try {
+            $configStub = $this->rootDir . '/config.php';
+            if (!is_file($configStub)) {
+                return [];
+            }
+
+            require_once $configStub;
+            require_once $this->rootDir . '/core/autoload.php';
+
+            return (new \CMS\DatabaseUpdateRunner(\CMS\Database::instance()))->getStatus();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     /** @return list<array<string, mixed>> */
     public function getInstallableCoreModules(): array
     {

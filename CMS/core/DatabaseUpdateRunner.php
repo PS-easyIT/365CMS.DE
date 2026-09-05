@@ -21,6 +21,7 @@ final class DatabaseUpdateRunner
     private const INSTALLED_VERSION_OPTION = 'installed_cms_version';
     private const INSTALLED_AT_OPTION = 'installed_cms_updated_at';
     private const INSTALLED_SCHEMA_OPTION = 'installed_cms_schema_version';
+    private const DATABASE_SCHEMA_OPTION = 'db_schema_version';
 
     public function __construct(private readonly Database $db)
     {
@@ -40,7 +41,10 @@ final class DatabaseUpdateRunner
     public function getStatus(): array
     {
         $installedVersion = $this->readSetting(self::INSTALLED_VERSION_OPTION);
-        $installedSchemaVersion = $this->readSetting('db_schema_version');
+        $installedSchemaVersion = $this->readSetting(self::DATABASE_SCHEMA_OPTION);
+        if ($installedSchemaVersion === '') {
+            $installedSchemaVersion = $this->readSetting(self::INSTALLED_SCHEMA_OPTION);
+        }
         $targetVersion = Version::CURRENT;
         $targetSchemaVersion = SchemaManager::SCHEMA_VERSION;
         $downgradeDetected = $installedVersion !== ''
@@ -82,6 +86,7 @@ final class DatabaseUpdateRunner
             $this->writeSetting(self::INSTALLED_VERSION_OPTION, Version::CURRENT);
             $this->writeSetting(self::INSTALLED_AT_OPTION, date(DATE_ATOM));
             $this->writeSetting(self::INSTALLED_SCHEMA_OPTION, SchemaManager::SCHEMA_VERSION);
+            $this->writeSetting(self::DATABASE_SCHEMA_OPTION, SchemaManager::SCHEMA_VERSION);
 
             $after = $this->getStatus();
 
