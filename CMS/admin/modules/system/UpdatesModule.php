@@ -114,7 +114,7 @@ class UpdatesModule
                 return ['success' => false, 'error' => 'Download-URL nicht verfügbar.'];
             }
 
-            return $this->service->downloadAndInstallUpdate(
+            $result = $this->service->downloadAndInstallUpdate(
                 $downloadUrl,
                 $sha256,
                 ABSPATH,
@@ -122,6 +122,13 @@ class UpdatesModule
                 '365CMS',
                 $version
             );
+
+            if (!empty($result['success'])) {
+                $result['message'] = (string) ($result['message'] ?? 'Core-Update erfolgreich installiert.')
+                    . ' Bitte die Seite neu laden und anschließend den Datenbankschema-Status prüfen.';
+            }
+
+            return $result;
         } catch (\Throwable $e) {
             return $this->failResult(
                 'updates.core.install_failed',

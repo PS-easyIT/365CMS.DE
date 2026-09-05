@@ -123,4 +123,6 @@ cache/htmlpurifier/HTML/4.19.0,fef47230a541ed4de15de9e2aebc5553d82b2d66,20260519
 /CMS/assets
 /CMS/cache
 /CMS/data
-RELEASE/.build-*
+/RELEASE/.build-*
+/TEST/*.*
+/TEST/*
