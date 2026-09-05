@@ -145,16 +145,13 @@ abstract class AbstractPromptingAiProvider implements AiProviderInterface
             return array_values($payload);
         }
 
-        if (!is_array($payload) || !array_key_exists('translations', $payload) || !is_array($payload['translations'])) {
-            return [];
-        }
-
-        $translations = $payload['translations'];
+        $translations = is_array($payload['translations'] ?? null) ? $payload['translations'] : $payload;
         if ($this->isListOfStrings($translations)) {
             return array_values($translations);
         }
 
-        $indexedTranslations = array_fill(0, $expectedCount, null);
+        $entries = [];
+        $indexes = [];
         foreach ($translations as $key => $entry) {
             $index = $this->normalizeTranslationIndex($key);
             $value = $entry;
@@ -166,7 +163,27 @@ abstract class AbstractPromptingAiProvider implements AiProviderInterface
                 $value = $entry['translation'] ?? $entry['translated'] ?? $entry['text'] ?? $entry['content'] ?? null;
             }
 
-            if ($index === null || $index < 0 || $index >= $expectedCount || !is_string($value) || $indexedTranslations[$index] !== null) {
+            if ($index === null || !is_string($value) || isset($entries[$index])) {
+                return [];
+            }
+
+            $entries[$index] = $value;
+            $indexes[] = $index;
+        }
+
+        sort($indexes, SORT_NUMERIC);
+        $oneBasedIndexes = range(1, $expectedCount);
+        if ($indexes === $oneBasedIndexes) {
+            ksort($entries, SORT_NUMERIC);
+            $entries = array_combine(
+                range(0, max(0, $expectedCount - 1)),
+                array_values($entries)
+            ) ?: [];
+        }
+
+        $indexedTranslations = array_fill(0, $expectedCount, null);
+        foreach ($entries as $index => $value) {
+            if ($index < 0 || $index >= $expectedCount || $indexedTranslations[$index] !== null) {
                 return [];
             }
 
