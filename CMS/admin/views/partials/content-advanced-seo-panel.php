@@ -20,8 +20,10 @@ if (!defined('ABSPATH')) {
  *     sitemapChangefreqName:string,
  *     sitemapChangefreqValue:string,
  *     sitemapChangefreqOptions:array<int,string>,
+ *     robotsIndexId:string,
  *     robotsIndexName:string,
  *     robotsIndexChecked:bool,
+ *     robotsFollowId:string,
  *     robotsFollowName:string,
  *     robotsFollowChecked:bool,
  *     hreflangGroupId:string,
@@ -80,8 +82,8 @@ $advancedSeoPanel = $advancedSeoPanel ?? [];
                 </select>
             </div>
             <div class="col-lg-4 d-flex flex-column justify-content-end gap-2">
-                <label class="form-check"><input class="form-check-input" type="checkbox" name="<?php echo htmlspecialchars((string)($advancedSeoPanel['robotsIndexName'] ?? 'robots_index')); ?>" value="1" <?php echo !empty($advancedSeoPanel['robotsIndexChecked']) ? 'checked' : ''; ?>><span class="form-check-label">index</span></label>
-                <label class="form-check"><input class="form-check-input" type="checkbox" name="<?php echo htmlspecialchars((string)($advancedSeoPanel['robotsFollowName'] ?? 'robots_follow')); ?>" value="1" <?php echo !empty($advancedSeoPanel['robotsFollowChecked']) ? 'checked' : ''; ?>><span class="form-check-label">follow</span></label>
+                <label class="form-check"><input class="form-check-input" type="checkbox" id="<?php echo htmlspecialchars((string)($advancedSeoPanel['robotsIndexId'] ?? 'robotsIndex')); ?>" name="<?php echo htmlspecialchars((string)($advancedSeoPanel['robotsIndexName'] ?? 'robots_index')); ?>" value="1" <?php echo !empty($advancedSeoPanel['robotsIndexChecked']) ? 'checked' : ''; ?>><span class="form-check-label">index</span></label>
+                <label class="form-check"><input class="form-check-input" type="checkbox" id="<?php echo htmlspecialchars((string)($advancedSeoPanel['robotsFollowId'] ?? 'robotsFollow')); ?>" name="<?php echo htmlspecialchars((string)($advancedSeoPanel['robotsFollowName'] ?? 'robots_follow')); ?>" value="1" <?php echo !empty($advancedSeoPanel['robotsFollowChecked']) ? 'checked' : ''; ?>><span class="form-check-label">follow</span></label>
                 <label class="form-label mt-2" for="<?php echo htmlspecialchars((string)($advancedSeoPanel['hreflangGroupId'] ?? '')); ?>">hreflang-Gruppe</label>
                 <input type="text" class="form-control" id="<?php echo htmlspecialchars((string)($advancedSeoPanel['hreflangGroupId'] ?? '')); ?>" name="<?php echo htmlspecialchars((string)($advancedSeoPanel['hreflangGroupName'] ?? 'hreflang_group')); ?>" value="<?php echo htmlspecialchars((string)($advancedSeoPanel['hreflangGroupValue'] ?? '')); ?>" placeholder="z. B. blog-ki-strategie">
             </div>

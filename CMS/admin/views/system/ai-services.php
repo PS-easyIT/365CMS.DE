@@ -140,7 +140,7 @@ $renderPromptTemplateForm = static function (string $action, array $template, st
                     <input type="text" class="form-control" name="prompt_label" maxlength="120" value="<?php echo htmlspecialchars((string) ($template['label'] ?? ''), ENT_QUOTES); ?>">
                 </div>
                 <div class="col-md-5 d-flex align-items-end">
-                    <?php $renderSwitch('prompt_enabled', 'Vorlage aktiv verwenden', !empty($template['enabled']), 'Bei Translation wirkt die Vorlage direkt in der Live-Pipeline; Content/SEO sind für kommende Generatoren vorbereitet.'); ?>
+                    <?php $renderSwitch('prompt_enabled', 'Vorlage aktiv verwenden', !empty($template['enabled']), 'Bei Translation und SEO wirkt die Vorlage direkt in der Live-Pipeline; der Content Creator bleibt vorbereitet.'); ?>
                 </div>
                 <div class="col-12">
                     <label class="form-label">System-Prompt / Leitplanken</label>
@@ -266,7 +266,8 @@ if (empty($summary['translation_ready'])) {
                             <li class="mb-2">✅ Translation, Content-Assist und SEO-Assist lassen sich auf Provider-Ebene getrennt schalten.</li>
                             <li class="mb-2">✅ Das AI-Dashboard zeigt jetzt request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus dem Audit-Log, ohne Rohprompts oder Volltexte offenzulegen.</li>
                             <li class="mb-2">✅ Prompt-Vorlagen lassen sich je Bereich verwalten; die Translation-Vorlage wirkt direkt in der Live-Pipeline und bleibt durch serverseitige Pflicht-Leitplanken abgesichert.</li>
-                            <li class="mb-2">⚠️ Live-Generatoren für Content- und SEO-Outputs sind als nächster Ausbauschritt vorgesehen, derzeit aber noch Leitplanken-/Settings-getrieben.</li>
+                            <li class="mb-2">✅ Der SEO-Assistent erzeugt im Page-/Post-Editor aus dem Haupttext einen übernehmbaren Entwurf für Meta-, Social-, Schema-, Sitemap- und Robots-Felder; Dokumenttitel, Slug und URL-Felder bleiben ausgeschlossen.</li>
+                            <li class="mb-2">⚠️ Der Content Creator bleibt als nächster Ausbauschritt Leitplanken-/Settings-getrieben.</li>
                             <li>⚠️ Feingranulare Daily-/Monthly-Quota-Erzwingung und echte providerübergreifende Tokenkosten bleiben Follow-up-Arbeit, solange Live-Provider ihre Usage-Daten nicht konsistent zurückmelden.</li>
                         </ul>
                     </div>
@@ -572,13 +573,13 @@ if (empty($summary['translation_ready'])) {
         <div class="row row-cards">
             <div class="col-12 col-xl-7">
                 <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Geplante SEO-Workflows</h3></div>
+                    <div class="card-header"><h3 class="card-title">Aktiver SEO-Workflow</h3></div>
                     <div class="card-body text-secondary small">
                         <ul class="mb-0 ps-3">
-                            <li>Title-/Meta-Description-Vorschläge pro Entwurf</li>
-                            <li>Social Snippets, OpenGraph-Ideen und strukturierte Daten-Hinweise</li>
-                            <li>Keyword- und Intent-basierte Outline-Verbesserungen</li>
-                            <li>Spätere Anbindung an SEO-Dashboard und Editor-Assist</li>
+                            <li>Aktion „SEO mit AI füllen“ direkt im Page-/Post-Editor</li>
+                            <li>Haupttext → Kurzfassung, Keyphrase, Keywords, Meta- und Social-Snippets</li>
+                            <li>Schema-Typ, Sitemap-Priorität/-Frequenz und Robots als Entwurf</li>
+                            <li>Dokumenttitel, Slug, Canonical-, Bild- und hreflang-Felder bleiben unverändert</li>
                         </ul>
                     </div>
                 </div>
@@ -587,7 +588,7 @@ if (empty($summary['translation_ready'])) {
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Status</h3></div>
                     <div class="card-body text-secondary small">
-                        Der SEO Creator ist als eigenständiger Navigationspunkt vorbereitet und kann auf dem bereits vorhandenen SEO-Modul aufsetzen, ohne wieder unter „System“ zu verschwinden.
+                        Der SEO Creator ist produktiv an die Page-/Post-Editoren angebunden. Ein Ergebnis füllt nur den lokalen, noch ungespeicherten Formulardraft; die redaktionelle Prüfung und der normale Speichervorgang bleiben zwingend.
                     </div>
                 </div>
             </div>
@@ -623,7 +624,7 @@ if (empty($summary['translation_ready'])) {
                 </div>
             </div>
             <div class="col-12">
-                <?php $renderPromptTemplateForm('save_seo_prompts', $seoPromptTemplate, 'Prompt-Vorlage · SEO Creator', 'Vorbereitete Vorlage für Meta-, Social-Snippet- und strukturierte Daten-Hinweise mit redaktioneller Freigabe.'); ?>
+                <?php $renderPromptTemplateForm('save_seo_prompts', $seoPromptTemplate, 'Prompt-Vorlage · SEO Creator', 'Produktive Vorlage für Meta-, Social-, Schema-, Sitemap- und Robots-Entwürfe aus dem Editor.js-Haupttext mit redaktioneller Freigabe.'); ?>
             </div>
         </div>
     <?php else: ?>

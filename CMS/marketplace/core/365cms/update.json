@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.79",
+  "version": "3.3.80",
   "min_php": "8.4",
   "released": "2026-09-05",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.79: Große EditorJS-AI-Übersetzungen werden in kompakte Provider-Batches aufgeteilt; PHP- und Browser-Zeitlimits erlauben jeweils bis zu fünf Minuten Verarbeitung.",
+  "notes": "Release-Stand 3.3.80: Der SEO-AI-Assistent erstellt aus EditorJS-Haupttexten einen übernehmbaren Entwurf für Meta-, Social-, Schema-, Sitemap- und Robots-Felder; Dokumenttitel, Slug und URL-Felder bleiben technisch ausgeschlossen.",
   "critical": false
 }

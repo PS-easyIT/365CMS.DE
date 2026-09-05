@@ -211,12 +211,14 @@ final class AiServicesModule
         $rows = $this->db->get_results(
             "SELECT user_id, action, severity, description, metadata, created_at
              FROM {$this->dbPrefix}audit_log
-             WHERE action IN (?, ?) AND created_at >= ?
+                 WHERE action IN (?, ?, ?, ?) AND created_at >= ?
              ORDER BY created_at DESC
              LIMIT ?",
             [
                 'ai.editorjs.translate.processed',
                 'ai.editorjs.translate.failed',
+                     'ai.editorjs.seo_metadata.processed',
+                     'ai.editorjs.seo_metadata.failed',
                 $since,
                 self::USAGE_DATASET_LIMIT,
             ]
@@ -253,8 +255,9 @@ final class AiServicesModule
         $providerId = $this->sanitizeProviderId((string) ($metadata['provider'] ?? ''));
         $providerLabel = $providerLabels[$providerId] ?? ($providerId !== '' ? $providerId : '—');
         $userId = isset($row->user_id) ? (int) $row->user_id : 0;
-        $status = (string) ($row->action ?? '') === 'ai.editorjs.translate.processed' ? 'success' : 'warning';
-        $targetLocale = strtolower(trim((string) ($metadata['target_locale'] ?? '')));
+        $action = (string) ($row->action ?? '');
+        $status = str_ends_with($action, '.processed') ? 'success' : 'warning';
+        $targetLocale = strtolower(trim((string) ($metadata['target_locale'] ?? $metadata['locale'] ?? '')));
         $targetLocale = $targetLocale !== '' ? strtoupper($targetLocale) : '—';
 
         return [
@@ -265,6 +268,7 @@ final class AiServicesModule
             'user_label' => $userId <= 0 ? 'System' : ($userId === $currentUserId ? 'Du' : 'User #' . $userId),
             'provider_id' => $providerId,
             'provider_label' => $providerLabel,
+            'operation' => str_contains($action, '.seo_metadata.') ? 'SEO-Metadaten' : 'Editor.js-Übersetzung',
             'target_locale' => $targetLocale,
             'duration_ms' => $this->normalizePositiveNullable($metadata['duration_ms'] ?? null),
             'translated_blocks' => $this->normalizePositiveNullable($metadata['translated_blocks'] ?? null),

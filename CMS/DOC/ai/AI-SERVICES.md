@@ -2,9 +2,9 @@
 
 Kurzbeschreibung: Kanonische Konzept- und Architektur-Dokumentation für den Bereich **AI Services** in 365CMS. Der Fokus liegt auf Provider-Scope, Feature-Gates, Admin-Steuerung, Editor.js-Übersetzung und einem kontrollierten, ausbaufähigen KI-Betriebsmodell.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.707
+Letzte Aktualisierung: 2026-09-05 · Version 3.3.80
 
-> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, die ersten **Live-Adapter für `ollama` und `azure_openai`**, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. Seit `2.9.616` ist dieser Review-Schritt serverseitig verpflichtend und kann im Admin nicht mehr abgeschaltet werden. Seit `2.9.702` verdichtet das AI-Dashboard zusätzlich request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus `audit_log`, ohne Rohprompts oder Volltexte offenzulegen. Seit `2.9.703` verwaltet der Admin Prompt-Vorlagen je Bereich; die Translation-Vorlage wirkt direkt in der Editor.js-Live-Pipeline, Content- und SEO-Vorlagen bereiten kommende Generatoren vor. Seit `2.9.705` ist die Admin-Modulinitialisierung gegen DB-/Runtime-Probleme fail-soft gehärtet und nutzt die korrekte `Database::instance()`-API. Seit `2.9.707` hält die Provider-Verwaltung nach Änderungen immer wieder eine gültige aktive Standardauswahl, solange noch Provider-Einträge vorhanden sind; Secret-Felder vermeiden außerdem Browser-Autofill als unnötige Leckagequelle. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und weitere Bridge-Provider wie OpenAI/OpenRouter.
+> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, die ersten **Live-Adapter für `ollama` und `azure_openai`**, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. Seit `2.9.616` ist dieser Review-Schritt serverseitig verpflichtend und kann im Admin nicht mehr abgeschaltet werden. Seit `2.9.702` verdichtet das AI-Dashboard zusätzlich request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus `audit_log`, ohne Rohprompts oder Volltexte offenzulegen. Seit `2.9.703` verwaltet der Admin Prompt-Vorlagen je Bereich. Seit `3.3.80` erzeugt der geschützte Endpoint **`/admin/ai-generate-seo-metadata`** aus erlaubten Editor.js-Textsegmenten einen übernehmbaren SEO-Entwurf direkt im Page-/Post-Editor. Technisch zugelassen sind nur Kurzfassung, Fokus-Keyphrase, Keywords, Meta-/Social-Texte, Twitter Card, Schema, Sitemap und Robots; Dokumenttitel, Slug, Canonical-, Bild- und hreflang-Felder sind ausgeschlossen. Die Übernahme bleibt ungespeichert, bis die Redaktion den normalen Formular-Submit auslöst. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und der Content-Creator-Live-Generator.
 
 ## Inhaltsverzeichnis
 - [Ziel und Abgrenzung](#ziel-und-abgrenzung)
@@ -125,7 +125,7 @@ Der Bereich sollte langfristig vier fachliche Säulen steuern.
 
 - Editor.js-Übersetzung
 - spätere Zusammenfassungen
-- spätere Meta-/SEO-Helfer
+- SEO-Metadaten-Entwürfe aus dem Editor.js-Haupttext
 - spätere Rewrite-Varianten
 
 ---
@@ -574,7 +574,7 @@ Zweck:
 
 - Prompt-/Vorlagenverwaltung je AI-Bereich
 - klare Trennung von System-Instruktion und strukturierten Nutzdaten
-- vorbereitete Leitplanken für kommende Content- und SEO-Generatoren
+- produktive Leitplanken für Translation und SEO sowie vorbereitete Content-Generatoren
 
 Persistierte Bereiche:
 
@@ -582,7 +582,7 @@ Persistierte Bereiche:
 |---|---|---|
 | `translation` | `array` | Runtime-Vorlage für Editor.js-Übersetzungen |
 | `content_creator` | `array` | Briefing-Vorlage für spätere Rewrite-/Summary-/Outline-Flows |
-| `seo_creator` | `array` | Briefing-Vorlage für spätere Meta-/Snippet-/Schema-Hilfen |
+| `seo_creator` | `array` | Runtime-Vorlage für Meta-/Snippet-/Schema-/Sitemap-/Robots-Entwürfe |
 
 Struktur pro Bereich:
 
@@ -610,10 +610,13 @@ Bereits umgesetzt:
 - `CMS/core/Services/AI/AiProviderGateway.php`
 - `CMS/core/Services/AI/Providers/MockAiProvider.php`
 - `CMS/core/Services/AI/EditorJsTranslationPipeline.php`
+- `CMS/core/Services/AI/SeoMetadataGenerationPipeline.php`
 - `CMS/admin/ai-services.php`
 - `CMS/admin/ai-translate-editorjs.php`
+- `CMS/admin/ai-generate-seo-metadata.php`
 - `CMS/admin/modules/system/AiServicesModule.php`
 - `CMS/admin/modules/system/AiEditorJsTranslationModule.php`
+- `CMS/admin/modules/system/AiEditorJsSeoMetadataModule.php`
 - `CMS/admin/views/system/ai-services.php`
 - `CMS/core/Services/AI/Providers/OllamaAiProvider.php`
 - `CMS/core/Services/AI/Providers/AzureOpenAiProvider.php`
@@ -624,6 +627,8 @@ Bereits umgesetzt:
 - request- und quota-nahes Nutzungsmonitoring im AI-Dashboard auf Basis von `audit_log`
 - Verlaufstabelle der letzten AI-Generierungsläufe ohne Rohprompt-/Volltextanzeige
 - Prompt-/Vorlagenverwaltung je Bereich; die Translation-Vorlage wird direkt in `AbstractPromptingAiProvider::buildTranslationPrompt()` berücksichtigt und serverseitig mit Pflicht-Sicherheitsregeln ergänzt
+- SEO-Metadaten-Entwurf aus dem aktuellen Editor.js-Haupttext für Page-/Post-Editoren: Kurzfassung, Keyphrase, Keywords, Meta-/Social-Texte, Twitter Card, Schema, Sitemap und Robots werden als nicht persistierter Formularentwurf zurückgeführt
+- harte Feld-Whitelist für den SEO-Entwurf: kein Dokumenttitel, kein Slug, keine Canonical-/Bild-URLs und keine hreflang-Zuordnung können von der AI-Antwort übernommen werden
 - eigener AI-Hauptbereich in der Sidebar
 - vorbereitete Default-Capabilities für AI-Verwaltung/Nutzung in `CMS/includes/functions/roles.php`
 
@@ -632,7 +637,7 @@ Der aktuelle Scope dieser Umsetzung ist bewusst:
 - **Settings-, Gateway- und Mock-Runtime-Implementierung**
 - **Editor.js-Translation zur Laufzeit über Mock-, Ollama- oder Azure-AI-Datenfluss**
 - **Rückführung in lokalisierte EN-Felder von Posts/Pages**
-- **keine** externen produktiven Provider-Requests
+- **keine** automatische Persistenz oder Veröffentlichung von AI-Ergebnissen
 
 Damit steht jetzt der **betriebliche Rahmen plus eine erste echte Live-Runtime-Stufe**, auf der weitere AI-Funktionen und zusätzliche Provider später sauber aufsetzen können.
 
@@ -675,14 +680,13 @@ Spätere Einsätze:
 - redaktionelle Kurzfassungen
 - interne Zusammenfassungen für lange Texte
 
-### Prompt-basierte SEO-/Meta-Generierung
+### Ausbau des SEO-Assistenten
 
-Spätere Einsätze:
+Bereits umgesetzt sind Metadaten-, Social-, Schema-, Sitemap- und Robots-Entwürfe für bestehende Page-/Post-Inhalte. Spätere Ausbaustufen können ergänzen:
 
-- Seitentitel-Vorschläge
-- Meta-Description-Vorschläge
-- Social-/OG-Varianten
-- strukturierte Redaktionshilfen für FAQ/Schema
+- mehrere Varianten pro Feld
+- Keyword-/Intent-Vergleich gegen Suchdaten
+- strukturierte Redaktionshilfen für FAQ/HowTo
 
 ### Translation-/Rewrite-Helfer mit mehreren Providern
 

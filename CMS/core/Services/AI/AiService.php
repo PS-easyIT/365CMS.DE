@@ -18,6 +18,7 @@ final class AiService
     private AiSettingsService $settings;
     private AiProviderFactory $providerFactory;
     private EditorJsTranslationPipeline $pipeline;
+    private SeoMetadataGenerationPipeline $seoMetadataPipeline;
     private EditorJsSanitizer $editorJsSanitizer;
 
     public static function getInstance(): self
@@ -30,6 +31,7 @@ final class AiService
         $this->settings = AiSettingsService::getInstance();
         $this->providerFactory = AiProviderFactory::getInstance();
         $this->pipeline = EditorJsTranslationPipeline::getInstance();
+        $this->seoMetadataPipeline = new SeoMetadataGenerationPipeline();
         $this->editorJsSanitizer = new EditorJsSanitizer();
     }
 
@@ -168,6 +170,91 @@ final class AiService
         ];
     }
 
+    /**
+     * Creates an SEO metadata draft from the supplied primary content without persisting it.
+     *
+     * @param array<string, mixed> $request
+     * @return array<string, mixed>
+     */
+    public function generateSeoMetadataDraft(array $request): array
+    {
+        $startedAt = microtime(true);
+        $configuration = $this->settings->getConfiguration();
+        $features = is_array($configuration['features'] ?? null) ? $configuration['features'] : [];
+        $quotaConfig = is_array($configuration['quotas'] ?? null) ? $configuration['quotas'] : [];
+        $providersConfig = is_array($configuration['providers'] ?? null) ? $configuration['providers'] : [];
+        $promptsConfig = is_array($configuration['prompts'] ?? null) ? $configuration['prompts'] : [];
+        $loggingConfig = is_array($configuration['logging'] ?? null) ? $configuration['logging'] : [];
+
+        $contentType = $this->normalizeContentType((string) ($request['content_type'] ?? ''));
+        if (!in_array($contentType, ['post', 'page'], true)) {
+            throw new \InvalidArgumentException('Für die SEO-Generierung ist ein gültiger Inhaltstyp erforderlich.');
+        }
+
+        $locale = $this->normalizeLocale((string) ($request['locale'] ?? 'de'), 'de');
+        $sourceText = $this->sanitizeSeoSourceText((string) ($request['source_text'] ?? ''));
+        if ($sourceText === '') {
+            throw new \InvalidArgumentException('Für die SEO-Generierung ist ein nicht leerer Haupttext erforderlich.');
+        }
+
+        $maxCharacters = max(250, (int) ($quotaConfig['max_chars_per_request'] ?? 12000));
+        $sourceWasTruncated = $this->countCharacters($sourceText) > $maxCharacters;
+        if ($sourceWasTruncated) {
+            $sourceText = $this->truncateText($sourceText, $maxCharacters);
+        }
+
+        $providerConfig = $this->resolveGlobalProviderConfig($providersConfig);
+        $this->assertSeoMetadataEnabled($features, $providerConfig);
+        $this->providerFactory->assertReady($providerConfig);
+        $provider = $this->providerFactory->create($providerConfig, $quotaConfig);
+        $metadata = $this->seoMetadataPipeline->generate(
+            $sourceText,
+            $contentType,
+            $locale,
+            $provider,
+            is_array($promptsConfig['seo_creator'] ?? null) ? $promptsConfig['seo_creator'] : []
+        );
+
+        $telemetry = [
+            'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            'resolved_provider' => $provider->getSlug(),
+            'resolved_provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
+            'resolved_via' => 'global',
+            'content_type' => $contentType,
+            'locale' => $locale,
+            'source_char_count' => $this->countCharacters($sourceText),
+            'source_block_count' => max(0, (int) ($request['block_count'] ?? 0)),
+            'source_truncated' => $sourceWasTruncated,
+            'prompt_template_enabled' => !empty($promptsConfig['seo_creator']['enabled']),
+        ];
+
+        if (!empty($loggingConfig['store_content_hashes'])) {
+            $telemetry['source_hash'] = hash('sha256', $sourceText);
+        }
+
+        Logger::instance()->withChannel('ai.service')->info('SEO-Metadaten wurden über den globalen AI-Provider als Entwurf erzeugt.', [
+            'provider' => $provider->getSlug(),
+            'provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
+            'content_type' => $contentType,
+            'locale' => $locale,
+            'duration_ms' => $telemetry['duration_ms'],
+            'source_char_count' => $telemetry['source_char_count'],
+            'source_truncated' => $sourceWasTruncated,
+        ]);
+
+        return [
+            'provider' => $this->buildProviderMeta($provider, $providerConfig, 'global'),
+            'metadata' => $metadata,
+            'stats' => [
+                'generated_field_count' => count($metadata),
+                'source_char_count' => $telemetry['source_char_count'],
+                'source_block_count' => $telemetry['source_block_count'],
+                'source_truncated' => $sourceWasTruncated,
+            ],
+            'telemetry' => $telemetry,
+        ];
+    }
+
     /** @param array<string, mixed> $providersConfig */
     private function resolveGlobalProviderConfig(array $providersConfig): array
     {
@@ -204,6 +291,26 @@ final class AiService
 
         if (empty($features['ai_editorjs_enabled'])) {
             throw new \RuntimeException('Die Editor.js-Integration für AI ist aktuell deaktiviert.');
+        }
+    }
+
+    /** @param array<string, mixed> $features
+     *  @param array<string, mixed> $providerConfig
+     */
+    private function assertSeoMetadataEnabled(array $features, array $providerConfig): void
+    {
+        $this->assertAiEnabled($features);
+
+        if (empty($features['ai_seo_meta_enabled'])) {
+            throw new \RuntimeException('Die AI-SEO-Metadaten-Generierung ist aktuell global deaktiviert.');
+        }
+
+        if (empty($features['ai_editorjs_enabled'])) {
+            throw new \RuntimeException('Die Editor.js-Integration für AI ist aktuell deaktiviert.');
+        }
+
+        if (empty($providerConfig['seo_meta_enabled'])) {
+            throw new \RuntimeException('Der globale AI-Provider ist nicht für SEO-Metadaten freigegeben.');
         }
     }
 
@@ -247,6 +354,33 @@ final class AiService
         return function_exists('mb_strlen')
             ? mb_strlen($payload, 'UTF-8')
             : strlen($payload);
+    }
+
+    private function sanitizeSeoSourceText(string $value): string
+    {
+        $value = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $value = str_replace(["\r\n", "\r"], "\n", $value);
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $value) ?? '';
+
+        return trim(preg_replace('/\s+/u', ' ', $value) ?? '');
+    }
+
+    private function countCharacters(string $value): int
+    {
+        return function_exists('mb_strlen')
+            ? mb_strlen($value, 'UTF-8')
+            : strlen($value);
+    }
+
+    private function truncateText(string $value, int $maxCharacters): string
+    {
+        if ($this->countCharacters($value) <= $maxCharacters) {
+            return $value;
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxCharacters, 'UTF-8')
+            : substr($value, 0, $maxCharacters);
     }
 
     /**

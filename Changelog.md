@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.79
+﻿**Version:** 3.3.80
 
 # 365CMS Changelog
 
@@ -13,6 +13,14 @@
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.3.80 — 05.09.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.80** | 🟢 feat | AI / SEO Creator | Der Page-/Post-Editor enthält jetzt „SEO mit AI füllen“. Aus ausschließlich freigegebenen EditorJS-Haupttextsegmenten entstehen ein noch ungespeicherter Entwurf für Kurzfassung, Fokus-Keyphrase, Keywords, Meta-/Open-Graph-/X-Texte, Twitter Card, Schema-Typ, Sitemap und Robots. CSRF, Berechtigungen, Feature-/Provider-Gates, Größenlimits, Prompt-Injection-Leitplanken, Audit-Metadaten und Feld-Whitelist sind aktiv; Dokumenttitel, Slug, Canonical-, Bild- und hreflang-Felder können technisch nicht übernommen werden. |
 
 ---
 

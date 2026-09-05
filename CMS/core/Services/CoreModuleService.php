@@ -32,7 +32,7 @@ final class CoreModuleService
     private const array MODULES = [
         'ai_services' => [
             'label' => 'AI Services',
-            'description' => 'Schaltet die zentrale AI-Services-Verwaltung als eigenen Admin-Hauptbereich samt Übersetzungs-, Content-, SEO- und Einstellungsseiten inklusive Editor.js-Übersetzungsendpunkt ein oder aus.',
+            'description' => 'Schaltet die zentrale AI-Services-Verwaltung als eigenen Admin-Hauptbereich samt Übersetzungs-, Content-, SEO- und Einstellungsseiten inklusive geschützter Editor.js-Übersetzungs- und SEO-Metadaten-Endpunkte ein oder aus.',
             'category' => 'automation',
             'category_label' => 'AI & Automatisierung',
             'order' => 10,

@@ -209,11 +209,15 @@ function cms_admin_pages_view_config(PagesModule $module, string $view, ?array $
     $editorLocale = cms_admin_pages_normalize_editor_locale($editorLocale);
     $aiTranslationEnabled = !class_exists(CoreModuleService::class)
         || CoreModuleService::getInstance()->isModuleEnabled('ai_services');
+    $aiSeoMetadataEnabled = $aiTranslationEnabled;
     $baseTemplateVars = [
         'editorMediaToken' => Security::instance()->generateToken('editorjs_media'),
         'aiTranslationEnabled' => $aiTranslationEnabled,
         'aiTranslationToken' => $aiTranslationEnabled ? Security::instance()->generateToken('admin_ai_editorjs_translation') : '',
         'aiTranslationUrl' => $aiTranslationEnabled ? '/admin/ai-translate-editorjs' : '',
+        'aiSeoMetadataEnabled' => $aiSeoMetadataEnabled,
+        'aiSeoMetadataToken' => $aiSeoMetadataEnabled ? Security::instance()->generateToken('admin_ai_seo_metadata') : '',
+        'aiSeoMetadataUrl' => $aiSeoMetadataEnabled ? '/admin/ai-generate-seo-metadata' : '',
         'editorLocale' => $editorLocale,
         'useEditorJs' => false,
     ];

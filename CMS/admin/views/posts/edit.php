@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) {
 
 
 $aiTranslationEnabled = !empty($aiTranslationEnabled);
+$aiSeoMetadataEnabled = !empty($aiSeoMetadataEnabled);
 
 /**
  * Posts – Edit / Create View
@@ -199,6 +200,7 @@ $seoMeta = $data['seoMeta'] ?? [];
 $seoTemplateSettings = \CMS\Services\SeoAnalysisService::getInstance()->getSettings();
 $permalinkService = class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::getInstance() : null;
 $focusKeyphrase = htmlspecialchars((string)($seoMeta['focus_keyphrase'] ?? ''));
+$postSeoKeywords = htmlspecialchars((string)($seoMeta['keywords'] ?? ''));
 $canonicalUrl = htmlspecialchars((string)($seoMeta['canonical_url'] ?? ''));
 $robotsIndex = !array_key_exists('robots_index', $seoMeta) || !empty($seoMeta['robots_index']);
 $robotsFollow = !array_key_exists('robots_follow', $seoMeta) || !empty($seoMeta['robots_follow']);
@@ -672,6 +674,14 @@ $additionalCategoryIds = array_values(array_filter(
                             <span class="cms-collapsible-card__chevron" aria-hidden="true"></span>
                         </summary>
                         <div class="card-body">
+                            <?php if ($aiSeoMetadataEnabled): ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                        <span class="small">Erzeugt SEO-Metadaten aus dem Haupttext. Beitragstitel, Slug und URL-Felder bleiben unverändert.</span>
+                                        <button type="button" class="btn btn-primary btn-sm" id="generatePostSeoMetadataButton">SEO mit AI füllen</button>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                             <div class="mb-3">
                                 <label class="form-label" for="<?php echo htmlspecialchars($activeExcerptInputId); ?>"><?php echo $isEnglishEditorView ? 'Englische Kurzfassung' : 'Kurzfassung'; ?></label>
                                 <textarea class="form-control" id="<?php echo htmlspecialchars($activeExcerptInputId); ?>" name="<?php echo $isEnglishEditorView ? 'excerpt_en' : 'excerpt'; ?>" rows="5" placeholder="<?php echo htmlspecialchars($isEnglishEditorView ? 'Short English summary for overview pages…' : 'Kurze Zusammenfassung für Übersichten…'); ?>"><?php echo htmlspecialchars($activePostExcerptValue); ?></textarea>
@@ -681,6 +691,11 @@ $additionalCategoryIds = array_values(array_filter(
                                 <label class="form-label" for="focusKeyphrase">Fokus-Keyphrase</label>
                                 <input type="text" class="form-control" id="focusKeyphrase" name="focus_keyphrase" value="<?php echo $focusKeyphrase; ?>" placeholder="z. B. KI-Strategie Mittelstand">
                                 <span class="form-hint">Mehrere Varianten per Komma möglich.</span>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="postSeoKeywords">SEO-Tags / Keywords</label>
+                                <input type="text" class="form-control" id="postSeoKeywords" name="keywords" value="<?php echo $postSeoKeywords; ?>" placeholder="z. B. KI, Strategie, Mittelstand">
+                                <span class="form-hint">Kommagetrennte Begriffe für die SEO-Metadaten.</span>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="metaTitle">Meta-Titel</label>
@@ -877,8 +892,10 @@ $additionalCategoryIds = array_values(array_filter(
                         'sitemapChangefreqName' => 'sitemap_changefreq',
                         'sitemapChangefreqValue' => html_entity_decode($sitemapChangefreq, ENT_QUOTES, 'UTF-8'),
                         'sitemapChangefreqOptions' => ['always', 'daily', 'weekly', 'monthly', 'yearly'],
+                        'robotsIndexId' => 'postRobotsIndex',
                         'robotsIndexName' => 'robots_index',
                         'robotsIndexChecked' => $robotsIndex,
+                        'robotsFollowId' => 'postRobotsFollow',
                         'robotsFollowName' => 'robots_follow',
                         'robotsFollowChecked' => $robotsFollow,
                         'hreflangGroupId' => 'hreflangGroup',
@@ -1024,6 +1041,29 @@ $additionalCategoryIds = array_values(array_filter(
 
         $postContentEditorJsConfig = [
             'formId' => 'postForm',
+            'aiSeoMetadata' => $aiSeoMetadataEnabled ? [
+                'buttonId' => 'generatePostSeoMetadataButton',
+                'endpointUrl' => (string) ($aiSeoMetadataUrl ?? '/admin/ai-generate-seo-metadata'),
+                'csrfToken' => (string) ($aiSeoMetadataToken ?? ''),
+                'contentType' => 'post',
+                'locale' => $editorLocale,
+                'sourceEditorKey' => $isEnglishEditorView ? 'en' : 'de',
+                'requestTimeoutMs' => 300000,
+                'focusKeyphraseId' => 'focusKeyphrase',
+                'keywordsId' => 'postSeoKeywords',
+                'metaTitleId' => 'metaTitle',
+                'metaDescriptionId' => 'metaDesc',
+                'ogTitleId' => 'ogTitle',
+                'ogDescriptionId' => 'ogDescription',
+                'twitterTitleId' => 'twitterTitle',
+                'twitterDescriptionId' => 'twitterDescription',
+                'twitterCardId' => 'twitterCard',
+                'schemaTypeId' => 'schemaType',
+                'sitemapPriorityId' => 'sitemapPriority',
+                'sitemapChangefreqId' => 'sitemapChangefreq',
+                'robotsIndexId' => 'postRobotsIndex',
+                'robotsFollowId' => 'postRobotsFollow',
+            ] : null,
             'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView) ? [
                 'buttonId' => 'translatePostDeToEnButton',
                 'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),

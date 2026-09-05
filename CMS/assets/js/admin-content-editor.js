@@ -4190,6 +4190,105 @@
             return params;
         }
 
+        function buildSeoMetadataPayload(aiSeoMetadata, sourceData) {
+            var params = new URLSearchParams();
+
+            params.append('csrf_token', String(aiSeoMetadata.csrfToken || ''));
+            params.append('content_type', String(aiSeoMetadata.contentType || ''));
+            params.append('locale', String(aiSeoMetadata.locale || 'de'));
+            params.append('editor_data', JSON.stringify(normalizeEditorData(sourceData)));
+
+            return params;
+        }
+
+        function getSeoMetadataTextFields(aiSeoMetadata) {
+            return [
+                ['excerpt', aiSeoMetadata.excerptId],
+                ['focus_keyphrase', aiSeoMetadata.focusKeyphraseId],
+                ['keywords', aiSeoMetadata.keywordsId],
+                ['meta_title', aiSeoMetadata.metaTitleId],
+                ['meta_description', aiSeoMetadata.metaDescriptionId],
+                ['og_title', aiSeoMetadata.ogTitleId],
+                ['og_description', aiSeoMetadata.ogDescriptionId],
+                ['twitter_title', aiSeoMetadata.twitterTitleId],
+                ['twitter_description', aiSeoMetadata.twitterDescriptionId]
+            ].filter(function (entry) {
+                return !!entry[1];
+            });
+        }
+
+        function setSelectFieldValue(id, value) {
+            var field = getElement(id);
+            var options;
+
+            if (!field || typeof value !== 'string' || value === '') {
+                return false;
+            }
+
+            options = Array.prototype.slice.call(field.options || []);
+            if (!options.some(function (option) { return option.value === value; })) {
+                return false;
+            }
+
+            field.value = value;
+            emitChangeEvents(field);
+            return true;
+        }
+
+        function setCheckboxFieldValue(id, value) {
+            var field = getElement(id);
+
+            if (!field || typeof value !== 'boolean') {
+                return false;
+            }
+
+            field.checked = value;
+            emitChangeEvents(field);
+            return true;
+        }
+
+        function seoMetadataHasExistingValues(aiSeoMetadata) {
+            return getSeoMetadataTextFields(aiSeoMetadata).some(function (entry) {
+                return getFieldValue(entry[1]) !== '';
+            });
+        }
+
+        function applySeoMetadata(aiSeoMetadata, metadata) {
+            var appliedFieldCount = 0;
+
+            getSeoMetadataTextFields(aiSeoMetadata).forEach(function (entry) {
+                var metadataKey = entry[0];
+                var fieldId = entry[1];
+
+                if (typeof metadata[metadataKey] !== 'string' || metadata[metadataKey] === '') {
+                    return;
+                }
+
+                setFieldValue(fieldId, metadata[metadataKey]);
+                appliedFieldCount += 1;
+            });
+
+            [
+                ['twitter_card', aiSeoMetadata.twitterCardId],
+                ['schema_type', aiSeoMetadata.schemaTypeId],
+                ['sitemap_priority', aiSeoMetadata.sitemapPriorityId],
+                ['sitemap_changefreq', aiSeoMetadata.sitemapChangefreqId]
+            ].forEach(function (entry) {
+                if (setSelectFieldValue(entry[1], metadata[entry[0]])) {
+                    appliedFieldCount += 1;
+                }
+            });
+
+            if (setCheckboxFieldValue(aiSeoMetadata.robotsIndexId, metadata.robots_index)) {
+                appliedFieldCount += 1;
+            }
+            if (setCheckboxFieldValue(aiSeoMetadata.robotsFollowId, metadata.robots_follow)) {
+                appliedFieldCount += 1;
+            }
+
+            return appliedFieldCount;
+        }
+
         function resolveSameOriginUrl(url) {
             var resolved;
 
@@ -4223,7 +4322,7 @@
             var maxResponseLength = 1048576;
 
             if (endpointUrl === '') {
-                return Promise.reject(new Error('AI-Übersetzungsendpunkt ist ungültig.'));
+                return Promise.reject(new Error('AI-Endpunkt ist ungültig.'));
             }
 
             if (controller) {
@@ -4245,14 +4344,14 @@
                 var declaredLength = Number(response.headers && response.headers.get('Content-Length'));
 
                 if (Number.isFinite(declaredLength) && declaredLength > maxResponseLength) {
-                    throw new Error('AI-Übersetzungsantwort ist zu groß.');
+                    throw new Error('AI-Antwort ist zu groß.');
                 }
 
                 return response.text().then(function (text) {
                     var data = null;
 
                     if (String(text || '').length > maxResponseLength) {
-                        throw new Error('AI-Übersetzungsantwort ist zu groß.');
+                        throw new Error('AI-Antwort ist zu groß.');
                     }
 
                     try {
@@ -4270,7 +4369,7 @@
                 });
             }).catch(function (error) {
                 if (error && error.name === 'AbortError') {
-                    throw new Error('AI-Übersetzung hat das Zeitlimit überschritten.');
+                    throw new Error('Die AI-Anfrage hat das Zeitlimit überschritten.');
                 }
 
                 throw error;
@@ -4452,6 +4551,68 @@
             });
         }
 
+        function handleAiSeoMetadata(aiSeoMetadata) {
+            var button = aiSeoMetadata && aiSeoMetadata.buttonId ? getElement(aiSeoMetadata.buttonId) : null;
+
+            if (!aiSeoMetadata || !button) {
+                return;
+            }
+
+            button.addEventListener('click', function () {
+                clearNotice();
+                clearPreviewPanel();
+                setButtonBusy(button, true, 'SEO wird erstellt …');
+
+                ensureEditorSaved(aiSeoMetadata.sourceEditorKey).then(function (sourceData) {
+                    return requestJson(
+                        aiSeoMetadata.endpointUrl,
+                        buildSeoMetadataPayload(aiSeoMetadata, sourceData),
+                        aiSeoMetadata.requestTimeoutMs
+                    );
+                }).then(function (response) {
+                    var result = response.data || {};
+                    var metadata = result.metadata;
+                    var stats = result.stats && typeof result.stats === 'object' ? result.stats : {};
+                    var hasExistingValues;
+                    var appliedFieldCount;
+                    var truncatedHint = stats.source_truncated
+                        ? ' Der Haupttext wurde gemäß dem eingestellten Zeichenlimit gekürzt.'
+                        : '';
+
+                    if (!response.ok || !result.success) {
+                        throw new Error((result && result.error) ? result.error : 'SEO-Felder konnten nicht per AI erzeugt werden.');
+                    }
+
+                    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+                        throw new Error('Die AI-Antwort enthält keinen gültigen SEO-Feldentwurf.');
+                    }
+
+                    hasExistingValues = seoMetadataHasExistingValues(aiSeoMetadata);
+                    if (hasExistingValues && !window.confirm('Bestehende inhaltsbasierte SEO-Felder werden durch den AI-Entwurf ersetzt. Haupttitel, Slug und URL-Felder bleiben unverändert. Fortfahren?')) {
+                        showNotice('info', 'SEO-AI-Entwurf wurde verworfen. Die vorhandenen Felder blieben unverändert.');
+                        return;
+                    }
+
+                    appliedFieldCount = applySeoMetadata(aiSeoMetadata, metadata);
+                    if (appliedFieldCount === 0) {
+                        throw new Error('Der AI-Entwurf enthält keine übernehmbaren SEO-Felder.');
+                    }
+
+                    showNotice(
+                        'success',
+                        (result.message || 'SEO-Felder wurden aus dem Haupttext erzeugt.')
+                            + ' ' + String(appliedFieldCount) + ' Felder wurden in den ungespeicherten Entwurf übernommen.'
+                            + ' Dauerhaft gespeichert wird erst mit dem normalen Formular-Submit.'
+                            + truncatedHint
+                    );
+                }).catch(function (error) {
+                    showNotice('danger', (error && error.message) ? error.message : 'SEO-Felder konnten nicht per AI erzeugt werden.');
+                }).finally(function () {
+                    setButtonBusy(button, false);
+                });
+            });
+        }
+
         (Array.isArray(config.editors) ? config.editors : []).forEach(function (definition) {
             editorDefinitions[definition.key] = definition;
             getPlainEditorState(definition, getElement(definition.inputId));
@@ -4506,6 +4667,10 @@
         if (config.aiTranslation) {
             registerPreviewInvalidation(config.aiTranslation);
             handleAiTranslation(config.aiTranslation);
+        }
+
+        if (config.aiSeoMetadata) {
+            handleAiSeoMetadata(config.aiSeoMetadata);
         }
 
         form.addEventListener('click', function (event) {

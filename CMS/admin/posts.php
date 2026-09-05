@@ -303,11 +303,15 @@ function cms_admin_posts_view_config(object $module, string $view, ?array $overr
     $editorLocale = cms_admin_posts_normalize_editor_locale($editorLocale);
     $aiTranslationEnabled = !class_exists(CoreModuleService::class)
         || CoreModuleService::getInstance()->isModuleEnabled('ai_services');
+    $aiSeoMetadataEnabled = $aiTranslationEnabled;
     $baseTemplateVars = [
         'editorMediaToken' => Security::instance()->generateToken('editorjs_media'),
         'aiTranslationEnabled' => $aiTranslationEnabled,
         'aiTranslationToken' => $aiTranslationEnabled ? Security::instance()->generateToken('admin_ai_editorjs_translation') : '',
         'aiTranslationUrl' => $aiTranslationEnabled ? '/admin/ai-translate-editorjs' : '',
+        'aiSeoMetadataEnabled' => $aiSeoMetadataEnabled,
+        'aiSeoMetadataToken' => $aiSeoMetadataEnabled ? Security::instance()->generateToken('admin_ai_seo_metadata') : '',
+        'aiSeoMetadataUrl' => $aiSeoMetadataEnabled ? '/admin/ai-generate-seo-metadata' : '',
         'editorLocale' => $editorLocale,
         'useEditorJs' => false,
     ];

@@ -20,6 +20,7 @@ if (!defined('ABSPATH')) {
 use CMS\Services\ContentLocalizationService;
 
 $aiTranslationEnabled = !empty($aiTranslationEnabled);
+$aiSeoMetadataEnabled = !empty($aiSeoMetadataEnabled);
 
 $pageAdminBaseUrl = '/admin/pages';
 $page    = $editData['page'] ?? null;
@@ -492,6 +493,14 @@ $isEnglishEditorView = $editorLocale === 'en';
                             <span class="cms-collapsible-card__chevron" aria-hidden="true"></span>
                         </summary>
                         <div class="card-body">
+                            <?php if ($aiSeoMetadataEnabled): ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                        <span class="small">Erzeugt SEO-Metadaten aus dem Haupttext. Seitentitel, Slug und URL-Felder bleiben unverändert.</span>
+                                        <button type="button" class="btn btn-primary btn-sm" id="generatePageSeoMetadataButton">SEO mit AI füllen</button>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                             <div class="mb-3">
                                 <label class="form-label" for="pageFocusKeyphrase">Fokus-Keyphrase</label>
                                 <input type="text" name="focus_keyphrase" class="form-control" id="pageFocusKeyphrase" placeholder="z. B. Mitgliedschaft B2B-Netzwerk" value="<?= htmlspecialchars($pageFocusKeyphraseValue) ?>">
@@ -693,8 +702,10 @@ $isEnglishEditorView = $editorLocale === 'en';
                         'sitemapChangefreqName' => 'sitemap_changefreq',
                         'sitemapChangefreqValue' => $pageSitemapChangefreqValue,
                         'sitemapChangefreqOptions' => ['always', 'daily', 'weekly', 'monthly', 'yearly'],
+                        'robotsIndexId' => 'pageRobotsIndex',
                         'robotsIndexName' => 'robots_index',
                         'robotsIndexChecked' => $pageRobotsIndexValue,
+                        'robotsFollowId' => 'pageRobotsFollow',
                         'robotsFollowName' => 'robots_follow',
                         'robotsFollowChecked' => $pageRobotsFollowValue,
                         'hreflangGroupId' => 'pageHreflangGroup',
@@ -827,6 +838,29 @@ $isEnglishEditorView = $editorLocale === 'en';
 
         $pageContentEditorJsConfig = [
             'formId' => 'pageForm',
+            'aiSeoMetadata' => $aiSeoMetadataEnabled ? [
+                'buttonId' => 'generatePageSeoMetadataButton',
+                'endpointUrl' => (string) ($aiSeoMetadataUrl ?? '/admin/ai-generate-seo-metadata'),
+                'csrfToken' => (string) ($aiSeoMetadataToken ?? ''),
+                'contentType' => 'page',
+                'locale' => $editorLocale,
+                'sourceEditorKey' => $isEnglishEditorView ? 'en' : 'de',
+                'requestTimeoutMs' => 300000,
+                'focusKeyphraseId' => 'pageFocusKeyphrase',
+                'keywordsId' => 'pageSeoKeywords',
+                'metaTitleId' => 'pageMetaTitle',
+                'metaDescriptionId' => 'pageMetaDescription',
+                'ogTitleId' => 'pageOgTitle',
+                'ogDescriptionId' => 'pageOgDescription',
+                'twitterTitleId' => 'pageTwitterTitle',
+                'twitterDescriptionId' => 'pageTwitterDescription',
+                'twitterCardId' => 'pageTwitterCard',
+                'schemaTypeId' => 'pageSchemaType',
+                'sitemapPriorityId' => 'pageSitemapPriority',
+                'sitemapChangefreqId' => 'pageSitemapChangefreq',
+                'robotsIndexId' => 'pageRobotsIndex',
+                'robotsFollowId' => 'pageRobotsFollow',
+            ] : null,
             'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView) ? [
                 'buttonId' => 'translatePageDeToEnButton',
                 'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
