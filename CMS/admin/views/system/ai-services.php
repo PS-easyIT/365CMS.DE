@@ -172,6 +172,20 @@ $renderPromptTemplateForm = static function (string $action, array $template, st
 $translationReadyProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && !empty($provider['translation_enabled'])));
 $contentAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && (!empty($provider['rewrite_enabled']) || !empty($provider['summary_enabled']))));
 $seoAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && !empty($provider['seo_meta_enabled'])));
+$contentCreatorTasks = [];
+if (!empty($features['ai_services_enabled']) && !empty($activeProvider['enabled']) && !empty($features['ai_summary_enabled']) && !empty($activeProvider['summary_enabled'])) {
+    $contentCreatorTasks['summary'] = 'Kurzfassung erstellen';
+}
+if (!empty($features['ai_services_enabled']) && !empty($activeProvider['enabled']) && !empty($features['ai_rewrite_enabled']) && !empty($activeProvider['rewrite_enabled'])) {
+    $contentCreatorTasks['outline'] = 'Gliederung erstellen';
+    $contentCreatorTasks['cta'] = 'CTA-Varianten erstellen';
+}
+$contentDraft = is_array($alert['report_payload']['content_draft'] ?? null) ? $alert['report_payload']['content_draft'] : [];
+$contentDraftTaskLabels = [
+    'summary' => 'Kurzfassung',
+    'outline' => 'Gliederung',
+    'cta' => 'CTA-Varianten',
+];
 $showAiSubtitle = $isCurrentSection('overview');
 $aiBlockingBadges = [];
 if (empty($features['ai_services_enabled'])) {
@@ -267,7 +281,7 @@ if (empty($summary['translation_ready'])) {
                             <li class="mb-2">✅ Das AI-Dashboard zeigt jetzt request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus dem Audit-Log, ohne Rohprompts oder Volltexte offenzulegen.</li>
                             <li class="mb-2">✅ Prompt-Vorlagen lassen sich je Bereich verwalten; die Translation-Vorlage wirkt direkt in der Live-Pipeline und bleibt durch serverseitige Pflicht-Leitplanken abgesichert.</li>
                             <li class="mb-2">✅ Der SEO-Assistent erzeugt im Page-/Post-Editor aus dem Haupttext einen übernehmbaren Entwurf für Meta-, Social-, Schema-, Sitemap- und Robots-Felder; Dokumenttitel, Slug und URL-Felder bleiben ausgeschlossen.</li>
-                            <li class="mb-2">⚠️ Der Content Creator bleibt als nächster Ausbauschritt Leitplanken-/Settings-getrieben.</li>
+                            <li class="mb-2">✅ Der Content Creator erzeugt im geschützten AI-Adminbereich ungespeicherte Kurzfassungen, Gliederungen und CTA-Varianten aus Briefing und Kontext; Veröffentlichung oder automatische Übernahme ist ausgeschlossen.</li>
                             <li>⚠️ Feingranulare Daily-/Monthly-Quota-Erzwingung und echte providerübergreifende Tokenkosten bleiben Follow-up-Arbeit, solange Live-Provider ihre Usage-Daten nicht konsistent zurückmelden.</li>
                         </ul>
                     </div>
@@ -397,7 +411,10 @@ if (empty($summary['translation_ready'])) {
                                                     <div class="fw-semibold"><?php echo htmlspecialchars((string) ($historyEntry['provider_label'] ?? '—')); ?></div>
                                                     <div class="text-secondary small"><?php echo htmlspecialchars((string) ($historyEntry['resolved_via'] ?? 'direct')); ?></div>
                                                 </td>
-                                                <td><?php echo htmlspecialchars((string) ($historyEntry['target_locale'] ?? '—')); ?></td>
+                                                <td>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars((string) ($historyEntry['operation'] ?? 'AI-Lauf')); ?></div>
+                                                    <div class="text-secondary small"><?php echo htmlspecialchars((string) ($historyEntry['target_locale'] ?? '—')); ?></div>
+                                                </td>
                                                 <td>
                                                     <?php if (($historyEntry['duration_ms'] ?? null) !== null): ?>
                                                         <?php echo number_format((int) $historyEntry['duration_ms'], 0, ',', '.'); ?> ms
@@ -507,26 +524,80 @@ if (empty($summary['translation_ready'])) {
 
         <div class="row row-cards">
             <div class="col-12 col-xl-7">
-                <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Geplante Content-Workflows</h3></div>
-                    <div class="card-body text-secondary small">
-                        <ul class="mb-0 ps-3">
-                            <li>Absatz-Rewrite für Seiten- und Beitragsentwürfe</li>
-                            <li>Zusammenfassungen, CTA-Textvarianten und Snippet-Ideen</li>
-                            <li>Outline-/Briefing-Helfer für neue Inhalte</li>
-                            <li>Späterer Ausbau zu Formular- oder Modal-getriebenen Creator-Flows</li>
-                        </ul>
+                <form method="post" class="card h-100">
+                    <?php $renderFormContext('generate_content_draft'); ?>
+                    <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                        <div>
+                            <h3 class="card-title mb-1">Content-Entwurf erstellen</h3>
+                            <div class="text-secondary small">Erstellt einen redaktionellen Vorschlag ausschließlich für die manuelle Prüfung.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" <?php echo $contentCreatorTasks === [] ? 'disabled' : ''; ?>>Entwurf erstellen</button>
                     </div>
-                </div>
+                    <div class="card-body text-secondary small">
+                        <?php if ($contentCreatorTasks === []): ?>
+                            <div class="alert alert-warning mb-3">Aktiviere unter <a href="/admin/ai-settings" class="alert-link">AI-Einstellungen</a> mindestens Summary oder Rewrite sowie die entsprechende Fähigkeit des aktiven Providers.</div>
+                        <?php endif; ?>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="aiContentTask">Aktion</label>
+                                <select class="form-select" id="aiContentTask" name="content_task" <?php echo $contentCreatorTasks === [] ? 'disabled' : ''; ?>>
+                                    <?php foreach ($contentCreatorTasks as $taskValue => $taskLabel): ?>
+                                        <option value="<?php echo htmlspecialchars($taskValue, ENT_QUOTES); ?>"><?php echo htmlspecialchars($taskLabel); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="aiContentLocale">Ausgabesprache</label>
+                                <select class="form-select" id="aiContentLocale" name="content_locale" <?php echo $contentCreatorTasks === [] ? 'disabled' : ''; ?>>
+                                    <option value="de">Deutsch</option>
+                                    <option value="en">Englisch</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="aiContentBrief">Briefing</label>
+                                <textarea class="form-control" id="aiContentBrief" name="content_brief" rows="4" maxlength="2000" required <?php echo $contentCreatorTasks === [] ? 'disabled' : ''; ?> placeholder="Ziel, Zielgruppe, Kernbotschaft und gewünschtes Ergebnis …"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="aiContentContext">Optionaler Kontext</label>
+                                <textarea class="form-control" id="aiContentContext" name="content_context" rows="5" maxlength="12000" <?php echo $contentCreatorTasks === [] ? 'disabled' : ''; ?> placeholder="Fakten, vorhandene Notizen oder eine Rohfassung …"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="aiContentTone">Tonalität</label>
+                                <input type="text" class="form-control" id="aiContentTone" name="content_tone" maxlength="120" <?php echo $contentCreatorTasks === [] ? 'disabled' : ''; ?> placeholder="z. B. sachlich, prägnant, professionell">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-secondary small">Der Entwurf wird weder gespeichert noch veröffentlicht. Er kann nach Prüfung manuell in einen Seiten- oder Beitragsentwurf übernommen werden.</div>
+                </form>
             </div>
             <div class="col-12 col-xl-5">
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Status</h3></div>
                     <div class="card-body text-secondary small">
-                        Der Bereich ist bereits im Modulvertrag und in den Provider-Profilen vorbereitet. Die eigentlichen Content-Creator-Generatoren folgen als nächster Funktionsschritt – ohne später wieder Routing oder Rechte umzubauen.
+                        <?php if ($contentCreatorTasks !== []): ?>
+                            Der aktive Provider <strong><?php echo htmlspecialchars((string) ($activeProvider['label'] ?? '')); ?></strong> ist für <?php echo htmlspecialchars(implode(' und ', array_values($contentCreatorTasks))); ?> freigegeben. Alle Ergebnisse bleiben bis zur manuellen Übernahme reine Admin-Entwürfe.
+                        <?php else: ?>
+                            Der Content Creator ist installiert, aber für den aktiven Provider oder die globalen Feature-Gates noch nicht freigegeben.
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
+            <?php if ($contentDraft !== [] && trim((string) ($contentDraft['content'] ?? '')) !== ''): ?>
+                <div class="col-12">
+                    <div class="card border-primary">
+                        <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                            <div>
+                                <h3 class="card-title mb-1">Content-Entwurf · <?php echo htmlspecialchars((string) ($contentDraftTaskLabels[$contentDraft['task'] ?? ''] ?? 'Vorschlag')); ?></h3>
+                                <div class="text-secondary small">Provider: <?php echo htmlspecialchars((string) ($contentDraft['provider']['label'] ?? '—')); ?> · Nicht gespeichert, nicht veröffentlicht</div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="copyAiContentDraftButton">Entwurf kopieren</button>
+                        </div>
+                        <div class="card-body">
+                            <textarea class="form-control" id="aiContentDraftOutput" rows="12" readonly><?php echo htmlspecialchars((string) ($contentDraft['content'] ?? '')); ?></textarea>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
             <div class="col-12">
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">Assist-fähige Provider</h3></div>
@@ -559,7 +630,7 @@ if (empty($summary['translation_ready'])) {
                 </div>
             </div>
             <div class="col-12">
-                <?php $renderPromptTemplateForm('save_content_prompts', $contentPromptTemplate, 'Prompt-Vorlage · Content Creator', 'Vorbereitete Briefing-Vorlage für Rewrite-, Summary-, CTA- und Outline-Flows mit Human-in-the-Loop-Ausgabe.'); ?>
+                <?php $renderPromptTemplateForm('save_content_prompts', $contentPromptTemplate, 'Prompt-Vorlage · Content Creator', 'Produktive Vorlage für Kurzfassungen, Gliederungen und CTA-Varianten mit Human-in-the-Loop-Ausgabe.'); ?>
             </div>
         </div>
     <?php elseif ($isCurrentSection('seo_creator')): ?>
@@ -915,5 +986,27 @@ if (empty($summary['translation_ready'])) {
     });
 
     applyProvider();
+})();
+</script>
+
+<script>
+(() => {
+    const button = document.getElementById('copyAiContentDraftButton');
+    const output = document.getElementById('aiContentDraftOutput');
+
+    if (!button || !output || !navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+        return;
+    }
+
+    button.addEventListener('click', () => {
+        navigator.clipboard.writeText(output.value || '').then(() => {
+            button.textContent = 'Kopiert';
+            window.setTimeout(() => {
+                button.textContent = 'Entwurf kopieren';
+            }, 1800);
+        }).catch(() => {
+            button.textContent = 'Kopieren fehlgeschlagen';
+        });
+    });
 })();
 </script>

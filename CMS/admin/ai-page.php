@@ -41,7 +41,7 @@ const CMS_ADMIN_AI_PAGE_CONFIGS = [
 const CMS_ADMIN_AI_ALLOWED_ACTIONS_BY_SECTION = [
     'overview' => [],
     'translation' => ['save_translation', 'save_translation_prompts'],
-    'content_creator' => ['save_content_prompts'],
+    'content_creator' => ['save_content_prompts', 'generate_content_draft'],
     'seo_creator' => ['save_seo_prompts'],
     'settings' => ['save_providers', 'save_features', 'save_logging', 'save_quotas'],
 ];
@@ -136,6 +136,7 @@ function cms_admin_ai_handle_action(AiServicesModule $module, string $action, ar
         'save_translation' => $module->saveTranslation($post),
         'save_translation_prompts' => $module->saveTranslationPrompts($post),
         'save_content_prompts' => $module->saveContentPrompts($post),
+        'generate_content_draft' => $module->generateContentDraft($post),
         'save_seo_prompts' => $module->saveSeoPrompts($post),
         'save_logging' => $module->saveLogging($post),
         'save_quotas' => $module->saveQuotas($post),

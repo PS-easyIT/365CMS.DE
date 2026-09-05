@@ -19,6 +19,7 @@ final class AiService
     private AiProviderFactory $providerFactory;
     private EditorJsTranslationPipeline $pipeline;
     private SeoMetadataGenerationPipeline $seoMetadataPipeline;
+    private ContentDraftGenerationPipeline $contentDraftPipeline;
     private EditorJsSanitizer $editorJsSanitizer;
 
     public static function getInstance(): self
@@ -32,6 +33,7 @@ final class AiService
         $this->providerFactory = AiProviderFactory::getInstance();
         $this->pipeline = EditorJsTranslationPipeline::getInstance();
         $this->seoMetadataPipeline = new SeoMetadataGenerationPipeline();
+        $this->contentDraftPipeline = new ContentDraftGenerationPipeline();
         $this->editorJsSanitizer = new EditorJsSanitizer();
     }
 
@@ -255,6 +257,91 @@ final class AiService
         ];
     }
 
+    /**
+     * Creates a reviewable content draft without changing a page, post or public output.
+     *
+     * @param array<string, mixed> $request
+     * @return array<string, mixed>
+     */
+    public function generateContentDraft(array $request): array
+    {
+        $startedAt = microtime(true);
+        $configuration = $this->settings->getConfiguration();
+        $features = is_array($configuration['features'] ?? null) ? $configuration['features'] : [];
+        $quotaConfig = is_array($configuration['quotas'] ?? null) ? $configuration['quotas'] : [];
+        $providersConfig = is_array($configuration['providers'] ?? null) ? $configuration['providers'] : [];
+        $promptsConfig = is_array($configuration['prompts'] ?? null) ? $configuration['prompts'] : [];
+        $loggingConfig = is_array($configuration['logging'] ?? null) ? $configuration['logging'] : [];
+
+        $task = $this->normalizeContentDraftTask((string) ($request['task'] ?? ''));
+        $brief = $this->sanitizeContentDraftInput((string) ($request['brief'] ?? ''), 2000);
+        $context = $this->sanitizeContentDraftInput((string) ($request['context'] ?? ''), 12000);
+        $tone = $this->sanitizeContentDraftInput((string) ($request['tone'] ?? ''), 120);
+        $locale = $this->normalizeLocale((string) ($request['locale'] ?? 'de'), 'de');
+        if ($brief === '' && $context === '') {
+            throw new \InvalidArgumentException('Für den Content-Entwurf ist ein Briefing oder Kontext erforderlich.');
+        }
+
+        $maxCharacters = max(250, (int) ($quotaConfig['max_chars_per_request'] ?? 12000));
+        $sourceText = trim($brief . "\n\n" . $context);
+        $sourceWasTruncated = $this->countCharacters($sourceText) > $maxCharacters;
+        if ($sourceWasTruncated) {
+            $context = $this->truncateText($sourceText, $maxCharacters);
+            $brief = '';
+            $sourceText = $context;
+        }
+
+        $providerConfig = $this->resolveGlobalProviderConfig($providersConfig);
+        $this->assertContentDraftEnabled($features, $providerConfig, $task);
+        $this->providerFactory->assertReady($providerConfig);
+        $provider = $this->providerFactory->create($providerConfig, $quotaConfig);
+        $draft = $this->contentDraftPipeline->generate(
+            $task,
+            $brief,
+            $context,
+            $tone,
+            $locale,
+            $provider,
+            is_array($promptsConfig['content_creator'] ?? null) ? $promptsConfig['content_creator'] : []
+        );
+
+        $telemetry = [
+            'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            'resolved_provider' => $provider->getSlug(),
+            'resolved_provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
+            'resolved_via' => 'global',
+            'task' => $task,
+            'locale' => $locale,
+            'input_char_count' => $this->countCharacters($sourceText),
+            'source_truncated' => $sourceWasTruncated,
+            'prompt_template_enabled' => !empty($promptsConfig['content_creator']['enabled']),
+        ];
+
+        if (!empty($loggingConfig['store_content_hashes'])) {
+            $telemetry['source_hash'] = hash('sha256', $sourceText);
+        }
+
+        Logger::instance()->withChannel('ai.service')->info('Content-Entwurf wurde über den globalen AI-Provider erzeugt.', [
+            'provider' => $provider->getSlug(),
+            'provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
+            'task' => $task,
+            'locale' => $locale,
+            'duration_ms' => $telemetry['duration_ms'],
+            'input_char_count' => $telemetry['input_char_count'],
+            'source_truncated' => $sourceWasTruncated,
+        ]);
+
+        return [
+            'provider' => $this->buildProviderMeta($provider, $providerConfig, 'global'),
+            'draft' => $draft,
+            'stats' => [
+                'input_char_count' => $telemetry['input_char_count'],
+                'source_truncated' => $sourceWasTruncated,
+            ],
+            'telemetry' => $telemetry,
+        ];
+    }
+
     /** @param array<string, mixed> $providersConfig */
     private function resolveGlobalProviderConfig(array $providersConfig): array
     {
@@ -314,6 +401,30 @@ final class AiService
         }
     }
 
+    /**
+     * @param array<string, mixed> $features
+     * @param array<string, mixed> $providerConfig
+     */
+    private function assertContentDraftEnabled(array $features, array $providerConfig, string $task): void
+    {
+        $this->assertAiEnabled($features);
+
+        $isSummary = $task === 'summary';
+        if ($isSummary && empty($features['ai_summary_enabled'])) {
+            throw new \RuntimeException('AI-Zusammenfassungen sind aktuell global deaktiviert.');
+        }
+        if (!$isSummary && empty($features['ai_rewrite_enabled'])) {
+            throw new \RuntimeException('AI-Content-Entwürfe sind aktuell global deaktiviert.');
+        }
+
+        if ($isSummary && empty($providerConfig['summary_enabled'])) {
+            throw new \RuntimeException('Der globale AI-Provider ist nicht für Zusammenfassungen freigegeben.');
+        }
+        if (!$isSummary && empty($providerConfig['rewrite_enabled'])) {
+            throw new \RuntimeException('Der globale AI-Provider ist nicht für Content-Entwürfe freigegeben.');
+        }
+    }
+
     /** @param list<string> $allowedTargetLocales */
     private function assertTargetLocaleAllowed(string $targetLocale, array $allowedTargetLocales): void
     {
@@ -365,6 +476,16 @@ final class AiService
         return trim(preg_replace('/\s+/u', ' ', $value) ?? '');
     }
 
+    private function sanitizeContentDraftInput(string $value, int $maxLength): string
+    {
+        $value = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $value = str_replace(["\r\n", "\r"], "\n", $value);
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $value) ?? '';
+        $value = trim(preg_replace('/[ \t]+/u', ' ', $value) ?? '');
+
+        return $this->truncateText($value, $maxLength);
+    }
+
     private function countCharacters(string $value): int
     {
         return function_exists('mb_strlen')
@@ -381,6 +502,17 @@ final class AiService
         return function_exists('mb_substr')
             ? mb_substr($value, 0, $maxCharacters, 'UTF-8')
             : substr($value, 0, $maxCharacters);
+    }
+
+    private function normalizeContentDraftTask(string $value): string
+    {
+        $value = strtolower(trim($value));
+
+        if (!in_array($value, ['summary', 'outline', 'cta'], true)) {
+            throw new \InvalidArgumentException('Die gewählte Content-Aktion ist nicht erlaubt.');
+        }
+
+        return $value;
     }
 
     /**

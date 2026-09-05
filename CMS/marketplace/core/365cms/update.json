@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.80",
+  "version": "3.3.81",
   "min_php": "8.4",
   "released": "2026-09-05",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.80: Der SEO-AI-Assistent erstellt aus EditorJS-Haupttexten einen übernehmbaren Entwurf für Meta-, Social-, Schema-, Sitemap- und Robots-Felder; Dokumenttitel, Slug und URL-Felder bleiben technisch ausgeschlossen.",
+  "notes": "Release-Stand 3.3.81: Der Content Creator erzeugt im geschützten Adminbereich ungespeicherte Kurzfassungen, Gliederungen und CTA-Varianten aus Briefing und Kontext; eine Veröffentlichung oder automatische Übernahme ist ausgeschlossen.",
   "critical": false
 }

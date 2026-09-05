@@ -6,8 +6,10 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\AuditLogger;
+use CMS\Auth;
 use CMS\Database;
 use CMS\Logger;
+use CMS\Services\AI\AiService;
 use CMS\Services\AI\AiSettingsService;
 
 final class AiServicesModule
@@ -211,7 +213,7 @@ final class AiServicesModule
         $rows = $this->db->get_results(
             "SELECT user_id, action, severity, description, metadata, created_at
              FROM {$this->dbPrefix}audit_log
-                 WHERE action IN (?, ?, ?, ?) AND created_at >= ?
+                 WHERE action IN (?, ?, ?, ?, ?, ?) AND created_at >= ?
              ORDER BY created_at DESC
              LIMIT ?",
             [
@@ -219,6 +221,8 @@ final class AiServicesModule
                 'ai.editorjs.translate.failed',
                      'ai.editorjs.seo_metadata.processed',
                      'ai.editorjs.seo_metadata.failed',
+                'ai.content.creator.processed',
+                'ai.content.creator.failed',
                 $since,
                 self::USAGE_DATASET_LIMIT,
             ]
@@ -268,12 +272,14 @@ final class AiServicesModule
             'user_label' => $userId <= 0 ? 'System' : ($userId === $currentUserId ? 'Du' : 'User #' . $userId),
             'provider_id' => $providerId,
             'provider_label' => $providerLabel,
-            'operation' => str_contains($action, '.seo_metadata.') ? 'SEO-Metadaten' : 'Editor.js-Übersetzung',
+            'operation' => str_contains($action, '.seo_metadata.')
+                ? 'SEO-Metadaten'
+                : (str_contains($action, '.content.creator.') ? 'Content Creator' : 'Editor.js-Übersetzung'),
             'target_locale' => $targetLocale,
             'duration_ms' => $this->normalizePositiveNullable($metadata['duration_ms'] ?? null),
             'translated_blocks' => $this->normalizePositiveNullable($metadata['translated_blocks'] ?? null),
             'translated_segments' => $this->normalizePositiveNullable($metadata['translated_segments'] ?? null),
-            'char_count' => $this->normalizePositiveNullable($metadata['char_count'] ?? null),
+            'char_count' => $this->normalizePositiveNullable($metadata['char_count'] ?? $metadata['source_char_count'] ?? $metadata['input_char_count'] ?? null),
             'block_count' => $this->normalizePositiveNullable($metadata['block_count'] ?? null),
             'resolved_via' => $this->sanitizeText((string) ($metadata['resolved_via'] ?? 'direct'), self::MAX_TEXT_LENGTH) ?: 'direct',
             'description' => $this->sanitizeText((string) ($row->description ?? ''), self::MAX_TEXT_LENGTH),
@@ -597,6 +603,78 @@ final class AiServicesModule
     public function saveContentPrompts(array $post): array
     {
         return $this->savePromptTemplatesForArea('content_creator', $post, 'Content-Creator-Prompt-Vorlage gespeichert.');
+    }
+
+    /** @return array<string, mixed> */
+    public function generateContentDraft(array $post): array
+    {
+        try {
+            if ($this->settings === null) {
+                return $this->runtimeUnavailableResult('Content-Entwurf konnte nicht erzeugt werden.');
+            }
+
+            $userId = (int) (Auth::instance()->getCurrentUser()->id ?? 0);
+            $result = AiService::getInstance()->generateContentDraft([
+                'task' => (string) ($post['content_task'] ?? ''),
+                'brief' => (string) ($post['content_brief'] ?? ''),
+                'context' => (string) ($post['content_context'] ?? ''),
+                'tone' => (string) ($post['content_tone'] ?? ''),
+                'locale' => (string) ($post['content_locale'] ?? 'de'),
+            ]);
+            $draft = is_array($result['draft'] ?? null) ? $result['draft'] : [];
+            $telemetry = is_array($result['telemetry'] ?? null) ? $result['telemetry'] : [];
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_CONTENT,
+                'ai.content.creator.processed',
+                'Content-Entwurf wurde im geschützten AI-Adminbereich erzeugt.',
+                'content_draft',
+                null,
+                array_filter([
+                    'user_id' => $userId,
+                    'provider' => (string) ($result['provider']['slug'] ?? ''),
+                    'task' => (string) ($draft['task'] ?? ''),
+                    'locale' => (string) ($telemetry['locale'] ?? ''),
+                    'input_char_count' => (int) ($telemetry['input_char_count'] ?? 0),
+                    'source_truncated' => !empty($telemetry['source_truncated']),
+                    'duration_ms' => (int) ($telemetry['duration_ms'] ?? 0),
+                    'source_hash' => (string) ($telemetry['source_hash'] ?? ''),
+                    'resolved_via' => (string) ($result['provider']['resolved_via'] ?? 'direct'),
+                ], static fn (mixed $value): bool => $value !== '' && $value !== null),
+                'info'
+            );
+
+            return [
+                'success' => true,
+                'render_inline' => true,
+                'message' => 'Content-Entwurf wurde erzeugt. Er bleibt ein ungespeicherter Vorschlag und wird nicht veröffentlicht.',
+                'report_payload' => [
+                    'content_draft' => [
+                        'task' => (string) ($draft['task'] ?? ''),
+                        'content' => (string) ($draft['content'] ?? ''),
+                        'provider' => is_array($result['provider'] ?? null) ? $result['provider'] : [],
+                        'stats' => is_array($result['stats'] ?? null) ? $result['stats'] : [],
+                    ],
+                ],
+            ];
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.ai-content-creator')->error('Content-Entwurf konnte nicht erzeugt werden.', [
+                'exception' => $e::class,
+                'message' => $this->sanitizeText($e->getMessage(), self::MAX_TEXT_LENGTH),
+            ]);
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_CONTENT,
+                'ai.content.creator.failed',
+                'Content-Entwurf konnte nicht erzeugt werden.',
+                'content_draft',
+                null,
+                ['exception' => $e::class],
+                'warning'
+            );
+
+            return ['success' => false, 'error' => 'Content-Entwurf konnte nicht erzeugt werden. Bitte Einstellungen und Logs prüfen.'];
+        }
     }
 
     /** @return array<string, mixed> */

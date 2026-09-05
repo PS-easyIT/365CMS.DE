@@ -2,9 +2,9 @@
 
 Kurzbeschreibung: Kanonische Konzept- und Architektur-Dokumentation für den Bereich **AI Services** in 365CMS. Der Fokus liegt auf Provider-Scope, Feature-Gates, Admin-Steuerung, Editor.js-Übersetzung und einem kontrollierten, ausbaufähigen KI-Betriebsmodell.
 
-Letzte Aktualisierung: 2026-09-05 · Version 3.3.80
+Letzte Aktualisierung: 2026-09-05 · Version 3.3.81
 
-> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, die ersten **Live-Adapter für `ollama` und `azure_openai`**, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. Seit `2.9.616` ist dieser Review-Schritt serverseitig verpflichtend und kann im Admin nicht mehr abgeschaltet werden. Seit `2.9.702` verdichtet das AI-Dashboard zusätzlich request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus `audit_log`, ohne Rohprompts oder Volltexte offenzulegen. Seit `2.9.703` verwaltet der Admin Prompt-Vorlagen je Bereich. Seit `3.3.80` erzeugt der geschützte Endpoint **`/admin/ai-generate-seo-metadata`** aus erlaubten Editor.js-Textsegmenten einen übernehmbaren SEO-Entwurf direkt im Page-/Post-Editor. Technisch zugelassen sind nur Kurzfassung, Fokus-Keyphrase, Keywords, Meta-/Social-Texte, Twitter Card, Schema, Sitemap und Robots; Dokumenttitel, Slug, Canonical-, Bild- und hreflang-Felder sind ausgeschlossen. Die Übernahme bleibt ungespeichert, bis die Redaktion den normalen Formular-Submit auslöst. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und der Content-Creator-Live-Generator.
+> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, Live-Adapter für `ollama`, `azure_openai` und OpenAI-kompatible Endpunkte, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. Seit `2.9.616` ist dieser Review-Schritt serverseitig verpflichtend und kann im Admin nicht mehr abgeschaltet werden. Seit `2.9.702` verdichtet das AI-Dashboard zusätzlich request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus `audit_log`, ohne Rohprompts oder Volltexte offenzulegen. Seit `3.3.80` erzeugt der geschützte Endpoint **`/admin/ai-generate-seo-metadata`** aus erlaubten Editor.js-Textsegmenten einen übernehmbaren SEO-Entwurf direkt im Page-/Post-Editor. Technisch zugelassen sind nur Kurzfassung, Fokus-Keyphrase, Keywords, Meta-/Social-Texte, Twitter Card, Schema, Sitemap und Robots; Dokumenttitel, Slug, Canonical-, Bild- und hreflang-Felder sind ausgeschlossen. Seit `3.3.81` erzeugt der **Content Creator** unter `/admin/ai-content-creator` ungespeicherte Kurzfassungen, Gliederungen oder CTA-Varianten aus einem redaktionellen Briefing und optionalem Kontext. Die Vorschau bleibt ausschließlich im Admin und kann nur bewusst manuell kopiert werden. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und provider-spezifische Health-/Governance-Policies.
 
 ## Inhaltsverzeichnis
 - [Ziel und Abgrenzung](#ziel-und-abgrenzung)
@@ -581,7 +581,7 @@ Persistierte Bereiche:
 | Key | Typ | Zweck |
 |---|---|---|
 | `translation` | `array` | Runtime-Vorlage für Editor.js-Übersetzungen |
-| `content_creator` | `array` | Briefing-Vorlage für spätere Rewrite-/Summary-/Outline-Flows |
+| `content_creator` | `array` | Runtime-Vorlage für ungespeicherte Kurzfassungen, Gliederungen und CTA-Varianten |
 | `seo_creator` | `array` | Runtime-Vorlage für Meta-/Snippet-/Schema-/Sitemap-/Robots-Entwürfe |
 
 Struktur pro Bereich:
@@ -611,6 +611,7 @@ Bereits umgesetzt:
 - `CMS/core/Services/AI/Providers/MockAiProvider.php`
 - `CMS/core/Services/AI/EditorJsTranslationPipeline.php`
 - `CMS/core/Services/AI/SeoMetadataGenerationPipeline.php`
+- `CMS/core/Services/AI/ContentDraftGenerationPipeline.php`
 - `CMS/admin/ai-services.php`
 - `CMS/admin/ai-translate-editorjs.php`
 - `CMS/admin/ai-generate-seo-metadata.php`
@@ -629,6 +630,7 @@ Bereits umgesetzt:
 - Prompt-/Vorlagenverwaltung je Bereich; die Translation-Vorlage wird direkt in `AbstractPromptingAiProvider::buildTranslationPrompt()` berücksichtigt und serverseitig mit Pflicht-Sicherheitsregeln ergänzt
 - SEO-Metadaten-Entwurf aus dem aktuellen Editor.js-Haupttext für Page-/Post-Editoren: Kurzfassung, Keyphrase, Keywords, Meta-/Social-Texte, Twitter Card, Schema, Sitemap und Robots werden als nicht persistierter Formularentwurf zurückgeführt
 - harte Feld-Whitelist für den SEO-Entwurf: kein Dokumenttitel, kein Slug, keine Canonical-/Bild-URLs und keine hreflang-Zuordnung können von der AI-Antwort übernommen werden
+- Content Creator mit admin-only Briefing-Formular und Human-in-the-Loop-Ausgabe: Kurzfassung, Markdown-Gliederung oder CTA-Varianten werden weder automatisch gespeichert noch veröffentlicht
 - eigener AI-Hauptbereich in der Sidebar
 - vorbereitete Default-Capabilities für AI-Verwaltung/Nutzung in `CMS/includes/functions/roles.php`
 
@@ -717,8 +719,7 @@ Was `AI Services` am Anfang **nicht** sein soll:
 Folgende Punkte sind **trotz der neuen Live-Runtime-Stufe** noch nicht vollständig umgesetzt und müssten für den weiteren Ausbau ergänzt werden:
 
 1. **feingranulares Capability-Modell** für Nutzung vs. Verwaltung im echten Workflow
-2. **zusätzliche Provider-Adapter** für vorbereitete Bridge-Kandidaten wie OpenAI und OpenRouter
-3. **Provider-spezifische Policies** für Live-Modelle, Secrets, Datenschutzfreigaben und Health-Checks
+2. **Provider-spezifische Policies** für Live-Modelle, Secrets, Datenschutzfreigaben und Health-Checks
 4. **Fehler- und Statusmodell** für Teilfehler pro Block/Batches inklusive Retry-/Review-UX
 5. **produktive Datenschutz- und Audit-Integration** mit sauberer Daily-/Monthly-Quota-Erzwingung
 6. **Tests / Smoke-Checks** für Scope, Limits, Provider-Fallback, Preview-Übernahme und Blockerhaltung

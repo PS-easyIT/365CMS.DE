@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.80
+﻿**Version:** 3.3.81
 
 # 365CMS Changelog
 
@@ -13,6 +13,14 @@
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.3.81 — 05.09.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.81** | 🟢 feat | AI / Content Creator | Der bisher vorbereitete Bereich ist jetzt produktiv als geschützter Admin-Workflow umgesetzt: Redaktionelle Briefings und optionale Kontexte liefern Kurzfassungen, Gliederungen oder CTA-Varianten als reine Review-Entwürfe. Feature-/Provider-Gates, CSRF, Prompt-Injection-Leitplanken, Eingabegrenzen und datensparsame Audit-Metadaten greifen zentral über `AiService`; kein Ergebnis wird automatisch gespeichert oder veröffentlicht. |
 
 ---
 
