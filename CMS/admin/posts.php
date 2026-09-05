@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\Services\AI\AiSettingsService;
 use CMS\Services\CoreModuleService;
 use CMS\Services\EditorJsService;
 
@@ -31,6 +32,35 @@ const CMS_ADMIN_POSTS_WRITE_CAPABILITY = 'edit_all_posts';
 function cms_admin_posts_can_access(): bool
 {
     return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_POSTS_WRITE_CAPABILITY);
+}
+
+function cms_admin_posts_is_ai_seo_metadata_available(): bool
+{
+    try {
+        if (class_exists(CoreModuleService::class) && !CoreModuleService::getInstance()->isModuleEnabled('ai_services')) {
+            return false;
+        }
+
+        $configuration = AiSettingsService::getInstance()->getConfiguration();
+        $features = is_array($configuration['features'] ?? null) ? $configuration['features'] : [];
+        if (empty($features['ai_services_enabled']) || empty($features['ai_seo_meta_enabled']) || empty($features['ai_editorjs_enabled'])) {
+            return false;
+        }
+
+        $providers = is_array($configuration['providers'] ?? null) ? $configuration['providers'] : [];
+        $activeProviderId = trim((string) ($providers['active_provider_id'] ?? ''));
+        foreach ((array) ($providers['entries'] ?? []) as $provider) {
+            if (!is_array($provider) || (string) ($provider['id'] ?? '') !== $activeProviderId) {
+                continue;
+            }
+
+            return !empty($provider['enabled']) && !empty($provider['seo_meta_enabled']);
+        }
+    } catch (\Throwable) {
+        return false;
+    }
+
+    return false;
 }
 
 function cms_admin_posts_normalize_editor_locale(mixed $locale): string
@@ -278,6 +308,7 @@ function cms_admin_posts_build_inline_edit_data(object $module, array $post): ar
         : ($editData['postTags'] ?? []);
     $editData['seoMeta'] = array_merge(is_array($editData['seoMeta'] ?? null) ? $editData['seoMeta'] : [], [
         'focus_keyphrase' => (string) ($post['focus_keyphrase'] ?? ''),
+        'keywords' => (string) ($post['keywords'] ?? ''),
         'canonical_url' => (string) ($post['canonical_url'] ?? ''),
         'robots_index' => !empty($post['robots_index']),
         'robots_follow' => !empty($post['robots_follow']),
@@ -303,7 +334,7 @@ function cms_admin_posts_view_config(object $module, string $view, ?array $overr
     $editorLocale = cms_admin_posts_normalize_editor_locale($editorLocale);
     $aiTranslationEnabled = !class_exists(CoreModuleService::class)
         || CoreModuleService::getInstance()->isModuleEnabled('ai_services');
-    $aiSeoMetadataEnabled = $aiTranslationEnabled;
+    $aiSeoMetadataEnabled = cms_admin_posts_is_ai_seo_metadata_available();
     $baseTemplateVars = [
         'editorMediaToken' => Security::instance()->generateToken('editorjs_media'),
         'aiTranslationEnabled' => $aiTranslationEnabled,

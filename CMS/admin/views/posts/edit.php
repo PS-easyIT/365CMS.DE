@@ -1049,6 +1049,7 @@ $additionalCategoryIds = array_values(array_filter(
                 'locale' => $editorLocale,
                 'sourceEditorKey' => $isEnglishEditorView ? 'en' : 'de',
                 'requestTimeoutMs' => 300000,
+                'excerptId' => $activeExcerptInputId,
                 'focusKeyphraseId' => 'focusKeyphrase',
                 'keywordsId' => 'postSeoKeywords',
                 'metaTitleId' => 'metaTitle',

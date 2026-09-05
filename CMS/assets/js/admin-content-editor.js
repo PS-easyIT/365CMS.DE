@@ -4271,13 +4271,17 @@
             [
                 ['twitter_card', aiSeoMetadata.twitterCardId],
                 ['schema_type', aiSeoMetadata.schemaTypeId],
-                ['sitemap_priority', aiSeoMetadata.sitemapPriorityId],
                 ['sitemap_changefreq', aiSeoMetadata.sitemapChangefreqId]
             ].forEach(function (entry) {
                 if (setSelectFieldValue(entry[1], metadata[entry[0]])) {
                     appliedFieldCount += 1;
                 }
             });
+
+            if (typeof metadata.sitemap_priority === 'string' && metadata.sitemap_priority !== '' && aiSeoMetadata.sitemapPriorityId) {
+                setFieldValue(aiSeoMetadata.sitemapPriorityId, metadata.sitemap_priority);
+                appliedFieldCount += 1;
+            }
 
             if (setCheckboxFieldValue(aiSeoMetadata.robotsIndexId, metadata.robots_index)) {
                 appliedFieldCount += 1;
