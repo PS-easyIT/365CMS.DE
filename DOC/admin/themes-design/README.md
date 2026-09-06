@@ -1,134 +1,63 @@
-# Themes & Design
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for the 365CMS administration area. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Übersicht über die aktuell produktiven Theme-, Design- und Frontend-Werkzeuge im Admin-Bereich – inklusive der Core-eigenen CMS Loginpage.
+# 365CMS Admin – Readme
 
-Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
+## English
 
----
+### Administrator guide
 
-## UI-Vertrag (Admin-Designrunde 17.05.2026)
+This document covers the 365CMS administration area. Open `/admin` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-Für die Kernansichten in Themes/Design gilt jetzt konsistent:
+Use the page in this order:
 
-- Struktur: `Header → Toolbar/Filter → Inhalt`
-- reduzierte KPI-Darstellung mit sachlicher Metazeile statt dekorativer Kacheloptik
-- persistente Hinweis-/Info-Blöcke mit Titel oben und kurzen Texten
-- Aktionen/Buttons mit robustem Wrapping (overflow-sicher in schmalen Spalten)
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-Die überarbeitete Oberfläche ist rein visuell; bestehende Theme-, Explorer-, Marketplace- und Loginpage-Logik bleibt unverändert.
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-Im Bereich `/admin/themes` wurde die Listenansicht zusätzlich auf einen klaren Arbeitsvertrag nachgezogen: persistente Info-Box oben, deutliche Toolbar-Zone mit Aktiv/Inaktiv-Metawerten und ruhigeres Kartenbild für installierte Themes.
+### Technical reference
 
----
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-## Überblick
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-Der Bereich **Themes & Design** bündelt die Core-Oberflächen für Theme-Verwaltung, Theme-Customizer-Einstieg, kontrollierte Dateiinspektion, Schriftverwaltung und die themeunabhängige Auth-UI.
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-Die Standardnavigation in `CMS/admin/partials/sidebar.php` führt aktuell auf folgende produktive Routen:
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-- `/admin/themes`
-- `/admin/theme-editor`
-- `/admin/theme-explorer`
-- `/admin/cms-loginpage`
-- `/admin/menu-editor`
-- `/admin/landing-page`
-- `/admin/font-manager`
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-Ergänzend existieren weitere themennahe Admin-Pfade:
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-- `/admin/theme-marketplace`
-- `/admin/design-settings` → Legacy-Alias auf `/admin/theme-editor`
-- `/admin/theme-settings` → Legacy-Alias auf `/admin/settings`
+## Deutsch
 
----
+### Anwenderleitfaden
 
-## Kernbereiche
+Dieses Dokument beschreibt the 365CMS administration area. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-### Theme-Verwaltung
+Empfohlener Ablauf:
 
-- Route: `/admin/themes`
-- Zweck: installierte Themes anzeigen, aktivieren und – sofern nicht aktiv – löschen.
-- Laufzeitvertrag: Theme-Wechsel und Löschungen laufen über `CMS\ThemeManager` inklusive Health-Check, Locking und Audit-Logging.
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-### Theme-Editor
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-- Route: `/admin/theme-editor`
-- Zweck: sicherer Einstieg in `admin/customizer.php` des aktiven Themes.
-- Kein Roh-Dateieditor: Die Route lädt nur einen validierten Theme-Customizer oder einen strukturierten Fallback.
+### Technische Referenz
 
-### Theme-Explorer
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-- Route: `/admin/theme-explorer`
-- Zweck: Dateien des aktiven Themes kontrolliert durchsuchen und ausgewählte Textdateien im Browser bearbeiten.
-- Laufzeitvertrag: Pfad-Whitelist, Dateigrößenlimits, erlaubte Endungen, PHP-Syntaxprüfung und atomisches Schreiben mit Integritätscheck.
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-### CMS Loginpage
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-- Route: `/admin/cms-loginpage`
-- Zweck: Branding, Farben, Texte und rechtliche Verknüpfungen für `/cms-login`, `/cms-register` und `/cms-password-forgot` steuern.
-- Besonderheit: rendert Core-Auth-Ansichten statt Theme-Templates und bleibt damit unabhängig vom aktiven Frontend-Theme stabil.
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-### Font Manager
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-- Route: `/admin/font-manager`
-- Zweck: Theme-Fonts scannen, Google-Fonts lokal spiegeln, Font-Zuordnungen speichern, lokales Frontend-Hosting aktivieren und die aktuelle Font-Nutzung read-only analysieren.
-- Laufzeitvertrag: Remote-Downloads nur von freigegebenen Hosts, lokale Ablage in `/uploads/fonts`, Scan-/Download-Limits, Asset-Prüfung, Runtime-Zuordnungen für Heading/Body und Audit-Logging.
-
-### Menü-Editor
-
-- Route: `/admin/menu-editor`
-- Zweck: Menüs, Positionen und Navigationsstrukturen pflegen.
-
-### Landing Page
-
-- Route: `/admin/landing-page`
-- Zweck: landingpage-nahe Präsentationsblöcke verwalten, sofern das Setup diese Oberfläche nutzt.
-- Laufzeitvertrag: Header-, Content- und Footer-Bereiche können optional von registrierten Landing-Plugins mit `render_callback` überschrieben werden; der Admin speichert dafür echte Bereichs-Zuweisungen statt rein dekorativer Plugin-Toggles.
-
----
-
-## Abgrenzung der Werkzeuge
-
-| Route | Rolle |
-|---|---|
-| `/admin/theme-editor` | lädt den sicheren Theme-Customizer-Einstieg |
-| `/admin/theme-explorer` | kontrollierte Theme-Dateiansicht und Browser-Save-Pfad |
-| `/admin/themes` | operative Theme-Verwaltung |
-| `/admin/theme-marketplace` | katalogbasierte Theme-Entdeckung und Installation |
-| `/admin/cms-loginpage` | themeunabhängige Core-Auth-Oberfläche |
-| `/admin/font-manager` | lokale Font-Verwaltung und Theme-Font-Scan |
-
-Wichtig: Der Theme-Editor ist **kein** generischer Code-Editor. Für Dateibearbeitung ist der Theme-Explorer zuständig.
-
----
-
-## Sicherheits- und Betriebsbild
-
-- Theme-Marketplace arbeitet mit HTTPS-Quellen, Host-Allowlist, ZIP-only, SHA-256-Prüfung, Paketgrößenlimits und Install-Locks.
-- Theme-Explorer begrenzt Pfade, Dateitypen, Baumtiefe und Browser-Dateigrößen und speichert nur atomisch mit Hash-Prüfung.
-- Theme-Editor validiert `admin/customizer.php` vor dem Einbinden auf Pfad, Größe, Syntax, Binärinhalte und unsichere Funktionsaufrufe.
-- Font Manager scannt und löscht Font-Assets kontrolliert, priorisiert lokale Fonts optional vor externen Fallbacks und zeigt read-only an, welche Fonts aktiv, extern, lokal vorhanden oder aktuell ungenutzt sind.
-- CMS Loginpage speichert ihre Werte serverseitig validiert und schützt Reset- und Login-Flows mit Core-CSRF sowie Rate-Limits auf Passwort-Reset-Aktionen.
-- Landing-Page-Plugins failen geschlossen: nur registrierte, renderbare Plugins können pro Bereich aktiviert werden; das Default-Theme rendert diese Overrides anschließend tatsächlich in Header, Content oder Footer.
-
----
-
-## Dokumentationsstruktur
-
-- [Theme Editor](EDITOR.md)
-- [Design-Einstellungen](DESIGN-SETTINGS.md)
-- [Theme & Plugin Marketplace](MARKETPLACE.md)
-- [Menü-Editor](MENUS.md)
-- [Member-Dashboard-Widgets](DASHBOARD-WIDGETS.md)
-- [Theme Customizer](CUSTOMIZER.md)
-- [CMS Loginpage](CMS-LOGINPAGE.md)
-- [Font Manager](FONTS.md)
-
----
-
-## Verwandte Seiten
-
-- [Theme-Entwicklung](../../theme/DEVELOPMENT.md)
-- [Admin-Guide](../GUIDE.md)
-- [System & Einstellungen](../system-settings/README.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

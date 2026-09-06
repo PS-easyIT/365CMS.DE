@@ -1,208 +1,63 @@
-﻿# Abo-System
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for system maintenance and extensions. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Überblick über die aktuelle Aboarchitektur mit Paketen, Limits, Zuweisungen, Exporten, Historie und dem Member-Bezug.
+# 365CMS Admin – Subscription System
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.738
+## English
 
----
+### Administrator guide
 
-## Überblick
+This document covers system maintenance and extensions. Open `/admin/subscription-settings` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-Das Abo-System in 365CMS besteht aus drei zentralen Admin-Bausteinen:
+Use the page in this order:
 
-- `/admin/packages`
-- `/admin/orders`
-- `/admin/subscription-settings`
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-Es verbindet Paketdefinitionen, manuelle oder prozessgesteuerte Zuweisungen und eine systemweite Limitlogik.
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
----
+### Technical reference
 
-## Aktuelle Admin-Struktur
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/system.php`.
 
-Bereich **Aboverwaltung** im Sidebar:
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-| Route | Seite | Modul |
-|---|---|---|
-| `/admin/packages` | Pakete & Pläne | `PackagesModule` |
-| `/admin/orders` | Bestellungen & Zuweisung | `OrdersModule` |
-| `/admin/subscription-settings` | Einstellungen | `SubscriptionSettingsModule` |
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
----
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-## Zentrale Datenbereiche
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-### Paketdefinitionen
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Paketdaten werden über die Subscription-Plan-Struktur verwaltet. Relevante Bezüge im Code und in Views zeigen insbesondere:
+## Deutsch
 
-- `subscription_plans`
-- `user_subscriptions`
-- settings-basierte globale Abo-Konfiguration
+### Anwenderleitfaden
 
-### Bestellungen
+Dieses Dokument beschreibt system maintenance and extensions. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/subscription-settings`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-Bestellungen werden über die Tabelle `orders` geführt. Wichtig:
+Empfohlener Ablauf:
 
-- der kanonische Fremdschlüssel ist `plan_id`
-- alte Installationen können noch `package_id` enthalten
-- die aktuelle Implementierung behandelt beides kompatibel
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-### Limits und Sichtbarkeit
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-Globale Schalter steuern, ob Paketlimits systemweit überhaupt erzwungen werden.
+### Technische Referenz
 
----
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/system.php`.
 
-## Globale Einstellungen
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Die Seite `/admin/subscription-settings` verwaltet zwei Bereiche über Tabs:
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-### General Settings (6 Optionen)
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-| Key | Zweck | Default |
-|---|---|---|
-| `subscription_limits_enabled` | Paketlimits systemweit durchsetzen | `1` |
-| `subscription_default_plan_id` | Standardpaket für neue Mitglieder | `0` |
-| `subscription_member_area_enabled` | Abo-Bereich im Member-Dashboard | `1` |
-| `subscription_ordering_enabled` | Bestell-/Upgrade-Prozesse zulassen | `1` |
-| `subscription_public_pricing_enabled` | Pakete öffentlich kommunizieren | `1` |
-| `subscription_disabled_notice` | Hinweistext bei Deaktivierung | – |
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-### Package Settings (15 Optionen)
-
-| Key | Zweck | Default |
-|---|---|---|
-| `subscription_enabled` | Abo-System aktiv | `0` |
-| `trial_enabled` | Trial-Phase aktivieren | `0` |
-| `trial_days` | Dauer Trial in Tagen | `14` |
-| `auto_renewal` | Auto-Verlängerung | `1` |
-| `grace_period_days` | Karenzzeit nach Ablauf | `3` |
-| `cancellation_period_days` | Kündigungsfrist | `0` |
-| `payment_methods` | Erlaubte Zahlungsmethoden | `invoice` |
-| `invoice_prefix` | Rechnungsnummer-Prefix | `INV-` |
-| `invoice_next_number` | Nächste Rechnungsnummer | `1001` |
-| `tax_rate` | Steuersatz (%) | `19` |
-| `tax_included` | Preise inklusive MwSt. | `1` |
-| `notification_before_expiry` | Vorwarnung vor Ablauf in Tagen | `7` |
-| `notification_email` | Zieladresse für Abo-Hinweise | – |
-| `terms_page_id` | AGB-Seite (Page-ID) | `0` |
-| `cancellation_page_id` | Widerrufsseite (Page-ID) | `0` |
-
-Preislogik, Trial, Steuern und Paketdetails werden im Package-Settings-Tab gepflegt, nicht bei General Settings.
-
-### Laufzeitvertrag für Ablaufwarnungen seit 2.9.736
-
-Die bestehende Einstellung `notification_before_expiry` ist nicht länger nur dekorativ gespeichert.
-
-Aktueller Vertragsstand:
-
-- `SubscriptionManager` normalisiert Renewal-/Ablaufhinweise zentral für Admin und Member
-- als Fälligkeitsdatum gilt bevorzugt `next_billing_date`, sonst `end_date`
-- bei aktivierter globaler Auto-Verlängerung wird das Fälligkeitsdatum als Renewal-Termin interpretiert
-- bei deaktivierter Auto-Verlängerung oder fehlendem Renewal-Termin wird dasselbe Datum als Laufzeitende behandelt
-- `/admin/orders` zeigt read-only die fälligen bzw. überfälligen Verträge im konfigurierten Hinweisfenster
-- `/member/subscription` nutzt denselben Vertrag für den persönlichen Hinweistext
-- der Ausbau bleibt bewusst ohne neue POST-Route, ohne Mailversand und ohne zusätzliche Trackingtabelle
-
-### Exportvertrag seit 2.9.737
-
-`/admin/orders` ergänzt den operativen Abo-Pfad um zwei read-only CSV-Exporte:
-
-- **Orders CSV** für Bestellungen, optional mit aktiver Statusfilterung
-- **Paketnutzung CSV** auf Basis von `subscription_usage` plus aktuellem Abo-/Plankontext
-
-Der Vertrag bleibt bewusst defensiv:
-
-- GET-only Download ohne state-changing Aktion
-- keine CSRF- oder Sicherheitstoken in der URL
-- CSV-Zellhärtung gegen Spreadsheet-Formula-Injection
-- fail-softe Begrenzung großer Exportmengen statt unkontrolliert langer Requests
-- datensparsame Audit-Einträge ohne unnötige Export-Payloads im Log
-
-### Historienvertrag seit 2.9.738
-
-Die Aboverwaltung zeigt jetzt zusätzlich begrenzte read-only Historien auf Basis des vorhandenen `audit_log`:
-
-- `/admin/orders` für sichtbare Bestellungen, Paketzuweisungen und Exporte
-- `/admin/packages` für paketbezogene Änderungsereignisse
-
-Der Vertrag bleibt bewusst konservativ:
-
-- keine neue Mutation oder Spezialroute nur für Historie
-- Ausgabe nur als begrenzter, escaped View-Auszug
-- keine rohen Audit-Metadaten, Kontakt-Payloads oder Tokenwerte im UI
-- fail-soft bei nicht verfügbarem Audit-Log statt Full-Page-Fehler
-
-### Laufzeitvertrag des Standardpakets seit 2.9.621
-
-Das unter `subscription_default_plan_id` gespeicherte Standardpaket wirkt jetzt direkt auf neue Mitglieder:
-
-- öffentliche Registrierungen über `CMS\Auth::register()`
-- neu im Admin angelegte Member-Konten über `CMS\Services\UserService::createUser()`
-
-Die Zuweisung läuft zentral über `CMS\SubscriptionManager::assignConfiguredDefaultPlan()`.
-
-Wichtige Details:
-
-- nur **aktive** referenzierte Pakete werden automatisch zugewiesen
-- bestehende aktive oder Trial-Abos werden nicht still überschrieben
-- ist kein Standardpaket konfiguriert, bleibt die Registrierung ohne Zusatzmutation erfolgreich
-- stale oder deaktivierte Paket-IDs führen fail-soft dazu, dass kein Default-Abo angelegt wird
-
----
-
-## Beziehung zum Member-Bereich
-
-Das Abo-System ist im Member-Bereich sichtbar, wenn entsprechende Optionen aktiv sind.
-
-Wichtige Bezugspunkte:
-
-- Member-Navigation kann den Bereich `subscription` anzeigen
-- der Member-Bereich verlinkt auf Bestell-/Upgrade-Flows wie `/order?plan_id=...`
-- Admin-Einstellungen können den Abo-Bereich im Member Dashboard ein- oder ausblenden
-- Laufzeit- und Renewal-Hinweise für das aktive Paket werden dort seit `2.9.736` zentral aus echten Vertragsdaten statt aus dekorativen View-Feldern abgeleitet
-
----
-
-## Typische Arbeitsabläufe
-
-### Neues Standardpaket für Registrierungen festlegen
-
-1. `/admin/subscription-settings` öffnen
-2. Standardpaket auswählen
-3. speichern
-4. neue öffentliche Registrierungen und neu im Admin angelegte Member-Konten erhalten das aktive Paket automatisch
-
-### Paket manuell zuweisen
-
-1. `/admin/orders` öffnen
-2. „Zuweisen“ verwenden
-3. Benutzer, Paket und Abrechnungsintervall wählen
-
-### Bestellungen oder Paketnutzung exportieren
-
-1. `/admin/orders` öffnen
-2. optional Statusfilter setzen
-3. `Orders CSV` oder `Paketnutzung CSV` verwenden
-
-### Historie prüfen
-
-1. `/admin/orders` oder `/admin/packages` öffnen
-2. read-only Historienblock prüfen
-3. Änderungen, Exporte oder Paketereignisse ohne Rohdaten-Einsicht nachvollziehen
-
-### Limits global deaktivieren
-
-1. `/admin/subscription-settings` öffnen
-2. Schalter „Abo-Limits systemweit durchsetzen“ deaktivieren
-3. speichern
-
----
-
-## Verwandte Seiten
-
-- [Pakete & Pläne](PACKAGES.md)
-- [Bestellungen & Zuweisung](ORDERS.md)
-- [Member Dashboard](../member/README.md)
-- [Benutzer & Gruppen](../users-groups/README.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

@@ -1,80 +1,63 @@
-# 365CMS – Recht & Sicherheit
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for the 365CMS administration area. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Überblick über die aktuellen Legal-, Privacy- und Security-Module im Admin-Bereich.
+# 365CMS Admin – Readme
 
-Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
+## English
 
-Der Bereich ist in zwei Gruppen gegliedert:
+### Administrator guide
 
-- **Recht**
-- **Sicherheit**
+This document covers the 365CMS administration area. Open `/admin` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-Die Menüstruktur wird aus `CMS/admin/partials/sidebar.php` gespeist. Dadurch gelten die folgenden Routen als maßgeblich.
+Use the page in this order:
 
----
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-## Seitenstruktur
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-Die zentralen Legal-Seiten sind einheitlich strukturiert:
+### Technical reference
 
-- einheitlicher Seitenkopf mit Metadaten
-- klare Trennung von Steuerzone (Toolbar/Filter/Aktionen) und Inhaltsbereich
-- persistente Info-Boxen mit kurzer, titelgeführter Kommunikation
-- tabellarische/listenbasierte Arbeitsflächen mit robustem Button-/Text-Wrapping
-- auch die Legacy-Einzelrouten `/admin/privacy-requests` und `/admin/deletion-requests` folgen derselben Header-/Toolbar-/Listenstruktur
-- die Sammelansicht `/admin/data-requests` besitzt zusätzlich eine eigene Status-/Toolbarzone mit reduzierter KPI-Kachelwirkung und persistentem Fristen-Hinweis
-- die Kernscreens `/admin/legal-sites` und `/admin/cookie-manager` wurden am 17.05.2026 vollständig im selben Backend-Vertrag nachgezogen (Header, Toolbar, Inhaltszonen, Aktionsflächen)
-- globaler UI-Hard-Standard (17.05.2026): Buttons sowie Karten-/Boxcontainer sind adminweit auf maximal 2px Radius begrenzt; verschachtelte Boxen heben sich durch einen leicht abgesetzten Hintergrund eindeutig von der umgebenden Hauptbox ab
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-Die DSGVO-, Cookie- und Legal-Workflows bleiben funktional unverändert.
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-Der Kernscreen `/admin/data-requests` zeigt den Statusüberblick als eigene Toolbar-Ebene statt als lose Kachelreihen.
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
----
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-## Recht
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-| Route | Zweck |
-|---|---|
-| `/admin/legal-sites` | Verwaltung von Impressum, Datenschutz, AGB und weiteren Legal Pages |
-| `/admin/cookie-manager` | Cookie-Kategorien, Services, Banner-, Scanner- und Matomo-Self-Hosted-Transparenzkonfiguration |
-| `/admin/data-requests` | gebündelte Bearbeitung von Auskunfts- und Löschanfragen |
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Besonderheit: Frühere Einzelseiten für Privacy- und Deletion-Requests werden heute auf die Sammelroute `/admin/data-requests` zusammengeführt.
+## Deutsch
 
----
+### Anwenderleitfaden
 
-## Sicherheit
+Dieses Dokument beschreibt the 365CMS administration area. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-| Route | Zweck |
-|---|---|
-| `/admin/antispam` | Formular- und Content-Schutz gegen Spam |
-| `/admin/firewall` | Blockregeln, IP-Sperren und Anfrageschutz |
-| `/admin/security-audit` | Sicherheitsbewertung, Prüfungen und Härtungshinweise |
+Empfohlener Ablauf:
 
----
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-## Zugehörige Fachdokumente
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-| Dokument | Schwerpunkt |
-|---|---|
-| [COOKIES.md](COOKIES.md) | Cookie-Manager und öffentliche Einwilligungsseite |
-| [DSGVO.md](DSGVO.md) | Auskunfts- und Löschprozesse |
-| [LEGAL.md](LEGAL.md) | Rechtstexte und veröffentlichte Pflichtseiten |
-| [DELETION-REQUESTS.md](DELETION-REQUESTS.md) | DSGVO Art. 17 – Löschanträge |
-| [../security/FIREWALL.md](../security/FIREWALL.md) | Firewall-Regeln und Blocklisten |
-| [../security/ANTISPAM.md](../security/ANTISPAM.md) | Anti-Spam-Strategien |
-| [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md) | Konsolidierter Audit-Score und Prüfbereiche |
+### Technische Referenz
 
----
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-## Audit- und Nachvollziehbarkeit
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Mehrere Module in diesem Bereich schreiben sicherheitsrelevante oder rechtlich relevante Aktionen inzwischen in das Audit-Log, darunter insbesondere:
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-- Speichern von Legal-Site-Einstellungen
-- Speichern von Cookie-/Consent- und Matomo-Self-Hosted-Einstellungen
-- Zustandswechsel und Ablehnungen in `/admin/data-requests`
-- Firewall-Regeln anlegen, löschen oder umschalten
-- AntiSpam-Blacklist pflegen
-- Security-Audits auslösen oder bereinigen
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
+
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
+
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

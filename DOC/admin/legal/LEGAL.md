@@ -1,133 +1,63 @@
-# Rechtstexte & Legal-Sites
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for legal and privacy administration. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Dokumentiert die aktuelle Verwaltung von Impressum, Datenschutzerklärung, AGB und Widerrufsbelehrung über `/admin/legal-sites` inklusive Vorlagen-Generator und Seitensynchronisation.
+# 365CMS Admin – Legal
 
-Letzte Aktualisierung: 2026-05-11 · Version 2.9.758
+## English
 
-Die Verwaltung der Rechtstexte erfolgt über `/admin/legal-sites`. Der Entry-Point `CMS/admin/legal-sites.php` delegiert alle inhaltlichen und generatorbezogenen Aufgaben an `LegalSitesModule`.
+### Administrator guide
 
-Das Modul deckt aktuell vier zentrale Rechtstexte ab:
+This document covers legal and privacy administration. Open `/admin/legal-sites` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-- Impressum
-- Datenschutzerklärung
-- AGB
-- Widerrufsbelehrung
+Use the page in this order:
 
-Ältere Beschreibungen mit separater interner Versionierungstabelle oder eigener Cookie-Richtlinien-Verwaltung auf dieser Seite entsprechen nicht mehr dem aktuellen Kernstand.
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-## Gespeicherte Kerninhalte
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-Rechtstexte werden in Settings mit diesen Schlüsseln abgelegt:
+### Technical reference
 
-- `legal_imprint`
-- `legal_privacy`
-- `legal_terms`
-- `legal_revocation`
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/legal-sites.php`, `CMS/admin/modules/legal/LegalSitesModule.php`.
 
-Zusätzlich verwaltet das Modul die zugeordneten CMS-Seiten über:
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-- `imprint_page_id`
-- `privacy_page_id`
-- `terms_page_id`
-- `revocation_page_id`
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-## Standardprofil für Vorlagen
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-Ein wesentlicher Teil der aktuellen Implementierung ist das Legal-Profil. Es sammelt Stammdaten, aus denen standardisierte Rechtstexte generiert werden können. Beispiele für gespeicherte Profilwerte sind:
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-- Firmenname oder privater Name
-- Rechtsform
-- Inhaber oder Geschäftsführung
-- Anschrift
-- E-Mail, Telefon, Website
-- Registergericht und Registernummer
-- Umsatzsteuer-ID
-- Hosting-Anbieter
-- Datenschutzkontakt
-- Zahlungsdienstleister
-- Vertragsart und Geltungsbereich der AGB
-- Hinweise zu Cookies, Registrierung, Newsletter, Kommentaren, Analytics, Shop und externen Medien
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Damit kann das Modul situationsabhängige Textbausteine erzeugen, statt nur starre Muster abzulegen.
+## Deutsch
 
-## Versionierte DACH-Vorlagenprofile
+### Anwenderleitfaden
 
-Seit Version 2.9.758 verwaltet `/admin/legal-sites` zusätzlich ein speicherbares DACH-Vorlagenprofil. Verfügbar sind derzeit:
+Dieses Dokument beschreibt legal and privacy administration. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/legal-sites`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-- Deutschland · DACH-Basis
-- Österreich · DACH-Basis
-- Schweiz · DACH-Basis
-- DACH allgemein · neutrales Skelett
+Empfohlener Ablauf:
 
-Die Profile liefern bewusst technische Grundgerüste für Impressum, Datenschutzerklärung, Widerrufsbelehrung und AGB-Skelett. Sie enthalten Hinweise auf notwendige Prüfung und ersetzen keine individuelle Rechtsberatung. Beim Generieren oder Erstellen/Aktualisieren einer Legal-Site speichert das Modul pro Bereich zusätzlich:
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-- angewendetes Profil (`legal_<type>_template_profile`)
-- Vorlagenversion (`legal_<type>_template_version`)
-- Anwendungszeitpunkt (`legal_<type>_template_applied_at`)
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-Dadurch ist im Adminbereich nachvollziehbar, welche Vorlage zuletzt auf welchen Rechtstext angewendet wurde. Die Anwendung bleibt eine CSRF-geschützte POST-Aktion; es gibt keine GET-Mutation und keine Sicherheitstoken in URLs.
+### Technische Referenz
 
-## Verfügbare Admin-Aktionen
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/legal-sites.php`, `CMS/admin/modules/legal/LegalSitesModule.php`.
 
-`CMS/admin/legal-sites.php` verarbeitet derzeit folgende Kernaktionen:
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-- `save` – speichert Rechtstexte und Seitenzuordnungen
-- `save_profile` – speichert die Standardwerte des Legal-Profils
-- `generate` – erzeugt einen Rechtstext aus den Profilangaben
-- `create_page` – erstellt oder aktualisiert eine einzelne CMS-Seite
-- `create_all_pages` – erstellt oder aktualisiert alle unterstützten Rechtstext-Seiten gesammelt
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-Alle POST-Aktionen verwenden den CSRF-Kontext `admin_legal_sites`.
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-## Automatische Seitenerstellung
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-Für jeden der vier Dokumenttypen ist eine feste Seitenkonfiguration hinterlegt. Dazu gehören Titel, Ziel-Slug und Meta-Beschreibung. Typische Slugs sind:
-
-- `/impressum`
-- `/datenschutz`
-- `/agb`
-- `/widerruf`
-
-Wenn bereits eine passende Seite existiert, aktualisiert das Modul deren Inhalt. Andernfalls wird sie neu angelegt. Dadurch bleiben Rechtstexte und öffentlich sichtbare CMS-Seiten synchron.
-
-## Synchronisierte Nebeneinstellungen
-
-Beim Zuordnen oder Erstellen bestimmter Seiten aktualisiert das Modul weitere Settings mit funktionaler Relevanz:
-
-- `cookie_policy_url` wird aus der Datenschutz-Seite abgeleitet
-- `terms_page_id` wird mit der AGB-Seite synchronisiert
-- `cancellation_page_id` wird mit der Widerrufs-Seite synchronisiert
-
-## Generierte Vorlagen
-
-Das Modul erzeugt Vorlagen nicht nur für juristische Pflichttexte, sondern passt sie an das gespeicherte Profil an. Beispiele:
-
-- Impressum mit Firmierung, Vertretung, Kontakt und Registerdaten
-- Datenschutzerklärung mit optionalen Hinweisen zu Formularen, Registrierung, Newsletter, Analytics, externen Medien oder Shop-Funktionen
-- AGB je nach Zielgruppe (`b2c`, `b2b`, `mixed`) und Vertragsart (`goods`, `services`, `digital`, `mixed`)
-- Widerrufsbelehrung abhängig von Vertragsart, Rücksendekosten und ggf. vorzeitigem Leistungsbeginn
-
-## Sicherheit und Validierung
-
-Die aktuelle Legal-Verwaltung setzt auf:
-
-- Admin-Zugriffsschutz via `Auth::instance()->isAdmin()`
-- CSRF-Prüfung via `Security::instance()->verifyToken(..., 'admin_legal_sites')`
-- serverseitige Sanitierung aller Profil- und Inhaltsfelder
-- Validierung notwendiger Pflichtfelder vor dem Generieren oder Speichern
-- Audit-Logging über `AuditLogger` für Profil-, Inhalts- und Seitenerzeugungsaktionen
-
-## Relevante Dateien
-
-| Datei | Zweck |
-|---|---|
-| `CMS/admin/legal-sites.php` | Admin-Entry-Point |
-| `CMS/admin/modules/legal/LegalSitesModule.php` | Profile, Vorlagen, Speichern und Seitensynchronisation |
-| `CMS/admin/views/legal/legal-sites.php` | Admin-Oberfläche für Tabs und Formulare |
-
-## Verwandte Dokumente
-
-- [README.md](README.md)
-- [DSGVO.md](DSGVO.md)
-- [COOKIES.md](COOKIES.md)
-- [PAGES.md](../pages-posts/PAGES.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

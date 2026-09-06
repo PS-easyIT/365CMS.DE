@@ -1,162 +1,63 @@
-# Member-Dashboard-Widgets
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for the administrator dashboard. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Dokumentiert die Konfiguration der Dashboard-Widgets im **Member Dashboard** aus Admin-Sicht.
+# 365CMS Admin – Dashboard Widgets
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.734
+## English
 
----
+### Administrator guide
 
-## Überblick
+This document covers the administrator dashboard. Open `/admin/member-dashboard-widgets` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-Die frühere Route `/admin/design-dashboard-widgets.php` ist veraltet. Die Widget-Konfiguration wird heute im Bereich **Member Dashboard** gepflegt:
+Use the page in this order:
 
-- Übersicht: `/admin/member-dashboard`
-- Widget-Konfiguration: `/admin/member-dashboard-widgets`
-- Plugin-Widgets: `/admin/member-dashboard-plugin-widgets`
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-Technische Basis:
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-- Entry Points: `CMS/admin/member-dashboard*.php`
-- Logik: `CMS/admin/modules/member/MemberDashboardModule.php`
-- Layout/View: `CMS/admin/views/member/*.php`
+### Technical reference
 
----
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/member-dashboard-widgets.php`, `CMS/admin/views/member/dashboard.php`, `CMS/admin/views/member/widgets.php`, `CMS/admin/views/seo/dashboard.php`.
 
-## Verfügbare Kern-Widgets
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-Die Kern-Widgets werden in `MemberDashboardModule::getAvailableWidgets()` definiert.
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-| Widget-Key | Bezeichnung | Zweck |
-|---|---|---|
-| `profile` | Profil-Übersicht | Basisdaten, Avatar, Kurzstatus |
-| `activity` | Letzte Aktivitäten | Eigene jüngste Aktionen |
-| `messages` | Nachrichten | Platzhalter für Kommunikationsmodule |
-| `bookmarks` | Lesezeichen | Gespeicherte Inhalte oder Merker |
-| `notifications` | Benachrichtigungen | Statusmeldungen und Hinweise |
-| `quick_links` | Schnellzugriffe | Direkte Links in Member-Bereiche |
-| `statistics` | Statistiken | Kompakte Kennzahlen im Dashboard |
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-Nicht jedes Widget muss im Frontend sichtbar sein. Sichtbarkeit und Reihenfolge werden über Admin-Einstellungen gesteuert.
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
----
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-## Konfigurierbare Bereiche
+## Deutsch
 
-Auf `/admin/member-dashboard-widgets` werden heute vier Ebenen konfiguriert:
+### Anwenderleitfaden
 
-1. **Aktive Kern-Widgets**
-2. **Spaltenlayout** (`1` bis `4` Spalten)
-3. **Reihenfolge der Bereichsblöcke**
-4. **Reihenfolge eigener Info-Widgets**
+Dieses Dokument beschreibt the administrator dashboard. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/member-dashboard-widgets`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-Unterstützte Abschnittsreihenfolgen:
+Empfohlener Ablauf:
 
-- `stats,widgets,plugins`
-- `stats,plugins,widgets`
-- `widgets,stats,plugins`
-- `plugins,stats,widgets`
-- `quick_start,stats,widgets,plugins`
-- `quick_start,stats,plugins,widgets`
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-Seit `2.9.734` kommt zusätzlich eine persistente Sortierung hinzu:
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-- **Kern-Widgets** werden in der Admin-UI per Drag-&-Drop oder Auf/Ab-Buttons angeordnet.
-- **Eigene Info-Widgets** lassen sich über dieselben Interaktionen sortieren.
-- **Plugin-Widgets** nutzen denselben Fallback-Mechanismus jetzt ebenfalls neben Drag-&-Drop.
+### Technische Referenz
 
-Damit wird nicht nur die Anordnung ganzer Dashboard-Sektionen gesteuert, sondern auch die Reihenfolge einzelner Widget-Gruppen innerhalb der Member-Dashboard-Konfiguration.
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/member-dashboard-widgets.php`, `CMS/admin/views/member/dashboard.php`, `CMS/admin/views/member/widgets.php`, `CMS/admin/views/seo/dashboard.php`.
 
----
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-## Eigene Info-Widgets
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-Zusätzlich zu den Kern-Widgets unterstützt das System bis zu **vier frei pflegbare Info-Widgets**.
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-Gespeicherte Felder:
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-- `member_widget_1_title` bis `member_widget_4_title`
-- `member_widget_1_content` bis `member_widget_4_content`
-- `member_widget_1_icon` bis `member_widget_4_icon`
-
-Diese Widgets eignen sich für:
-
-- interne Hinweise
-- Einstiegs-Links
-- Onboarding-Tipps
-- Support- oder Community-Verweise
-
-Die Inhalte werden serverseitig bereinigt; erlaubt ist nur eingeschränktes HTML.
-
-Seit `2.9.734` wird zusätzlich die Reihenfolge dieser vier Slots unter `member_dashboard_custom_widget_order` gespeichert. Die Slot-IDs selbst bleiben stabil (`1` bis `4`), sodass Inhaltsfelder nicht an unsichere freie Positionsschlüssel gekoppelt werden.
-
----
-
-## Plugin-Widgets
-
-Plugin-Widgets werden **nicht** im Kern-Widget-Set hinterlegt, sondern über die Registry des Member-Bereichs gesammelt:
-
-- Klasse: `CMS\Member\PluginDashboardRegistry`
-- Auswertung: `MemberDashboardModule::getPluginWidgets()`
-
-Konfigurierbar sind:
-
-- Sichtbarkeit pro Plugin-Widget
-- Reihenfolge über `member_dashboard_plugin_order`
-
-Die Reihenfolge wird serverseitig allowlist-basiert gegen bekannte Plugin-Slugs normalisiert. Fehlende oder unbekannte Werte werden fail-soft behandelt, statt die Konfigurationsseite oder das Frontend-Dashboard abzureißen.
-
-Die zugehörige Admin-Seite ist:
-
-- `/admin/member-dashboard-plugin-widgets`
-
----
-
-## Gespeicherte Einstellungen
-
-Die Konfiguration landet in der Tabelle `settings` mit `member_*`-Schlüsseln, insbesondere:
-
-- `member_dashboard_widgets`
-- `member_dashboard_columns`
-- `member_dashboard_section_order`
-- `member_dashboard_custom_widget_order`
-- `member_dashboard_plugin_order`
-- `member_dashboard_show_custom_widgets`
-- `member_dashboard_show_plugin_widgets`
-- `member_dashboard_show_stats`
-- `member_dashboard_show_quickstart`
-
-Die Werte werden überwiegend als Strings oder JSON gespeichert.
-
-## Request- und Sicherheitsvertrag
-
-Die Sortierung erzeugt **keine neue GET-Aktion** und keinen separaten Token-Pfad.
-
-- Speichern weiterhin nur per `POST`
-- CSRF-Kontext weiterhin `admin_member_dashboard`
-- keine Tokens in URLs
-- serverseitige Allowlist für Widget-Keys, Custom-Slot-IDs (`1`–`4`) und Plugin-Slugs
-- Duplikate werden entfernt, fehlende bekannte Werte kontrolliert ergänzt
-- beschädigte oder unvollständige Browserdaten führen fail-soft zu Defaults statt zu HTTP-500
-
-Die UI ist progressiv erweitert:
-
-- **Drag-&-Drop** für schnelle Mausinteraktionen
-- **Auf/Ab-Buttons** als robuster Fallback
-
-Dadurch bleibt die Funktion nutzbar, auch wenn Browser-DnD im konkreten Umfeld eingeschränkt ist.
-
----
-
-## Wichtige Hinweise
-
-- Diese Seite dokumentiert **Member-Dashboard-Widgets**, nicht das klassische Admin-Startseiten-Dashboard.
-- Das Admin-Dashboard selbst wird in [`../dashboard/DASHBOARD.md`](../dashboard/DASHBOARD.md) beschrieben.
-- Ältere Dokumentation mit der Bezeichnung „Admin Dashboard Widgets“ ist historisch und nicht mehr maßgeblich.
-
----
-
-## Verwandte Seiten
-
-- [Member Dashboard – Überblick](../member/README.md)
-- [Admin-Dashboard](../dashboard/DASHBOARD.md)
-- [Themes & Design – Überblick](README.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

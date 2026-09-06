@@ -1,142 +1,63 @@
-# 365CMS – Firewall
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for access control and security operations. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Schutz vor missbräuchlichen Anfragen, IP-Sperren, Blockregeln, Simulationsläufen und sicherheitsrelevanten Zugriffsmustern.
+# 365CMS Admin – Firewall
 
-Letzte Aktualisierung: 2026-05-11 · Version 2.9.764
+## English
 
-**Admin-Route:** `/admin/firewall`
+### Administrator guide
 
----
+This document covers access control and security operations. Open `/admin/firewall` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-## Überblick
+Use the page in this order:
 
-Die Firewall ist das zentrale Admin-Modul für anwendungsnahe Abwehrmaßnahmen. Sie arbeitet zusammen mit Login-Schutz, AntiSpam und Security-Audit.
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-| Baustein | Datei |
-|---|---|
-| Entry Point | `CMS/admin/firewall.php` |
-| Modul | `CMS/admin/modules/security/FirewallModule.php` |
-| Runtime | `CMS/core/Services/SecurityRuntimeService.php` |
-| View | `CMS/admin/views/security/firewall.php` |
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-Typische Aufgaben:
+### Technical reference
 
-- IP-Adressen oder Bereiche blockieren
-- neue Blockregeln zunächst nur simulieren
-- Treffer read-only über ein konfigurierbares Vorschaufenster auswerten
-- Regeln anschließend explizit scharfschalten
-- Sicherheitsbaseline-Profile vergleichen und optional anwenden
-- Firewall-Diagnose read-only prüfen
-- regelbasierte Filter pflegen
-- Sperren aktivieren oder aufheben
-- sicherheitsrelevante Änderungen protokollieren
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/cms-firewall.php`, `CMS/admin/firewall.php`, `CMS/admin/modules/security/FirewallModule.php`, `CMS/admin/views/security/firewall.php`.
 
-Seit 2.9.248 werden aktive Firewall-Regeln nicht nur verwaltet, sondern im Core-Runtime-Pfad serverseitig ausgewertet. Blockentscheidungen laufen damit unabhängig von der Admin-Oberfläche.
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-Seit 2.9.763 speisen `blocked`- und `rate_limited`-Ereignisse zusätzlich die zentrale Security-Alarmierung, sofern diese unter `/admin/monitor-email-alerts` aktiviert ist. Der Alert-Lauf bleibt read-only, nutzt keine Token-URLs und verwendet die bestehende Monitoring-Mail-Pipeline.
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-Seit 2.9.764 enthält `/admin/firewall` zusätzlich eine Sicherheitsbaseline mit den Profilen `Entwicklung`, `Staging` und `Produktion`. Die Ansicht zeigt einen read-only Diff zwischen aktuellem Zustand und Profilwerten sowie eine Firewall-Diagnose zu Runtime-Verdrahtung, Schalter, Logging, Regelbestand, Simulationsvorschau und Block-Log. Das Anwenden eines Profils ist optional und erfolgt ausschließlich per CSRF-geschütztem POST; bestehende Regeln werden dabei nicht gelöscht oder automatisch neu angelegt.
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
----
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-## Datenquellen
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-| Bereich | Zweck |
-|---|---|
-| `blocked_ips` | persistente oder temporäre Sperren |
-| `failed_logins` | Fehlanmeldungen |
-| `login_attempts` | Rate-Limiting und Login-Muster |
-| `firewall_rules` | benutzerdefinierte Firewall-Regeln |
-| `security_log` (`action = simulated`) | read-only Treffervorschau für Simulationsregeln |
-| `audit_log` | Nachvollziehbarkeit von Admin-Aktionen |
+## Deutsch
 
----
+### Anwenderleitfaden
 
-## Sicherheitsbaseline seit 2.9.764
+Dieses Dokument beschreibt access control and security operations. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/firewall`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-Die Baseline-Ansicht ist Teil der Firewall-Seite und erzeugt keine neue öffentliche Route. Sie enthält drei Profile:
+Empfohlener Ablauf:
 
-| Profil | Zweck |
-|---|---|
-| `Entwicklung` | lockere Limits, aktives Logging, kurze Sperrdauer für lokale Tests |
-| `Staging` | produktionsnaher Mittelweg mit moderaten Limits und 24h-Simulationsfenster |
-| `Produktion` | strengeres Betriebsprofil mit aktivem Logging, 60 Requests pro Minute und 48h-Simulationsfenster |
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-Wichtige Sicherheitsgrenzen:
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-- Diff-Anzeige ist read-only und benötigt keinen Token in URLs.
-- Profilanwendung ist optional und CSRF-geschützt.
-- Profile ändern nur Firewall-Basiseinstellungen, nicht den Regelbestand.
-- Jede Anwendung wird im `audit_log` protokolliert.
-- Die Diagnose fällt bei fehlenden Logs oder nicht lesbaren Dateien weich auf Warnstatus zurück.
+### Technische Referenz
 
----
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/cms-firewall.php`, `CMS/admin/firewall.php`, `CMS/admin/modules/security/FirewallModule.php`, `CMS/admin/views/security/firewall.php`.
 
-## Regelarten
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Je nach Konfiguration können Regeln unter anderem auf Folgendes zielen:
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-- einzelne IP-Adresse
-- CIDR-Bereich
-- Länderkennung
-- User-Agent-Muster
-- temporäre Rate-Limit-Sperren
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-Die aktuelle Modul-Implementierung prüft Eingaben strenger als ältere Stände, insbesondere bei IP-Bereichen, Länderkennungen und benutzerdefinierten Regeln.
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-## Simulationsmodus seit 2.9.761
-
-Blockregeln können jetzt in zwei Modi laufen:
-
-| Modus | Wirkung |
-|---|---|
-| `Simulation` | Treffer werden als `simulated` im `security_log` protokolliert, Requests laufen aber weiter |
-| `Scharf` | Treffer werden aktiv blockiert |
-
-Wichtige Details:
-
-- Neue Blockregeln können direkt im Simulationsmodus angelegt werden.
-- `allow_ip`-Regeln bleiben immer sofort wirksam und unterstützen bewusst keinen Simulationsmodus.
-- Die Admin-Oberfläche zeigt eine read-only Treffervorschau für die letzten konfigurierten Stunden.
-- Das Scharfschalten erfolgt ausschließlich per CSRF-geschütztem POST im Admin – nicht per GET und nicht über Token in URLs.
-- Simulierte Treffer werden unabhängig vom allgemeinen Zugriffs-Logging geschrieben, damit die Vorschau belastbar bleibt.
-- Das bestehende Rate-Limit bleibt auch bei simulierten Regeln aktiv und unverändert wirksam.
-
----
-
-## Typische Admin-Aktionen
-
-- Firewall-Einstellungen speichern
-- Regel anlegen
-- Regel löschen
-- Regel aktivieren oder deaktivieren
-- Regel zwischen `Simulation` und `Scharf` umstellen
-- gesperrte IPs prüfen
-
-Diese Aktionen werden im aktuellen Arbeitsstand zusätzlich über den `AuditLogger` protokolliert.
-
----
-
-## Sicherheit
-
-- Zugriff nur für Administratoren
-- CSRF-Prüfung für alle POST-Aktionen
-- serverseitige Validierung von IPs und Regelparametern
-- Runtime-Enforcement über `SecurityRuntimeService`
-- Rate-Limit-Ereignisse und Blockierungen in `security_log`
-- simulierte Treffer als eigener, read-only Logpfad in `security_log`
-- Allow-Regeln überspringen Blockregeln, aber nicht mehr das Rate-Limit
-- Redirect nach jeder schreibenden Aktion
-
-## Aktuell noch offen
-
-- `security_log` dient weiterhin als Rate-Limit-Zähler. Für sehr stark frequentierte Installationen wäre eine aggregierte Zählertabelle ressourcenschonender.
-
----
-
-## Verwandte Dokumente
-
-- [ANTISPAM.md](ANTISPAM.md)
-- [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md)
-- [../legal/README.md](../legal/README.md)
-- [../../core/SECURITY.md](../../core/SECURITY.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

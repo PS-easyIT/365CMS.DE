@@ -1,7 +1,7 @@
-> **Website:** [365CMS](https://365cms.de/)  
-> **Version:** 3.4.00  
-> **Datum:** 2026-09-06  
-> **Status:** Aktuell · **Zuletzt aktualisiert am: 2026-09-06**  
+> **Website:** [365CMS](https://365cms.de/)
+> **Version:** 3.4.00
+> **Datum:** 2026-09-06
+> **Status:** Aktuell – **Zuletzt aktualisiert am: 2026-09-06**
 > **Kurzbeschreibung:** Vollständige Referenz der Core-Services für Mail, Suche, Medien, SEO, Übersetzung, AI, Editor, Landing Pages, Monitoring und Administration. Die Übersicht wurde mit den 112 PHP-Dateien unter `CMS/core/Services/` abgeglichen.
 
 ## English
@@ -19,6 +19,14 @@ Services bündeln die wiederverwendbaren Fachfunktionen des 365CMS für Kommunik
 
 ### Technisch
 Der aktuelle Service-Baum enthält 112 PHP-Dateien sowie die Unterbereiche `AI`, `EditorJs`, `Landing`, `Media`, `SEO` und `SiteTable`.
+
+## Deutsch
+
+### Anwenderfreundlich
+
+Die Core-Services bündeln wiederverwendbare Funktionen für Inhalte, Medien, Mail, Suche, SEO, Übersetzung, Monitoring und Member.
+
+### Technisch
 
 # 365CMS – Services-Referenz
 > **Stand:** 2026-09-06 | **Version:** 3.4.00 | **Status:** Aktuell

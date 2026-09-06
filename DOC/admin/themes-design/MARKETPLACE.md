@@ -1,121 +1,63 @@
-# Theme & Plugin Marketplace
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for system maintenance and extensions. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Beschreibt die Marketplace-Oberflächen für Themes und Plugins im aktuellen Admin-Bereich.
+# 365CMS Admin – Marketplace
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
+## English
 
----
+### Administrator guide
 
-## Überblick
+This document covers system maintenance and extensions. Open `/admin/plugin-marketplace` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-365CMS enthält zwei getrennte Marketplace-Oberflächen:
+Use the page in this order:
 
-- Theme Marketplace: `/admin/theme-marketplace`
-- Plugin Marketplace: `/admin/plugin-marketplace`
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-Beide Seiten sind Admin-only und arbeiten mit dedizierten Modulen und Views. Der Theme Marketplace ist dabei stärker auf sichere Paketprüfung und kontrollierte Installation ausgelegt.
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
----
+### Technical reference
 
-## Theme Marketplace
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/modules/plugins/PluginMarketplaceModule.php`, `CMS/admin/modules/themes/ThemeMarketplaceModule.php`, `CMS/admin/plugin-marketplace.php`, `CMS/admin/theme-marketplace.php`, `CMS/admin/views/plugins/marketplace.php`, `CMS/admin/views/themes/marketplace.php`.
 
-### Route und Technik
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-- Route: `/admin/theme-marketplace`
-- Entry Point: `CMS/admin/theme-marketplace.php`
-- Modul: `CMS/admin/modules/themes/ThemeMarketplaceModule.php`
-- View: `CMS/admin/views/themes/marketplace.php`
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-### Katalogquellen
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-Der Theme-Katalog wird in folgender Reihenfolge aufgelöst:
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-1. frischer Cache für die konfigurierte Marketplace-URL
-2. Remote-`index.json`
-3. abgelaufener Cache als Fallback
-4. lokaler `index.json`-Fallback im Theme-Umfeld
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Aktueller Cache-TTL: 900 Sekunden.
+## Deutsch
 
-### Sichtbarer Funktionsumfang
+### Anwenderleitfaden
 
-- Theme-Kacheln mit Screenshot, Version, Autor und Status
-- Suche und Statusfilter im Frontend
-- Kennzeichnung für aktiv, installiert, Update verfügbar, kostenpflichtig
-- Hinweise zu Paketgröße, Download-Host, SHA-256 und Kompatibilität
-- Installation per POST-Aktion `install`
+Dieses Dokument beschreibt system maintenance and extensions. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/plugin-marketplace`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-### Voraussetzungen für Auto-Install
+Empfohlener Ablauf:
 
-Ein Theme gilt nur dann als automatisch installierbar, wenn alle Bedingungen erfüllt sind:
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-- HTTPS-Download-URL
-- Host liegt in der Marketplace-Allowlist
-- erlaubte Archiv-Endung (`zip`)
-- gültige SHA-256-Prüfsumme vorhanden
-- Paketgröße innerhalb des Limits
-- CMS- und PHP-Mindestversion passen zur aktuellen Runtime
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-### Paket-Härtung
+### Technische Referenz
 
-Die Installation arbeitet zusätzlich mit:
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/modules/plugins/PluginMarketplaceModule.php`, `CMS/admin/modules/themes/ThemeMarketplaceModule.php`, `CMS/admin/plugin-marketplace.php`, `CMS/admin/theme-marketplace.php`, `CMS/admin/views/plugins/marketplace.php`, `CMS/admin/views/themes/marketplace.php`.
 
-- Install-Lock pro Theme-Zielordner
-- Größen- und Eintragslimits für Archive
-- Finalisierung des entpackten Pakets auf gültige Theme-Struktur
-- Prüfung auf `style.css`, `theme.json` und `functions.php`
-- Fallback-Bereinigung unvollständiger Pakete
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-### Wichtige Einordnung
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-Der Theme Marketplace ist bewusst vom operativen Theme-Management getrennt. Für Aktivieren, Health-Checks und Löschen bleibt `/admin/themes` die primäre Verwaltungsseite.
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
----
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-## Plugin Marketplace
-
-### Route und Technik
-
-- Route: `/admin/plugin-marketplace`
-- Entry Point: `CMS/admin/plugin-marketplace.php`
-- Modul: `CMS/admin/modules/plugins/PluginMarketplaceModule.php`
-- View: `CMS/admin/views/plugins/marketplace.php`
-
-### Funktionsumfang
-
-- Kachelübersicht verfügbarer Plugins
-- KPI-Karten für verfügbar, installiert und installierbar
-- Volltextsuche und Kategoriefilter
-- Installation per POST-Aktion `install`
-
-Der Plugin Marketplace wird in der Sidebar nur eingeblendet, wenn `marketplace_enabled` aktiv ist.
-
----
-
-## Unterschied zur regulären Verwaltung
-
-Marketplace und Verwaltung sind bewusst getrennt:
-
-- `/admin/themes` und `/admin/plugins` = operative Verwaltungsseiten
-- `/admin/theme-marketplace` und `/admin/plugin-marketplace` = katalogbasiertes Entdecken und Installieren
-
----
-
-## Sicherheit
-
-Beide Marketplace-Seiten verwenden:
-
-- Admin-Zugriffskontrolle
-- CSRF-Token-Prüfung
-- Redirect nach POST
-- Session-basierte Erfolgs-/Fehlermeldungen
-
-Der Theme Marketplace ergänzt dies um HTTPS-/Host-Allowlisting, Hash-Prüfung, Archiv-Grenzen und strukturierte Fehler-Report-Payloads.
-
----
-
-## Verwandte Seiten
-
-- [Themes & Design – Überblick](README.md)
-- [Plugins – Überblick](../plugins/PLUGINS.md)
-- [Updates](../system-settings/UPDATES.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

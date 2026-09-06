@@ -1,38 +1,55 @@
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Routenreferenz für authentifizierte Member-Seiten, Theme-Overrides, Plugin-Dispatch, Weiterleitungen, Nutzungs-Tracking und 404-Fallbacks. Sie entspricht dem Stand von `MemberRouter.php` in Version 3.4.00.
+
 # 365CMS Member Routes
-> **Website:** 365CMS.DE | **Version:** 3.4.00 | **Date:** 2026-09-06 | **Status:** Current | **Last updated:** 2026-09-06
 
-This reference lists the routes and dispatch rules for the member area. It is intended for support users first and for developers second.
+## English — user guide
 
-## User guide
+Use `/member/dashboard` as the canonical entry point. `/member` redirects to it. Plugin sections start at `/member/plugin/{slug}`; an action and a numeric ID may be appended. Visitors who are not signed in are sent to the public login page and returned to the requested URL after login.
 
-All member routes require login. The canonical start page is `/member/dashboard`; `/member` redirects there. Plugin features use `/member/plugin/{slug}` and may add an action and numeric ID.
+## English — technical reference
 
-## Technical reference
+`MemberRouter::registerRoutes()` registers the following routes:
 
-`MemberRouter::registerRoutes()` registers:
-
-| Method | Route | Handler |
+| Methods | Route | Handler and outcome |
 |---|---|---|
-| GET, POST | `/dashboard` | Theme dashboard or redirect |
-| GET, POST | `/member` | Redirect to dashboard |
-| GET, POST | `/member/:page` | Theme override, then `CMS/member/{page}.php` |
-| GET, POST | `/member/plugin/:slug` | Plugin registry |
-| GET, POST | `/member/plugin/:slug/:action` | Plugin registry with action |
-| GET, POST | `/member/plugin/:slug/:action/:id` | Plugin registry with action and ID |
+| GET, POST | `/dashboard` | Requires login; includes theme `member/dashboard.php`, otherwise redirects to `/member/dashboard` |
+| GET, POST | `/member` | Requires login; redirects to `/member/dashboard` |
+| GET, POST | `/member/:page` | Requires login; theme page first, then `CMS/member/{page}.php` |
+| GET, POST | `/member/plugin/:slug` | Registry dispatcher with no action |
+| GET, POST | `/member/plugin/:slug/:action` | Registry dispatcher; sanitized action becomes `$_GET['action']` |
+| GET, POST | `/member/plugin/:slug/:action/:id` | Registry dispatcher; numeric ID becomes `$_GET['id']` |
 
-Page slugs accept only `[a-zA-Z0-9_-]+`. Unauthenticated requests use the configured public login path with the original request as `redirect`. Every dispatched member and plugin feature is recorded by `FeatureUsageService`.
+`renderMemberPage()` rejects a page value unless it matches `/^[a-zA-Z0-9_-]+$/`. Theme overrides are resolved with `ThemeManager::getThemePath()`. If neither override nor core file exists, `Logger` channel `member-router` records the page and fallback file before `render404()`.
+
+`renderMemberPluginSection()` initializes `CMS\Member\PluginDashboardRegistry`, tracks `member.plugin.{slug}[.{action}]` through `FeatureUsageService`, and calls `handleRoute()`. The registry chooses a theme wrapper `member/plugin-section.php` before the generic `CMS/member/plugin-section.php`. Unknown slugs and failed capability checks render `CMS/member/partials/plugin-not-found.php`.
+
+Every normal page is tracked as `member.{page}` with category `member`, route path, user ID when available, label, and route group. Unauthenticated requests use `CmsAuthPageService::getPublicPath('login', locale)` and URL-encode `REQUEST_URI` as `redirect`.
 
 ---
 
 # 365CMS-Member-Routen
-> **Website:** 365CMS.DE | **Version:** 3.4.00 | **Datum:** 2026-09-06 | **Status:** Aktuell | **Zuletzt aktualisiert:** 2026-09-06
 
-Diese Referenz listet Routen und Dispatch-Regeln des Mitgliederbereichs. Sie ist zuerst für Support-Anwender und danach für Entwickler gedacht.
+## Deutsch — Anwenderblock
 
-## Anwenderleitfaden
+Der zentrale Einstieg ist `/member/dashboard`; `/member` leitet dorthin weiter. Plugin-Bereiche beginnen mit `/member/plugin/{slug}` und können um Aktion und numerische ID ergänzt werden. Nicht eingeloggte Besucher gelangen zur öffentlichen Login-Seite und nach der Anmeldung zurück zur ursprünglichen URL.
 
-Alle Member-Routen benötigen einen Login. Die zentrale Startseite ist `/member/dashboard`; `/member` leitet dorthin weiter. Plugin-Funktionen verwenden `/member/plugin/{slug}` und können Aktion sowie numerische ID ergänzen.
+## Deutsch — Technikblock
 
-## Technische Referenz
+`MemberRouter::registerRoutes()` registriert:
 
-`MemberRouter::registerRoutes()` registriert die oben genannten GET-/POST-Routen. Theme-Dateien werden vor den Core-Dateien geladen. Nicht authentifizierte Anfragen nutzen den konfigurierten öffentlichen Login-Pfad mit ursprünglicher Anfrage als `redirect`. Jede Member- und Plugin-Funktion wird über `FeatureUsageService` erfasst.
+| Methoden | Route | Handler und Ergebnis |
+|---|---|---|
+| GET, POST | `/dashboard` | Login erforderlich; Theme-Datei `member/dashboard.php`, sonst Weiterleitung zu `/member/dashboard` |
+| GET, POST | `/member` | Login erforderlich; Weiterleitung zu `/member/dashboard` |
+| GET, POST | `/member/:page` | Login erforderlich; zuerst Theme-Datei, dann `CMS/member/{page}.php` |
+| GET, POST | `/member/plugin/:slug` | Registry-Dispatcher ohne Aktion |
+| GET, POST | `/member/plugin/:slug/:action` | Registry-Dispatcher; Aktion wird bereinigt in `$_GET['action']` gesetzt |
+| GET, POST | `/member/plugin/:slug/:action/:id` | Registry-Dispatcher; numerische ID wird in `$_GET['id']` gesetzt |
+
+`renderMemberPage()` akzeptiert nur Slugs nach `/^[a-zA-Z0-9_-]+$/`. Theme-Overrides werden über `ThemeManager::getThemePath()` aufgelöst. Fehlen Override und Core-Datei, schreibt der Logger im Kanal `member-router` Seite und Fallback-Datei und rendert 404.
+
+`renderMemberPluginSection()` initialisiert `CMS\Member\PluginDashboardRegistry`, protokolliert `member.plugin.{slug}[.{action}]` über `FeatureUsageService` und ruft `handleRoute()` auf. Die Registry bevorzugt `member/plugin-section.php` des Themes vor dem generischen `CMS/member/plugin-section.php`. Unbekannte Slugs und fehlende Berechtigungen rendern `CMS/member/partials/plugin-not-found.php`.
+
+Jede normale Seite wird als `member.{page}` mit Kategorie `member`, Route, verfügbarer Benutzer-ID, Label und Route-Gruppe erfasst. Nicht authentifizierte Aufrufe verwenden `CmsAuthPageService::getPublicPath('login', locale)` und kodieren `REQUEST_URI` als `redirect`.

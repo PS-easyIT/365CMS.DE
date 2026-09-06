@@ -1,139 +1,63 @@
-# 365CMS – Admin-Bereich
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for the 365CMS administration area. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-> **Stand:** 2026-09-06 | **Dokumentationsversion:** 3.4.00 | **Status:** Aktuelle Gesamtübersicht
+# 365CMS Admin – Readme
 
-Diese Datei ist der Einstieg in die allgemeine Admin-Dokumentation von 365CMS. Die reale Sidebar, die produktiven Routes und die Laufzeitprüfungen im Core sind maßgeblich; diese Übersicht bündelt sie für Betrieb, Redaktion und Entwicklung.
+## English
 
-## Inhaltsverzeichnis
+### Administrator guide
 
-- [Überblick](#überblick)
-- [Anmeldung und Navigation](#anmeldung-und-navigation)
-- [Aktuelle Menügruppen](#aktuelle-menügruppen)
-- [AI Services](#ai-services)
-- [Sicherheits- und Request-Grundsätze](#sicherheits--und-request-grundsätze)
-- [Legacy- und Spezialrouten](#legacy--und-spezialrouten)
-- [Relevante Fachdokumente](#relevante-fachdokumente)
-- [Betriebscheck vor Änderungen](#betriebscheck-vor-änderungen)
+This document covers the 365CMS administration area. Open `/admin` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-## Überblick
+Use the page in this order:
 
-Der Adminbereich ist modular aufgebaut:
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-- schlanke Entry-Points unter `CMS/admin/`;
-- Fachlogik unter `CMS/admin/modules/`;
-- rendernde Views unter `CMS/admin/views/`;
-- gemeinsame Layout- und Navigationsbausteine unter `CMS/admin/partials/`;
-- zentrale Auth-, Security-, Datenbank-, Hook-, Cache- und Audit-Services im Core.
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-Die bevorzugten URLs sind sprechende Pfade wie `/admin/pages` oder `/admin/seo-dashboard`. Dateinamen mit `.php` sind keine öffentliche URL-Dokumentation.
+### Technical reference
 
-Grundsätze:
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-- Menügruppen werden zentral in `CMS/admin/partials/sidebar.php` aufgebaut.
-- Plugin-Menüs werden über `cms_admin_menu` registriert und aus der Registry gelesen.
-- Fachlogik gehört nicht in Views.
-- Schreibende Requests verwenden CSRF-Schutz und das Post/Redirect/Get-Muster.
-- Sub-Views sind wrappergebunden und nicht direkt aufrufbar.
-- Admin-Callbacks erhalten bei Bedarf automatisch den gemeinsamen `page-body`-/`container-xl`-Wrapper.
-- sensible Inhalte, Secrets und Rohprompts werden nicht in Betriebsmonitoring angezeigt.
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-## Anmeldung und Navigation
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-1. `/admin` im Browser öffnen.
-2. Anmelden.
-3. Dashboard und Sidebar öffnen.
-4. Nur die für Rolle, Capability und aktiviertes Core-Modul verfügbaren Bereiche verwenden.
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-Die Sidebar führt Core-Bereiche, AI Services, Plugin-Gruppen und Diagnosepfade zusammen. Viele Gruppen sind scrollbar; die Anzeige hängt zusätzlich von aktivierten Modulen und Marketplace-Einstellungen ab.
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-## Aktuelle Menügruppen
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-| Menügruppe | Zentrale Routen | Zweck |
-|---|---|---|
-| Dashboard | `/admin` | KPIs, Arbeits-Widgets, Warnungen, Favoriten und persönliche Dashboard-Anordnung |
-| AI Services | `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings` | Provider, Übersetzung, Content-/SEO-Entwürfe, Prompt-Vorlagen, Quotas, Healthchecks und AI-Monitoring |
-| Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables`, `/admin/post-categories`, `/admin/post-tags`, `/admin/hub-sites` | Inhalte, Taxonomien, Kommentare, Inhaltsverzeichnisse, Site-Tabellen und Revisions-/SEO-Prüfungen |
-| Medien | `/admin/media` und `?tab=featured|categories|settings` | Bibliothek, Kategorien, Alt-Texte, Bulk-Aktionen, Nutzung, Orphans, Duplikate und Medienoptimierung |
-| Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings`, `/admin/rbac` | Benutzer, Rollen, Capabilities, Gruppen und Authentifizierung |
-| Member Dashboard | `/admin/member-dashboard` und Folgeseiten | Member-Runtime, Widgets, Module, Design, Onboarding, Profilfelder und Preview |
-| Abos | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` | Pakete, Bestellungen, Zuweisungen, Renewal- und Ablaufhinweise |
-| Themes & Design | `/admin/themes`, `/admin/theme-editor`, `/admin/theme-explorer`, `/admin/theme-marketplace`, `/admin/menu-editor`, `/admin/landing-page`, `/admin/font-manager`, `/admin/design-settings` | Themes, Menüs, Fonts, Landing Pages und Designwerte |
-| SEO | `/admin/seo-dashboard`, `/admin/analytics`, `/admin/seo-audit`, `/admin/seo-meta`, `/admin/seo-social`, `/admin/seo-schema`, `/admin/seo-sitemap`, `/admin/seo-technical`, `/admin/redirect-manager` | SEO-Health, Metadaten, Social, Schema, Sitemap, Technik, Analytics und Redirects |
-| Performance | `/admin/performance`, `/admin/performance-cache`, `/admin/performance-media`, `/admin/performance-database`, `/admin/performance-settings`, `/admin/performance-sessions` | Cache, Medien, Datenbank, Sessions, Settings und Laufzeitstatus |
-| Recht | `/admin/legal-sites`, `/admin/cookie-manager`, `/admin/data-requests` | Legal Sites, Consent und gebündelte Datenschutzanfragen |
-| Sicherheit | `/admin/antispam`, `/admin/firewall`, `/admin/security-audit` | AntiSpam, Firewall und Sicherheits-Audit |
-| Plugins | `/admin/plugins`, `/admin/plugin-marketplace` und registrierte Plugin-Unterseiten | Lifecycle, Marketplace und dynamische Plugin-Menüs |
-| System | `/admin/settings`, `/admin/backups`, `/admin/updates`, `/admin/cms-logs`, `/admin/mail-settings` | Konfiguration, Backup/Restore, Updates, Betriebslogs und Mail/OAuth2 |
-| Info & Diagnose | `/admin/info`, `/admin/documentation`, `/admin/diagnose`, `/admin/monitor-*` | Systeminfo, lokale Doku, Healthchecks, Cron, Disk, Response Time und Warnungen |
+## Deutsch
 
-## AI Services
+### Anwenderleitfaden
 
-AI Services ist ein eigener geschützter Admin-Hauptbereich. Der aktuelle Workflow ist revieworientiert:
+Dieses Dokument beschreibt the 365CMS administration area. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-- Editor.js-Übersetzungen werden in konservativen Batches verarbeitet und vor Übernahme geprüft.
-- Content Creator erzeugt nur Summary-, Outline- oder CTA-Entwürfe.
-- SEO Creator liefert eine serverseitig begrenzte Metadatenvorschau.
-- Providerzugriffe laufen über Policy, Quota, Retry/Fallback und Readiness.
-- externe Cloud-Datenweitergabe muss ausdrücklich erlaubt sein.
-- Rohprompts, Secrets und Volltexte bleiben aus dem Monitoring heraus.
+Empfohlener Ablauf:
 
-Die vollständige Dokumentation steht in [../ai/AI-SERVICES.md](../ai/AI-SERVICES.md).
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-## Sicherheits- und Request-Grundsätze
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-- Adminzugriff über `CMS\Auth` und Capability-Prüfungen.
-- CSRF-Tokens für jede Zustandsänderung.
-- Eingaben serverseitig normalisieren, begrenzen und sanitizen.
-- Ausgaben kontextbezogen escapen.
-- POST nach erfolgreicher Verarbeitung auf GET umleiten.
-- keine schreibenden GET-Requests.
-- Sub-Views nur über autorisierte Wrapper laden.
-- technische Fehler verständlich anzeigen und Details in sicheren Logs halten.
-- keine API-Keys, Sessions oder personenbezogenen Volltexte in Debug-Ausgaben.
+### Technische Referenz
 
-## Legacy- und Spezialrouten
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-Die folgenden Dateien existieren teilweise aus Kompatibilitätsgründen und sind nicht automatisch die führende Oberfläche:
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-- `backup.php` → `/admin/backups`
-- `theme-customizer.php` → `/admin/theme-editor`
-- `cookies.php` → `/admin/cookie-manager`
-- `data-access.php` und `data-deletion.php` → `/admin/data-requests`
-- `fonts-local.php` → `/admin/font-manager`
-- `subscriptions.php` → Paket-, Order- und Subscription-Settings
-- `system.php` und `system-info.php` → `/admin/settings`, `/admin/info`, `/admin/diagnose`
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-Bei neuen Links immer die dokumentierte Route und nicht den alten Dateinamen verwenden.
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-## Relevante Fachdokumente
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-| Bereich | Dokument |
-|---|---|
-| Admin-Struktur | [FILESTRUCTURE.md](FILESTRUCTURE.md) |
-| Bedienung | [GUIDE.md](GUIDE.md) |
-| Plugin-Integration | [PANEL-INTEGRATION.md](PANEL-INTEGRATION.md) |
-| Prüfanker | [PRUEF-CHECKLISTE.md](PRUEF-CHECKLISTE.md) |
-| AI Services | [../ai/AI-SERVICES.md](../ai/AI-SERVICES.md) |
-| Dashboard | [dashboard/DASHBOARD.md](dashboard/DASHBOARD.md) |
-| Seiten & Beiträge | [pages-posts/README.md](pages-posts/README.md) |
-| Medien | [media/README.md](media/README.md) |
-| Benutzer & Gruppen | [users-groups/README.md](users-groups/README.md) |
-| Member Dashboard | [member/README.md](member/README.md) |
-| Abos | [subscription/SUBSCRIPTION-SYSTEM.md](subscription/SUBSCRIPTION-SYSTEM.md) |
-| SEO | [seo/SEO.md](seo/SEO.md) |
-| Performance | [performance/PERFORMANCE.md](performance/PERFORMANCE.md) |
-| Sicherheit | [security/README.md](security/README.md) |
-| System & Betrieb | [system-settings/README.md](system-settings/README.md) |
-
-## Betriebscheck vor Änderungen
-
-Vor einer Admin-Änderung prüfen:
-
-1. Ist die betreffende Route aktuell und nicht nur Legacy?
-2. Ist das zuständige Core-Modul aktiviert?
-3. Besitzt der Benutzer die richtige Capability?
-4. Gibt es einen CSRF-geschützten POST-Ablauf?
-5. Wird nach POST auf eine sichere interne Route umgeleitet?
-6. Werden leere, Warnungs- und Fehlerzustände korrekt behandelt?
-7. Werden sensible Daten aus UI, Logs und Monitoring ferngehalten?
-8. Ist die Fach-Dokumentation aktualisiert?
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

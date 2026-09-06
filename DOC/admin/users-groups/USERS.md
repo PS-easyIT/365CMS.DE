@@ -1,83 +1,63 @@
-# 365CMS - Benutzerverwaltung
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for access control and security operations. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-**Stand:** 2026-09-06 | **Dokumentationsversion:** 3.4.00 | **Route:** `/admin/users`
+# 365CMS Admin – Users
 
-## Zweck
+## English
 
-Die Benutzerverwaltung ist die zentrale Admin-Oberfläche für Konten, Rollen und Kontostatus. Sie unterstützt eine paginierte Liste und einen getrennten Profil-Editor.
+### Administrator guide
 
-## Liste
+This document covers access control and security operations. Open `/admin/users` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-Die Liste lädt standardmäßig 25 Benutzer pro Seite, sortiert nach Erstellungszeit absteigend. Verfügbar sind:
+Use the page in this order:
 
-- Suche über Benutzername, Anzeigename oder E-Mail-Kontext.
-- Filter nach dynamisch geladenen Rollen.
-- Filter nach dynamisch geladenen Statuswerten.
-- Kennzahlen für Gesamtbestand, aktive, inaktive und gesperrte Konten.
-- Anzeige der Gruppenanzahl und eines kompakten Support-Kontexts.
-- Seitenweise Navigation ohne Änderung von Kontodaten.
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-Der Support-Kontext kann ein direktes aktives Paket, bis zu drei Gruppenpakete, sichtbare Member-Bereiche und den Vertrags-/Fälligkeitsstatus enthalten. Er ist eine Orientierungshilfe und keine Paket- oder Vertragsaktion.
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-## Benutzer anlegen und bearbeiten
+### Technical reference
 
-Der Editor ist erreichbar über:
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/modules/users/UserSettingsModule.php`, `CMS/admin/modules/users/UsersModule.php`, `CMS/admin/users.php`.
 
-- `/admin/users?action=edit` für einen neuen Benutzer.
-- `/admin/users?action=edit&id=<ID>` für ein bestehendes Konto.
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-Pflicht- und Kernfelder sind Benutzername, E-Mail, Rolle, Status und bei neuen Konten ein Passwort. Vor dem Speichern werden Werte normalisiert und durch den User-Service validiert. Die Passwort-Policy gilt einheitlich: mindestens 12 Zeichen sowie Großbuchstabe, Kleinbuchstabe, Ziffer und Sonderzeichen.
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-### Rollen-Wirkungsvorschau
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-Bei bestehenden Konten zeigt der Editor vor dem Speichern read-only:
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-- aktuelle und mögliche Capabilities,
-- gewonnene und verlorene Rechte,
-- sichtbare Member-Bereiche,
-- verfügbare Plugin-Widgets,
-- mögliche Paket-/Abo-Kontextänderungen.
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Die Vorschau verwendet die vorhandene Rollenmatrix, löst keine AJAX-Schreibaktion aus und verändert weder Rolle noch Paket. Erst das normale Speichern übernimmt die Auswahl.
+## Deutsch
 
-### Sicherheitsereignisse
+### Anwenderleitfaden
 
-Bestehende Profile können begrenzte relevante Login- und Security-Audit-Ereignisse aus `audit_log` anzeigen. Roh-Metadaten, Tokens und Session-Inhalte werden nicht ausgegeben. Ist die Auditquelle nicht verfügbar, wird dies neutral angezeigt.
+Dieses Dokument beschreibt access control and security operations. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/users`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-## Sammelaktionen
+Empfohlener Ablauf:
 
-Die Benutzerliste kann mehrere Konten auswählen. Zulässige Aktionen sind:
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-| Aktion | Wirkung |
-|---|---|
-| `activate` | Benutzer aktivieren |
-| `deactivate` | Benutzer deaktivieren |
-| `delete` | Benutzer löschen |
-| `hard_delete` | endgültige Löschung gemäß User-Service auslösen |
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-IDs werden serverseitig dedupliziert, auf positive Integer begrenzt und gegen tatsächlich vorhandene Benutzer geprüft. Eine leere oder ungültige Auswahl wird abgewiesen. Die konkrete Löschwirkung ist durch den User-Service definiert; vor produktiven Löschungen ist die Backup- und Datenschutzlage zu prüfen.
+### Technische Referenz
 
-## Technischer Ablauf
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/modules/users/UserSettingsModule.php`, `CMS/admin/modules/users/UsersModule.php`, `CMS/admin/users.php`.
 
-1. Der Entry-Point normalisiert Ansicht, ID, Aktion und Bulk-Payload.
-2. Der gemeinsame Section-Shell prüft Route, Capability und CSRF-Token.
-3. `UsersModule` delegiert Benutzeränderungen an `UserService`.
-4. Fehler werden als generische UI-Meldung und mit technischen Details nur im Server-Log behandelt.
-5. Erfolgreiche Aktionen führen per Redirect zurück zur Liste oder zum gespeicherten Profil.
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Die erlaubten Schreibaktionen sind `save`, `delete` und `bulk`. Unbekannte Aktionen werden nicht ausgeführt.
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-## Relevante Tabellen und Services
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-- `users`: Identität, Rolle und Status.
-- `user_meta`: optionale Auth- und Profilinformationen.
-- `user_groups` / `user_group_members`: Gruppenbezug.
-- `user_subscriptions` / `subscription_plans`: Paketkontext.
-- `audit_log`: zusammengefasste Sicherheits- und Änderungsereignisse.
-- `UserService`: Validierung, Erstellung, Aktualisierung, Löschung und Bulk-Verarbeitung.
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-## Verwandte Dokumente
-
-- [GROUPS.md](GROUPS.md)
-- [RBAC.md](RBAC.md)
-- [AUTH-SETTINGS.md](AUTH-SETTINGS.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

@@ -1,179 +1,63 @@
-# 365CMS – Admin-Panel-Integration
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for the 365CMS administration area. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-> **Stand:** 2026-09-06 | **Version:** 3.4.00 | **Status:** Aktuelle Integrationsreferenz
+# 365CMS Admin – Panel Integration
 
-Dieses Dokument beschreibt die Integration von Plugins und Erweiterungen in das 365CMS-Adminpanel.
+## English
 
-## Inhaltsverzeichnis
+### Administrator guide
 
-- [Aktueller Integrationspfad](#aktueller-integrationspfad)
-- [Menüregistrierung](#menüregistrierung)
-- [Untermenüs und URLs](#untermenüs-und-urls)
-- [Adminseite und Layout](#adminseite-und-layout)
-- [Sidebar-Verarbeitung](#sidebar-verarbeitung)
-- [Requests und Sicherheit](#requests-und-sicherheit)
-- [Plugin-Empfehlungen](#plugin-empfehlungen)
-- [Relevante Dateien](#relevante-dateien)
+This document covers the 365CMS administration area. Open `/admin/panel-integration` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-## Aktueller Integrationspfad
+Use the page in this order:
 
-Plugin-Menüs werden über den zentralen Action-Hook `cms_admin_menu` registriert. Die Sidebar löst den Hook aus und liest danach die Registry über `get_registered_admin_menus()`.
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-```php
-use CMS\Hooks;
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-Hooks::addAction('cms_admin_menu', static function (): void {
-    add_menu_page(
-        'Mein Plugin',
-        'Mein Plugin',
-        'manage_options',
-        'mein-plugin',
-        '',
-        'ri-puzzle-line',
-        80
-    );
-});
-```
+### Technical reference
 
-Die Registry ist request-idempotent. Wird der Hook im selben Request mehrmals ausgelöst, entstehen keine doppelten Einträge. Gleiche numerische Positionen werden kollisionsfrei auf die nächste freie Position verschoben.
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-## Menüregistrierung
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-### `add_menu_page()`
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-Ein Top-Level-Menüpunkt unterstützt:
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-- Seitentitel;
-- sichtbaren Menütitel;
-- Capability;
-- stabilen `menu_slug`;
-- optionales Render-Callback;
-- Icon;
-- optionale Position;
-- `hidden = true` für bewusst unsichtbare Routingseiten.
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-Slugs müssen stabil, eindeutig und URL-tauglich sein. Keine Core-Slugs überschreiben.
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-### `add_submenu_page()`
+## Deutsch
 
-Unterpunkte werden unter einem Parent-Slug registriert. Für Plugin-Seiten erzeugt der Core die Route:
+### Anwenderleitfaden
 
-```text
-/admin/plugins/{parent_slug}/{menu_slug}
-```
+Dieses Dokument beschreibt the 365CMS administration area. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/panel-integration`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-Für Gruppen ohne expliziten Übersichts-Unterpunkt ergänzt die Sidebar einen Übersichtslink. Unterpunkte dürfen nicht auf eine nicht registrierte fremde Parentgruppe zeigen.
+Empfohlener Ablauf:
 
-## Untermenüs und URLs
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-```php
-Hooks::addAction('cms_admin_menu', static function (): void {
-    add_menu_page(
-        'Mein Plugin',
-        'Mein Plugin',
-        'manage_options',
-        'mein-plugin',
-        '',
-        'ri-puzzle-line',
-        80
-    );
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-    add_submenu_page(
-        'mein-plugin',
-        'Einstellungen',
-        'Einstellungen',
-        'manage_options',
-        'settings'
-    );
-});
-```
+### Technische Referenz
 
-Der resultierende Unterpunkt ist unter `/admin/plugins/mein-plugin/settings` erreichbar.
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-## Adminseite und Layout
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Neue Seiten sollen:
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-- `declare(strict_types=1);` verwenden;
-- direkten Zugriff blockieren;
-- Adminstatus und Capability prüfen;
-- Fachlogik in ein Modul oder einen Service auslagern;
-- POST-Aktionen mit CSRF sichern;
-- nach erfolgreichem POST umleiten;
-- die gemeinsamen Header-/Sidebar-/Footer-Teile verwenden oder den Core-Wrapper nutzen;
-- nur vorbereitete Daten an Views übergeben.
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-Ein Callback, das nur Seiteninhalt ausgibt, wird automatisch in:
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-```html
-<div class="page-body">
-  <div class="container-xl cms-plugin-admin-content">…</div>
-</div>
-```
-
-eingebettet. Vollständige Layouts oder bereits gewrappte `page-body`-Strukturen werden nicht nochmals eingebettet.
-
-## Sidebar-Verarbeitung
-
-Die Sidebar arbeitet vereinfacht so:
-
-1. aktiven Slug normalisieren;
-2. Core-Menüs vorbereiten;
-3. `CMS\Hooks::doAction('cms_admin_menu')`;
-4. Registry lesen;
-5. versteckte Einträge auslassen;
-6. Gruppen und Labels natürlich sortieren;
-7. Positionskollisionen auflösen;
-8. Gruppen und Unterpunkte rendern;
-9. aktive Seite markieren.
-
-Plugin-Menüs sind von tatsächlich geladenen und aktivierten Plugins abhängig. Ein Quell-Plugin in einem separaten Repository erzeugt keinen Menüpunkt, solange es nicht unter `CMS/plugins/<slug>/` installiert und geladen ist.
-
-## Requests und Sicherheit
-
-Für jede schreibende Pluginseite:
-
-- kein GET-Mutator;
-- CSRF-Token pro Action;
-- serverseitige Capability-Prüfung;
-- Sanitization und Typprüfung;
-- vorbereitete Datenbankabfragen;
-- kontextbezogenes Escaping;
-- sichere interne Redirects;
-- PRG nach POST;
-- keine rohen Provider-, SQL- oder Exceptiondetails in der UI.
-
-Für AI-Integrationen zusätzlich:
-
-- Nutzungscapability getrennt von Providerverwaltung;
-- zentrale AI-Policy und `AiExecutionService` verwenden;
-- Quotas und Retry/Fallback nicht im Plugin umgehen;
-- externe Datenweitergabe sichtbar und bewusst behandeln;
-- keine API-Keys im Plugin-View speichern;
-- Prompt- und Ausgabeformat serverseitig begrenzen;
-- Review vor Speicherung oder Veröffentlichung.
-
-## Plugin-Empfehlungen
-
-- Menüs nur bei aktivem Plugin registrieren.
-- eindeutige Slugs verwenden.
-- bei größeren Plugins Top-Level plus klare Unterpunkte nutzen.
-- sichtbare Labels für natürliche Sortierung sinnvoll wählen.
-- `hidden = true` nur für bewusst unsichtbare technische Routes einsetzen.
-- keine eigene Sidebar und kein eigenes vollständiges Layout ohne Notwendigkeit bauen.
-- keine Inline-Skripte, wenn CSP-kompatible externe Assets möglich sind.
-- Wrapper- und View-Kontext respektieren.
-- Fachdokumentation bei Route-, Capability- oder Requeständerungen aktualisieren.
-
-## Relevante Dateien
-
-| Datei | Zweck |
-|---|---|
-| `CMS/admin/partials/sidebar.php` | Core- und Plugin-Sidebar |
-| `CMS/includes/functions.php` | Menühelfer und Registry |
-| `CMS/admin/plugins.php` | Core-Pluginübersicht |
-| `CMS/admin/ai-page.php` | Beispiel für sectionbasierte Admin-Shell |
-| `CMS/assets/js/admin-ai-services.js` | Beispiel für externes CSP-konformes Admin-JavaScript |
-| `CMS/core/Services/AI/AiExecutionService.php` | zentraler AI-Ausführungsvertrag |
-
-Weiterführend: [README.md](README.md), [FILESTRUCTURE.md](FILESTRUCTURE.md), [../ai/AI-SERVICES.md](../ai/AI-SERVICES.md).
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

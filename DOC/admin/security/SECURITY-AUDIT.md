@@ -1,91 +1,63 @@
-# 365CMS – Security-Audit
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for access control and security operations. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Dokumentiert die Admin-Seite für manuelle Sicherheitsprüfungen, KPI-Auswertung und Audit-Log-Einsicht.
+# 365CMS Admin – Security Audit
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.626
+## English
 
-**Admin-Route:** `/admin/security-audit`
+### Administrator guide
 
----
+This document covers access control and security operations. Open `/admin/security-audit` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-## Technische Einordnung
+Use the page in this order:
 
-| Baustein | Datei |
-|---|---|
-| Entry Point | `CMS/admin/security-audit.php` |
-| Modul | `CMS/admin/modules/security/SecurityAuditModule.php` |
-| View | `CMS/admin/views/security/audit.php` |
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-Die Seite prüft Admin-Rechte, verarbeitet POST-Aktionen CSRF-geschützt und rendert anschließend Prüfstatus und Audit-Log.
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
----
+### Technical reference
 
-## Verfügbare Aktionen
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/logs-security-audit.php`, `CMS/admin/logs/security-audit.php`, `CMS/admin/security-audit.php`, `CMS/admin/views/logs/security-audit.php`, `CMS/admin/views/security/audit.php`, `CMS/admin/views/seo/audit.php`.
 
-| Aktion | Bedeutung |
-|---|---|
-| `run_audit` | Prüfungen erneut ausführen und Ergebnis protokollieren |
-| `clear_log` | ältere Audit-Log-Einträge bereinigen |
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-Als CSRF-Action-Slug wird `admin_sec_audit` verwendet.
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
----
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-## Prüfkategorien im aktuellen Stand
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-Das Modul bewertet derzeit unter anderem:
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-- HTTPS-Aktivierung
-- PHP-Version
-- Dateiberechtigungen von `config.php`
-- verbliebene Installer-Datei `install.php`
-- Status von `CMS_DEBUG`
-- Schutz des Upload-Verzeichnisses via `.htaccess`
-- Passwort-Policy-Verfügbarkeit
-- CSRF-Token-System
-- nonce-basierte CSP, Trusted Types, HSTS und `.htaccess`-Fallback
-- Runtime-Verdrahtung von Firewall und AntiSpam (inklusive aktiver Kontaktformulare)
-- Fremdassets in Public-Runtime und Editor.js-Assetliste
-- Alter vorhandener Backups
-- auffällige Admin-Passwort-Hashes
+## Deutsch
 
-Die Ergebnisse werden je Check als `ok`, `warning` oder `critical` dargestellt.
+### Anwenderleitfaden
 
----
+Dieses Dokument beschreibt access control and security operations. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/security-audit`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-## KPI-Karten und Anzeige
+Empfohlener Ablauf:
 
-Die View zeigt vier kompakte Kennzahlen:
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-- Prüfungen gesamt
-- bestanden
-- Warnungen
-- kritisch
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-Darunter folgt eine tabellarische Liste aller Checks mit Status-Badge und Detailtext.
+### Technische Referenz
 
----
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/logs-security-audit.php`, `CMS/admin/logs/security-audit.php`, `CMS/admin/security-audit.php`, `CMS/admin/views/logs/security-audit.php`, `CMS/admin/views/security/audit.php`, `CMS/admin/views/seo/audit.php`.
 
-## Audit-Log
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Zusätzlich werden bis zu 50 Einträge aus `audit_log` angezeigt. Dazu gehören Datum, Aktion, Benutzerbezug, Details, Kategorie, Severity und IP-Adresse.
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-Das Modul schreibt selbst protokollierte Einträge über `CMS\AuditLogger`, etwa wenn ein Audit manuell gestartet oder alte Logs bereinigt werden. Seit `2.9.626` bewertet der AntiSpam-Check zusätzlich, ob aktive `cms-contact`-Formulare denselben zentralen AntiSpam-Service wie die Kommentar-Runtime nutzen.
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
----
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-## Hinweise für Betrieb und Dokumentation
-
-- Die Seite ersetzt keine externe Härtungsanalyse oder einen Penetrationstest.
-- Sie ist als operative Frühwarn- und Kontrolloberfläche gedacht.
-- Das Audit erkennt typische Fehlkonfigurationen, aber keine vollständige Supply-Chain- oder Dependency-SBOM-Prüfung.
-- Aussagen über Sicherheitslage sollten immer zusammen mit [../../core/SECURITY.md](../../core/SECURITY.md) und den Audit-Berichten unter `DOC/audits/` gelesen werden.
-
----
-
-## Verwandte Dokumente
-
-- [README.md](README.md)
-- [ANTISPAM.md](ANTISPAM.md)
-- [FIREWALL.md](FIREWALL.md)
-- [../../core/SECURITY.md](../../core/SECURITY.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

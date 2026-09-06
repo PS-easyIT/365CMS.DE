@@ -1,7 +1,7 @@
-> **Website:** [365CMS](https://365cms.de/)  
-> **Version:** 3.4.00  
-> **Datum:** 2026-09-06  
-> **Status:** Aktuell · **Zuletzt aktualisiert am: 2026-09-06**  
+> **Website:** [365CMS](https://365cms.de/)
+> **Version:** 3.4.00
+> **Datum:** 2026-09-06
+> **Status:** Aktuell – **Zuletzt aktualisiert am: 2026-09-06**
 > **Kurzbeschreibung:** Einstieg in Aufbau, Zuständigkeiten und Betriebsweise des 365CMS-Core. Die Übersicht wurde mit dem vollständigen Verzeichnis `CMS/core/` abgeglichen.
 
 ## English
@@ -20,6 +20,14 @@ Der Core enthält die stabile Laufzeit des 365CMS: Start, Routing, Speicherung, 
 ### Technisch
 Die nachfolgende vollständige Übersicht wurde mit dem gesamten Baum `CMS/core/` abgeglichen.
 
+## Deutsch
+
+### Anwenderfreundlich
+
+Der Core stellt Start, Routing, Speicherung, Sicherheit, Authentifizierung, Plugins, Themes und gemeinsame Services bereit.
+
+### Technisch
+
 # CMS Core – Übersicht
 > **Stand:** 2026-09-06 | **Version:** 3.4.00 | **Status:** Aktuell
 
@@ -30,7 +38,7 @@ Die nachfolgende vollständige Übersicht wurde mit dem gesamten Baum `CMS/core/
 
 <!-- UPDATED: 2026-09-06 -->
 
-Das `core/`-Verzeichnis enthält alle Kernklassen des 365CMS.  
+Das `core/`-Verzeichnis enthält alle Kernklassen des 365CMS.
 Die meisten Klassen folgen dem **Singleton-Pattern** und sind über PSR-4 autogeladen.
 
 ---

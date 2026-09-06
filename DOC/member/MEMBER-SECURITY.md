@@ -1,34 +1,43 @@
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Sicherheitsreferenz für Authentifizierung, CSRF, Capabilities, privates Caching, benutzerbezogene Medien, sichere Ausgabe und die Trennung von Member- und Admin-Bereich. Sie entspricht der Implementierung von Version 3.4.00.
+
 # 365CMS Member Security
-> **Website:** 365CMS.DE | **Version:** 3.4.00 | **Date:** 2026-09-06 | **Status:** Current | **Last updated:** 2026-09-06
 
-This document explains how the member area protects sessions, actions, personal data, and files. It starts with practical guidance and then records the implementation contract.
+## English — user guide
 
-## User guide
+Use a unique password, enable TOTP/MFA or a passkey, review active sessions, and store backup codes offline. Treat uploaded files and profile data as private: the member area is scoped to the signed-in account, and actions that change data require the page's form token.
 
-Members should use a unique password, enable TOTP or a passkey, review active sessions, and keep backup codes offline. Uploaded files belong to the current member area and cannot be addressed through another member's root.
+## English — technical reference
 
-## Technical reference
-
-- Authentication is enforced by `MemberController::requireAuth()`.
-- State-changing requests verify action-specific tokens through `Security::verifyToken()`.
-- Password, MFA, passkey, notification, privacy, message, profile, and media actions use separate handlers.
-- Media roots use `member/user-{id}`; normalized paths reject traversal and target lists are bounded.
-- Uploads use `/api/upload` with a member CSRF token and configured size/type limits.
-- Output is escaped in the shared header and page templates; custom profile values are normalized by type.
-- Member responses are marked private to prevent shared-cache leakage.
-- Admin dashboard configuration requires admin status, an allowlisted capability, module enablement, and the `admin_member_dashboard` CSRF context.
+- `MemberController::requireAuth()` protects every runtime page. `MemberRouter` applies the same login check before rendering or dispatching.
+- `bootstrap.php` calls `CacheManager::sendResponseHeaders('private')`; member responses must not be shared between users.
+- `csrfToken($action)` generates `member_{action}` tokens through `Security`; `verifyCsrf()` accepts the form token or `X-CSRF-TOKEN` and verifies the same action namespace.
+- Form actions use separate contexts: `profile_save`, `notifications_save`, `privacy_action`, `messages_action`, `media_action`, `security_password`, `security_mfa`, and `security_passkey`. Logout uses a dedicated `logout` token.
+- Security actions are allowlisted (`password_change`, `totp_start`, `totp_confirm`, `totp_disable`, `backup_generate`, `passkey_register`, `passkey_delete`) and select the matching CSRF context.
+- Media paths are normalized below `member/user-{id}`; traversal, foreign roots, and unbounded move targets are rejected. Uploads use `/api/upload`, a member token, configured size limits, and configured MIME/type allowlists.
+- Profile URLs, dynamic field types, dashboard links, colors, labels, and widget text are sanitized before persistence or output. Templates escape output with `htmlspecialchars`.
+- Plugin sections require login and may declare a capability. The built-in `admin` capability maps to `Auth::isAdmin()`; unknown capability names currently fail open in the registry helper and must therefore be restricted by plugin authors.
+- Admin configuration is separate from member access: it requires administrator status, an allowlisted capability, the enabled admin page module, and CSRF action `admin_member_dashboard`.
+- Missing database tables, unavailable optional services, failed callbacks, unknown routes, invalid settings, and missing theme files use safe fallbacks; they do not grant cross-user access.
 
 ---
 
 # 365CMS-Sicherheit im Mitgliederbereich
-> **Website:** 365CMS.DE | **Version:** 3.4.00 | **Datum:** 2026-09-06 | **Status:** Aktuell | **Zuletzt aktualisiert:** 2026-09-06
 
-Dieses Dokument erklärt den Schutz von Sitzungen, Aktionen, personenbezogenen Daten und Dateien. Zuerst folgen praktische Hinweise, danach der technische Vertrag.
+## Deutsch — Anwenderblock
 
-## Anwenderleitfaden
+Verwenden Sie ein einzigartiges Passwort, aktivieren Sie TOTP/MFA oder einen Passkey, prüfen Sie aktive Sitzungen und bewahren Sie Backup-Codes offline auf. Hochgeladene Dateien und Profildaten bleiben privat: Der Bereich ist auf das angemeldete Konto begrenzt und jede Änderung benötigt das Formular-Token der jeweiligen Seite.
 
-Mitglieder sollten ein einzigartiges Passwort verwenden, TOTP oder einen Passkey aktivieren, aktive Sitzungen prüfen und Backup-Codes offline aufbewahren. Hochgeladene Dateien gehören zum eigenen Member-Bereich und können nicht über den Root eines anderen Mitglieds adressiert werden.
+## Deutsch — Technikblock
 
-## Technische Referenz
-
-Die Sicherheitsregeln entsprechen den englischen Punkten: verpflichtende Authentifizierung, aktionsbezogene CSRF-Tokens, getrennte Handler, userbezogene Medien-Roots, begrenzte Uploads, typisierte Profilwerte, Escaping, private Cache-Header sowie capability- und CSRF-geschützte Admin-Konfiguration.
+- `MemberController::requireAuth()` schützt jede Runtime-Seite; `MemberRouter` prüft vor Rendering und Dispatch ebenfalls den Login.
+- `bootstrap.php` ruft `CacheManager::sendResponseHeaders('private')` auf; Antworten dürfen nicht zwischen Benutzern geteilt werden.
+- `csrfToken($action)` erzeugt über `Security` Tokens im Namensraum `member_{action}`. `verifyCsrf()` prüft Formular-Token oder `X-CSRF-TOKEN` im selben Kontext.
+- Form-Aktionen verwenden getrennte Kontexte: `profile_save`, `notifications_save`, `privacy_action`, `messages_action`, `media_action`, `security_password`, `security_mfa` und `security_passkey`. Logout nutzt ein eigenes `logout`-Token.
+- Sicherheitsaktionen sind aufgelistet (`password_change`, `totp_start`, `totp_confirm`, `totp_disable`, `backup_generate`, `passkey_register`, `passkey_delete`) und wählen den passenden CSRF-Kontext.
+- Medienpfade bleiben unter `member/user-{id}`; Traversal, fremde Roots und unbegrenzte Verschiebeziele werden abgewiesen. Uploads verwenden `/api/upload`, Member-Token, Größenlimits und konfigurierte Typ-Allowlist.
+- Profil-URLs, dynamische Feldtypen, Dashboard-Links, Farben, Labels und Widgettexte werden vor Speicherung oder Ausgabe bereinigt; Templates escapen mit `htmlspecialchars`.
+- Plugin-Bereiche benötigen Login und können eine Capability verlangen. `admin` entspricht `Auth::isAdmin()`; unbekannte Capability-Namen werden in der Registry derzeit als zulässig behandelt und müssen daher von Plugin-Autoren eingeschränkt werden.
+- Die Admin-Konfiguration ist vom Member-Zugriff getrennt: Administratorstatus, Allowlist-Capability, aktiviertes Admin-Seitenmodul und CSRF-Aktion `admin_member_dashboard` sind erforderlich.
+- Fehlende Tabellen, optionale Dienste, Callback-Fehler, unbekannte Routen, ungültige Einstellungen und fehlende Theme-Dateien nutzen sichere Fallbacks und ermöglichen keinen Benutzerübergriff.

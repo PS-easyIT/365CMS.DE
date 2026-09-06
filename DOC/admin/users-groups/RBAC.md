@@ -1,76 +1,63 @@
-# 365CMS - Rollen und Berechtigungen
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for access control and security operations. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-**Stand:** 2026-09-06 | **Dokumentationsversion:** 3.4.00 | **Route:** `/admin/roles`
+# 365CMS Admin – Rbac
 
-## Zweck
+## English
 
-Die Rollenverwaltung pflegt die dynamische Capability-Matrix des CMS. Die Benutzerverwaltung und die Laufzeitprüfung verwenden dieselbe Rollenquelle; Rollenfilter und Rollenauswahl driften dadurch nicht auseinander.
+### Administrator guide
 
-## Rollen
+This document covers access control and security operations. Open `/admin/rbac` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-Die Standardrollen sind:
+Use the page in this order:
 
-- `admin`
-- `editor`
-- `author`
-- `member`
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-Zusätzliche Rollen können über die Oberfläche angelegt werden. Ein neuer Rollen-Slug wird normalisiert und kann Rechte aus einer vorhandenen Vorlage übernehmen. Die tatsächliche Rollenauswahl in der Benutzerverwaltung stammt immer aus der aktuell geladenen Rollenquelle.
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-## Capability-Gruppen
+### Technical reference
 
-Die aktuelle Rechte-Matrix umfasst unter anderem:
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/rbac.php`.
 
-| Bereich | Beispiele |
-|---|---|
-| Pages | `pages.view`, `pages.create`, `pages.edit`, `pages.publish`, `manage_pages` |
-| Posts | `posts.view`, `posts.create`, `posts.edit`, `edit_all_posts`, `edit_own_posts` |
-| Medien | `media.view`, `media.upload`, `media.delete`, `manage_media` |
-| Benutzer | `users.view`, `users.create`, `users.edit`, `users.delete`, `users.roles`, `manage_users` |
-| Themes/Plugins | `themes.*`, `plugins.*` |
-| Einstellungen | `settings.*`, `manage_settings`, `manage_system` |
-| AI | `manage_ai_services`, `use_ai_translation`, `use_ai_rewrite`, `use_ai_summary`, `use_ai_seo_meta` |
-| Analytics/Kommentare | `view_analytics`, `comments.view`, `comments.moderate`, `comments.delete` |
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-Legacy-Core-Capabilities bleiben produktiv und dürfen bei Migrationen nicht ungeprüft entfernt werden.
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-## Verfügbare Aktionen
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-Der Entry-Point akzeptiert ausschließlich:
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-- `save_permissions`
-- `add_role`, `update_role`, `delete_role`
-- `add_capability`, `update_capability`, `delete_capability`
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Änderungen an der Matrix werden transaktional geschrieben. Für die Rolle `admin` werden die vorgesehenen Rechte systemseitig vollständig gewährt. Löschen und Umbenennen von Rollen oder Capabilities muss vorab auf Benutzer- und Plugin-Abhängigkeiten geprüft werden.
+## Deutsch
 
-## Rollenvergleich
+### Anwenderleitfaden
 
-Der read-only Vergleich nutzt `compare_from` und `compare_to` als GET-Parameter. Beide Rollen werden gegen die bekannte Rollenliste normalisiert. Angezeigt werden:
+Dieses Dokument beschreibt access control and security operations. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/rbac`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-- gemeinsame Capabilities,
-- nur in der Ausgangsrolle vorhandene Rechte,
-- nur in der Zielrolle vorhandene Rechte,
-- Gruppierung nach Fachbereich,
-- Anzahlwerte für die schnelle Prüfung.
+Empfohlener Ablauf:
 
-Ungültige oder identische Werte fallen auf bekannte Rollen zurück. Der Vergleich führt keine Schreibaktion aus und benötigt keinen zusätzlichen Token-Pfad. Er ist für Least-Privilege-Reviews und Freigaben gedacht, nicht als Ersatz für einen Test mit einem echten Benutzerkonto.
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-## Datenmodell und Laufzeit
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-- `roles` kann als fachliche Rollenquelle vorhanden sein.
-- `role_permissions` speichert Rolle, Capability und Grant-Status.
-- `UsersModule` und `UserService` lesen die verfügbaren Rollen aus derselben Laufzeitquelle.
-- `Auth::hasCapability()` wertet die Matrix für Nicht-Administratoren aus.
+### Technische Referenz
 
-Nach einer Änderung sollte ein Testkonto die betroffenen Admin- und Frontend-Wege prüfen. Caches oder laufende Sessions werden nicht pauschal durch die Dokumentation oder den Rollenvergleich verändert.
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/rbac.php`.
 
-## Sicherheit
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Die Seite erfordert Admin-Status und `manage_users`. Schreibende Requests werden per `admin_roles`-CSRF-Token geschützt und danach per PRG weitergeleitet. Interne Exception-Texte werden nicht als Admin-Alert oder Fehlerreport-Payload ausgegeben.
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-## Verwandte Dokumente
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-- [USERS.md](USERS.md)
-- [GROUPS.md](GROUPS.md)
-- [../../core/SECURITY.md](../../core/SECURITY.md)
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
+
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

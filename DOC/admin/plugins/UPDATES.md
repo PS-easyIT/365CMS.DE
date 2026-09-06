@@ -1,69 +1,63 @@
-# Update-Manager
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for system maintenance and extensions. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Ordnet die Plugin-bezogene Update-Verwaltung in die zentrale Seite `/admin/updates` ein und beschreibt die aktuellen Aktionen für Core- und Plugin-Updates.
+# 365CMS Admin – Updates
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+## English
 
-## Überblick
+### Administrator guide
 
-Plugin-Updates werden nicht über eine separate Plugin-Sonderseite gepflegt, sondern im zentralen Update-Manager unter `/admin/updates`. Der Entry-Point `CMS/admin/updates.php` arbeitet mit `UpdatesModule` und bündelt Core-, Plugin- und Theme-Informationen inklusive Staging-/Rollback-orientiertem Update-Flow.
+This document covers system maintenance and extensions. Open `/admin/updates` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-## Unterstützte Aktionen
+Use the page in this order:
 
-Die Seite verarbeitet derzeit diese POST-Aktionen:
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-- `check_updates`
-- `install_core`
-- `install_plugin`
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-Für Plugin-Updates wird zusätzlich `plugin_slug` übergeben. Der CSRF-Kontext lautet `admin_updates`.
+### Technical reference
 
-## Datenbereiche der Update-Seite
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/modules/system/UpdatesModule.php`, `CMS/admin/updates.php`, `CMS/admin/views/system/updates.php`.
 
-Das Modul liefert strukturierte Daten für mehrere Bereiche:
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-- `core`
-- `plugins`
-- `theme`
-- `history`
-- `requirements`
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-Dadurch ist die Plugin-Update-Logik technisch Teil einer größeren Systemseite und nicht mehr nur ein isolierter Anhang der Plugin-Verwaltung.
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-## Plugin-Updates
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-Plugin-Updates werden slug-basiert installiert. Die Admin-Seite bereinigt den Slug serverseitig, übergibt ihn an `installPluginUpdate()` und meldet das Ergebnis anschließend als Session-Alert zurück.
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Welche Update-Quellen oder Paketinformationen verwendet werden, hängt von den im System oder in den Plugin-Metadaten hinterlegten Updateinformationen ab.
+## Deutsch
 
-## Core-Updates und Gesamtprüfung
+### Anwenderleitfaden
 
-Neben Plugin-Updates unterstützt dieselbe Seite:
+Dieses Dokument beschreibt system maintenance and extensions. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/updates`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-- eine Gesamtabfrage verfügbarer Aktualisierungen
-- die Installation eines Core-Updates
+Empfohlener Ablauf:
 
-Die Plugin-Dokumentation verweist deshalb bewusst auf die System-Doku, weil die technische Zuständigkeit zentralisiert ist.
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-## Sicherheit
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-Der Update-Manager nutzt:
+### Technische Referenz
 
-- Admin-Zugriffsschutz
-- CSRF-Prüfung via `Security::instance()->verifyToken(..., 'admin_updates')`
-- serverseitige Sanitierung von `plugin_slug`
-- Redirect nach jeder schreibenden Aktion
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/modules/system/UpdatesModule.php`, `CMS/admin/updates.php`, `CMS/admin/views/system/updates.php`.
 
-## Relevante Dateien
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-| Datei | Zweck |
-|---|---|
-| `CMS/admin/updates.php` | Entry-Point und Aktions-Dispatch |
-| `CMS/admin/modules/system/UpdatesModule.php` | Prüfen und Installieren von Updates |
-| `CMS/admin/views/system/updates.php` | Ausgabe der zentralen Update-Seite |
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-## Verwandte Dokumente
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-- [../system-settings/UPDATES.md](../system-settings/UPDATES.md)
-- [../system-settings/BACKUP.md](../system-settings/BACKUP.md)
-- [PLUGINS.md](PLUGINS.md)
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
+
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

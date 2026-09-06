@@ -1,268 +1,63 @@
-# 365CMS – Admin-Handbuch
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for the 365CMS administration area. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-> **Stand:** 2026-09-06 | **Dokumentationsversion:** 3.4.00 | **Zielgruppe:** Administratoren, Redakteure und Support
+# 365CMS Admin – Guide
 
-Dieses Handbuch beschreibt die wichtigsten Bedienabläufe im aktuellen 365CMS-Admin. Die genaue Sichtbarkeit hängt von Rolle, Capability, aktivierten Core-Modulen und Plugin-Registrierungen ab.
+## English
 
-## Inhaltsverzeichnis
+### Administrator guide
 
-- [Anmelden und sicher arbeiten](#anmelden-und-sicher-arbeiten)
-- [Dashboard](#dashboard)
-- [AI Services](#ai-services)
-- [Benutzer und Gruppen](#benutzer-und-gruppen)
-- [Seiten, Beiträge und Kommentare](#seiten-beiträge-und-kommentare)
-- [Medien](#medien)
-- [Member Dashboard](#member-dashboard)
-- [Pakete, Abos und Bestellungen](#pakete-abos-und-bestellungen)
-- [Themes und Design](#themes-und-design)
-- [SEO und Redirects](#seo-und-redirects)
-- [Performance](#performance)
-- [Recht und Datenschutz](#recht-und-datenschutz)
-- [Sicherheit](#sicherheit)
-- [Plugins und Marketplace](#plugins-und-marketplace)
-- [System, Backup und Updates](#system-backup-und-updates)
-- [Diagnose und Monitoring](#diagnose-und-monitoring)
-- [Post-Request-Checkliste](#post-request-checkliste)
+This document covers the 365CMS administration area. Open `/admin` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-## Anmelden und sicher arbeiten
+Use the page in this order:
 
-1. `/admin` öffnen und anmelden.
-2. Nur Funktionen verwenden, die in der Sidebar sichtbar sind.
-3. Vor kritischen Änderungen ein Backup- oder Rollback-Szenario klären.
-4. Formulare normal speichern; Tokens nicht kopieren oder mehrfach neu erzeugen.
-5. Nach jeder schreibenden Aktion die Erfolgsmeldung und den Zielzustand prüfen.
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-## Dashboard
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-**Route:** `/admin`
+### Technical reference
 
-Das Dashboard bündelt KPIs, Arbeits-Widgets, Warnungen und persönliche Favoriten. Widgets können, sofern freigeschaltet, per Drag-and-Drop oder Pfeil-Fallback angeordnet werden. Bei leeren Datenbeständen erscheinen erklärende Empty States statt erfundener Kennzahlen.
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-## AI Services
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-**Routen:** `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings`
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-### Translation
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-1. Seite oder Beitrag im Editor öffnen.
-2. Ausgangstext prüfen und als Entwurf sichern.
-3. Übersetzung nach Englisch starten.
-4. Batch-/Warnungsstatistik abwarten.
-5. Preview/Diff prüfen.
-6. Übersetzung nur nach fachlicher Prüfung in das EN-Feld übernehmen.
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-### Content Creator
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-1. Content-Creator-Seite öffnen.
-2. Aufgabe `Summary`, `Outline` oder `CTA` wählen.
-3. Briefing und optionalen Kontext eingeben.
-4. Tonalität und Locale angeben.
-5. Entwurf erzeugen und manuell prüfen.
+## Deutsch
 
-Der Entwurf wird nicht automatisch gespeichert oder veröffentlicht.
+### Anwenderleitfaden
 
-### SEO Creator und Einstellungen
+Dieses Dokument beschreibt the 365CMS administration area. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-SEO-Entwürfe werden aus dem Haupttext erzeugt. Titel, Slug, Canonical- und Bild-URLs werden nicht automatisch durch AI geändert. Provider, Feature-Gates, Prompt-Vorlagen, Logging, Quotas und Healthchecks befinden sich unter `/admin/ai-settings`.
+Empfohlener Ablauf:
 
-Details: [AI Services](../ai/AI-SERVICES.md).
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-## Benutzer und Gruppen
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-### Benutzer
+### Technische Referenz
 
-**Route:** `/admin/users`
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-1. Benutzer öffnen oder neu anlegen.
-2. Benutzername, E-Mail, Status und Rolle prüfen.
-3. nur erforderliche Rechte vergeben.
-4. speichern und Anmeldung/Capability bei Bedarf testen.
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-### Gruppen und Rollen
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-**Routen:** `/admin/groups`, `/admin/roles`, `/admin/rbac`
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-Gruppen bündeln Benutzer; Rollen und Capabilities bestimmen den Zugriff. Bei kritischen Rollen Änderungen mit der Wirkungsvorschau beziehungsweise Capability-Diff prüfen.
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-### Auth-Einstellungen
-
-**Route:** `/admin/user-settings`
-
-Passwort-, Session- und Authentifizierungseinstellungen nur mit dokumentiertem Änderungsgrund anpassen. Die aktuelle Passwort-Policy verlangt mindestens 12 Zeichen.
-
-## Seiten, Beiträge und Kommentare
-
-### Seite
-
-**Route:** `/admin/pages`
-
-1. Seite öffnen oder neu erstellen.
-2. Titel und Slug prüfen.
-3. Editor.js-Inhalt pflegen.
-4. Auszug, SEO und Medien ergänzen.
-5. Entwurf speichern, Vorschau prüfen und erst danach veröffentlichen.
-
-### Beitrag
-
-**Route:** `/admin/posts`
-
-1. Titel, Inhalt, Auszug und Featured Image pflegen.
-2. Kategorien und Tags auswählen.
-3. SEO- und Lesbarkeitsprüfung beachten.
-4. Entwurf, Vorschau oder Veröffentlichung ausführen.
-
-### Kommentare
-
-**Route:** `/admin/comments`
-
-Kommentare moderieren, Spam prüfen und nur erforderliche Löschungen ausführen. Bei aktivem AntiSpam zusätzlich dessen zentrale Regeln prüfen.
-
-## Medien
-
-**Route:** `/admin/media`
-
-Tabs:
-
-- `?tab=featured` — Beitrags-/Site-Medien;
-- `?tab=categories` — Medienkategorien;
-- `?tab=settings` — Medieneinstellungen.
-
-Unterstützt werden Filter, Presets, Kategorien, Tags, Alt-Texte, Bulk-Aktionen, Nutzungsanzeigen, Orphan-Prüfung, begrenzte Duplikaterkennung sowie chunkbasierte WebP-/Thumbnail-Jobs. Vor Löschung die angezeigten Verwendungen prüfen.
-
-## Member Dashboard
-
-**Route:** `/admin/member-dashboard`
-
-Die Folgeseiten konfigurieren Runtime, Frontend-Module, Widgets, Design, Benachrichtigungen, Onboarding und Profilfelder. `?preview=1` ist eine read-only Vorschau und ändert keine Runtime-Einstellungen.
-
-Wichtige Folgeseiten:
-
-- `/admin/member-dashboard-general`
-- `/admin/member-dashboard-frontend-modules`
-- `/admin/member-dashboard-plugin-widgets`
-- `/admin/member-dashboard-widgets`
-- `/admin/member-dashboard-design`
-- `/admin/member-dashboard-notifications`
-- `/admin/member-dashboard-onboarding`
-- `/admin/member-dashboard-profile-fields`
-
-## Pakete, Abos und Bestellungen
-
-| Route | Zweck |
-|---|---|
-| `/admin/packages` | Paketdefinitionen und Planparameter |
-| `/admin/orders` | Bestellungen, Zuweisungen und Exporte |
-| `/admin/subscription-settings` | globale Abo- und Standardpaketregeln |
-
-Vertragsfristen, Renewal-Hinweise und Paketnutzung vor manuellen Änderungen prüfen. CSV-Exporte sicher behandeln.
-
-## Themes und Design
-
-| Route | Zweck |
-|---|---|
-| `/admin/themes` | Theme aktivieren |
-| `/admin/theme-editor` | Farben, Typografie und Layout |
-| `/admin/theme-explorer` | verfügbare Theme-Bereiche |
-| `/admin/theme-marketplace` | Theme-Angebote |
-| `/admin/menu-editor` | Navigation |
-| `/admin/landing-page` | Landing-Page-Zuweisungen |
-| `/admin/font-manager` | Fonts und Nutzung |
-| `/admin/design-settings` | zentrale Designwerte |
-
-Nach Aktivierung oder Designänderung Frontend, mobile Darstellung, Menüs und wichtige Templates prüfen.
-
-## SEO und Redirects
-
-| Route | Zweck |
-|---|---|
-| `/admin/seo-dashboard` | SEO-Überblick und Score |
-| `/admin/analytics` | Analytics |
-| `/admin/seo-audit` | Audit |
-| `/admin/seo-meta` | globale Meta-Vorlagen |
-| `/admin/seo-social` | Social-Fallbacks |
-| `/admin/seo-schema` | strukturierte Daten |
-| `/admin/seo-sitemap` | Sitemap und robots.txt |
-| `/admin/seo-technical` | technisches SEO |
-| `/admin/redirect-manager` | Weiterleitungen und Broken Links |
-
-Nach Templateänderungen Vorschau für Desktop/Mobile und Social-Open-Graph prüfen. Redirects immer auf interne, validierte Ziele und mögliche Schleifen prüfen.
-
-## Performance
-
-**Routen:** `/admin/performance`, `/admin/performance-cache`, `/admin/performance-media`, `/admin/performance-database`, `/admin/performance-settings`, `/admin/performance-sessions`
-
-Bei trägem System:
-
-1. Gesamtstatus öffnen.
-2. Cache-Status und Cache-Clear prüfen.
-3. Medienjobs und Bildgrößen kontrollieren.
-4. Datenbank-Wartung nur nach Backup ausführen.
-5. Sessions und Performance-Settings auf auffällige Werte prüfen.
-
-## Recht und Datenschutz
-
-| Route | Aufgabe |
-|---|---|
-| `/admin/legal-sites` | Impressum, Datenschutz, AGB, Widerruf |
-| `/admin/cookie-manager` | Consent- und Cookie-Regeln |
-| `/admin/data-requests` | Auskunfts- und Löschanfragen |
-
-Ablehnungen bei Datenschutzanfragen benötigen eine Begründung. Frühere Einzelrouten wie `data-access.php` und `data-deletion.php` sind Legacy-Kontext; die gebündelte Oberfläche ist führend.
-
-## Sicherheit
-
-| Route | Aufgabe |
-|---|---|
-| `/admin/antispam` | Honeypot, Mindestzeit und Blacklists |
-| `/admin/firewall` | Regeln für IP, Bereiche und Muster |
-| `/admin/security-audit` | Sicherheitsprüfung |
-
-Änderungen an Firewall oder AntiSpam nach dem Speichern mit einem erlaubten und einem erwarteten blockierten Szenario testen.
-
-## Plugins und Marketplace
-
-**Routen:** `/admin/plugins`, `/admin/plugin-marketplace`
-
-1. Pluginstatus prüfen.
-2. Aktivierung/Deaktivierung nur mit kompatiblem Backup- und Rollbackplan.
-3. Plugin-Unterseiten über die Sidebar öffnen.
-4. Plugin-spezifische Dokumentation beachten.
-
-## System, Backup und Updates
-
-| Route | Aufgabe |
-|---|---|
-| `/admin/settings` | CMS-Konfiguration |
-| `/admin/backups` | Voll- und Datenbankbackup, Download/Restore |
-| `/admin/updates` | Core-, Theme- und Pluginupdates |
-| `/admin/cms-logs` | Betriebs-, Update- und Auditlogs |
-| `/admin/mail-settings` | Mail und Azure OAuth2 |
-
-Vor Updates und Restore-Vorgängen Backup, Wartungsfenster, Speicherplatz und Rollback klären. Backups außerhalb des Webroots sichern.
-
-## Diagnose und Monitoring
-
-| Route | Aufgabe |
-|---|---|
-| `/admin/info` | Systeminformationen |
-| `/admin/documentation` | lokale Dokumentationsansicht |
-| `/admin/diagnose` | Diagnoseübersicht |
-| `/admin/monitor-health-check` | lokale Health-Prüfungen |
-| `/admin/monitor-response-time` | Antwortzeiten |
-| `/admin/monitor-cron-status` | Cronstatus |
-| `/admin/monitor-cron-runner` | Cron-Ausführung |
-| `/admin/monitor-disk-usage` | Speicherplatz |
-| `/admin/monitor-scheduled-tasks` | geplante Aufgaben |
-| `/admin/monitor-assets` | Assetstatus |
-| `/admin/monitor-email-alerts` | E-Mail-Warnungen |
-| `/admin/monitor-warnings` | Warnungsübersicht |
-
-## Post-Request-Checkliste
-
-- Erfolgsmeldung gelesen?
-- Zielzustand nach Redirect sichtbar?
-- Keine unerwartete öffentliche Veröffentlichung?
-- Cache oder Rewrite-Regeln betroffen?
-- Audit-/Betriebslog plausibel?
-- sensible Daten nicht versehentlich exportiert?
-- Fachdokumentation oder Changelog erforderlich?
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

@@ -1,119 +1,63 @@
-# 365CMS – Font Manager
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for media and upload workflows. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Verwaltung lokal gehosteter Schriftarten inklusive Theme-Scan, Google-Font-Spiegelung, Asset-Prüfung und read-only Font-Nutzungsanalyse.
+# 365CMS Admin – Fonts
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.746
+## English
 
----
+### Administrator guide
 
-## Überblick
+This document covers media and upload workflows. Open `/admin/font-manager` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-Der Font Manager bündelt vier Aufgaben:
+Use the page in this order:
 
-- aktive Theme-Dateien auf externe oder bekannte Fonts scannen
-- Google-Fonts kontrolliert lokal nach `/uploads/fonts` spiegeln
-- Schriftfamilien für Überschriften und Body-Text im Frontend zuordnen
-- die aktuelle Font-Nutzung aus Theme-Scan, lokaler Bibliothek und Runtime-Konfiguration read-only auswerten
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-Damit lässt sich der Remote-Fallback im Theme zunächst beibehalten, später gezielt auf lokales Hosting umstellen und transparent prüfen, welche Fonts tatsächlich aktiv oder noch offen sind.
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
----
+### Technical reference
 
-## Datenmodell und Speicherung
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/fonts-local.php`, `CMS/admin/views/themes/fonts.php`.
 
-Die aktuelle Runtime kombiniert:
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-- Tabelle `custom_fonts` für lokal verwaltete Fonts
-- Settings wie `font_heading`, `font_body`, `font_size_base`, `font_line_height` und `privacy_use_local_fonts`
-- Theme-bezogene Scan-Caches im Settings-Speicher
-- lokale Font-Dateien und CSS unter `/uploads/fonts`
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-Ältere Dokumentationsstände, die nur von einer einzelnen JSON-Datei oder nur von einer einzelnen Tabelle ausgehen, sind zu kurz gegriffen.
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
----
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-## Theme-Scan
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Der Font Manager scannt das aktive Theme kontrolliert mit festen Schutzgrenzen:
+## Deutsch
 
-- nur definierte Text-Endungen
-- Größenlimit pro Datei
-- Gesamtlimit für gescannten Textinhalt
-- übersprungene Segmente wie `vendor`, `node_modules`, `cache`, `.git`
-- Cache-TTL von 900 Sekunden pro aktivem Theme
+### Anwenderleitfaden
 
-Erkannte Fonts werden mit Quellen, Installationsstatus und Warnhinweisen in der UI gespiegelt. Die Scan-Daten werden zusätzlich für die Nutzungsanalyse wiederverwendet; fehlende oder veraltete Scan-Ergebnisse führen nur zu reduzierter Aussagekraft, nicht zu einem Fehlerpfad.
+Dieses Dokument beschreibt media and upload workflows. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/font-manager`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-## Font-Nutzungsanalyse
+Empfohlener Ablauf:
 
-Die read-only Analyse unter `/admin/font-manager` kombiniert vier Datenquellen:
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-- Theme-Scan-Ergebnisse des aktiven Themes
-- konfigurierte `font_heading`- und `font_body`-Zuordnungen
-- lokale Fonts aus `custom_fonts`
-- Asset-Status aus gespeicherter CSS-Datei und referenzierten Font-Dateien
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-Die Oberfläche unterscheidet insbesondere:
+### Technische Referenz
 
-- **lokal aktiv**: konfigurierte lokale Fonts, die bei aktivem `privacy_use_local_fonts = 1` tatsächlich im Frontend bevorzugt eingebunden werden können
-- **konfiguriert, aber nicht aktiv**: lokale Fonts, die als Heading/Body gewählt sind, aber noch nicht über den lokalen Font-Modus ausgeliefert werden
-- **extern erkannt**: im Theme gescannte Fonts, die lokal noch nicht im Font Manager vorhanden sind
-- **lokal vorhanden**: lokal gespeicherte Fonts, die im Theme zwar erkannt werden, aber nicht als Heading/Body konfiguriert sind
-- **lokal gespeichert, aktuell ungenutzt**: Fonts ohne aktive Zuweisung und ohne aktuellen Theme-Scan-Treffer
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/fonts-local.php`, `CMS/admin/views/themes/fonts.php`.
 
-Zusätzlich werden Asset-Warnungen angezeigt, wenn die CSS-Datei oder referenzierte Font-Dateien unvollständig sind. Die Analyse bleibt rein lesend: keine neue POST-Aktion, kein zusätzlicher Token-Pfad, keine Ausgabe roher Dateiinhalte.
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
----
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-## Remote-Download und lokales Hosting
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-Google-Fonts werden nur von freigegebenen Hosts geladen:
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-- `fonts.googleapis.com`
-- `fonts.gstatic.com`
-
-Zusätzliche Härtungen:
-
-- CSS-Endpunkt-Fallback bei blockierten `css2`-Antworten
-- Limit für Anzahl und Größe heruntergeladener Font-Dateien
-- atomisches Schreiben lokaler Dateien
-- Binär-/Header-Prüfung für `woff`, `woff2`, `ttf`, `otf`
-- Audit-Logging für Scan, Download und Löschung
-
----
-
-## Lokale Font-Aktivierung
-
-Sobald `privacy_use_local_fonts = 1` gesetzt ist, priorisiert das Frontend lokale Fonts und unterdrückt den vorgesehenen Google-Fonts-Fallback, sofern passende lokale Dateien vorhanden sind.
-
-Bleibt die Option deaktiviert, kann das Theme weiterhin bewusst externe Google-Fonts als Fallback verwenden. Die Nutzungsanalyse markiert solche Konfigurationen explizit als „konfiguriert, aber nicht aktiv“, damit der Unterschied zwischen gespeicherter Wahl und echter Runtime sichtbar bleibt.
-
----
-
-## Asset-Status und Löschung
-
-Die lokale Font-Liste zeigt nicht nur die Primärdatei, sondern auch:
-
-- zugehörige CSS-Datei
-- verknüpfte Font-Assets aus der CSS
-- fehlende verknüpfte Dateien
-- Asset-Status (`complete` / `warning`)
-
-Beim Löschen versucht der Font Manager, sowohl CSS als auch verknüpfte lokale Font-Dateien kontrolliert zu entfernen.
-
-War die gelöschte Schrift noch als `font_heading` oder `font_body` aktiv hinterlegt, setzt der Löschpfad diese Runtime-Zuordnung jetzt sofort fail-soft auf `system-ui` zurück und entfernt den zugehörigen `font_stack_<slug>`-Eintrag. Damit bleiben Frontend und Admin nicht länger an verwaisten Font-Slugs hängen, bis irgendwann zufällig erneut gespeichert wird.
-
-Die Nutzungsanalyse greift denselben Asset-Status wieder auf, um Fonts mit beschädigten oder unvollständigen Verknüpfungen nicht stillschweigend als „gesund“ darzustellen.
-
----
-
-## Sicherheits- und Betriebsvertrag
-
-- Remote-Font-Downloads bleiben HTTPS- und Host-allowlisted.
-- Die Analyse bleibt rein read-only und nutzt nur bestehende Datenquellen.
-- Fehlende Dateien, reduzierte Scan-Daten oder veraltete Caches führen zu neutralen Hinweisen statt zu einem HTTP-500.
-- Alle Dateinamen, Fontnamen und Hinweise werden escaped gerendert.
-
-## Dokumentationshinweis
-
-Verweise auf `admin/fonts-local.php` sind veraltet. Für aktuelle Dokumentation und Supportfälle ausschließlich `/admin/font-manager` verwenden.
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

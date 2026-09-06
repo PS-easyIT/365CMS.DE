@@ -1,7 +1,7 @@
-> **Website:** [365CMS](https://365cms.de/)  
-> **Version:** 3.4.00  
-> **Datum:** 2026-09-06  
-> **Status:** Aktuell · **Zuletzt aktualisiert am: 2026-09-06**  
+> **Website:** [365CMS](https://365cms.de/)
+> **Version:** 3.4.00
+> **Datum:** 2026-09-06
+> **Status:** Aktuell – **Zuletzt aktualisiert am: 2026-09-06**
 > **Kurzbeschreibung:** Beschreibt Schichten, Initialisierung, Container, Routing, Konfiguration und Laufzeitverhalten des 365CMS-Core. Die Architektur wurde mit `CMS/core/Bootstrap.php`, `Container.php`, `Router.php` und den Services abgeglichen.
 
 ## English
@@ -19,6 +19,14 @@ The verified lifecycle is `cms_init` → `cms_before_route` → `register_routes
 
 ### Technisch
 Die nachfolgende vollständige Referenz bleibt die verbindliche deutsche Detailbeschreibung und wurde gegen `CMS/core/` geprüft.
+
+## Deutsch
+
+### Anwenderfreundlich
+
+Die Architektur beschreibt den Start, das Routing und die Erweiterbarkeit des 365CMS-Core für Betrieb und Wartung.
+
+### Technisch
 
 # 365CMS – Architektur
 > **Stand:** 2026-09-06 | **Version:** 3.4.00 | **Status:** Aktuell

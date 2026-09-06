@@ -1,7 +1,7 @@
-> **Website:** [365CMS](https://365cms.de/)  
-> **Version:** 3.4.00  
-> **Datum:** 2026-09-06  
-> **Status:** Aktuell · **Zuletzt aktualisiert am: 2026-09-06**  
+> **Website:** [365CMS](https://365cms.de/)
+> **Version:** 3.4.00
+> **Datum:** 2026-09-06
+> **Status:** Aktuell – **Zuletzt aktualisiert am: 2026-09-06**
 > **Kurzbeschreibung:** Anwender- und Entwicklerreferenz für die produktiven Core-API-Routen, Authentifizierung, Antworten und Limits. Die Route-Liste wurde gegen `CMS/core/Routing/ApiRouter.php` und `CMS/core/Api.php` geprüft.
 
 ## English
@@ -19,6 +19,14 @@ Diese Referenz erklärt die nutzbaren API-Endpunkte, Anmeldung, Antwortformate u
 
 ### Technisch
 Die nachfolgende vollständige Referenz bleibt die verbindliche deutsche Detailbeschreibung. Sie wurde gegen den aktuellen Code unter `CMS/core/` ergänzt und geprüft.
+
+## Deutsch
+
+### Anwenderfreundlich
+
+Diese Referenz erklärt die verfügbaren API-Endpunkte, die benötigte Authentifizierung, Antwortformate und sicheren Anfragegrenzen.
+
+### Technisch
 
 # 365CMS – API-Referenz
 > **Stand:** 2026-09-06 | **Version:** 3.4.00 | **Status:** Aktuell

@@ -1,105 +1,63 @@
-# 365CMS – Admin-Dashboard
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for the 365CMS administration area. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Überblick über die Startseite des Admin-Bereichs mit KPI-Karten, Statushinweisen, Schnellzugriffen, rollenbasierten Standardvorlagen und fail-soften Statusblöcken.
+# 365CMS Admin – Readme
 
-Letzte Aktualisierung: 2026-05-12 · Stand: Dashboard ohne Pflichtseitencheck · Release 2.9.772
+## English
 
-**Admin-Route:** `/admin`
+### Administrator guide
 
----
+This document covers the 365CMS administration area. Open `/admin` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-## Überblick
+Use the page in this order:
 
-Das Dashboard ist der Standard-Einstieg nach dem Login und fasst Kerninformationen aus Inhalt, Benutzern, Technik und Verwaltung zusammen.
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-Die konkrete Ausprägung kann sich mit neuen Modulen und Widgets verändern; für die Navigation bleibt die Sidebar maßgeblich.
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
+### Technical reference
 
-- kompakte KPI-Karten für Kernzahlen und Sofortnavigation
-- Statusblöcke für System, Sicherheit und Performance
-- Aktivitätslisten/Audit-nahe Ereignisse
-- Schnellzugriffe in häufig genutzte Admin-Bereiche
-- priorisierte Hinweise für offene To-dos oder Sicherheitsauffälligkeiten
-- segmentweise Fallbacks, falls einzelne Statistikquellen temporär ausfallen
-- benutzerbezogene Sichtbarkeitsprofile für optionale Dashboard-Bereiche
-- einzeln schaltbare Widgets innerhalb der zentralen Arbeitsübersicht
-- serverseitig gespeicherte Favoriten und eine lokale Liste zuletzt genutzter Admin-Ziele
-- rollenbasierte Standardvorlagen für neue oder zurückgesetzte persönliche Dashboard-Ansichten
-- persistente Reihenfolge für Arbeits-Widgets und Favoriten per Drag-&-Drop oder Pfeil-Fallback
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
----
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-## Typische Inhalte
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-| Bereich | Inhalt |
-|---|---|
-| Zentrale Arbeitsübersicht | einzeln schaltbare Widgets für Benutzer, Seiten, Beiträge, Medien, Wachstum, Pipeline, Kommentare, Sessions, Security, System und optional Umsatz – inklusive persistenter Reihenfolge |
-| Favoriten & zuletzt genutzt | persönliche Schnellzugriffe aus serverseitig gespeicherten Favoriten plus browserlokale Verlaufsliste zuletzt genutzter Admin-Ziele; Favoriten bleiben ebenfalls sortierbar |
-| Prioritäten | offene Bestellungen, fehlgeschlagene Logins oder HTTPS-Hinweise |
-| Dashboard-Gesundheit | Warnhinweis, wenn einzelne Statistiksegmente nur mit Fallback-Daten gerendert werden |
-| Systemstatus | PHP-, CMS- und MySQL-Version sowie Laufzeit-/Upload-Kontext |
-| Sicherheit & Performance | Security-Score, HTTPS, fehlgeschlagene Logins, RAM- und Performance-Score |
-| Schnellzugriffe | Header-Aktionen für neue Inhalte, Medien und zentrale Admin-Bereiche |
-| Aktivitätsbezug | letzte relevante Änderungen oder Aktionen aus dem Audit-/Aktivitätskontext |
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
----
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-## Personalisierung seit 2.9.701 / 2.9.716 / 2.9.717 / 2.9.718 / 2.9.719 / 2.9.720
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Admins können ihre Startansicht direkt auf `/admin` über „Dashboard personalisieren“ fokussieren. Die Auswahl wird pro Admin-Benutzer in `settings` als `admin_dashboard_preferences_user_<id>` gespeichert und bewusst mit `autoload = 0` abgelegt.
+## Deutsch
 
-Sichtbar/ausblendbar sind optionale Blöcke wie:
+### Anwenderleitfaden
 
-- Nächste Aufmerksamkeit
-- Systemstatus
-- Sicherheit & Performance
-- Neueste Bestellungen, sofern das Order-Modul aktiv ist
-- Letzte Aktivitäten
+Dieses Dokument beschreibt the 365CMS administration area. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-Die zentrale Arbeitsübersicht und kritische Alerts bleiben absichtlich sichtbar. Dadurch wird Personalisierung nicht zur Sicherheitsblindheit.
+Empfohlener Ablauf:
 
-Seit `2.9.716` gilt das zusätzlich innerhalb der zentralen Arbeitsübersicht: Dort können Admins einzelne Widgets wie Kommentar-Moderation, Sessions, Security Snapshot oder System-Stack pro Benutzer separat zu- oder abschalten, ohne die gesamte Hauptsektion zu verlieren.
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-Seit `2.9.717` lassen sich außerdem vordefinierte Favoriten-Ziele pro Admin-Benutzer speichern. Der getrennte Block „Zuletzt genutzt“ arbeitet ergänzend browserlokal via Web Storage und bleibt bewusst nicht Teil des serverseitigen Benutzerprofils.
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-Seit `2.9.718` bleibt diese Personalisierung nicht mehr auf Sichtbarkeit beschränkt: Arbeits-Widgets und Favoriten können jetzt zusätzlich sortiert werden. Die UI nutzt Drag-&-Drop als Komfortpfad, hält aber Auf/Ab-Buttons als Fallback bereit, damit die Funktion auch ohne gelungene Drag-Interaktion bedienbar bleibt.
+### Technische Referenz
 
-Seit `2.9.719` wird der browserlokale Recent-Block zusätzlich nachgehärtet: Beim Lesen und Schreiben werden nur gültige interne Admin-Ziele übernommen, doppelte oder beschädigte Einträge entfernt, URL-/Label-Längen begrenzt und der gespeicherte Verlauf klein gehalten. Außerdem liegt das Dashboard-spezifische CSS nun als cachebares Seiten-Asset vor statt inline in der View.
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-Seit `2.9.720` erhalten neue oder zurückgesetzte persönliche Ansichten zusätzlich eine **rollenbasierte Standardvorlage**. Diese Vorlage liefert pro Rolle bzw. capability-basierter Rollenfamilie sinnvolle Defaults für sichtbare Bereiche, aktive Arbeits-Widgets, Favoriten und deren Reihenfolge. Persönliche Änderungen bleiben weiterhin benutzerbezogen; über „Rollen-Vorlage wiederherstellen“ kann ein Admin jederzeit sauber auf den Standard seiner Rolle zurückfallen.
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prüfung, normalisiert eingereichte Bereichs-, Widget- und Favoriten-Schlüssel sowie ihre Reihenfolgen serverseitig gegen eine Allowlist und schreibt einen Audit-Eintrag `dashboard.preferences.save`. Seit `2.9.705` toleriert die CSRF-Schicht mehrere parallel geöffnete Admin-Formulare derselben Action innerhalb des TTL-Fensters; der tatsächlich verwendete Token wird nach erfolgreicher Prüfung weiterhin verbraucht.
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
----
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-## UI-Hinweise
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-- Arbeits-Widgets sind bewusst kompakt und scan-orientiert aufgebaut, damit auf kleineren Screens mehr Kernsignale gleichzeitig sichtbar bleiben.
-- Karten dienen primär als Einstieg in Detailseiten; längere Erklärtexte gehören in die Zielbereiche statt in die Startansicht.
-- Warnungen auf der Startseite bleiben auf relevante `warning`-/`danger`-Fälle begrenzt, damit das Dashboard nicht zur Alert-Wand mutiert.
-- Quicklinks und Filter-/Sortierlogik gehören außerhalb einzelner Kartenblöcke, damit die Kartensammlung visuell ruhig bleibt.
-- Fällt nur eine Datenquelle aus, bleibt das Dashboard insgesamt renderbar; der degradierte Zustand wird über einen Hinweis auf `CMS Logs` transparent gemacht.
-- Die Personalisierung ändert nur die Sichtbarkeit optionaler Blöcke bzw. vordefinierter Widgets, nicht die zugrunde liegenden Berechtigungen oder Audit-/Warnlogik.
-- „Zuletzt genutzt“ speichert nur nicht-sensitive interne Navigationsziele im Browser; bei deaktiviertem Storage fällt der Block still auf einen leeren Zustand zurück und bereinigt beschädigte oder veraltete Einträge fail-soft.
-- Die Sortierung ist progressiv erweitert: Drag-&-Drop ist Komfort, die Pfeilbuttons sind der robuste Fallback. So bleibt die Personalisierung auch dann nutzbar, wenn Browser-DnD nicht ideal funktioniert.
-
----
-
-## Wichtige Referenzen im aktuellen Stand
-
-- CMS-Versionen dürfen nicht mehr als historische 0.x-Stände dokumentiert werden
-- für vertiefte Technikzustände sind heute spezialisierte Unterseiten zuständig, z. B. Diagnose oder Performance
-- das Dashboard ist Startpunkt, aber nicht mehr die alleinige Systemübersicht
-- Arbeits-Widgets und Attention-Items arbeiten aus derselben Stats-Basis wie Dashboard-Alerts, damit Kennzahlen konsistent bleiben
-- Bestellbezogene Blöcke erscheinen nur, wenn die zugehörigen Subscription-/Orders-Module aktiv sind
-- Statistiksegmente werden seit `2.9.615` einzeln fail-soft geladen und bei Ausfall mit strukturiertem Logger-Hinweis auf dem Kanal `dashboard` protokolliert
-- Dashboard-Sichtbarkeitsprofile werden seit `2.9.701` pro Admin-Benutzer serverseitig gespeichert, CSRF-geschützt geändert und auditierbar protokolliert; seit `2.9.716` umfasst das auch einzelne Arbeitsübersichts-Widgets, seit `2.9.717` zusätzlich serverseitig gespeicherte Favoriten-Ziele, seit `2.9.718` persistente Reihenfolgen für Widgets und Favoriten, seit `2.9.719` eine nachgehärtete browserlokale Recent-Persistenz plus cachebares Dashboard-CSS und seit `2.9.720` rollenbasierte Default-/Reset-Vorlagen für neue oder zurückgesetzte Benutzeransichten. Seit `2.9.705` ist dieser POST-Flow robuster gegen stale Tabs und parallel gerenderte Formulare
-
----
-
-## Verwandte Dokumente
-
-- [DASHBOARD.md](DASHBOARD.md)
-- [../README.md](../README.md)
-- [../system-settings/README.md](../system-settings/README.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

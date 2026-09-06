@@ -1,7 +1,7 @@
-> **Website:** [365CMS](https://365cms.de/)  
-> **Version:** 3.4.00  
-> **Datum:** 2026-09-06  
-> **Status:** Aktuell · **Zuletzt aktualisiert am: 2026-09-06**  
+> **Website:** [365CMS](https://365cms.de/)
+> **Version:** 3.4.00
+> **Datum:** 2026-09-06
+> **Status:** Aktuell – **Zuletzt aktualisiert am: 2026-09-06**
 > **Kurzbeschreibung:** Referenz der Core-Actions, Filter und Erweiterungspunkte für Plugins, Themes, Admin, Member und Services. Die Hook-Namen wurden gegen `CMS/core/Hooks.php`, `Bootstrap.php` und die Router geprüft.
 
 ## English
@@ -21,6 +21,14 @@ Hooks erlauben Plugins und Themes, den Core ohne direkte Änderungen zu erweiter
 Die Hook-Verarbeitung liegt in `CMS/core/Hooks.php`; Bootstrap, Routing, Plugin- und Dashboard-Registry bilden die geprüften Erweiterungspunkte.
 
 <!-- UPDATED: 2026-09-06 -->
+## Deutsch
+
+### Anwenderfreundlich
+
+Hooks erlauben Plugins und Themes, das 365CMS zu erweitern, ohne Core-Dateien zu verändern.
+
+### Technisch
+
 # 365CMS – Hooks-Referenz
 > **Stand:** 2026-09-06 | **Version:** 3.4.00 | **Status:** Aktuell
 

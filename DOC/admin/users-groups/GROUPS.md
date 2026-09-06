@@ -1,81 +1,63 @@
-# 365CMS - Gruppenverwaltung
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for access control and security operations. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-**Stand:** 2026-09-06 | **Dokumentationsversion:** 3.4.00 | **Route:** `/admin/groups`
+# 365CMS Admin – Groups
 
-## Zweck
+## English
 
-Gruppen bilden organisatorische oder fachliche Einheiten. Ein Benutzer kann mehreren Gruppen angehören. Eine Gruppe kann zusätzlich mit einem aktiven oder inaktiven Paket aus `subscription_plans` verbunden werden.
+### Administrator guide
 
-Gruppen ersetzen keine Rollen. Berechtigungen werden unter `/admin/roles` gepflegt; Gruppenmitgliedschaften und Paketbezüge werden hier verwaltet.
+This document covers access control and security operations. Open `/admin/groups` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-## Übersicht
+Use the page in this order:
 
-Die Seite lädt Gruppen nach Aktivstatus und Namen. Eine Gruppenkarte kann anzeigen:
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-- Name, eindeutigen Slug und Beschreibung,
-- Aktiv-/Inaktiv-Status,
-- Mitgliederzahl und Mitgliederliste,
-- verknüpftes Paket,
-- Paketmodule,
-- sichtbare Member-Bereiche,
-- bis zu drei auslaufende oder fällige Verträge von Mitgliedern,
-- Anzahl überfälliger Verträge.
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-Der Support-Kontext ist read-only. Er verändert keine Laufzeit, kein Paket und keine Mitgliedschaft.
+### Technical reference
 
-## Gruppe anlegen oder bearbeiten
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/groups.php`, `CMS/admin/modules/users/GroupsModule.php`, `CMS/admin/views/users/groups.php`.
 
-Das Formular beziehungsweise Modal verarbeitet in einem Flow:
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-- Gruppenname (Pflichtfeld),
-- optionalen Slug,
-- Beschreibung,
-- Aktivstatus,
-- Paket/Plan,
-- ausgewählte Benutzer.
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-Fehlt ein Slug, wird er aus dem Namen erzeugt. Kollisionen werden serverseitig eindeutig aufgelöst. Benutzer-IDs und Paket-IDs werden gegen vorhandene Datensätze geprüft.
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-Beim Speichern wird die Mitgliedschaft innerhalb einer Datenbanktransaktion synchronisiert: bestehende Zuordnungen der Gruppe werden entfernt und die neue Auswahl wird eingefügt. Dadurch entspricht die Datenbank exakt der im Formular bestätigten Auswahl.
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-## Sammelaktionen
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Für ausgewählte Gruppen stehen folgende serverseitig erlaubte Aktionen zur Verfügung:
+## Deutsch
 
-| Aktion | Wirkung |
-|---|---|
-| `activate` | Gruppen aktivieren |
-| `deactivate` | Gruppen deaktivieren |
-| `set_plan` | ein vorhandenes Paket zuweisen |
-| `clear_plan` | Paketbezug entfernen |
-| `delete` | Gruppen samt Mitgliedschaftszeilen löschen |
+### Anwenderleitfaden
 
-Die Auswahl wird auf maximal 200 positive, eindeutige IDs begrenzt. Aktionsnamen stammen aus einer festen Allowlist. Fehlende Gruppen oder ungültige Pakete führen zu einer Fehlermeldung statt zu einer Teilverarbeitung.
+Dieses Dokument beschreibt access control and security operations. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/groups`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-Sammellöschungen und Einzel-Löschungen entfernen zuerst `user_group_members` und löschen anschließend die Gruppe innerhalb einer Transaktion. Erfolgreiche Aktionen werden als User-Audit-Ereignis protokolliert.
+Empfohlener Ablauf:
 
-## Datenmodell
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-| Tabelle | Zweck |
-|---|---|
-| `user_groups` | Name, Slug, Beschreibung, `plan_id`, `is_active`, Zeitstempel |
-| `user_group_members` | Zuordnung von `user_id` zu `group_id` mit `joined_at` |
-| `users` | auswählbare Benutzer und Status |
-| `subscription_plans` | verfügbare Pakete und Paketmodule |
-| `user_subscriptions` | Vertrags- und Fälligkeitsdaten für Support-Hinweise |
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-## Technischer Ablauf
+### Technische Referenz
 
-Der Entry-Point `/admin/groups` verwendet den gemeinsamen `section-page-shell`-Ablauf. Er prüft `manage_users`, erzeugt das Token `admin_groups`, normalisiert Einzel- und Bulk-Payloads und leitet nach POST per Redirect zurück. Die `GroupsModule`-Methoden `save()`, `delete()` und `bulkAction()` sind die einzigen fachlichen Schreibpfade.
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/groups.php`, `CMS/admin/modules/users/GroupsModule.php`, `CMS/admin/views/users/groups.php`.
 
-## Abgrenzung
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-- Paket setzen/entfernen ändert nur den Gruppenbezug; es erstellt nicht automatisch Benutzerabos.
-- Vertragsstatus wird nur angezeigt und nicht aus der Gruppenansicht heraus verlängert.
-- Rolle und Capability eines Benutzers ändern sich durch eine Gruppenmitgliedschaft nicht.
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-## Verwandte Dokumente
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-- [USERS.md](USERS.md)
-- [RBAC.md](RBAC.md)
-- [../subscription/SUBSCRIPTION-SYSTEM.md](../subscription/SUBSCRIPTION-SYSTEM.md)
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
+
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

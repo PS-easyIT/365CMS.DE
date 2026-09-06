@@ -1,65 +1,63 @@
-# 365CMS – AI Services im Admin-Kontext
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for the 365CMS administration area. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Admin-spezifische Einordnung des Bereichs `AI Services` als **eigener Admin-Hauptbereich**. Die führende Fach- und Architektur-Dokumentation liegt unter [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md); die Admin-Seiten `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator` und `/admin/ai-settings` sind als Settings- und Runtime-Steuerflächen im Core eingehängt.
+# 365CMS Admin – Ai Services
 
-Letzte Aktualisierung: 2026-09-05 · Version 3.4.00
+## English
 
-> **Wichtig:** Diese Datei ist bewusst nur der **Admin- und Routing-Kontext**. Die vollständige Konzeption, Provider-Logik, Editor.js-Übersetzungsphase und offene Punkte werden kanonisch in [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md) gepflegt.
+### Administrator guide
 
-## Admin-Einordnung
+This document covers the 365CMS administration area. Open `/admin/ai-services` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-Aktuelle Position in der Sidebar:
+Use the page in this order:
 
-- `AI Services`
-   - `Dashboard`
-   - `Übersetzung`
-   - `Content Creator`
-   - `SEO Creator`
-   - `Einstellungen`
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-Aktive Route:
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-- `/admin/ai-services`
+### Technical reference
 
-## Fachliche Kurzfassung
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/ai-services.php`, `CMS/admin/views/system/ai-services.php`.
 
-Der Bereich bündelt bereits als Settings-Hülle drei Dinge:
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-1. **Provider-Scope und Feature-Gates**
-2. **erste redaktionelle AI-Helfer im Admin**
-3. **Betriebs-, Datenschutz- und Logging-Regeln**
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-Der erste sinnvolle Umsetzungsfokus bleibt fachlich weiterhin:
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-- **Translate Service für bestehende Editor.js-Inhalte**
-- zunächst **nur nach Englisch**
-- nur im **Adminbereich**
-- ohne automatische Frontend-Übersetzung
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-## Führende Dokumentation
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Die vollständige Fach- und Architekturdoku liegt hier:
+## Deutsch
 
-- [../../ai/AI-SERVICES.md](../../ai/AI-SERVICES.md)
+### Anwenderleitfaden
 
-Aktueller Runtime-Hinweis:
+Dieses Dokument beschreibt the 365CMS administration area. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/ai-services`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-- `/admin/ai-services` bzw. `/admin/ai-settings` verwalten heute die Datenstruktur für `ai.providers`, `ai.features`, `ai.translation`, `ai.prompts`, `ai.logging` und `ai.quotas`
-- Provider werden als gezielt anlegbare Liste geführt; sichtbar sind damit nur die tatsächlich konfigurierten Einträge statt einer fest verdrahteten Komplettmatrix
-- `/admin/ai-translate-editorjs` stellt heute einen geschützten Live-Endpoint für Editor.js-Übersetzungen bereit, inklusive Preview-/Diff-Schritt vor der EN-Übernahme
-- der Preview-/Diff-Schritt ist seit `2.9.616` serverseitig verpflichtend und nicht mehr als optionaler Admin-Toggle abschaltbar
-- `/admin/ai-services` bündelt seit `2.9.702` request- und quota-nahes Nutzungsmonitoring plus die letzten Generierungsläufe direkt aus `audit_log`, ohne Rohprompts, Volltexte oder Secrets im Dashboard offenzulegen
-- seit `3.3.80` erzeugt `/admin/ai-generate-seo-metadata` als geschützter Live-Endpoint einen SEO-Entwurf aus freigegebenen Editor.js-Textsegmenten; übernommen werden nur Kurzfassung, Keyphrase, Keywords, Meta-/Social-Texte, Twitter Card, Schema, Sitemap und Robots. Dokumenttitel, Slug, Canonical-, Bild- und hreflang-Felder sind technisch ausgeschlossen; die normale Formularspeicherung bleibt erforderlich.
-- seit `3.3.81` erzeugt der Content Creator auf `/admin/ai-content-creator` aus Briefing und optionalem Kontext geschützte, nicht persistierte Entwürfe für Kurzfassungen, Gliederungen oder CTA-Varianten. Die Ergebnisse erscheinen ausschließlich im Admin und können nur manuell kopiert werden.
-- Prompt-Vorlagen lassen sich je Bereich verwalten; Translation, SEO und Content Creator wirken direkt in ihren jeweiligen Live-Pipelines
-- seit `3.4.00` erzwingt die zentrale Ausführungsschicht Provider-Scopes, Profil-/Beta-Freigaben, explizite External-Egress-Freigaben, atomare UTC-Tages-/Monatsquoten, begrenzte Wiederholungen und policy-/quota-geprüfte Fallbacks. Healthchecks, Fallback-Auswahl, Provider-Scopes sowie interne Ollama-Hosts werden ausschließlich unter `/admin/ai-settings` gepflegt; Cloud-Provider benötigen HTTPS und AI-Assets werden nur auf AI-Adminseiten geladen.
-- seit `2.9.705` nutzt das Admin-Modul wieder die korrekte `Database::instance()`-API und fällt bei Initialisierungsproblemen fail-soft mit sicheren Default-Daten sowie datensparsamer Logger-Ausgabe zurück, statt alle AI-Unterseiten als Full-Page-Fatal zu beenden
-- seit `2.9.707` bleibt die Provider-Konfiguration auch nach Lösch- oder Speichervorgängen konsistent: Solange mindestens ein Provider-Eintrag vorhanden ist, hält die Settings-Logik automatisch einen gültigen `active_provider_id`; Secret-Felder werben zudem nicht mehr unnötig für Browser-Autofill
-- wenn `store_request_metrics` aktiv ist, protokolliert die Editor.js-Translation zusätzlich Zeichen- und Blockmetriken für nutzbare Verlauf-/Budgetanzeigen
-- echte Live-Provider sind für **Ollama**, **Azure AI** sowie OpenAI-kompatible Endpunkte (OpenAI, Mistral, OpenRouter) umgesetzt; zusätzliche provider-spezifische Governance bleibt Folgearbeit
+Empfohlener Ablauf:
 
-Verwandte Admin-Dokumente:
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-- [README.md](README.md)
-- [../README.md](../README.md)
-- [../../ASSETS_NEW.md](../../ASSETS_NEW.md)
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
+
+### Technische Referenz
+
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/ai-services.php`, `CMS/admin/views/system/ai-services.php`.
+
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
+
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
+
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
+
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
+
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

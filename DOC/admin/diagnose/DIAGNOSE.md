@@ -1,142 +1,63 @@
-# 365CMS – Diagnose & Monitoring
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for operations, logs, and monitoring. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen, Monitoring-Werkzeuge und die zentrale Logzentrale für den laufenden Betrieb von 365CMS.
+# 365CMS Admin – Diagnose
 
-Letzte Aktualisierung: 2026-05-21 · Version 3.0.19
+## English
 
----
+### Administrator guide
 
-## Überblick
+This document covers operations, logs, and monitoring. Open `/admin/diagnose` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-Der Diagnosebereich umfasst eine zentrale Einstiegsseite, mehrere spezialisierte Monitoring-Oberflächen und die gemeinsame Logzentrale. Alle Seiten nutzen `SystemInfoModule` als gemeinsames Modul und teilen sich den CSRF-Kontext `admin_system_info`.
+Use the page in this order:
 
-**Gemeinsamer technischer Aufbau:**
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-| Baustein | Datei |
-|---|---|
-| Shared Entry Point | `CMS/admin/system-monitor-page.php` |
-| Modul | `CMS/admin/modules/system/SystemInfoModule.php` |
-| Subnav | `CMS/admin/views/system/subnav.php` |
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
----
+### Technical reference
 
-## Routen und Zuständigkeiten
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/diagnose.php`, `CMS/admin/views/system/diagnose.php`.
 
-| Route | View | Zweck |
-|---|---|---|
-| `/admin/diagnose` | `views/system/diagnose.php` | Datenbank-Diagnose, Tabellenprüfung |
-| `/admin/monitor-warnings` | `views/system/warnings.php` | Zentrale Sammelansicht aktiver Warnungen mit Ignore-/Wiedervorlage-Status |
-| `/admin/monitor-response-time` | `views/system/response-time.php` | Antwortzeiten-Monitoring |
-| `/admin/monitor-cron-status` | `views/system/cron-status.php` | Cron-Job-Übersicht und -Status |
-| `/admin/monitor-disk-usage` | `views/system/disk-usage.php` | Speicher- und Verzeichnisnutzung |
-| `/admin/monitor-scheduled-tasks` | `views/system/scheduled-tasks.php` | Geplante Aufgaben und deren Ausführungsstatus |
-| `/admin/monitor-health-check` | `views/system/health-check.php` | Allgemeine Systemgesundheitsprüfungen |
-| `/admin/monitor-email-alerts` | `views/system/email-alerts.php` | E-Mail-Benachrichtigungen konfigurieren und Status |
-| `/admin/cms-logs` | `views/system/cms-logs.php` | CMS-Dateilogs, PHP Error-Log, operatives Audit und Update-Historie |
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
----
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-## Diagnose-Datenbank
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-Die Einstiegsseite `/admin/diagnose` fokussiert sich auf die Prüfung der Datenbankintegrität:
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-- Tabellenstatus und -größen
-- fehlende oder beschädigte Indizes
-- allgemeine Konsistenzprüfungen
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
----
+## Deutsch
 
-## Monitoring-Werkzeuge
+### Anwenderleitfaden
 
-### Warnzentrale
+Dieses Dokument beschreibt operations, logs, and monitoring. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/diagnose`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-`/admin/monitor-warnings` bündelt aktive Hinweise aus den bereits vorhandenen Modulen für Performance, Security, Diagnose, Updates und Recht. Die Seite selbst bleibt read-only im GET-Pfad; sie liest ausschließlich bestehende Datenquellen zusammen und erzeugt keine neuen Scan- oder Schreibpfade beim bloßen Öffnen.
+Empfohlener Ablauf:
 
-Pro Warnung gibt es:
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-- einen direkten Link in den zuständigen Adminbereich (`Lösen / öffnen`)
-- eine POST-/CSRF-geschützte Ignore-Aktion mit Begründung
-- eine POST-/CSRF-geschützte Wiedervorlage (`Später erinnern`)
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-Die Unterdrückungszustände werden serverseitig klein in `SettingsService` gespeichert und nur für aktuell bekannte Warn-IDs berücksichtigt. Fallen Teilquellen aus oder sind einzelne Module temporär nicht lesbar, arbeitet die Warnzentrale fail-soft weiter und blendet nur die restlichen Quellen ein.
+### Technische Referenz
 
-### Response-Time Monitoring
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/diagnose.php`, `CMS/admin/views/system/diagnose.php`.
 
-Misst und protokolliert Antwortzeiten des Systems, um Engpässe frühzeitig zu erkennen.
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Seit `2.9.773` ergänzt die Seite eine Trendhistorie mit `24 h`, `7 d` und `30 d` inklusive Sparkline, Min-/Max-/Ø-Werten und Delta zum letzten Punkt. Die aktuelle Kennzahl wird weiterhin live gegen `SITE_URL` gemessen; die Historie kommt aus stündlichen Snapshots der Tabelle `monitoring_trends`.
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-### Cron-Job Status
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-Zeigt den aktuellen Status von Cron-Jobs, letzte Ausführung und eventuelle Fehler.
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-Zusätzlich wird geprüft, ob eine zentrale Datei `cron.php` im CMS-Webroot vorhanden ist. Darüber kann u. a. der Hook `cms_cron_mail_queue` für die Mail-Queue-Verarbeitung per Web-Cron oder CLI ausgelöst werden. Empfohlen ist ein Web-Cron-Aufruf mit Header `X-CMS-Cron-Token`; die Token-URL bleibt nur als kompatibler Fallback für Cron-Dienste ohne Header-Unterstützung erhalten.
-
-Seit `3.0.19` sendet der öffentliche Cron-Entry-Point private No-Store-/No-Referrer-/Noindex-Header, protokolliert Entry-Point-Ausnahmen intern und warnt im Cron-Log, wenn ein Query-Token ohne HTTPS verwendet wird. Ein deaktivierter Mail-Queue-Worker gilt außerdem als sauber übersprungener Lauf, damit Systeme mit Direktversand keinen falschen Cron-Fehlerstatus erzeugen. Fehlt `config/app.php` oder enthält die Konfiguration noch Platzhalter, antwortet der Cron-Kontext mit einem knappen Fehler statt mit Installer-HTML.
-
-Seit `2.9.773` visualisiert dieselbe Seite zusätzlich den `Cron-Lag`, also den Abstand zum zuletzt dokumentierten stündlichen Core-Cron-Lauf. Dadurch bleibt sichtbar, ob der Hourly-Takt stabil läuft oder ob der nächste Lauf überfällig wird. Auch hier gibt es `24 h`-, `7 d`- und `30 d`-Verläufe mit Sparkline und Statistik.
-
-### Disk-Usage
-
-Schlüsselt den Speicherverbrauch nach Verzeichnissen auf und warnt bei kritischen Schwellwerten.
-
-Seit `2.9.773` besitzt auch die Disk-Usage-Seite eine Trendhistorie für die Dateisystem-Auslastung in Prozent. Die Live-Werte für Gesamt-/Frei-Speicher und Verzeichnisgrößen bleiben davon getrennt und werden nicht über die Trendansicht mutiert.
-
-### Scheduled Tasks
-
-Listet alle geplanten Aufgaben mit Status, Intervall und letzter Ausführung.
-
-### Health-Check
-
-Bündelt übergreifende Gesundheitsprüfungen: Datenbank, beschreibbare Betriebsverzeichnisse, Response-Time, Disk-Auslastung und einen real geprüften lokalen Health-Endpunkt. Der konfigurierte Pfad wird dabei auf host-lokale relative Pfade normalisiert und dann tatsächlich gegen die eigene Installation geprüft; ein gesetzter Schalter allein gilt nicht mehr als „gesund“.
-
-### E-Mail-Benachrichtigungen
-
-Konfiguriert Zieladressen und Schwellwerte für Monitoring-Benachrichtigungen per E-Mail und erlaubt einen direkten Testversand aus dem Backend über die zentrale Mail-Implementierung.
-
-Seit 2.9.763 verwaltet dieselbe Seite zusätzlich die Security-Alarmierung für Login-Brute-Force, AntiSpam-Spitzen und Firewall-Blocks. Die Auslösung läuft ausschließlich read-only über den bestehenden stündlichen Core-Cron-Hook `cms_cron_hourly`, verwendet die vorhandene Mail-Queue bzw. Mail-Pipeline weiter und ergänzt im Admin eine kleine Statusübersicht mit aktuellem Zählfenster sowie letztem Lauf-/Versandzeitpunkt.
-
-### Logs & Protokolle
-
-`/admin/logs` bündelt nicht mehr nur CMS-Dateilogs und das PHP Error-Log, sondern auch ein operatives Betriebs-Audit aus dem zentralen `audit_log`. Dadurch werden System-, Backup-, Monitoring-, Cron-/Queue- und Performance-Aktionen direkt im Diagnosekontext sichtbar. Ergänzend zeigt die Seite die persistierte Update-Historie des Update-Services, sodass erfolgreiche Core-, Theme- und Plugin-Updates nicht nur auf `/admin/updates`, sondern auch in der Diagnose-Logzentrale nachvollziehbar bleiben. Der ältere Einstieg `/admin/cms-logs` bleibt als Redirect-Alias erhalten.
-
-Seit `3.0.14` löst der Admin-Router auch die verschachtelten Unterseiten `/admin/logs/operational`, `/admin/logs/security-audit`, `/admin/logs/php-errors` und `/admin/logs/channels` direkt auf. Die Sidebar-Einträge im Bereich **Protokolle & Audit** führen dadurch wieder auf die jeweiligen Teilansichten statt auf die 404-Seite.
-
-Seit `2.9.769` löst dieselbe Update-Historie Benutzer-IDs serverseitig auf sprechende Labels aus `display_name` plus Rollenbezeichnung auf. Fehlende oder gelöschte Konten führen dabei nicht zu Fehlern oder leeren Zellen, sondern bleiben als `User #ID` fail-soft sichtbar.
-
-Seit `2.9.770` können `/admin/diagnose` und `/admin/cms-logs` zusätzlich einen Diagnosebericht als ZIP exportieren. Der Export bleibt im bestehenden Admin-Vertrag bewusst ein POST-/CSRF-geschützter Download, bündelt Systeminfo, Health-Check, Asset-Status, Cron-Status, geplante Tasks sowie begrenzte Logauszüge und redigiert sensible Werte wie Tokens, Passwörter, Secrets und Credentials serverseitig vor dem Schreiben ins Archiv.
-
-Seit `2.9.777` sind die Bereinigungsaktionen der Logzentrale robuster: Das PHP-Error-Log wird sicher geleert, CMS-Dateilogs werden bevorzugt entfernt und bei gesperrten Dateien sicher geleert, leere Dateien tauchen nicht mehr als scheinbar ungelöschte Logdateien auf, und Fehlzustände werden als Fehler zurückgegeben statt als Erfolgsmeldung. Die Sammelaktion räumt zusätzlich operative Diagnose-Protokolle und Update-Historie weiter im bestehenden POST-/CSRF-Vertrag auf. `/admin/diagnose` ergänzt außerdem eine eigene POST-/CSRF-geschützte Aktion zum Löschen gespeicherter Fehlerreports.
-
-### Technischer Vertrag der Trendhistorie
-
-Die Monitoring-Trendhistorie basiert auf einem kleinen, eigenständigen Service `MonitoringTrendService`.
-
-- Snapshot-Takt: über den bestehenden Hook `cms_cron_hourly`
-- Persistenz: eigene Tabelle `monitoring_trends`
-- Live-Pfad: read-only, ohne Tabellenanlage und ohne Schreibzugriff im GET-Request
-- Fallback: fehlen Snapshots oder optionale Daten, bleiben die Seiten über Live-Werte und neutrale Hinweise bedienbar
-- Header-Token bevorzugt; Token-URLs nur als Legacy-Fallback, keine neue GET-Mutation, keine zusätzliche öffentliche Route
-
-Für Cron wird bewusst nicht eine starre Hook-Anzahl getrendet, sondern der zeitliche Abstand zum letzten dokumentierten stündlichen Lauf. Das liefert im Betrieb die aussagekräftigere Metrik.
-
----
-
-## Sicherheit
-
-Alle Diagnoseseiten folgen dem Admin-Standardmuster:
-
-- Zugriff nur für Administratoren
-- CSRF-Prüfung via `Security::instance()->verifyToken(..., 'admin_system_info')`
-- POST-Ergebnis als Session-Alert, Redirect auf GET-Route
-- Unterdrückte Warnungen werden ausschließlich per POST gespeichert; Links zum eigentlichen Lösungsbereich bleiben tokenfrei und rein navigierend
-
-Ausnahme: Der Diagnosebericht-Export streamt nach erfolgreicher CSRF-Prüfung direkt den ZIP-Download zurück, ohne eine neue GET-Download-Route oder Token-URL einzuführen.
-
----
-
-## Verwandte Dokumente
-
-- [../system-settings/SYSTEM.md](../system-settings/SYSTEM.md)
-- [../system-settings/README.md](../system-settings/README.md)
-- [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

@@ -1,182 +1,63 @@
-# 365CMS – Beiträge & Blog
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for content administration. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Verwaltung chronologischer Inhalte wie News und Blog-Beiträge im Admin-Bereich.
+# 365CMS Admin – Posts
 
-Letzte Aktualisierung: 2026-05-31 · Version 3.3.44
+## English
 
----
+### Administrator guide
 
-## Überblick
+This document covers content administration. Open `/admin/posts` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-Beiträge sind chronologische Inhalte für Blog, News, Feeds, Themenarchive und Suche. Der Admin-Bereich kombiniert Listenworkflow, mehrsprachige Bearbeitung, SEO-Hilfen, Veröffentlichungssteuerung und Medien-/Taxonomie-Zuordnung in einem gemeinsamen Redaktionspfad.
+Use the page in this order:
 
----
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-## Aktueller Listenvertrag
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-Die Beitragsübersicht bietet aktuell:
+### Technical reference
 
-- Statusfilter (`Veröffentlicht`, `Geplant`, `Entwurf`, `Privat`)
-- Kategoriefilter
-- Freitextsuche
-- Multi-Select für Bulk-Aktionen
-- KPI-Karten für Gesamt, veröffentlicht, geplant, Entwürfe und privat
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/modules/posts/PostsCategoryViewModelBuilder.php`, `CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/posts.php`.
 
-### Bulk-Aktionen
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-Folgende Bulk-Aktionen sind produktiv vorgesehen:
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-- Veröffentlichen
-- Als Entwurf setzen
-- Kategorie(n) setzen
-- Kategorie entfernen
-- Autoren-Anzeigenamen setzen
-- Autoren-Anzeigenamen zurücksetzen
-- Löschen
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-Der Bulk-Flow validiert Beitrags-IDs fail-closed gegen den aktuellen Datenbestand. Fehlende oder zwischenzeitlich gelöschte Beiträge führen nicht zu stillen Teiloperationen, sondern zu einer klaren Fehlermeldung.
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
----
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-## Editor-Aufbau
+## Deutsch
 
-Die obere Editor-Zone besteht aus drei primären Bereichen:
+### Anwenderleitfaden
 
-| Bereich | Inhalt |
-|---|---|
-| Card 1 | Titel, Slug, Primärkategorie, zusätzliche Kategorien, Tags |
-| Card 2 | Beitragsbild |
-| Card 2b | Hauptaktion `Erstellen/Aktualisieren`, öffentliche DE-/EN-Vorschau und dezenter Delete-Button |
-| Card 3 | Status, Veröffentlichungsdatum/-zeit und Autoren-Anzeigename |
+Dieses Dokument beschreibt content administration. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/posts`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-Wichtig: Beiträge unterstützen weiterhin **eine Primärkategorie plus optionale zusätzliche Kategorien** über die Relationstabelle `post_category_rel`. Ältere Dokumentationsstände ohne Mehrfachkategorien sind überholt.
+Empfohlener Ablauf:
 
-Neue Beitragsbilder nutzt der gemeinsame Featured-Image-Picker zunächst als temporären Upload und verschiebt sie beim Speichern in den Slug-Ordner des Beitrags. Der Relocator arbeitet fail-soft: Metadaten- oder Dateisystemfehler werden geloggt und sollen nach bereits erfolgreicher Bildübernahme keinen HTTP-500 im Admin auslösen. Öffentliche Beitragsbilder werden dabei als direkte relative `/uploads/...`-Referenzen gespeichert und nach dem Verschieben nochmals mit webserverlesbaren Dateirechten versehen, damit der anschließende Aktualisieren-Redirect keine browserlokalen 403-Fehler auf dem Bild auslöst.
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
----
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-## Mehrsprachiger Redaktionsfluss
+### Technische Referenz
 
-Beiträge werden in getrennten DE-/EN-Ansichten bearbeitet.
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/modules/posts/PostsCategoryViewModelBuilder.php`, `CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/posts.php`.
 
-- Die deutsche und englische Fassung bleiben beim Speichern voneinander isoliert.
-- Die EN-Ansicht bietet einen expliziten Button `DE nach EN kopieren`.
-- Optional kann die EN-Fassung per AI-Übersetzung vorbereitet werden.
-- Eine automatische Erstkopie beim ersten Sprachwechsel ist für Beiträge aktuell **nicht** konfiguriert.
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Das bedeutet: Bestehende EN-Inhalte werden nicht implizit beim Ansichtswechsel überschrieben. Kopie und Übersetzung sind bewusste Redaktionsaktionen.
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
----
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-## Revisions- und Vergleichsvertrag
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-Seit `2.9.709` speichert der Beitrags-Save-Flow vor relevanten Änderungen automatisch einen Snapshot des bisherigen Stands. Erfasst werden dabei insbesondere:
-
-- Titel und Slugs in DE/EN
-- Teaser in DE/EN
-- Status
-- Primärkategorie als ID und Name
-- Tag-Liste
-- Autoren-Anzeigename im Beitrag
-- Veröffentlichungszeitpunkt
-- Inhaltsstände in DE/EN
-
-Der Beitragseditor zeigt diese Snapshots in einer **read-only Vergleichskarte** direkt im Bearbeitungsformular an.
-
-- Pro Revision werden nur die tatsächlich geänderten Felder hervorgehoben.
-- Inhaltsfelder erscheinen bewusst als kompakte Zusammenfassung statt als vollständige Rohfassung.
-- Die Oberfläche zeigt aus Performance-Gründen nur die letzten gespeicherten Revisionen.
-- Es gibt absichtlich keinen impliziten Restore-Button in derselben Ansicht.
-
-Das folgt dem Secure-by-Default-Prinzip: Redaktion kann Unterschiede prüfen, ohne ältere Stände versehentlich direkt zurückzuschreiben.
-
----
-
-## Redirect- und URL-Vertrag
-
-Bei Slug-Änderungen werden automatische Redirects auf Basis der aktiven Beitrags-Permalinkstruktur erzeugt.
-
-- Standardpfade folgen dem aktuellen Public-Schema, z. B. `/blog/...`
-- Lokalisierte Pfade folgen dem Präfix-Schema `/en/blog/...`
-- Legacy-Pfade bleiben zusätzlich per Redirect kompatibel
-- Änderungen an `slug_en` erzeugen ebenfalls lokalisierte Redirects und fallen bei leerem EN-Slug kontrolliert auf den Standardslug zurück
-
-Damit bleiben sowohl aktuelle als auch ältere öffentliche Beitrags-URLs stabil auflösbar.
-
----
-
-## Delete-, Cache- und Veröffentlichungslogik
-
-- Einzel-Löschen ist im Editor direkt in der Aktionskarte unter den Vorschau-Buttons sichtbar und mit Bestätigungsdialog abgesichert.
-- Einzel- und Bulk-Löschen feuern `post_deleted` für Folgeprozesse.
-- Wenn `perf_auto_clear_content_cache` aktiv ist, leeren Speichern, Löschen, relevante Bulk-Mutationen sowie Kategorie-/Tag-Änderungen den Inhaltscache automatisch.
-- Veröffentlichte Beiträge mit zukünftigem Datum erscheinen im Admin als `Geplant` und werden erst zum vorgesehenen Zeitpunkt öffentlich sichtbar.
-
-Das folgt den Heuristiken **Visibility of System Status**, **Error Prevention** und **User Control and Freedom**: Status ist sichtbar, riskante Aktionen werden bestätigt und destruktive Schritte sind klar erkennbar statt versteckt.
-
----
-
-## Kategorien- und Tag-Vertrag
-
-Die Taxonomie-Verwaltung gehört funktional zum Beiträge-Bereich und folgt jetzt einem konsistenteren Admin-Vertrag:
-
-- **Kategorien** unterstützen Haupt-/Unterkategorien sowie eine hinterlegte Ersatzkategorie für spätere Löschvorgänge. Kategorie-Fremddomains bzw. Kategorie-Zusatzdomains sind seit `3.3.43` entfernt; Domain-Zuordnungen gehören weiterhin zu Hub-Sites, nicht zu Beitragskategorien.
-- **Tags** bleiben flach, erlauben aber beim Löschen eine bewusste Umstellung betroffener Beiträge auf einen Ersatztag.
-- Seit `2.9.706` unterstützen beide Taxonomie-Listen Bulk-Löschaktionen: Kategorien verwenden entweder eine gemeinsame Ersatzkategorie oder die je Kategorie hinterlegte Ersatzkategorie; Tags verwenden bei Beitragsbezug einen gemeinsamen Ersatztag.
-- Der Bulk-Flow ist fail-closed: IDs werden gegen den aktuellen Datenbestand geprüft, Ersatzziele dürfen nicht Teil der Lösch-Auswahl sein, die Ausführung läuft transaktional, und erfolgreiche Sammelaktionen werden im Audit-Log dokumentiert.
-- Seit `2.9.707` wird der Content-Cache bei erfolgreichen Bulk-Löschungen nicht mehr pro Einzelobjekt innerhalb der laufenden Transaktion geleert, sondern nur noch einmal nach erfolgreichem Commit. Das reduziert unnötige Cache-Invalidierungen und vermeidet Zwischenzustände bei späteren Rollbacks.
-- Validierungsfehler in Kategorie-/Tag-Formularen verwerfen die Eingaben nicht mehr sofort: Name, Slug und Eltern-/Ersatzauswahl bleiben nach dem Redirect erhalten und werden direkt am Formular erneut eingeblendet.
-- Einzel-Löschdialoge sind bewusst spezifisch formuliert: sie nennen die betroffene Taxonomie und erläutern, ob Beiträge umgehängt oder Beziehungen nur entfernt werden.
-- Auch der Fallback ohne Bootstrap-Modal blockiert Kategorie-Löschungen nicht mehr unnötig, wenn bereits eine gültige Ersatzkategorie hinterlegt ist.
-
-Das passt zu den NN/g-Empfehlungen für **Confirmation Dialogs** und **Error Messages**: riskante Aktionen werden konkret beschrieben, Modale bleiben auf destruktive Schritte beschränkt, und Korrekturen können mit erhaltenem Formzustand direkt am Entstehungsort erfolgen.
-
-Zusätzlich ist der Public-Vertrag des Default-Themes für Taxonomie-Navigation jetzt wieder konsistent: Blog-Links mit `?category=` bzw. `?tag=` lösen in dieselben Kategorie-/Tag-Archive auf wie die dedizierten Archivrouten, und Sidebar-/Header-Helfer zählen veröffentlichte Beiträge nicht mehr nur über die Primärkategorie oder Legacy-`posts.tags`, sondern berücksichtigen Relationstabellen sowie die aktuelle DE/EN-Content-Verfügbarkeit.
-
-Seit `2.9.617` gilt das auch bei späteren Slug-Änderungen: Kategorie- und Tag-Slugs erzeugen automatische Archiv-Redirects, und die Query-basierten Blog-Filter können alte Slugs über diese Redirect-Spur wieder auf den aktuellen Archiv-Slug auflösen, statt mit 404 zu enden.
-
-Seit `2.9.779` ist dieser Vertrag im Admin direkt sichtbar: Die Edit-Formulare für Kategorien und Tags zeigen die aktuellen Archivpfade der jeweiligen Taxonomie, erläutern am Slug-Feld den Redirect- und Legacy-Filter-Vertrag und geben nach einer tatsächlichen Slug-Änderung die automatisch gepflegten Archiv-Weiterleitungen als Erfolgsdetails aus. Der Redirect-Manager bleibt dabei die zentrale Pflegeoberfläche für Regeln; die Taxonomie-Verwaltung öffnet keinen konkurrierenden Spezialpfad, sondern macht die bereits vorhandene Automatik transparent.
-
----
-
-## Kommentare- und TOC-Vertrag
-
-Der Unterbereich **Kommentare** ist nun auch im Public-Frontend wieder vollständig angeschlossen:
-
-- Einzelbeiträge rendern freigegebene Kommentare wieder sichtbar oberhalb des Formulars.
-- Der Redirect nach `POST /comments/post` landet bevorzugt wieder auf demselben sicheren Public-Pfad des absendenden Beitrags statt pauschal auf einer generischen Blog-URL; dadurch bleiben locale-aware Pfade und `#comments` stabil.
-- Das Default-Theme respektiert im Formular jetzt auch `allow_comments` des Beitrags. Ist Kommentieren deaktiviert, erscheint kein irreführend funktionierendes Formular mehr.
-- Fehler- und Erfolgsrückmeldungen der Kommentarabgabe werden inline im Kommentarbereich gezeigt; Name, E-Mail, Kommentartext und der anonyme Status bleiben bei Fehlern erhalten.
-- Eingeloggte Nutzer verwenden konsistent ihre Profilidentität und können optional anonym veröffentlichen; öffentliche Kommentare bleiben weiterhin moderationspflichtig.
-- Die Admin-Moderationsliste verwendet nur noch den tatsächlich produktiven Formular-/Dropdown-Vertrag; veraltete JS-Aktionspfade ohne DOM-Gegenstück wurden entfernt, und `Alle auswählen` arbeitet jetzt sauber mit indeterminiertem Zwischenzustand und Bulk-Zähler zusammen.
-
-Für das **Inhaltsverzeichnis (TOC)** gilt jetzt ein präziserer Runtime-Vertrag:
-
-- `exclude_headings` akzeptiert Pipe- **und** Komma-getrennte Ausschlusslisten.
-- Die Optionen `lowercase` und `hyphenate` beeinflussen die Ankererzeugung jetzt tatsächlich statt nur gespeichert zu werden.
-- `homepage_toc` unterdrückt TOCs auf Home-/Locale-Root-Pfaden, wenn die Option deaktiviert ist.
-- `exclude_css` rendert eine ungestylte TOC-Ausgabe ohne die internen TOC-Klassen, sodass die Core-CSS wirklich wegfällt.
-- Die Admin-Auswahl `light`/`dark` mappt wieder auf funktionierende Theme-Varianten, und die Positionsbeschreibung benennt den realen Insertionsvertrag korrekt als **vor/nach der ersten Überschrift**.
-- Die Admin-Seite `/admin/table-of-contents` nutzt denselben Section-Shell-Standard wie andere modernisierte Bereiche, inklusive konsistenter CSRF-/Flash-/Redirect-Behandlung.
-
-Diese Nachschärfung folgt zwei UX-/A11y-Grundsätzen: Kommentare müssen sichtbar, lokalisierbar und rückmeldungsstark sein, und TOCs müssen sich an echter Überschriftenstruktur orientieren statt an bloß dekorativen Schaltern.
-
----
-
-## Besondere Bezüge
-
-| Bereich | Nutzen |
-|---|---|
-| Kategorien und Tags | Taxonomie, Archive, Filterung und Routing |
-| SEO-Center | Meta-Daten, Vorschauen, strukturierte Daten und Analysen |
-| Redirect-Manager | URL-Stabilität bei Slug-Änderungen |
-| Sitemap / SEO-Services | Veröffentlichte Beiträge fließen in Sichtbarkeits- und Indexierungsprozesse ein |
-| Medienverwaltung | Featured Image und Inhaltsmedien; globale Ersetzung verwendeter Beitragsbilder unter `/admin/media?tab=featured` |
-
----
-
-## Verwandte Dokumente
-
-- [PAGES.md](PAGES.md)
-- [../seo/SEO.md](../seo/SEO.md)
-- [../media/MEDIA.md](../media/MEDIA.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

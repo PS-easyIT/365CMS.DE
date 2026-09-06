@@ -1,7 +1,7 @@
-> **Website:** [365CMS](https://365cms.de/)  
-> **Version:** 3.4.00  
-> **Datum:** 2026-09-06  
-> **Status:** Aktuell · **Zuletzt aktualisiert am: 2026-09-06**  
+> **Website:** [365CMS](https://365cms.de/)
+> **Version:** 3.4.00
+> **Datum:** 2026-09-06
+> **Status:** Aktuell – **Zuletzt aktualisiert am: 2026-09-06**
 > **Kurzbeschreibung:** Klassen- und Methodenreferenz für den Core einschließlich Auth, Routing, Persistenz, Sicherheit und Laufzeit-Helfern. Die Klassenliste wurde mit den 155 PHP-Dateien unter `CMS/core/` abgeglichen.
 
 ## English
@@ -19,6 +19,14 @@ Diese Referenz erklärt die Bausteine des 365CMS-Core: Startlogik, Routing, Date
 
 ### Technisch
 Die nachfolgende vollständige Klassen- und Methodenreferenz wurde mit dem aktuellen Baum `CMS/core/` einschließlich Unterverzeichnissen abgeglichen.
+
+## Deutsch
+
+### Anwenderfreundlich
+
+Diese Referenz erklärt die zentralen Klassen, die den Betrieb, die Sicherheit und die Erweiterungen des 365CMS ermöglichen.
+
+### Technisch
 
 # 365CMS – Core-Klassen-Referenz
 <!-- UPDATED: 2026-09-06 -->

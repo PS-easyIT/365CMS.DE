@@ -1,7 +1,7 @@
-> **Website:** [365CMS](https://365cms.de/)  
-> **Version:** 3.4.00  
-> **Datum:** 2026-09-06  
-> **Status:** Aktuell · **Zuletzt aktualisiert am: 2026-09-06**  
+> **Website:** [365CMS](https://365cms.de/)
+> **Version:** 3.4.00
+> **Datum:** 2026-09-06
+> **Status:** Aktuell – **Zuletzt aktualisiert am: 2026-09-06**
 > **Kurzbeschreibung:** Sicherheitsreferenz für Sessions, CSRF, XSS, Uploads, Authentifizierung, Rate-Limits, Audit-Logging und sichere Remote-Zugriffe. Die Aussagen wurden mit `CMS/core/Security.php`, `Auth.php`, `Http/Client.php` und den Sicherheitsservices geprüft.
 
 ## English
@@ -21,6 +21,14 @@ The security boundary spans `Security`, `Auth`, `AuditLogger`, `Http\Client`, up
 Die Sicherheitsgrenze verteilt sich auf `Security`, `Auth`, `AuditLogger`, `Http\Client`, Upload-/Medienservices und Router-Middleware.
 
 <!-- UPDATED: 2026-09-06 -->
+## Deutsch
+
+### Anwenderfreundlich
+
+Das 365CMS schützt Sitzungen, Formulare, Uploads, API-Aufrufe und Administrationsaktionen gegen typische Angriffe.
+
+### Technisch
+
 # 365CMS – Sicherheitsarchitektur
 > **Stand:** 2026-09-06 | **Version:** 3.4.00 | **Status:** Aktuell
 

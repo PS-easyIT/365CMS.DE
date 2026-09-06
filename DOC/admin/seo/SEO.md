@@ -1,173 +1,63 @@
-# 365CMS – SEO-Center
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for SEO, analytics, and redirect management. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Dokumentiert die vollständige SEO-Suite mit Dashboard, Analytics, Audit, Meta-Daten, Social Media, Schema, Sitemap, technischem SEO und Redirect-Manager.
+# 365CMS Admin – Seo
 
-Letzte Aktualisierung: 2026-05-12 · Version 2.9.778
+## English
 
----
+### Administrator guide
 
-## Überblick
+This document covers SEO, analytics, and redirect management. Open `/admin/seo-dashboard` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-SEO ist in 365CMS als mehrteiliges SEO-Center mit spezialisierten Unterseiten organisiert. Die Fachlogik verteilt sich auf spezialisierte Admin-Einstiege und Module für Dashboard, Analytics, Audit, Meta, Social, Schema, Sitemap, Technical und Redirects.
+Use the page in this order:
 
-| Baustein | Datei |
-|---|---|
-| Spezialisierte Entry Points | `CMS/admin/seo-dashboard.php`, `CMS/admin/seo-meta.php`, `CMS/admin/seo-social.php`, `CMS/admin/seo-schema.php`, `CMS/admin/seo-sitemap.php`, `CMS/admin/seo-technical.php`, `CMS/admin/seo-audit.php`, `CMS/admin/analytics.php`, `CMS/admin/redirect-manager.php` |
-| Module | spezialisierte SEO-Module im Admin-/Service-Stack |
-| Dashboard-Modul | `CMS/admin/modules/seo/SeoDashboardModule.php` |
-| Analytics-Modul | `CMS/admin/modules/seo/AnalyticsModule.php` |
-| Redirect-Modul | `CMS/admin/modules/seo/RedirectManagerModule.php` |
-| Subnav | `CMS/admin/views/seo/subnav.php` |
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-CSRF-Kontext: `admin_seo_suite`
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
----
+### Technical reference
 
-## Routen und Unterseiten
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/ai-generate-seo-metadata.php`, `CMS/admin/ai-seo-creator.php`, `CMS/admin/modules/seo/SeoDashboardModule.php`, `CMS/admin/modules/seo/SeoSuiteModule.php`, `CMS/admin/modules/system/AiEditorJsSeoMetadataModule.php`, `CMS/admin/seo-audit.php`, `CMS/admin/seo-dashboard.php`, `CMS/admin/seo-meta.php`.
 
-| Route | View | Zweck |
-|---|---|---|
-| `/admin/seo-dashboard` | `views/seo/dashboard.php` | Gesamtüberblick, zentrale Kennzahlen und Schnellzugriffe |
-| `/admin/analytics` | `views/seo/analytics.php` | Traffic, Seitenaufrufe, Tracking-Einstellungen |
-| `/admin/seo-audit` | `views/seo/audit.php` | SEO-Audits, Befunde und Optimierungshinweise |
-| `/admin/seo-meta` | `views/seo/meta.php` | Titel, Beschreibungen, Meta-Templates |
-| `/admin/seo-social` | `views/seo/social.php` | Open Graph, Social-Media-Metadaten |
-| `/admin/seo-schema` | `views/seo/schema.php` | Strukturierte Daten und Schema-Management |
-| `/admin/seo-sitemap` | `views/seo/sitemap.php` | XML-Sitemaps und `robots.txt`-Einstellungen |
-| `/admin/seo-technical` | `views/seo/technical.php` | Technische SEO-Aspekte und Crawling-Steuerung |
-| `/admin/redirect-manager` | `views/seo/redirects.php` | 404-Logs und Weiterleitungsregeln |
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
----
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-## SEO-Dashboard
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-Das Dashboard dient als Einstieg und zeigt:
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-- SEO-Score und Health-Kennzahlen
-- Zusammenfassung offener Optimierungspunkte
-- Schnellzugriffe auf alle Unterseiten
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
----
+## Deutsch
 
-## Analytics
+### Anwenderleitfaden
 
-Siehe [ANALYTICS.md](ANALYTICS.md) für die detaillierte Dokumentation der Tracking-Einstellungen, internen Page-View-Statistiken und Datenschutzbezüge.
+Dieses Dokument beschreibt SEO, analytics, and redirect management. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/seo-dashboard`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
----
+Empfohlener Ablauf:
 
-## SEO-Audit
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-Der SEO-Audit prüft Seiten und Beiträge auf typische Optimierungspotenziale. Die aktuelle Implementierung arbeitet robuster mit unvollständigen Score- und Issue-Daten als ältere Dokumentationsstände.
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-Zur Laufzeit ist die Audit-Datenquelle bewusst begrenzt: Pro Inhaltstyp werden standardmäßig die zuletzt aktualisierten 1.000 Seiten bzw. Beiträge analysiert und serverseitig auf maximal 5.000 Datensätze pro Typ geklemmt. Dashboard, Broken-Link-Report und Trend-Live-Fallback bleiben dadurch auch auf größeren Installationen responsive, ohne neue Schreibpfade, externe Fetches oder Token in URLs einzuführen.
+### Technische Referenz
 
----
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/ai-generate-seo-metadata.php`, `CMS/admin/ai-seo-creator.php`, `CMS/admin/modules/seo/SeoDashboardModule.php`, `CMS/admin/modules/seo/SeoSuiteModule.php`, `CMS/admin/modules/system/AiEditorJsSeoMetadataModule.php`, `CMS/admin/seo-audit.php`, `CMS/admin/seo-dashboard.php`, `CMS/admin/seo-meta.php`.
 
-## Meta-Daten
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Die Meta-Seite verwaltet globale und seitenspezifische SEO-Vorlagen:
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-- Title-Templates für verschiedene Inhaltstypen
-- Meta-Description-Vorlagen
-- allgemeine Meta-Keywords
-- Trennzeichen und Formatierung
-- globaler Live-Preview-Modus für Startseite, Blog-Archiv, Kategorie- und Tag-Archive auf Basis der aktuellen Meta-Defaults, des Titel-Templates und des Social-Fallback-Bilds
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
----
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-## Social Media
-
-Verwaltung der Social-Media-Metadaten:
-
-- Open-Graph-Defaults für Typ und Fallback-Bild
-- globale Twitter/X-Card-Defaults
-- Brand-Name als globaler `og:site_name`-Fallback
-- Social-Preview-Defaults im Admin bei gleichzeitiger echter Runtime-Nutzung der gespeicherten Social-Fallbacks im Frontend-Head
-
-Der aktuelle Laufzeitvertrag ist dabei bewusst fail-soft: Wenn ein Beitrag oder eine Seite keine eigenen Social-Werte gespeichert hat, nutzt der Frontend-Head-Renderer die globalen SEO-Social-Defaults für `og:type`, `og:image`, `twitter:card` und `og:site_name`, statt auf fest codierte Werte zurückzufallen.
-
----
-
-## Strukturierte Daten
-
-Schema-Management für maschinenlesbare Auszeichnungen:
-
-- Organsiation/Person-Schema
-- Breadcrumb-Konfiguration
-- Artikel- und Seitentypen
-- benutzerdefinierte Schema-Ergänzungen
-
----
-
-## Sitemap & robots.txt
-
-Steuerung der Sichtbarkeit für Suchmaschinen:
-
-- XML-Sitemap-Regenerierung
-- Bild- und News-Sitemaps
-- robots.txt-Editor mit Vorlagen
-- Ping an Suchmaschinen nach Sitemap-Update
-
----
-
-## Technisches SEO
-
-Erweiterte technische Steuerung:
-
-- kanonische URL-Vorgaben
-- Index/NoIndex-Defaults
-- HTTP-Header-Steuerung für SEO
-- Crawling-Budget-Optimierung
-- read-only Broken-Link-Report aus Inhalten, XML-Sitemaps, Redirect-Zielen und 404-Monitor mit manuellem Rerun, Ignore-Liste und geplantem Cron-Lauf
-
-Die Broken-Link-Prüfung bleibt bewusst lokal und fail-soft: Es gibt keinen externen Crawl, keine neuen Token in URLs und keinen zusätzlichen GET-Mutationspfad. Der Report wird als gespeicherte Übersicht aufgebaut, kann per POST/CSRF erneut berechnet werden und blendet ignorierte Zielpfade nur in der Anzeige aus, ohne historische Rohdaten oder Redirect-/404-Bestände mutierend umzuschreiben.
-
----
-
-## Redirect-Manager
-
-Verwaltung von Weiterleitungen und 404-Protokollierung:
-
-- 404-Fehlerlog einsehen
-- 301/302-Weiterleitungen anlegen
-- Bulk-Operationen für häufige 404-URLs
-- Umleitungsregeln pflegen
-
----
-
-## SEO-Editor-Integration
-
-In Seiten- und Beitragseditoren stehen drei SEO-Karten zur Verfügung:
-
-- **Score-Karte**: SEO-Bewertung und Verbesserungsvorschläge
-- **Readability-Karte**: Lesbarkeitsanalyse
-- **Preview-Karte**: parallele Vorschau für Google Desktop, Google Mobile und Social-OG
-
-Zusätzlich ergänzt der Editor jetzt eine nicht blockierende **Live-Hinweis-Zeile** mit Badge-Empfehlungen für:
-
-- Title
-- Description
-- H1-Eindeutigkeit
-- Keyphrase
-- Bild-Alt-Texte
-
-Zusätzlich zeigen Seiten- und Beitragseditoren jetzt einen read-only **Override-Hinweis**, sobald lokale Meta-Felder aktive Defaults überschreiben. Der Hinweis trennt bewusst zwischen individuell gesetzten Overrides und redundantem Überschreiben ohne Mehrwert: Entspricht ein lokaler Meta-Titel bereits dem globalen Titel-Template oder eine lokale Meta-Beschreibung bereits dem automatisch aus Kurzfassung, erstem Absatz oder Inhalt abgeleiteten Default, kann das jeweilige Feld direkt im Editor auf den Standard zurückgesetzt werden. Technisch geschieht das ausschließlich durch Leeren des lokalen Feldes im bestehenden Formular – ohne neue Route, ohne Token in URLs und ohne separaten Schreibpfad.
-
-Diese Karten greifen auf die globalen SEO-Einstellungen zurück. Für die echte Frontend-Ausgabe gilt zusätzlich: globale Social-Defaults aus dem SEO-Center sind jetzt mit dem Head-Renderer verbunden und wirken als Fallback, solange kein inhaltsspezifischer Social-Meta-Wert vorhanden ist. Auf `/admin/seo-meta` steht ergänzend ein read-only Vorschau-Modus zur Verfügung, der dieselben Meta-Defaults für Startseite, Archive und Taxonomien live gegen den aktuellen Template-Stand spiegelt. Die Editor-Vorschau folgt dabei demselben Resolver-Vertrag wie die Runtime: Meta-Beschreibungen nutzen bei Beiträgen zuerst die Kurzfassung, danach den ersten Absatz und erst danach den restlichen Inhalt.
-
-Die Hinweise sind ausdrücklich empfehlend: Sie ändern weder den POST-/CSRF-Vertrag des Editors noch blockieren sie Speichern oder Veröffentlichen. Für die H1-Prüfung wird der sichtbare Titel als primäre Überschrift mitberücksichtigt; bei Seiten mit aktivem `hide_title` muss die eindeutige H1 daher aus dem Inhalt selbst kommen.
-
----
-
-## Dokumentationshinweis
-
-Alle älteren Verweise auf `/admin/seo.php` sind veraltet. In aktuellen Dokumenten immer die konkrete Unterseite verwenden.
-
----
-
-## Verwandte Dokumente
-
-- [ANALYTICS.md](ANALYTICS.md)
-- [REDIRECTS.md](REDIRECTS.md)
-- [../pages-posts/PAGES.md](../pages-posts/PAGES.md)
-- [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

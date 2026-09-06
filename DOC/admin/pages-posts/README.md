@@ -1,74 +1,63 @@
-# 365CMS – Inhalte: Seiten, Beiträge, Hub-Sites & Landing Pages
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for the 365CMS administration area. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
+# 365CMS Admin – Readme
 
-Letzte Aktualisierung: 31.05.2026 · Version 3.3.44
+## English
 
-Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
+### Administrator guide
 
-| Route | Zweck |
-|---|---|
-| `/admin/pages` | statische Seiten verwalten |
-| `/admin/posts` | Blog- und News-Beiträge verwalten |
-| `/admin/comments` | Kommentare moderieren und verwalten |
-| `/admin/hub-sites` | Hub-Sites und thematische Sammelseiten verwalten |
-| `/admin/landing-page` | Landing-Page-Bausteine und Homepage-Sektionen |
-| `/admin/table-of-contents` | Inhaltsverzeichnis-Logik und TOC-Einstellungen |
-| `/admin/site-tables` | benutzerdefinierte Datentabellen |
-| `/admin/settings?tab=content` | Inhalts-Einstellungen (Editor-Optionen, Defaults, Permalinks, Archiv-Basen) |
+This document covers the 365CMS administration area. Open `/admin` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
----
+Use the page in this order:
 
-## Editor-Stack
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-Im aktuellen Stand nutzt 365CMS im Content-Bereich mehrere Editorkomponenten:
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-- **SunEditor** für klassische Rich-Text-Bearbeitung
-- **Editor.js** für blockbasierte Inhalte
-- **WordPress-like Block-/Blockly-Verhalten** im EditorJS-Canvas: gruppierter Block-Inserter, Commandbar, Drag-&-Drop-Reordering, Undo/Redo, Breitenmodus und Blockkarten für Text-, Medien-, Layout- und Spezialblöcke
-- **SEO-/Readability-/Preview-Karten** unter Seiten und Beiträgen für Meta-Daten, Inhaltsqualität und Vorschau
-- **Lazy Language Switching** im Beitrags-Editor mit einmaliger DE→EN-Initialkopie bei leerer englischer Fassung
-- **Read-only Revisionsvergleich** in Seiten- und Beitragseditor für die letzten gespeicherten Snapshots des aktuellen Inhalts
+### Technical reference
 
-Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monolithen `seo.php`, sondern im [SEO-Center](../seo/SEO.md).
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
 
-Seit `3.0.13` ist das WordPress-ähnliche EditorJS-Bedienverhalten explizit Teil des Content-Vertrags: Redaktionen arbeiten im Admin mit einem blockorientierten Canvas, gruppierten Einfüge-Karten, Schnellaktionen und Drag-&-Drop, während der Save-Pfad weiterhin strukturierte EditorJS-Daten schreibt. Public-Rendering, Sanitizer und Themes verarbeiten diese Daten serverseitig kontrolliert weiter.
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
----
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-## Wichtige Fachdokumente
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-| Dokument | Schwerpunkt |
-|---|---|
-| [PAGES.md](PAGES.md) | statische Seiten |
-| [POSTS.md](POSTS.md) | Beiträge und Blog-Workflow |
-| [COMMENTS.md](COMMENTS.md) | Kommentar-Moderation mit Status-Tabs, Schnellfiltern und Massenaktionen |
-| [HUBSITES.md](HUBSITES.md) | Hub-Sites, Slugs, Zusatzdomains und Public-Routing |
-| [SETTINGS.md](SETTINGS.md) | Inhalts-Einstellungen für Editor, Defaults, Permalinks und Archive |
-| [TABLES.md](TABLES.md) | Wiederverwendbare Site-Tabellen |
-| [TOC.md](TOC.md) | Inhaltsverzeichnis-Einstellungen |
-| [../landing-page/LANDING-PAGE.md](../landing-page/LANDING-PAGE.md) | Landing-Page-Builder |
-| [../media/MEDIA.md](../media/MEDIA.md) | Medienbibliothek und Dateinutzung |
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
----
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-## Aktuelle Hinweise
+## Deutsch
 
-- Lösch-Workflows für Seiten und Beiträge folgen im aktuellen Stand dem konsolidierten Admin-Flow mit Redirects, Alerts und serverseitiger Validierung.
-- Featured Images, Slugs und Redaktionshilfen sind stärker mit SEO und Medienverwaltung verzahnt; verwendete Beitrags- und Seitenbilder können unter `/admin/media?tab=featured` gezielt gefunden und global am bestehenden Medienpfad ersetzt werden.
-- Neue Beitrags- und Seitenbilder werden zuerst temporär hochgeladen und beim Speichern in den Slug-Ordner verschoben; der Save-Flow ist dabei fail-soft gegen Metadaten-/Dateisystemfehler, setzt öffentliche Zielbilder webserverlesbar und speichert hostneutrale direkte `/uploads/...`-Referenzen statt unnötiger Delivery-Query-URLs.
-- Der Beitrags-Editor nutzt im Top-Bereich jetzt eine kompaktere Kartenverteilung: Kategorie und Tags sitzen direkt beim Slug, während Speichern und öffentliche DE-/EN-Vorschau in einer eigenen Aktions-Card unter dem Beitragsbild liegen.
-- Beiträge arbeiten im Editor aktuell mit **einer primären Kategorie**; die frühere UI für zusätzliche Kategorien wird nicht mehr angeboten.
-- Kategorie-Zusatzdomains sind seit `3.3.43` vollständig aus der Beitragskategorien-Verwaltung entfernt. Kategorien dienen nur noch als Taxonomie-/Archivstruktur; Root-Domain-Weiterleitungen auf Kategoriearchive finden nicht mehr statt. HubSite-Domains bleiben davon unberührt.
-- Slug-Änderungen an Kategorien und Tags halten den öffentlichen Taxonomie-Vertrag jetzt ebenfalls stabil: dedizierte Archivpfade und alte `?category=`/`?tag=`-Filterwerte werden weiter auf den aktuellen Slug aufgelöst.
-- Die Kategorie- und Tag-Editoren machen diesen Vertrag inzwischen sichtbar: aktuelle Archivpfade, Redirect-Hinweis direkt am Slug-Feld und Erfolgsdetails zu automatisch gepflegten Archiv-Weiterleitungen sorgen dafür, dass die Cross-Verkabelung im Admin nachvollziehbar bleibt.
-- Kategorien und Tags unterstützen seit `2.9.706` Bulk-Löschaktionen in den jeweiligen Listen. Bei Beitragsbezug erzwingt der Server gültige Ersatzkategorien bzw. Ersatztags, verhindert Ersatzwerte aus der Lösch-Auswahl und protokolliert erfolgreiche Sammelaktionen im Audit-Trail.
-- Seit `2.9.707` leeren erfolgreiche Bulk-Löschungen für Kategorien und Tags den Content-Cache erst nach erfolgreichem Commit einmalig statt pro Einzellöschung innerhalb der offenen Transaktion. Das reduziert unnötige Cache-Invalidierungen und hält den Löschpfad bei Rollbacks konsistenter.
-- Hub-Sites reservieren nun auch statische Public-Routen und Archivbasen als Slugs, damit neu angelegte Hubs nicht an `/contact`, `/authors`, `/feed`, `/category`, `/tag` oder ähnlichen Frontend-Routen unsichtbar vorbeiplanen.
-- Site-Tabellen schließen ihren Public-Vertrag jetzt sichtbar an den Editor an: Suche, Sortierung, Paginierung und Zeilenhervorhebung wirken im Frontend tatsächlich; die nicht implementierte Excel-Option wird im Admin nicht länger als scheinbar produktiver Export angeboten.
-- Der Unterbereich „Einstellungen“ lebt technisch unter `/admin/settings?tab=content`, bündelt jetzt auch Permalink-/Archiv-Basen direkt im Inhalts-Tab und behält Formulareingaben bei Validierungsfehlern über den Redirect hinweg.
-- Listenansichten mit Mehrfachauswahl machen die beabsichtigte Bulk-Aktion jetzt direkt am Button sichtbar; destruktive Aktionen werden so nicht mehr hinter einem generischen „Anwenden“ versteckt. Gleichzeitig öffnen Aktions-Dropdowns in scrollbaren Tabellen sichtbar, statt in der horizontalen Overflow-Zone abgeschnitten zu werden.
-- Die Kommentar-Moderation kombiniert Status-Tabs jetzt mit serverseitiger Schnellsuche, Autorentyp- und Beitragsbezug-Filtern; aktive Filter bleiben über Moderationsaktionen hinweg erhalten, und der sichtbare Batch-Modus deaktiviert parallele Zeilenaktionen bewusst.
-- Kategorien, Tags, Kommentare, Inhaltsverzeichnis, Hub-Sites und Tabellen folgen jetzt demselben nüchternen Backend-Rahmen wie bereits Seiten/Beiträge: funktionaler Header statt KPI-Kacheln, konsistente Toolbars/Filterzonen, zurückhaltende Tabellenaktionen und responsive Breakpoints auf Basis der zentralen Admin-CSS-Bausteine.
-- Seiten- und Beitragseditor zeigen die letzten gespeicherten Revisionen jetzt direkt im Admin und vergleichen Titel, Slugs, Status sowie DE/EN-Inhalts-Snapshots mit dem aktuellen Stand, ohne alte Fassungen versehentlich sofort zurückzuschreiben.
-- Historische Verweise auf `/admin/seo.php` oder alte Monolith-Seiten sind in diesem Bereich nicht mehr korrekt.
+### Anwenderleitfaden
+
+Dieses Dokument beschreibt the 365CMS administration area. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
+
+Empfohlener Ablauf:
+
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
+
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
+
+### Technische Referenz
+
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/index.php`, `CMS/admin/partials/sidebar.php`.
+
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
+
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
+
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
+
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
+
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

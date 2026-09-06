@@ -1,79 +1,63 @@
-# URL-Weiterleitungen (Redirect Manager)
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for SEO, analytics, and redirect management. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Verwaltung von 301/302-Weiterleitungen, Protokollierung, 404-Monitoring und Aggregatkennzahlen für Dashboard-Trends.
+# 365CMS Admin – Redirects
 
-Letzte Aktualisierung: 2026-05-11 · Version 2.9.751
+## English
 
----
+### Administrator guide
 
-## Route und Technik
+This document covers SEO, analytics, and redirect management. Open `/admin/redirect-manager` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-| Eigenschaft | Wert |
-|---|---|
-| Route | `/admin/redirect-manager` |
-| Modul | `CMS/admin/modules/seo/RedirectManagerModule.php` |
-| View | `CMS/admin/views/seo/redirects.php` |
-| CSRF-Kontext | `admin_redirect_manager` |
+Use the page in this order:
 
----
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-## Funktionsumfang
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-### Redirect-Liste
+### Technical reference
 
-Zeigt alle konfigurierten Weiterleitungen mit Quell-URL, Ziel-URL, Typ (301/302), Status und Trefferanzahl.
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/views/seo/redirects.php`.
 
-### 404-/Redirect-Kennzahlen
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-- Der Redirect-Manager und der 404-Monitor nutzen gemeinsame Aggregatwerte für:
-	- Gesamtzahl der Redirect-Regeln
-	- aktive Redirect-Regeln
-	- bekannte 404-Pfade
-	- kumulierte 404-Hits
-- Die Kennzahlen werden serverseitig über SQL-Aggregate berechnet und sind **nicht** mehr von der auf 200 Einträge begrenzten 404-Tabellenansicht abhängig.
-- Diese Aggregatwerte speisen zusätzlich die read-only Trendkarten im SEO-Dashboard.
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-### 404-Monitor-Übernahme
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-- `/admin/not-found-monitor` nutzt denselben `admin_redirect_manager`-CSRF-Kontext wie der Redirect-Manager.
-- Ein Klick auf **Übernehmen** öffnet den gemeinsamen Redirect-Dialog und behandelt ungelöste 404-Logs ausdrücklich als neue Weiterleitung (`redirect_id = 0`). Die interne 404-Log-ID wird nicht als Redirect-ID übernommen.
-- Bereits übernommene 404-Zeilen bleiben bearbeitbar, weil sie über die vom Service gesetzte echte `redirect_id` auf die vorhandene Redirect-Regel zeigen.
-- Der JavaScript-Dialog fällt fail-soft weiter, wenn Browser-Storage blockiert ist oder die Bootstrap-Modal-API nicht global verfügbar ist; dadurch darf der Übernahmebutton nicht still ins Leere laufen.
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-### Aktionen
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-| Aktion | Methode |
-|---|---|
-| Erstellen/Bearbeiten | `saveRedirect(array $post)` |
-| Löschen | `deleteRedirect(int $id)` |
-| Aktivieren/Deaktivieren | `toggleRedirect(int $id)` |
-| Logs leeren | `clearLogs()` |
+## Deutsch
 
-### Redirect-Typen
+### Anwenderleitfaden
 
-| Typ | HTTP-Status | Zweck |
-|---|---|---|
-| Permanent | `301` | SEO-wirksame dauerhafte Weiterleitung |
-| Temporär | `302` | Vorübergehende Umleitung |
+Dieses Dokument beschreibt SEO, analytics, and redirect management. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/redirect-manager`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
----
+Empfohlener Ablauf:
 
-## Sicherheit
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-- Admin-Zugriffsschutz
-- CSRF-Prüfung über gemeinsamen SEO-Kontext
-- Serverseitige Validierung von Quell- und Ziel-URLs
-- 404-Übernahmen bleiben POST-only und erzeugen keine Token- oder Aktionsparameter in URLs.
-- Trendkarten und Aggregatkennzahlen bleiben read-only; es gibt keinen neuen GET-Mutationspfad.
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-## SEO-Hinweis
+### Technische Referenz
 
-- Google verarbeitet `301`/`308` als Signal für dauerhafte Ziel-URLs und `302` als temporäre Umleitung.
-- `404`-Antworten sind technisch legitim, sollten aber beobachtet werden; das Dashboard hebt deshalb bekannte 404-Pfade und Redirect-Bestand getrennt hervor, statt automatisch jede fehlende URL umzuleiten.
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/views/seo/redirects.php`.
 
----
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-## Verwandte Seiten
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-- [SEO-Übersicht](SEO.md)
-- [Technisches SEO](SEO.md#technisches-seo)
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
+
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
+
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

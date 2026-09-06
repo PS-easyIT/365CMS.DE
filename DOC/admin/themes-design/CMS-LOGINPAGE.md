@@ -1,216 +1,63 @@
-# 365CMS – CMS Loginpage
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for operations, logs, and monitoring. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Themeunabhängige Core-Oberfläche für Login, Registrierung und Passwort-Reset inklusive zentraler Admin-Steuerung.
+# 365CMS Admin – Cms Loginpage
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
+## English
 
-Route: `/admin/cms-loginpage`
+### Administrator guide
 
-Öffentliche Core-Routen im Modus `auth_slug_mode = cms`:
+This document covers operations, logs, and monitoring. Open `/admin/cms-loginpage` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-- `/cms-login`
-- `/cms-register`
-- `/cms-password-forgot`
+Use the page in this order:
 
----
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-## Zweck
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-Die **CMS Loginpage** löst die öffentliche Authentifizierung vom aktiven Frontend-Theme.
+### Technical reference
 
-Damit rendert 365CMS Login, Registrierung und Passwort-Reset nicht mehr nur über themeeigene Templates, sondern bei Bedarf vollständig aus dem Core. Das stabilisiert vor allem:
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/cms-loginpage.php`, `CMS/admin/views/landing/page.php`, `CMS/admin/views/themes/cms-loginpage.php`.
 
-- Logins bei Theme-Wechseln
-- mehrsprachige bzw. locale-aware MFA-Flows
-- einheitliche Redirect- und Sicherheitsverträge
-- Admin-seitige Pflege von Auth-Texten und Brand-Elementen
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-Zusätzlich kann die Oberfläche bestimmen, ob öffentliche Auth-Links bevorzugt die kanonischen CMS-Slugs oder die Legacy-Slugs verwenden sollen.
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
----
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-## Bearbeitbare Bereiche
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-Die Admin-Seite arbeitet über `CMS\Services\CmsAuthPageService` und speichert ihre Werte überwiegend als `cms_loginpage_*`-Settings in `cms_settings`.
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Gemeinsam genutzte Core-Schalter wie `registration_enabled`, `member_registration_enabled`, `privacy_page_id`, `terms_page_id` und `imprint_page_id` bleiben bewusst im allgemeinen Settings-Raum und werden hier nur mitverwaltet.
+## Deutsch
 
-### 1. Grundlayout
+### Anwenderleitfaden
 
-- Brandname
-- Logo-URL
-- Umschalter für öffentliche Auth-Slugs (`cms` / `legacy`)
-- Kartenbreite
-- Footer-Hinweis
+Dieses Dokument beschreibt operations, logs, and monitoring. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/cms-loginpage`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-### 2. Farben
+Empfohlener Ablauf:
 
-- Background Start / Ende
-- Kartenhintergrund
-- Text- und Muted-Farbe
-- Linkfarbe
-- Primary-Button + Textfarbe
-- Input-Hintergrund + Border
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-### 3. Texte & Headlines
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-Getrennte Headlines und Subheadlines für:
+### Technische Referenz
 
-- Login
-- Registrierung
-- Passwort-Reset
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/cms-loginpage.php`, `CMS/admin/views/landing/page.php`, `CMS/admin/views/themes/cms-loginpage.php`.
 
-### 4. Login-Formular
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-- Label für Benutzername/E-Mail
-- Label für Passwort
-- Button-Text
-- „Passwort vergessen“-Linktext
-- Platzhalter für Login-Felder
-- Label für „Angemeldet bleiben“
-- Schalter zum Ein-/Ausblenden von Remember-Me
-- Schalter zum Ein-/Ausblenden des Passkey-Buttons
-- eigener Button-Text für Passkey-Login
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-### 5. Registrierung
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-- globale Registrierungsfreigabe
-- Freigabe der Member-Registrierung
-- Feld-Labels und Platzhalter
-- Button-Text
-- Pflicht-Häkchen für Rechtszustimmung
-- freier Text für Rechtszustimmung
-- Hinweistext bei deaktivierter Registrierung
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-### 6. Passwort vergessen
-
-- Label und Placeholder für E-Mail
-- Button-Texte für Anfordern / Zurücksetzen / Erfolgszustand
-- Erfolgsmeldung für Link-Anforderung
-- Erfolgsmeldung für Reset
-
-### 7. Recht & Footer
-
-Verknüpfung mit veröffentlichten Seiten für:
-
-- Datenschutzerklärung
-- Nutzungsbedingungen
-- Impressum
-
-Zusätzlich frei pflegbare Footer-Link-Texte für:
-
-- Login
-- Registrierung
-- Passwort vergessen
-- Startseite
-
-### 8. Reset-E-Mail
-
-- Gültigkeit des Reset-Links in Minuten
-- eigener Mail-Betreff
-- eigener Mail-Text
-
-Verfügbare Platzhalter im Mail-Text:
-
-- `{site_name}`
-- `{brand_name}`
-- `{expires_minutes}`
-- `{reset_url}`
-
----
-
-## Eingabe- und Speichervertrag
-
-Die Werte werden serverseitig validiert und normalisiert, unter anderem für:
-
-- Farbwerte (`#rrggbb`)
-- Layout-Varianten (`centered`, `split`)
-- Slug-Modus (`cms`, `legacy`)
-- veröffentlichte Seiten-IDs für Datenschutz/AGB/Impressum
-- Text-, Textarea- und Multiline-Felder mit Längenlimits
-- Logo-URLs und interne Pfade ohne unsichere Schemata
-
----
-
-## Sicherheits- und Laufzeitvertrag
-
-Die CMS Loginpage ist nicht nur „hübscher Login“, sondern Teil des Security-Vertrags.
-
-### Redirects
-
-- öffentliche Redirects werden allowlist-basiert auf interne Same-Origin-Ziele normalisiert
-- offene Redirects auf fremde Hosts oder lose zusammengesetzte Schemas werden verworfen
-
-### CSRF
-
-- Login, Registrierung und Reset arbeiten mit Core-CSRF-Tokens
-- Admin-Speicherungen der CMS Loginpage folgen dem üblichen Admin-PRG-Flow
-
-### Passwort-Reset
-
-- Reset-Anfragen liefern weiterhin konsistente Erfolgstexte, um Benutzeraufzählung per Antwortinhalt zu vermeiden
-- Reset-Tokens werden kryptografisch zufällig erzeugt, gehasht gespeichert und nach erfolgreicher Nutzung gelöscht
-- Reset-Anfrage und Token-Einlösung sind zusätzlich per IP-basiertem Core-Rate-Limit geschützt
-- die Passwort-Policy bleibt mit dem übrigen Auth-System synchron
-
-### Registrierung
-
-Die Seite verwendet bewusst die vorhandenen globalen Settings:
-
-- `registration_enabled`
-- `member_registration_enabled`
-
-Es gibt also **keinen zweiten konkurrierenden Registrierungs-Schalter** nur für die UI.
-
-### MFA / Passkeys / LDAP
-
-Seit `2.9.0` finalisieren folgende Login-Arten dieselbe authentifizierte Session:
-
-- Passwort-Login
-- MFA / TOTP
-- Backup-Codes
-- Passkey / WebAuthn
-- LDAP
-
-Das behebt insbesondere den früheren Effekt, dass MFA-Benutzer nach erfolgreicher Bestätigung wieder aus der Login-Strecke herausfielen.
-
-### Remember-Me
-
-Der Schalter **„Angemeldet bleiben“** ist seit `2.9.0` eine echte persistente Backend-Option und keine reine UI-Dekoration mehr.
-
-### Öffentliche Pfade
-
-Die Vorschau- und Laufzeitpfade werden locale-aware aus dem Core erzeugt. Damit können Login, Registrierung und Passwort-Reset dieselbe Core-Strecke auch in lokalisierten Routen konsistent verwenden.
-
----
-
-## Abgrenzung zu anderen Admin-Seiten
-
-| Route | Aufgabe |
-|---|---|
-| `/admin/cms-loginpage` | öffentliche Core-Auth-Seiten visuell und textlich steuern |
-| `/admin/user-settings` | fachliche Auth- und Registrierungsgrundschalter, Provider-Status |
-| `/admin/theme-editor` | theme-spezifischen Customizer des aktiven Themes laden |
-| `/admin/theme-explorer` | Theme-Dateien kontrolliert durchsuchen |
-
----
-
-## Typischer Betriebsablauf
-
-1. Registrierung und Auth-Grundschalter unter `/admin/user-settings` prüfen.
-2. Branding, Farben, Texte und Rechtsseiten unter `/admin/cms-loginpage` konfigurieren.
-3. Öffentliche Pfade testen:
-   - `/cms-login`
-   - `/cms-register`
-   - `/cms-password-forgot`
-4. Optional MFA-, Passkey- und Reset-Mail-Flows mit einem Testkonto prüfen.
-
----
-
-## Verwandte Dokumente
-
-- [AUTH-SETTINGS.md](../users-groups/AUTH-SETTINGS.md)
-- [README.md](README.md)
-- [CUSTOMIZER.md](CUSTOMIZER.md)
-- [../../member/README.md](../../member/README.md)
-- [../../../Changelog.md](../../../Changelog.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.

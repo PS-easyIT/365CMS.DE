@@ -1,7 +1,7 @@
-> **Website:** [365CMS](https://365cms.de/)  
-> **Version:** 3.4.00  
-> **Datum:** 2026-09-06  
-> **Status:** Aktuell · **Zuletzt aktualisiert am: 2026-09-06**  
+> **Website:** [365CMS](https://365cms.de/)
+> **Version:** 3.4.00
+> **Datum:** 2026-09-06
+> **Status:** Aktuell – **Zuletzt aktualisiert am: 2026-09-06**
 > **Kurzbeschreibung:** Release- und Betriebsstatus des 365CMS-Core mit Plattformanforderungen, produktiven Bereichen, Grenzen und nächsten Vorhaben. Der Status wurde gegen `CMS/core/Version.php`, `Bootstrap.php`, `ApiRouter.php` und `SchemaManager.php` geprüft.
 
 ## English
@@ -19,6 +19,14 @@ Release 3.4.00 ist stabil und für PHP 8.4+ vorgesehen. Start, Routing, Datenban
 
 ### Technisch
 Der Code definiert Version `3.4.00`, Release-Datum `2026-09-05` und Status `stable`; das Basisschema umfasst 44 Core-Tabellen.
+
+## Deutsch
+
+### Anwenderfreundlich
+
+Dieses Dokument fasst Release, Betriebsstatus, Plattformanforderungen und bekannte Grenzen des 365CMS-Core zusammen.
+
+### Technisch
 
 # 365CMS – Systemstatus
 > **Stand:** 2026-09-06 | **Version:** 3.4.00 | **Status:** Aktuell

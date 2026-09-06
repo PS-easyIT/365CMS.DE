@@ -1,7 +1,7 @@
-> **Website:** [365CMS](https://365cms.de/)  
-> **Version:** 3.4.00  
-> **Datum:** 2026-09-06  
-> **Status:** Aktuell · **Zuletzt aktualisiert am: 2026-09-06**  
+> **Website:** [365CMS](https://365cms.de/)
+> **Version:** 3.4.00
+> **Datum:** 2026-09-06
+> **Status:** Aktuell – **Zuletzt aktualisiert am: 2026-09-06**
 > **Kurzbeschreibung:** Release-Snapshot der Core-, Admin- und Konfigurationsstruktur mit den wichtigsten Einstiegen und neuen Dateien. Der Baum wurde gegen den aktuellen Inhalt von `CMS/core/`, `CMS/admin/` und `CMS/config/` geprüft.
 
 ## English
@@ -19,6 +19,14 @@ Dieser Snapshot zeigt, wo Admin-Einstiege, Konfiguration und Core-Laufzeit liege
 
 ### Technisch
 Der geprüfte Core umfasst Root-Klassen sowie `Auth`, `Contracts`, `Http`, `Member`, `Routing` und Service-Unterbereiche. Plugins, Themes und Assets sind bewusst nicht vollständig enthalten.
+
+## Deutsch
+
+### Anwenderfreundlich
+
+Dieser Snapshot zeigt, wo Core, Administration und Konfiguration liegen und unterstützt Navigation, Deployment und Fehlersuche.
+
+### Technisch
 
 # 365CMS – Core-/Admin-Struktur-Snapshot
 > **Stand:** 2026-09-06 | **Version:** 3.4.00 | **Status:** Release-Snapshot / enger Strukturscope

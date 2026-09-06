@@ -1,7 +1,7 @@
-> **Website:** [365CMS](https://365cms.de/)  
-> **Version:** 3.4.00  
-> **Datum:** 2026-09-06  
-> **Status:** Aktuell · **Zuletzt aktualisiert am: 2026-09-06**  
+> **Website:** [365CMS](https://365cms.de/)
+> **Version:** 3.4.00
+> **Datum:** 2026-09-06
+> **Status:** Aktuell – **Zuletzt aktualisiert am: 2026-09-06**
 > **Kurzbeschreibung:** Referenz der durch `SchemaManager` und Migrationen verwalteten Core-Tabellen, Spalten, Indizes und Beziehungen. Die Angaben wurden mit `CMS/core/SchemaManager.php`, `MigrationManager.php` und den Datenbankzugriffen abgeglichen.
 
 ## English
@@ -19,6 +19,14 @@ Diese Referenz zeigt, welche Tabellen der Core anlegt und welche Daten darin ges
 
 ### Technisch
 `SchemaManager` legt das Basisschema idempotent an; `MigrationManager` führt inkrementelle Änderungen aus. Abfragen laufen über `Database` und vorbereitete Parameter.
+
+## Deutsch
+
+### Anwenderfreundlich
+
+Dieses Dokument erklärt die Core-Datenbank, ihre Datenbereiche und die Auswirkungen auf Backups, Upgrades und Integrationen.
+
+### Technisch
 
 # 365CMS – Datenbankschema
 > **Stand:** 2026-09-06 | **Version:** 3.4.00 | **Status:** Aktuell

@@ -1,102 +1,63 @@
-# AntiSpam-Einstellungen
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Administrator guide and technical reference for access control and security operations. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
 
-Kurzbeschreibung: Beschreibt die aktuelle Anti-Spam-Verwaltung im Admin, die lokalen Schutzmechanismen und die serverseitige Blacklist-Speicherung.
+# 365CMS Admin – Antispam
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.626
+## English
 
-## Überblick
+### Administrator guide
 
-Die Anti-Spam-Verwaltung ist über `/admin/antispam` erreichbar und wird serverseitig durch `CMS/admin/modules/security/AntispamModule.php` gesteuert. Die Seite bündelt Basisschutz, Formularhärtung und Blacklist-Verwaltung. Die Laufzeit-Auswertung der globalen Regeln erfolgt zentral über `CMS/core/Services/AntispamService.php`. Externe CAPTCHA-Dienste werden im Public-Runtime-Vertrag nicht geladen.
+This document covers access control and security operations. Open `/admin/antispam` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
-## Konfigurierbare Schutzmechanismen
+Use the page in this order:
 
-Die aktuelle Implementierung arbeitet bewusst mit lokalen, performanten Prüfungen ohne externe Public-Assets.
+1. Review the current status, filters, and warnings before changing data.
+2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
+3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
+4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
 
-### Basisschutz
+Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
 
-- globaler Schalter `antispam_enabled`
-- Honeypot-Feld über `antispam_honeypot`
-- minimale Formularzeit über `antispam_min_time`
-- maximale Linkanzahl über `antispam_max_links`
-- Blockade leerer User-Agents über `antispam_block_empty_ua`
+### Technical reference
 
-Diese Prüfungen werden serverseitig zentral über `CMS/core/Services/AntispamService.php` ausgewertet. Aktuell nutzen mindestens der Core-Kommentarpfad (`CMS/core/Services/CommentService.php`) und aktive `cms-contact`-Formulare denselben Runtime-Service. Das Default-Theme liefert dafür Honeypot- und Mindestzeit-Felder mit; die Kontaktformulare senden zusätzlich einen Formular-Timestamp, damit `antispam_min_time` auch dort serverseitig erzwungen wird.
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/antispam.php`, `CMS/admin/modules/security/AntispamModule.php`, `CMS/admin/views/security/antispam.php`.
 
-### CAPTCHA-Unterstützung
+**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
-Externe CAPTCHA-Dienste wie reCAPTCHA, hCaptcha oder Turnstile sind im Core-Runtime-Vertrag deaktiviert, weil sie Fremdskripte bzw. externe Prüf-Endpunkte voraussetzen. Der produktive Schutzumfang besteht aus Honeypot, Mindestzeit, Linklimit, User-Agent-Prüfung und Blacklist. Plugins dürfen zusätzliche lokale Prüfungen wie Mathe-Captchas ergänzen, sollen die globalen AntiSpam-Regeln aber nicht umgehen.
+**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
 
-## Blacklist-Verwaltung
+**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
 
-Spam-Indikatoren werden in der Tabelle `spam_blacklist` verwaltet. Unterstützte Typen sind aktuell:
+**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
 
-- `word`
-- `email`
-- `ip`
-- `domain`
+**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
 
-Damit lassen sich sowohl Inhalte als auch Herkunft oder bekannte Absender gezielt blockieren. Das Modul stellt Funktionen zum Hinzufügen und Löschen einzelner Blacklist-Einträge bereit.
+## Deutsch
 
-## Typische Admin-Aktionen
+### Anwenderleitfaden
 
-Die Oberfläche unterstützt im Kern drei Aufgabenbereiche:
+Dieses Dokument beschreibt access control and security operations. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/antispam`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
-- Speichern der Anti-Spam-Grundeinstellungen
-- Hinzufügen neuer Blacklist-Einträge
-- Löschen vorhandener Blacklist-Einträge
+Empfohlener Ablauf:
 
-Alle Änderungen werden über das Modul verarbeitet und mit Audit-Log-Einträgen versehen.
+1. Status, Filter und Warnungen vor Änderungen prüfen.
+2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
+3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
+4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
 
-## Audit-Logging
+Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
 
-Die aktuelle Implementierung protokolliert Anti-Spam-relevante Änderungen über den `AuditLogger`. Dazu gehören insbesondere:
+### Technische Referenz
 
-- Änderungen an den Grundeinstellungen
-- neue Blacklist-Einträge
-- gelöschte Blacklist-Einträge
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/antispam.php`, `CMS/admin/modules/security/AntispamModule.php`, `CMS/admin/views/security/antispam.php`.
 
-Dadurch sind Konfigurationsänderungen nachvollziehbar, ohne dass ein separates „Spam-Log“-Subsystem auf Admin-Ebene dokumentiert werden muss.
+**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 
-Es werden keine CAPTCHA-Secrets mehr über die AntiSpam-Oberfläche gespeichert oder beworben.
+**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
 
-## Sicherheit
+**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
 
-Die Seite folgt dem üblichen Admin-Muster:
+**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
 
-- Zugriff nur für Administratoren
-- CSRF-Schutz für POST-Aktionen
-- serverseitige Validierung numerischer und boolescher Einstellungen
-- Sanitierung von Blacklist-Werten und Typangaben
-
-## Relevante Einstellungen
-
-| Key | Zweck |
-|---|---|
-| `antispam_enabled` | globaler Ein-/Aus-Schalter |
-| `antispam_honeypot` | aktiviert Honeypot-Prüfung |
-| `antispam_min_time` | Mindestdauer bis zur erlaubten Formularabgabe |
-| `antispam_max_links` | maximale Anzahl erlaubter Links |
-| `antispam_block_empty_ua` | blockiert Requests ohne User-Agent |
-
-## Aktueller Runtime-Vertrag
-
-- Öffentliche Kommentare und aktive `cms-contact`-Formulare nutzen dieselbe zentrale AntiSpam-Auswertung.
-- Kontaktformulare dürfen optional zusätzlich ein lokales Mathe-Captcha und sessionbasiertes Rate-Limit verwenden, ersetzen damit aber nicht die globalen AntiSpam-Regeln.
-- Weitere Public-Plugins mit eigenen Formularen sollten denselben Core-Service verwenden, statt einen parallelen Blacklist-/Mindestzeit-Pfad aufzubauen.
-
-## Relevante Dateien
-
-| Datei | Zweck |
-|---|---|
-| `CMS/admin/antispam.php` | Admin-Entry-Point |
-| `CMS/admin/modules/security/AntispamModule.php` | Speichern, Laden und Blacklist-Handling |
-| `CMS/core/Services/AntispamService.php` | zentrale Runtime-Auswertung für globale AntiSpam-Regeln |
-| `CMS/core/Services/CommentService.php` | Runtime-Prüfung öffentlicher Kommentare |
-| `365CMS.DE-PLUGINS/cms-contact/includes/class-frontend.php` | zentrale AntiSpam-Verdrahtung im Kontaktformular-Plugin |
-| `CMS/admin/views/security/antispam.php` | Ausgabe der Verwaltungsoberfläche |
-
-## Verwandte Dokumente
-
-- [FIREWALL.md](FIREWALL.md)
-- [DSGVO.md](../legal/DSGVO.md)
-- [Member-Sicherheit](../../member/SECURITY.md)
+**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.
