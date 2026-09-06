@@ -89,7 +89,9 @@ CMS/tmp-seo-test/sitemap.xml
 CMS/tmp*.php
 CMS/tmp-hub-template-dump.php
 /tests/*
-
+AUDIT/*
+AUDIT*
+AUDIT
 # Zentrale modulnahe Test-Orchestrierung gezielt versionieren
 !/tests/
 !/tests/bootstrap.php
