@@ -1,18 +1,16 @@
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Kurzbeschreibung:** Complete user and technical documentation for the protected 365CMS AI Services, including administration, translation, content drafts, SEO metadata, provider policies, quotas, security, and integration assets.
+
 # 365CMS AI Services
 
-**Complete user and technical documentation**  
-**Documentation version:** 3.4.00  
-**Last reviewed:** 2026-09-06  
-**Product area:** 365CMS Admin / AI Services  
-**Document order:** English first, German second
-
-> This document describes the AI Services implementation currently shipped in 365CMS. It is intentionally written in two blocks: an operator-friendly guide and a technical reference. The English block is authoritative for international development documentation; the German block mirrors it for CMS operators and the German development team.
+This document is written in two language blocks. Each language starts with an operator-friendly guide and continues with a technical reference; the English block comes first, followed by the German block.
 
 ---
 
-# Part I — English
+## English
 
-## A. User-oriented guide
+### Administrator guide
 
 ### 1. What AI Services is
 
@@ -274,7 +272,7 @@ Before accepting an AI result, verify:
 
 ---
 
-## B. Technical reference
+### Technical reference
 
 ### 13. Architecture overview
 
@@ -485,7 +483,7 @@ Prompt templates are configurable per feature:
 - content creator;
 - SEO creator.
 
-A template can have `enabled`, `label`, `system_prompt`, `user_template`, and internal `notes`. Placeholders are feature-specific. Examples include:
+A template can have `enabled`, `label`, `system_prompt`, `user_template`, and internal `notes`. Template variables are feature-specific. Examples include:
 
 - translation: `{source_locale}`, `{target_locale}`, `{content_type}`, `{segment_count}`, `{segments_json}`;
 - content: `{content_brief}`, `{context}`, `{tone}`, `{format}`;
@@ -578,26 +576,19 @@ Implemented in the current CMS:
 - role capabilities for AI management and feature use;
 - CSP-compatible AI administration assets.
 
-Optional future work:
-
-- persistent circuit-breaker and health history;
-- provider-independent token/cost reporting where usage contracts are compatible;
-- asynchronous jobs for documents beyond safe synchronous limits;
-- multiple variants and richer diff views;
-- additional locales and translation directions.
-
 ### 28. Related documentation
 
 - [CMS admin documentation](../admin/README.md)
 - [System settings documentation](../admin/system-settings/README.md)
+- [AI asset and platform documentation](AI-ASSETS.md)
 - [CMS documentation index](../README.md)
 - [Asset documentation](../assets/README.md)
 
 ---
 
-# Part II — Deutsch
+## Deutsch
 
-## A. Anwenderdokumentation
+### Anwenderleitfaden
 
 ### 1. Was sind AI Services?
 
@@ -848,7 +839,7 @@ Vor der Übernahme prüfen:
 
 ---
 
-## B. Technische Referenz
+### Technische Referenz
 
 ### 13. Architektur
 
@@ -996,7 +987,7 @@ Dokumenttitel, URL, Slug, Canonical-URL, Open-Graph-Bild, Twitter-Bild und hrefl
 
 Vorlagen existieren für Translation, Content Creator und SEO. Typische Felder sind `enabled`, `label`, `system_prompt`, `user_template` und interne `notes`.
 
-Beispiele für Platzhalter:
+Beispiele für Vorlagenvariablen:
 
 - Translation: `{source_locale}`, `{target_locale}`, `{content_type}`, `{segment_count}`, `{segments_json}`;
 - Content: `{content_brief}`, `{context}`, `{tone}`, `{format}`;
@@ -1050,8 +1041,6 @@ Keine zweite Provider-Konfiguration, keine API-Key-Verarbeitung in Views, keine 
 ### 27. Implementierungsstand
 
 Aktuell umgesetzt sind zentrale Settings-Gruppen, Providerverwaltung für Mock/Ollama/Azure AI/OpenAI/Mistral/OpenRouter, Factory/Gateway/Policy, Quota-aware Execution mit Retry/Fallback, inhaltsfreier Healthcheck, Editor.js-Übersetzung, lokalisierte Felder, Preview/Diff, Summary/Outline/CTA-Entwürfe, SEO-Entwürfe mit Whitelist, Adminverwaltung, Monitoring ohne Rohinhalt, geschützte Routes/Endpoints, Default-Capabilities und CSP-kompatible Assets.
-
-Bewusst spätere Ausbaustufen sind persistente Circuit-Breaker-/Health-Historie, einheitliche providerübergreifende Token-/Kostenabrechnung, asynchrone Jobs für sehr große Dokumente sowie mehrere Varianten und erweiterte Diff-Ansichten.
 
 ### 28. Verwandte Dokumentation
 
