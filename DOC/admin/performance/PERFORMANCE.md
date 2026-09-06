@@ -37,7 +37,7 @@ Empty results, unavailable optional modules, and service errors are displayed as
 
 ### Anwenderleitfaden
 
-Dieses Dokument beschreibt operations, logs, and monitoring. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/performance`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
+Dieses Dokument beschreibt Betrieb, Protokolle und Überwachung. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/performance`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
 Empfohlener Ablauf:
 

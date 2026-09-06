@@ -37,7 +37,7 @@ Empty results, unavailable optional modules, and service errors are displayed as
 
 ### Anwenderleitfaden
 
-Dieses Dokument beschreibt SEO, analytics, and redirect management. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/redirect-manager`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
+Dieses Dokument beschreibt SEO, Analytics und Weiterleitungsverwaltung. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/redirect-manager`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
 Empfohlener Ablauf:
 

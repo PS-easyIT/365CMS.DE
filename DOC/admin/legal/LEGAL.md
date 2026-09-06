@@ -37,7 +37,7 @@ Empty results, unavailable optional modules, and service errors are displayed as
 
 ### Anwenderleitfaden
 
-Dieses Dokument beschreibt legal and privacy administration. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/legal-sites`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
+Dieses Dokument beschreibt die Rechts- und Datenschutzverwaltung. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/legal-sites`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
 Empfohlener Ablauf:
 

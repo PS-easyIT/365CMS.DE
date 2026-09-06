@@ -14,7 +14,7 @@ Monitoring is read-only from the operator perspective. Do not expose tokens, cre
 
 ### Technical reference
 
-Diagnostic views are under `CMS/admin/views/system/` and `CMS/admin/views/logs/`. `CMS/core/Logger.php`, `CMS/core/AuditLogger.php`, `CMS/core/StatusService.php`, `CMS/core/MonitoringTrendService.php`, and `CMS/core/Services/CronRunnerService.php` provide the core interfaces. Operational, PHP-error, security-audit, and channel logs are separated by the corresponding log module and view.
+Diagnostic views are under `CMS/admin/views/system/` and `CMS/admin/views/logs/`. `CMS/core/Logger.php`, `CMS/core/AuditLogger.php`, `CMS/core/Services/StatusService.php`, `CMS/core/Services/MonitoringTrendService.php`, and `CMS/core/Services/CronRunnerService.php` provide the core interfaces. Operational, PHP-error, security-audit, and channel logs are separated by the corresponding log module and view.
 
 The admin router and capability checks protect every monitoring route. Optional data sources use bounded fallbacks so one failing probe does not make the admin shell fatal. Log filters and exports must be server-validated and escaped before rendering.
 
@@ -28,6 +28,6 @@ Monitoring ist aus Bedienersicht lesend. Tokens, Zugangsdaten, Rohprompts und un
 
 ### Technische Referenz
 
-Diagnose-Views liegen unter `CMS/admin/views/system/`, Log-Views unter `CMS/admin/views/logs/`. `CMS/core/Logger.php`, `CMS/core/AuditLogger.php`, `CMS/core/StatusService.php`, `CMS/core/MonitoringTrendService.php` und `CMS/core/Services/CronRunnerService.php` bilden die Core-Schnittstellen. Betriebs-, PHP-Fehler-, Security-Audit- und Channel-Logs sind durch Module und Views getrennt.
+Diagnose-Views liegen unter `CMS/admin/views/system/`, Log-Views unter `CMS/admin/views/logs/`. `CMS/core/Logger.php`, `CMS/core/AuditLogger.php`, `CMS/core/Services/StatusService.php`, `CMS/core/Services/MonitoringTrendService.php` und `CMS/core/Services/CronRunnerService.php` bilden die Core-Schnittstellen. Betriebs-, PHP-Fehler-, Security-Audit- und Channel-Logs sind durch Module und Views getrennt.
 
 Admin-Router und Capability-Prüfungen schützen jede Monitoring-Route. Optionale Datenquellen verwenden begrenzte Fallbacks, damit ein fehlerhafter Probe-Check nicht die Admin-Shell beendet. Filter und Exporte werden serverseitig geprüft und vor der Ausgabe escaped.

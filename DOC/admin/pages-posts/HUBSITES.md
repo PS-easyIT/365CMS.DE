@@ -8,7 +8,7 @@
 
 ### Administrator guide
 
-This document covers content administration. Open `/admin/hubsites` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
+This document covers content administration. Open `/admin/hub-sites` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
 
 Use the page in this order:
 
@@ -21,7 +21,7 @@ Empty results, unavailable optional modules, and service errors are displayed as
 
 ### Technical reference
 
-**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/modules/hub/HubSitesModule.php`, `CMS/admin/views/legal/sites.php`.
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/modules/hub/HubSitesModule.php`, `CMS/admin/views/hub/list.php`, `CMS/admin/views/hub/edit.php`, `CMS/admin/views/hub/templates.php`, `CMS/admin/views/hub/template-edit.php`.
 
 **Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
@@ -37,7 +37,7 @@ Empty results, unavailable optional modules, and service errors are displayed as
 
 ### Anwenderleitfaden
 
-Dieses Dokument beschreibt content administration. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/hubsites`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
+Dieses Dokument beschreibt die Inhaltsverwaltung. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/hub-sites`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
 Empfohlener Ablauf:
 
@@ -50,7 +50,7 @@ Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als 
 
 ### Technische Referenz
 
-**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/modules/hub/HubSitesModule.php`, `CMS/admin/views/legal/sites.php`.
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/modules/hub/HubSitesModule.php`, `CMS/admin/views/hub/list.php`, `CMS/admin/views/hub/edit.php`, `CMS/admin/views/hub/templates.php`, `CMS/admin/views/hub/template-edit.php`.
 
 **Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 

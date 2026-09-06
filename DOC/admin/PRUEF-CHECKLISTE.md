@@ -37,7 +37,7 @@ Empty results, unavailable optional modules, and service errors are displayed as
 
 ### Anwenderleitfaden
 
-Dieses Dokument beschreibt the 365CMS administration area. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/pruef-checkliste`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
+Dieses Dokument beschreibt den 365CMS-Administrationsbereich. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/pruef-checkliste`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
 
 Empfohlener Ablauf:
 
