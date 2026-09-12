@@ -295,7 +295,12 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
 
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <h3 class="card-title">Berechtigungsmatrix</h3>
+                    <div>
+                        <h3 class="card-title mb-1">Berechtigungsmatrix</h3>
+                        <div class="text-secondary small">
+                            Rechte der Rollen können per Klick ausgewählt werden. Administratoren besitzen immer alle Rechte.
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-device-floppy" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2"/><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M14 4l0 4l-6 0l0 -4"/></svg>
                         Speichern
@@ -339,12 +344,14 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
                                             <td class="text-center">
                                                 <?php if ($role === 'admin'): ?>
                                                     <input type="hidden" name="permissions[admin][<?php echo htmlspecialchars($cap); ?>]" value="1">
-                                                    <input type="checkbox" class="form-check-input" checked disabled title="Admin hat immer alle Rechte">
+                                                    <input type="checkbox" class="form-check-input" checked disabled aria-disabled="true" title="Admin hat immer alle Rechte">
                                                 <?php else: ?>
                                                     <label class="d-inline-flex align-items-center justify-content-center w-100 py-2"
+                                                           for="permission-<?php echo htmlspecialchars($role . '-' . $cap, ENT_QUOTES); ?>"
                                                            style="cursor:pointer;"
                                                            title="<?php echo htmlspecialchars(($permissions[$role][$cap] ?? false) ? 'Recht entziehen' : 'Recht erteilen'); ?>">
                                                         <input type="checkbox"
+                                                               id="permission-<?php echo htmlspecialchars($role . '-' . $cap, ENT_QUOTES); ?>"
                                                                class="form-check-input cap-checkbox"
                                                                name="permissions[<?php echo htmlspecialchars($role); ?>][<?php echo htmlspecialchars($cap); ?>]"
                                                                value="1"

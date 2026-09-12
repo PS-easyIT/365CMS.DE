@@ -8903,6 +8903,21 @@ body.admin-body .admin-section-toolbar__actions {
     --color-background-primary: var(--tblr-bg-surface, #fff);
 }
 
+.roles-permissions-matrix .cap-checkbox {
+    position: relative;
+    z-index: 2;
+    pointer-events: auto !important;
+    cursor: pointer;
+}
+
+.roles-permissions-matrix td:has(.cap-checkbox) {
+    cursor: pointer;
+}
+
+.roles-permissions-matrix td:has(.cap-checkbox):hover {
+    background-color: rgba(59, 130, 246, 0.08);
+}
+
 .roles-permissions-matrix thead th {
     position: sticky;
     top: 0;
