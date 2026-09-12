@@ -301,10 +301,16 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
                             Rechte der Rollen können per Klick ausgewählt werden. Administratoren besitzen immer alle Rechte.
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-device-floppy" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2"/><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M14 4l0 4l-6 0l0 -4"/></svg>
-                        Speichern
-                    </button>
+                    <div class="btn-list">
+                        <button type="submit" name="action" value="reset_permissions" class="btn btn-outline-secondary"
+                                onclick="return confirm('Alle individuellen Rechte werden durch die Standardrechte ersetzt. Fortfahren?');">
+                            Standardrechte wiederherstellen
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-device-floppy" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2"/><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M14 4l0 4l-6 0l0 -4"/></svg>
+                            Speichern
+                        </button>
+                    </div>
                 </div>
                 <div class="table-responsive roles-permissions-matrix-wrap">
                     <table class="table table-vcenter card-table table-striped roles-permissions-matrix">
@@ -346,18 +352,21 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
                                                     <input type="hidden" name="permissions[admin][<?php echo htmlspecialchars($cap); ?>]" value="1">
                                                     <input type="checkbox" class="form-check-input" checked disabled aria-disabled="true" title="Admin hat immer alle Rechte">
                                                 <?php else: ?>
-                                                    <label class="d-inline-flex align-items-center justify-content-center w-100 py-2"
-                                                           for="permission-<?php echo htmlspecialchars($role . '-' . $cap, ENT_QUOTES); ?>"
-                                                           style="cursor:pointer;"
-                                                           title="<?php echo htmlspecialchars(($permissions[$role][$cap] ?? false) ? 'Recht entziehen' : 'Recht erteilen'); ?>">
+                                                    <?php $isGranted = !empty($permissions[$role][$cap]); ?>
+                                                    <label class="roles-permission-toggle"
+                                                           for="permission-<?php echo htmlspecialchars($role . '-' . $cap, ENT_QUOTES); ?>">
                                                         <input type="checkbox"
                                                                id="permission-<?php echo htmlspecialchars($role . '-' . $cap, ENT_QUOTES); ?>"
                                                                class="form-check-input cap-checkbox"
+                                                               style="display:block!important; opacity:1!important; visibility:visible!important; pointer-events:auto!important;"
                                                                name="permissions[<?php echo htmlspecialchars($role); ?>][<?php echo htmlspecialchars($cap); ?>]"
                                                                value="1"
                                                                data-group="<?php echo htmlspecialchars($group); ?>"
                                                                data-role="<?php echo htmlspecialchars($role); ?>"
-                                                               <?php echo !empty($permissions[$role][$cap]) ? 'checked' : ''; ?>>
+                                                               <?php echo $isGranted ? 'checked' : ''; ?>>
+                                                        <span class="roles-permission-toggle__text">
+                                                            <?php echo $isGranted ? 'Erlaubt' : 'Nicht erlaubt'; ?>
+                                                        </span>
                                                     </label>
                                                 <?php endif; ?>
                                             </td>

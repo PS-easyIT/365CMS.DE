@@ -828,7 +828,7 @@ final class MediaDeliveryService
 
     private function buildSafeFilename(string $filename): string
     {
-        $safe = preg_replace('/[\x00-\x1F\x7F"\\\/]+/u', '_', $filename) ?? 'download';
+        $safe = preg_replace('~[\x00-\x1F\x7F"\\\\/]+~u', '_', $filename) ?? 'download';
         return $safe !== '' ? $safe : 'download';
     }
 

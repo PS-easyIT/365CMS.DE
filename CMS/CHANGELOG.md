@@ -27,6 +27,25 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [4.0.1] – 2026-09-12
+
+### Changed
+- **Admin / Rollen & Rechte:** Die Berechtigungsmatrix besitzt jetzt eindeutig anklickbare Checkboxen und vollständige Klickflächen pro Rolle und Recht. Die Admin-Spalte wird als unveränderlich ausgewiesen, da Administratoren immer alle Rechte besitzen.
+- **Admin / Rollen & Rechte:** Die Matrix erzwingt für veränderbare Rollen sichtbare und aktive Checkboxen auch dann, wenn globale Admin-Styles die Eingabeelemente beeinflussen.
+- **Admin / Rollen & Rechte:** Große, beschriftete Rechte-Schalter ersetzen die schwer bedienbaren reinen Checkbox-Zellen. Über „Standardrechte wiederherstellen“ lassen sich zuvor gespeicherte leere Rechtezuweisungen gezielt auf die dokumentierten Rollen-Defaults zurücksetzen.
+- **Admin / Beiträge:** Administratoren und Redakteure sehen weiterhin alle Beiträge. Alle anderen Rollen sehen im Adminbereich nur Beiträge, deren Autor der aktuell angemeldete Benutzer ist.
+
+### Fixed
+- **Admin / Rollen & Rechte:** Doppelt geladene Capabilities (z. B. `manage_users`) werden vor der Darstellung und Speicherung dedupliziert. Dadurch verletzt das Speichern nicht mehr den eindeutigen Datenbankschlüssel für Rolle und Recht.
+- **Admin / Beitragszugriff:** Direkte URLs zum Bearbeiten fremder Beiträge sowie das Speichern, Löschen und Ausführen von Bulk-Aktionen auf fremde Beiträge werden serverseitig verhindert.
+- **Admin / Beitragsstatistiken:** Gesamtzahl, veröffentlichte Beiträge, Entwürfe und private Beiträge berücksichtigen bei Rollen ohne `edit_all_posts` nur noch die eigenen Beiträge.
+- **Medienauslieferung:** Der Dateinamen-Sanitizer verwendet einen gültigen regulären Ausdruck für Steuerzeichen, Anführungszeichen, Backslashes und Slashes; die PHP-Warnung `preg_replace(): Unknown modifier ']'` tritt nicht mehr auf.
+
+### Security
+- **Admin / Beitragsberechtigungen:** Die Eigentümerprüfung wird unabhängig von der Darstellung der Beitragsliste auch bei Bearbeiten, Löschen und Sammelaktionen durchgesetzt.
+
+---
+
 ## [3.3.56] – 2026-07-05
 
 ### Fixed

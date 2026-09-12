@@ -171,8 +171,14 @@ class RolesModule
 
             $perms = $post['permissions'] ?? [];
             foreach ($roles as $role) {
+                $storedCapabilities = [];
                 foreach ($capabilities as $caps) {
                     foreach ($caps as $cap) {
+                        if (isset($storedCapabilities[$cap])) {
+                            continue;
+                        }
+
+                        $storedCapabilities[$cap] = true;
                         $granted = ($role === 'admin' || !empty($perms[$role][$cap])) ? 1 : 0;
                         $this->db->execute(
                             "INSERT INTO {$this->prefix}role_permissions (role, capability, granted) VALUES (?, ?, ?)",
@@ -195,6 +201,32 @@ class RolesModule
 
             return $this->buildRoleOperationFailure('Berechtigungen konnten nicht gespeichert werden.', $e, 'save_permissions');
         }
+    }
+
+    /**
+     * Stellt die dokumentierten Standardrechte wieder her.
+     */
+    public function resetPermissions(): array
+    {
+        $permissions = [];
+        $defaults = $this->getDefaultPermissions();
+
+        foreach ($this->getKnownRoles() as $role) {
+            foreach ($this->getKnownCapabilities() as $capabilities) {
+                foreach ($capabilities as $capability) {
+                    if ($role === 'admin' || !empty($defaults[$role][$capability])) {
+                        $permissions[$role][$capability] = '1';
+                    }
+                }
+            }
+        }
+
+        $result = $this->savePermissions(['permissions' => $permissions]);
+        if (!empty($result['success'])) {
+            $result['message'] = 'Standardrechte wurden wiederhergestellt.';
+        }
+
+        return $result;
     }
 
     /**
@@ -603,12 +635,18 @@ class RolesModule
     private function getKnownCapabilities(): array
     {
         $capabilities = self::CAPABILITIES;
+        $knownCapabilities = [];
+        foreach ($capabilities as $caps) {
+            foreach ($caps as $capability) {
+                $knownCapabilities[$capability] = true;
+            }
+        }
 
         try {
             $rows = $this->db->get_results("SELECT DISTINCT capability FROM {$this->prefix}role_permissions ORDER BY capability ASC") ?: [];
             foreach ($rows as $row) {
                 $capability = (string)($row->capability ?? '');
-                if ($capability === '') {
+                if ($capability === '' || isset($knownCapabilities[$capability])) {
                     continue;
                 }
 
@@ -619,9 +657,8 @@ class RolesModule
                     $capabilities[$group] = [];
                 }
 
-                if (!in_array($capability, $capabilities[$group], true)) {
-                    $capabilities[$group][] = $capability;
-                }
+                $capabilities[$group][] = $capability;
+                $knownCapabilities[$capability] = true;
             }
         } catch (\Throwable $e) {
         }
@@ -661,6 +698,19 @@ class RolesModule
                 $permissions[$role][$cap] = (bool)$row->granted;
             }
         } catch (\Throwable $e) {
+            $rows = [];
+        }
+
+        // If the persistence table is unavailable or has not been initialized,
+        // keep the visible matrix usable with the documented role defaults.
+        if ($rows === []) {
+            foreach ($roles as $role) {
+                foreach ($capabilities as $caps) {
+                    foreach ($caps as $cap) {
+                        $permissions[$role][$cap] = !empty($defaults[$role][$cap]);
+                    }
+                }
+            }
         }
 
         foreach ($capabilities as $caps) {

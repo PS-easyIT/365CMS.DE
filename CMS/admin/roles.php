@@ -17,6 +17,7 @@ const CMS_ADMIN_ROLES_WRITE_CAPABILITY = 'manage_users';
 
 const CMS_ADMIN_ROLES_ALLOWED_ACTIONS = [
     'save_permissions',
+    'reset_permissions',
     'add_role',
     'update_role',
     'delete_role',
@@ -47,6 +48,7 @@ function cms_admin_roles_handle_action(RolesModule $module, array $payload): arr
 {
     return match ($payload['action']) {
         'save_permissions' => $module->savePermissions($payload['post']),
+        'reset_permissions' => $module->resetPermissions(),
         'add_role' => $module->addRole($payload['post']),
         'update_role' => $module->updateRole($payload['post']),
         'delete_role' => $module->deleteRole($payload['post']),

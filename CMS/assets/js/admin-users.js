@@ -280,6 +280,19 @@
     }
 
     function initRolesUi() {
+        document.querySelectorAll('.cap-checkbox').forEach(function (checkbox) {
+            function updateToggleLabel() {
+                var toggle = checkbox.closest('.roles-permission-toggle');
+                var label = toggle ? toggle.querySelector('.roles-permission-toggle__text') : null;
+                if (label) {
+                    label.textContent = checkbox.checked ? 'Erlaubt' : 'Nicht erlaubt';
+                }
+            }
+
+            checkbox.addEventListener('change', updateToggleLabel);
+            updateToggleLabel();
+        });
+
         document.querySelectorAll('.toggle-group').forEach(function (button) {
             button.addEventListener('click', function () {
                 var group = button.getAttribute('data-group') || '';
@@ -289,6 +302,7 @@
                 });
                 checkboxes.forEach(function (checkbox) {
                     checkbox.checked = !allChecked;
+                    checkbox.dispatchEvent(new Event('change'));
                 });
             });
         });
