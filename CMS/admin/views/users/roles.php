@@ -341,13 +341,17 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
                                                     <input type="hidden" name="permissions[admin][<?php echo htmlspecialchars($cap); ?>]" value="1">
                                                     <input type="checkbox" class="form-check-input" checked disabled title="Admin hat immer alle Rechte">
                                                 <?php else: ?>
-                                                    <input type="checkbox"
-                                                           class="form-check-input cap-checkbox"
-                                                           name="permissions[<?php echo htmlspecialchars($role); ?>][<?php echo htmlspecialchars($cap); ?>]"
-                                                           value="1"
-                                                           data-group="<?php echo htmlspecialchars($group); ?>"
-                                                           data-role="<?php echo htmlspecialchars($role); ?>"
-                                                           <?php echo !empty($permissions[$role][$cap]) ? 'checked' : ''; ?>>
+                                                    <label class="d-inline-flex align-items-center justify-content-center w-100 py-2"
+                                                           style="cursor:pointer;"
+                                                           title="<?php echo htmlspecialchars(($permissions[$role][$cap] ?? false) ? 'Recht entziehen' : 'Recht erteilen'); ?>">
+                                                        <input type="checkbox"
+                                                               class="form-check-input cap-checkbox"
+                                                               name="permissions[<?php echo htmlspecialchars($role); ?>][<?php echo htmlspecialchars($cap); ?>]"
+                                                               value="1"
+                                                               data-group="<?php echo htmlspecialchars($group); ?>"
+                                                               data-role="<?php echo htmlspecialchars($role); ?>"
+                                                               <?php echo !empty($permissions[$role][$cap]) ? 'checked' : ''; ?>>
+                                                    </label>
                                                 <?php endif; ?>
                                             </td>
                                         <?php endforeach; ?>
@@ -540,4 +544,3 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
         </div>
     </div>
 </div>
-

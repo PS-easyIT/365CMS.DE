@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
 require_once __DIR__ . '/PostsCategoryViewModelBuilder.php';
 
 use CMS\AuditLogger;
+use CMS\Auth;
 use CMS\CacheManager;
 use CMS\Database;
 use CMS\Hooks;
@@ -30,6 +31,43 @@ class PostsModule
     private Database $db;
     private string $prefix;
     private PostsCategoryViewModelBuilder $categoryViewModelBuilder;
+
+    private function canManageAllPosts(): bool
+    {
+        return Auth::instance()->hasCapability('edit_all_posts');
+    }
+
+    private function currentUserId(): int
+    {
+        $user = Auth::instance()->currentUser();
+
+        return is_object($user) ? (int) ($user->id ?? 0) : 0;
+    }
+
+    private function addOwnershipFilter(array &$where, array &$params, string $alias = 'p'): void
+    {
+        if ($this->canManageAllPosts()) {
+            return;
+        }
+
+        $userId = $this->currentUserId();
+        $where[] = "{$alias}.author_id = ?";
+        $params[] = $userId;
+    }
+
+    private function canAccessPost(int $id): bool
+    {
+        if ($this->canManageAllPosts()) {
+            return true;
+        }
+
+        $authorId = $this->db->get_var(
+            "SELECT author_id FROM {$this->prefix}posts WHERE id = ? LIMIT 1",
+            [$id]
+        );
+
+        return $authorId !== null && (int) $authorId === $this->currentUserId();
+    }
 
     /**
      * @var array<int,array{root: array{slug:string,name:string,sort_order:int}, children: array<string,string>}>
@@ -365,7 +403,7 @@ class PostsModule
      * @param array<int,int> $ids
      * @return array<int,int>
      */
-    private function getExistingPostIds(array $ids): array
+    private function getExistingPostIds(array $ids, ?int $authorId = null): array
     {
         $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
         if ($ids === []) {
@@ -373,9 +411,16 @@ class PostsModule
         }
 
         $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $where = "id IN ({$placeholders})";
+        $params = $ids;
+        if ($authorId !== null) {
+            $where .= ' AND author_id = ?';
+            $params[] = $authorId;
+        }
+
         $rows = $this->db->get_results(
-            "SELECT id FROM {$this->prefix}posts WHERE id IN ({$placeholders})",
-            $ids
+            "SELECT id FROM {$this->prefix}posts WHERE {$where}",
+            $params
         ) ?: [];
 
         $existingIds = [];
@@ -395,11 +440,34 @@ class PostsModule
     public function getListData(): array
     {
         $currentDateTime = date('Y-m-d H:i:s');
-        $total     = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts");
-        $published = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts p WHERE " . cms_post_publication_where('p'));
-        $scheduled = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'published' AND published_at IS NOT NULL AND published_at > ?", [$currentDateTime]);
-        $drafts    = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'draft'");
-        $private   = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'private'");
+        $visibilityWhere = [];
+        $visibilityParams = [];
+        $this->addOwnershipFilter($visibilityWhere, $visibilityParams);
+        $visibilityClause = $visibilityWhere ? ' WHERE ' . implode(' AND ', $visibilityWhere) : '';
+        $total = (int) $this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}posts p{$visibilityClause}",
+            $visibilityParams
+        );
+        $publishedWhere = array_merge($visibilityWhere, [cms_post_publication_where('p')]);
+        $published = (int) $this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}posts p WHERE " . implode(' AND ', $publishedWhere),
+            $visibilityParams
+        );
+        $scheduledWhere = array_merge($visibilityWhere, ["p.status = 'published'", 'p.published_at IS NOT NULL', 'p.published_at > ?']);
+        $scheduled = (int) $this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}posts p WHERE " . implode(' AND ', $scheduledWhere),
+            array_merge($visibilityParams, [$currentDateTime])
+        );
+        $draftsWhere = array_merge($visibilityWhere, ["p.status = 'draft'"]);
+        $drafts = (int) $this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}posts p WHERE " . implode(' AND ', $draftsWhere),
+            $visibilityParams
+        );
+        $privateWhere = array_merge($visibilityWhere, ["p.status = 'private'"]);
+        $private = (int) $this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}posts p WHERE " . implode(' AND ', $privateWhere),
+            $visibilityParams
+        );
 
         $statusFilter   = $this->normalizeListStatus((string)($_GET['status'] ?? ''));
         $categoryFilter = $this->normalizeExistingCategoryId((int)($_GET['category'] ?? 0));
@@ -407,6 +475,7 @@ class PostsModule
 
         $where  = [];
         $params = [];
+        $this->addOwnershipFilter($where, $params);
 
         if ($statusFilter !== '') {
             if ($statusFilter === 'published') {
@@ -477,8 +546,9 @@ class PostsModule
         $post = null;
         if ($id !== null) {
             $post = $this->db->get_row(
-                "SELECT * FROM {$this->prefix}posts WHERE id = ?",
-                [$id]
+                "SELECT * FROM {$this->prefix}posts WHERE id = ?"
+                . ($this->canManageAllPosts() ? '' : ' AND author_id = ?'),
+                $this->canManageAllPosts() ? [$id] : [$id, $this->currentUserId()]
             );
         }
 
@@ -599,8 +669,11 @@ class PostsModule
             ? strtolower(trim((string) ($post['editor_locale'] ?? 'de')))
             : 'de';
         $existingPost = $id > 0
-            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]) ?: [])
+            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en, author_id FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]) ?: [])
             : [];
+        if ($id > 0 && !$this->canAccessPost($id)) {
+            return ['success' => false, 'error' => 'Sie dürfen nur Ihre eigenen Beiträge bearbeiten.'];
+        }
         $title      = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug       = trim((string)($post['slug'] ?? ''));
         $slugEn     = trim((string)($post['slug_en'] ?? ''));
@@ -937,10 +1010,16 @@ class PostsModule
             return ['success' => false, 'error' => 'Beitrag wurde nicht gefunden oder bereits gelöscht.'];
         }
 
+        if (!$this->canAccessPost($id)) {
+            return ['success' => false, 'error' => 'Sie dürfen nur Ihre eigenen Beiträge löschen.'];
+        }
+
         try {
             $statement = $this->db->execute(
-                "DELETE FROM {$this->prefix}posts WHERE id = ? LIMIT 1",
-                [$id]
+                "DELETE FROM {$this->prefix}posts WHERE id = ?"
+                . ($this->canManageAllPosts() ? '' : ' AND author_id = ?')
+                . " LIMIT 1",
+                $this->canManageAllPosts() ? [$id] : [$id, $this->currentUserId()]
             );
 
             if (!$statement instanceof \PDOStatement) {
@@ -988,6 +1067,14 @@ class PostsModule
 
         if (count($existingIds) !== count($ids)) {
             return ['success' => false, 'error' => 'Mindestens ein ausgewählter Beitrag existiert nicht mehr. Bitte Liste neu laden und Aktion erneut ausführen.'];
+        }
+
+        if (!$this->canManageAllPosts()) {
+            $ownedIds = $this->getExistingPostIds($existingIds, $this->currentUserId());
+            if (count($ownedIds) !== count($existingIds)) {
+                return ['success' => false, 'error' => 'Sie dürfen nur Ihre eigenen Beiträge bearbeiten.'];
+            }
+            $existingIds = $ownedIds;
         }
 
         $ids = $existingIds;

@@ -31,7 +31,12 @@ const CMS_ADMIN_POSTS_WRITE_CAPABILITY = 'edit_all_posts';
 
 function cms_admin_posts_can_access(): bool
 {
-    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_POSTS_WRITE_CAPABILITY);
+    return Auth::instance()->isAdmin()
+        && (
+            Auth::instance()->hasCapability(CMS_ADMIN_POSTS_WRITE_CAPABILITY)
+            || Auth::instance()->hasCapability('edit_own_posts')
+            || Auth::instance()->hasCapability('posts.view')
+        );
 }
 
 function cms_admin_posts_is_ai_seo_metadata_available(): bool
@@ -218,7 +223,12 @@ function cms_admin_posts_normalize_bulk_ids(mixed $ids): array
 
 function cms_admin_posts_can_run_action(string $action): bool
 {
-    return $action !== '' && Auth::instance()->hasCapability(CMS_ADMIN_POSTS_WRITE_CAPABILITY);
+    return $action !== ''
+        && (
+            Auth::instance()->hasCapability(CMS_ADMIN_POSTS_WRITE_CAPABILITY)
+            || Auth::instance()->hasCapability('edit_own_posts')
+            || Auth::instance()->hasCapability('posts.view')
+        );
 }
 
 /**
