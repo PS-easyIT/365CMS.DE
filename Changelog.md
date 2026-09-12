@@ -24,6 +24,7 @@
 | **4.0.1** | 🟢 feat | Admin / Rollen & Rechte | Rechte sind über klar beschriftete Schalter „Erlaubt“ bzw. „Nicht erlaubt“ bedienbar; die gesamte Schalterfläche ist auswählbar. „Standardrechte wiederherstellen“ setzt zuvor leer gespeicherte Rollenrechte gezielt auf die vorgesehenen Defaultwerte zurück. |
 | **4.0.1** | 🔴 fix | Admin / Beiträge | Administratoren und Redakteure sehen alle Beiträge. Andere Rollen sehen im Adminbereich nur eigene Beiträge. Diese Eigentümerprüfung gilt auch bei direktem Aufruf, Speichern, Löschen und Bulk-Aktionen. Die Beitragsstatistiken verwenden denselben Sichtbarkeitsumfang. |
 | **4.0.1** | 🔴 fix | Medienauslieferung | Der Dateinamen-Sanitizer verwendet einen gültigen Regex für Steuerzeichen, Anführungszeichen, Backslashes und Slashes. Die Warnung `preg_replace(): Unknown modifier ']'` ist behoben. |
+| **4.0.1** | 🔴 fix | PHINIT Theme / Post Tech | Die Sidebar-Kategorieabfrage verwendet das aktuelle Core-Schema `post_categories` und `post_category_rel` statt der nicht vorhandenen Legacy-Tabellen `categories` und `post_categories`. |
 | **4.0.1** | 🛡️ security | Admin / Beitragsberechtigungen | Serverseitige Eigentümerprüfungen verhindern, dass Rollen ohne globale Beitragsberechtigung fremde Beiträge über manipulierte URLs oder Formulardaten verändern bzw. löschen. |
 
 ---
