@@ -1,8 +1,7 @@
-> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
-> **Kurzbeschreibung:** Administrator guide and technical reference for legal and privacy administration. It reflects the implementation in the current `CMS/admin` tree and its core interfaces.
+# 365CMS – Projektdokumentation | Abschnitt: Admin – DSGVO
+> **Stand:** 2026-09-13 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-13
 
-# 365CMS Admin – Dsgvo
+## 365CMS Admin – Dsgvo
 
 ## English
 

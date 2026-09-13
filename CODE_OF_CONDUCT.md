@@ -1,139 +1,63 @@
-# Verhaltenskodex für 365CMS
+# 365CMS – Projektdokumentation | Abschnitt: Verhaltenskodex
+> **Stand:** 2026-09-13 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-13
 
-## Unser Versprechen
+## English
 
-Wir als Mitglieder, Mitwirkende und Maintainer des 365CMS-Projekts verpflichten
-uns, die Teilnahme an unserer Community für alle Menschen frei von Belästigung
-zu gestalten – unabhängig von Alter, Körpergröße, sichtbarer oder unsichtbarer
-Behinderung, ethnischer Herkunft, Geschlechtsmerkmalen, Geschlechtsidentität
-oder -ausdruck, Erfahrungsstand, Bildung, sozialem Status, Nationalität,
-äußerem Erscheinungsbild, Herkunft, Religion oder sexueller Identität bzw.
-Orientierung.
+### Our promise
 
-Wir verpflichten uns zu einem offenen, respektvollen, inklusiven und gesunden
-Miteinander, das der gesamten 365CMS-Community dient.
+We are committed to making participation in the 365CMS community harassment-free for everyone, regardless of age, disability, ethnicity, gender identity or expression, experience, education, socioeconomic status, nationality, appearance, religion, sexual identity or orientation.
 
-## Unsere Standards
+We aim to maintain an open, respectful, inclusive and professional community.
 
-Zu einem positiven und professionellen Miteinander gehören insbesondere:
+### Expected behavior
 
-* Freundlichkeit, Empathie und respektvoller Umgang miteinander
-* Konstruktives Feedback sowie ein fairer Umgang mit unterschiedlichen
-  Meinungen, Perspektiven und Erfahrungen
-* Verantwortung für eigenes Handeln zu übernehmen und aus Fehlern zu lernen
-* Rücksicht auf die Community und das Projekt als Ganzes statt nur auf eigene
-  Interessen
-* Sachliche, nachvollziehbare und professionelle Kommunikation in Issues,
-  Pull Requests, Commits, Diskussionen und Dokumentation
+- Be kind, empathetic and respectful.
+- Give constructive feedback and respect different perspectives.
+- Take responsibility for your own actions and learn from mistakes.
+- Keep communication factual and professional in issues, pull requests, commits, discussions and documentation.
 
-Nicht akzeptabel sind insbesondere:
+The following behavior is not acceptable:
 
-* Sexualisierte Sprache, sexualisierte Darstellungen oder unerwünschte
-  Annäherungen jeglicher Art
-* Trolling, beleidigende oder abwertende Kommentare sowie persönliche oder
-  politische Angriffe
-* Öffentliche oder private Belästigung
-* Das Veröffentlichen privater Informationen anderer Personen – etwa Adressen
-  oder E-Mail-Adressen – ohne deren ausdrückliche Zustimmung
-* Sonstiges Verhalten, das in einem professionellen Umfeld als unangemessen,
-  einschüchternd, schädlich oder diskriminierend bewertet werden kann
+- Sexualized language, imagery or unwanted advances.
+- Trolling, insults, harassment or personal attacks.
+- Publishing private information without explicit permission.
+- Conduct that is intimidating, discriminatory, harmful or otherwise inappropriate in a professional setting.
 
-## Verantwortung der Maintainer
+### Scope and enforcement
 
-Die Maintainer und Projektverantwortlichen von 365CMS sind dafür zuständig,
-die Standards dieses Verhaltenskodex zu erläutern und durchzusetzen. Sie werden
-bei unangemessenem, bedrohlichem, beleidigendem oder schädlichem Verhalten fair
-und angemessen reagieren.
+This code applies to the repository, issues, pull requests, discussions, documentation, wikis, project channels and public appearances made on behalf of 365CMS.
 
-Sie haben das Recht und die Verantwortung, Kommentare, Commits, Code,
-Dokumentationsänderungen, Issues, Pull Requests und andere Beiträge zu
-bearbeiten, zu entfernen, abzulehnen oder zu moderieren, wenn diese nicht mit
-diesem Verhaltenskodex vereinbar sind. Soweit sinnvoll, werden Gründe für
-Moderationsentscheidungen transparent kommuniziert.
+Report abusive or harassing behavior through the [project issue tracker](https://github.com/PS-easyIT/365CMS.DE/issues). Maintainers will review reports fairly and with respect for the reporter's privacy. They may edit, remove, reject or moderate contributions that violate this code.
 
-## Geltungsbereich
+Enforcement may include correction, a formal warning, a temporary suspension or a permanent ban, depending on severity and repetition.
 
-Dieser Verhaltenskodex gilt in allen Community-Räumen des 365CMS-Projekts.
-Dazu zählen insbesondere das Repository, Issues, Pull Requests, Diskussionen,
-Dokumentation, Wikis und sonstige projektbezogene Kommunikationskanäle.
+### Attribution
 
-Er gilt außerdem immer dann, wenn jemand das Projekt öffentlich repräsentiert,
-zum Beispiel über offizielle Projektkonten, in öffentlichen Statements oder bei
-Veranstaltungen im Namen von 365CMS.
+This document is based on the [Contributor Covenant 2.0](https://www.contributor-covenant.org/version/2/0/code_of_conduct.html) and its [FAQ](https://www.contributor-covenant.org/faq). The enforcement ladder is inspired by the [Mozilla Code of Conduct enforcement ladder](https://github.com/mozilla/diversity).
 
-## Meldung und Durchsetzung
+## Deutsch
 
-Fälle von missbräuchlichem, belästigendem oder anderweitig unakzeptablem
-Verhalten können über die GitHub Issues des Projekts gemeldet werden:
+### Unser Versprechen
 
-https://github.com/PS-easyIT/365CMS.DE/issues
+Wir verpflichten uns, die Teilnahme an der 365CMS-Community für alle Menschen frei von Belästigung zu halten – unabhängig von Alter, Behinderung, ethnischer Herkunft, Geschlechtsidentität oder -ausdruck, Erfahrung, Bildung, sozialem Status, Nationalität, Erscheinungsbild, Religion sowie sexueller Identität oder Orientierung.
 
-Alle Meldungen werden zeitnah und fair geprüft. Die für die Durchsetzung
-verantwortlichen Maintainer respektieren dabei die Privatsphäre und Sicherheit
-der meldenden Person.
+Wir fördern ein offenes, respektvolles, inklusives und professionelles Miteinander.
 
-## Richtlinien zur Durchsetzung
+### Erwartetes Verhalten
 
-Die Maintainer orientieren sich bei Verstößen an den folgenden Eskalationsstufen:
+- Freundlich, empathisch und respektvoll kommunizieren.
+- Konstruktives Feedback geben und andere Perspektiven respektieren.
+- Verantwortung für das eigene Handeln übernehmen.
+- Issues, Pull Requests, Commits, Diskussionen und Dokumentation sachlich und professionell halten.
 
-### 1. Korrektur
+Nicht akzeptabel sind sexualisierte Sprache oder Darstellungen, unerwünschte Annäherungen, Trolling, Beleidigungen, Belästigung, persönliche Angriffe, die Veröffentlichung privater Informationen ohne Zustimmung sowie einschüchterndes, diskriminierendes oder schädliches Verhalten.
 
-**Auswirkung auf die Community:** Verwendung unangemessener Sprache oder
-anderes Verhalten, das als unprofessionell oder unerwünscht gilt.
+### Geltungsbereich und Meldung
 
-**Konsequenz:** Eine private schriftliche Verwarnung mit Erläuterung des
-Problems und einer Erklärung, warum das Verhalten unangemessen war.
-Gegebenenfalls kann eine öffentliche Entschuldigung verlangt werden.
+Dieser Kodex gilt für Repository, Issues, Pull Requests, Diskussionen, Dokumentation, Wikis, projektbezogene Kanäle und öffentliche Auftritte im Namen von 365CMS.
 
-### 2. Verwarnung
+Missbräuchliches oder belästigendes Verhalten kann über den [GitHub-Issue-Tracker](https://github.com/PS-easyIT/365CMS.DE/issues) gemeldet werden. Die Maintainer prüfen Meldungen fair und vertraulich. Je nach Schwere und Wiederholung sind Korrektur, Verwarnung, temporärer Ausschluss oder dauerhafter Ausschluss möglich.
 
-**Auswirkung auf die Community:** Ein einzelner Verstoß oder eine Serie von
-Verhaltensweisen, die gegen diesen Kodex verstoßen.
+### Quellen
 
-**Konsequenz:** Eine formelle Verwarnung mit klaren Folgen für weiteres
-Fehlverhalten. Kontakt zu den betroffenen Personen oder zu den für die
-Durchsetzung verantwortlichen Maintainerinnen und Maintainer kann für einen
-bestimmten Zeitraum untersagt werden. Das kann auch öffentliche oder externe
-Kanäle einschließen. Weitere Verstöße können zu einem temporären oder
-dauerhaften Ausschluss führen.
-
-### 3. Temporärer Ausschluss
-
-**Auswirkung auf die Community:** Schwerwiegender Verstoß gegen die
-Community-Standards, insbesondere fortgesetztes unangemessenes Verhalten.
-
-**Konsequenz:** Zeitlich begrenzter Ausschluss von jeder Interaktion oder
-öffentlichen Kommunikation innerhalb der Community. Während dieses Zeitraums
-sind weder öffentliche noch private Kontaktaufnahmen mit den betroffenen
-Personen oder den Verantwortlichen zur Durchsetzung erlaubt. Weitere Verstöße
-können in einem dauerhaften Ausschluss enden.
-
-### 4. Dauerhafter Ausschluss
-
-**Auswirkung auf die Community:** Ein Muster schwerwiegender Verstöße gegen die
-Community-Standards, einschließlich fortgesetzten unangemessenen Verhaltens,
-Belästigung einzelner Personen oder Herabwürdigung ganzer Personengruppen.
-
-**Konsequenz:** Dauerhafter Ausschluss von jeglicher öffentlicher Interaktion
-innerhalb der 365CMS-Community.
-
-## Quellenangabe
-
-Dieser Verhaltenskodex basiert auf dem
-[Contributor Covenant][homepage], Version 2.0:
-
-https://www.contributor-covenant.org/version/2/0/code_of_conduct.html
-
-Die Richtlinien zur Durchsetzung sind von der
-[Mozilla Code of Conduct Enforcement Ladder](https://github.com/mozilla/diversity)
-inspiriert.
-
-[homepage]: https://www.contributor-covenant.org
-
-Antworten auf häufige Fragen finden sich in den FAQ unter:
-
-https://www.contributor-covenant.org/faq
-
-Weitere Übersetzungen sind verfügbar unter:
-
-https://www.contributor-covenant.org/translations
+Dieser Text basiert auf dem [Contributor Covenant 2.0](https://www.contributor-covenant.org/version/2/0/code_of_conduct.html). Die Durchsetzungsstufen sind von der [Mozilla Code of Conduct Enforcement Ladder](https://github.com/mozilla/diversity) inspiriert.

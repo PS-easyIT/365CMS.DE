@@ -1,4 +1,13 @@
-# 365CMS 3.4.0 – Release-Pakete
+# 365CMS – Projektdokumentation | Abschnitt: Release-Pakete 3.4.00
+> **Stand:** 2026-09-13 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-13
+
+## English
+
+This release directory documents the distributable `3.4.00` packages. The update and full packages contain deployable code only; installation-specific configuration, uploads, caches, logs and backups are intentionally excluded.
+
+## Deutsch
+
+Dieses Release-Verzeichnis dokumentiert die auslieferbaren Pakete `3.4.00`. Update- und Vollpaket enthalten ausschließlich auslieferbaren Code; installationsspezifische Konfiguration, Uploads, Cache, Logs und Backups sind bewusst ausgeschlossen.
 
 - `365CMS-3.4.0-update.zip`: vollständiges Core-Updatepaket für den automatischen Core-Updater. Enthält den austauschbaren CMS-Code, aber bewusst keine installationsspezifische Konfiguration, Uploads, Caches, Logs oder Backups.
 - `365CMS-3.4.0-full.zip`: sauberes Gesamtpaket für eine Neuinstallation. Nach dem Entpacken `CMS/install.php` aufrufen.

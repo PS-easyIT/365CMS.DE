@@ -1,8 +1,7 @@
-> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
-> **Kurzbeschreibung:** Bedienungs- und Technikreferenz für die geschützten AI-Adminseiten, Provider-Policies, Quotas, Übersetzungen und Entwurfs-Pipelines.
+# 365CMS – Projektdokumentation | Abschnitt: Admin – AI SERVICES
+> **Stand:** 2026-09-13 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-13
 
-# 365CMS Admin – AI Services
+## 365CMS Admin – AI Services
 
 ## English
 

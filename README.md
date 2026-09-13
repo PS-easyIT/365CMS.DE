@@ -1,255 +1,89 @@
-# 365CMS.DE
+# 365CMS – Projektdokumentation | Abschnitt: Projektübersicht
+> **Stand:** 2026-09-13 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-13
 
-**Version:** [3.4.00](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
-
-<div align="center">
-
-### Content. Members. EditorJS. SEO. Themes. Operations.
-
-**365CMS ist eine selbst gehostete CMS- und Portalplattform für Projekte, die Inhalte, Mitglieder, Design, Sicherheit, Datenschutz und Betrieb nicht als Flickenteppich betreiben möchten.**
-
-**365CMS is a self-hosted CMS and portal platform for projects that want content, members, design, security, privacy and operations in one coherent system.**
-
-`Self-hosted` · `WordPress-like EditorJS` · `Members built in` · `Themes` · `Plugins` · `SEO` · `GDPR` · `Operations`
-
-[🌐 Website](https://365cms.de) · [🚀 Installation](CMS/DOC/INSTALLATION.md) · [📚 Dokumentation](CMS/DOC/INDEX.md) · [🎨 Themes](CMS/DOC/theme/README.md) · [🔌 Plugins](CMS/DOC/plugins/GUIDE.md)
-
-</div>
-
----
-
-## 🇩🇪 Deutsch
-
-### Warum 365CMS?
-
-365CMS bündelt die wichtigsten Bausteine für moderne Websites, Portale und geschützte Plattformen in einem System. Redaktion, Medien, Mitglieder, Pakete, Rollen, SEO, Themes, Datenschutz und Betrieb liegen nicht verstreut in mehreren Tools, sondern greifen über eine gemeinsame Admin-Oberfläche ineinander.
-
-Das Ziel ist ein CMS, das sich im Alltag professionell anfühlt: klar strukturiert, sicher, erweiterbar, performant und ohne dekorative Oberfläche, die echte Arbeit behindert.
-
-### Für welche Projekte?
-
-365CMS eignet sich besonders für:
-
-- Unternehmenswebsites mit Redaktion, SEO und Rollenmodell
-- Content-Hubs, Magazine, Wissensplattformen und Portale
-- Mitgliederbereiche mit Profilen, Benachrichtigungen und geschützten Funktionen
-- Agentur- und Kundenprojekte mit Theme-, Plugin- und Branding-Anforderungen
-- Self-hosted Setups mit Datenschutz-, Sicherheits- und Betriebsanforderungen
-- Plattformen mit Paketen, Abos, Gruppen oder rollenabhängigen Zugriffen
-
-Für reine Mini-Onepager ohne Ausbauperspektive ist 365CMS bewusst mehr Plattform als nötig. Für langfristige Projekte mit Wachstum, Betrieb und redaktionellem Alltag ist genau das der Punkt.
-
-### WordPress-ähnlicher EditorJS
-
-Der Seiten- und Beitragseditor basiert auf EditorJS und wurde für einen WordPress-ähnlichen Redaktionsfluss erweitert. Ziel ist ein Block-Editor, der Inhalte strukturiert speichert, aber im Admin vertraut bedienbar bleibt.
-
-Das Bedienverhalten orientiert sich bewusst an einem Gutenberg-/WordPress-Canvas: Redakteurinnen und Redakteure fügen Blöcke über einen gruppierten Inserter oder eine Commandbar ein, verschieben Blöcke per Drag & Drop, nutzen Undo/Redo für schnelle Korrekturen und wählen je nach Inhalt Text-, Medien-, Layout- oder Spezialblöcke aus. Der Editor bleibt dabei datengetrieben: gespeichert wird strukturiertes EditorJS-JSON, nicht ungeprüftes HTML.
-
-Wichtige Eigenschaften:
-
-- Blockbasierter Editor für Seiten und Beiträge
-- Text, Überschriften, Listen, Checklisten, Zitate, Tabellen, Code, dezente Trennlinien-Varianten und Abstände
-- Abstandsblöcke mit normalisierten Presets oder Pixelwerten inklusive `10px`, `100px` und `150px`, die im Public-Rendering über Critical-CSS und Public-CSS-Fallbacks erhalten bleiben
-- Bildblöcke mit Upload oder Mediathek-Auswahl, Live-Vorschau, Ausrichtung, Breite, Skalierungsmodus, Maxhöhe, Rahmen, Rundung, Hintergrund und Schatten
-- Mediathek-Auswahlen übernehmen nur echte vorhandene Captions/Alt-Beschreibungen; reine Dateinamen werden nicht mehr als sichtbare Bildunterschrift gespeichert und dateinamenartige Altbestände im Public-Renderer ausgeblendet.
-- Bild-Text-Blöcke mit Bild links oder rechts neben formatiertem Text und responsivem Public-Layout, das die Admin-Vorschau-Breiten, den Bild-Skalierungsmodus und die Vertikal-Ausrichtung `oben`, `mittig` oder `unten` auch im Theme-Frontend respektiert; Medien-Eigenschaften liegen im Editor dezent links neben dem Block statt als Overlay über dem Inhalt
-- Text+Bild-Blöcke übernehmen formatierte Zwischenablagen mit Listen, Absätzen und Inline-Formatierungen direkt im selben Block; kombinierte Bild+Text-Pastes laden Bilddateien hoch oder setzen sichere HTML-Bild-URLs, ohne den Text in neue Blöcke auszulagern
-- Eingebettete `data:image`-Quellen aus HTML-Zwischenablagen werden für Text+Bild-Blöcke sicher in Upload-Dateien umgewandelt, statt als nicht renderbare Base64-URL gespeichert zu werden
-- Fehlertolerantes Public-Rendering mit WordPress-/Gutenberg-Block-Übersetzung, inklusive `wp:media-text`, `wp:gallery`, selbstschließenden Bildblöcken und sicheren Media-Text-/Gallery-Inhalten
-- Mehrbild-Galerien mit Upload, Mediathek-Auswahl, Vorschau, Sortierung, Spaltensteuerung und deduplizierter Save-/Reload-Normalisierung
-- Inline-Formatierungen wie fett, kursiv, unterstrichen, durchgestrichen, Code, sichere Hyperlinks, Spoiler und Textfarbe
-- Rich-Text-Hinweisboxen mit Info-/Warn-/Erfolg-/Kritisch-Varianten, deren Titel und Inhalt Inline-Formatierungen behalten
-- WordPress-ähnlichere Admin-Bedienung mit Block-Inserter, Commandbar, Drag & Drop, Undo/Redo und Read-only-kompatiblen Tool-Kontexten
-- Abgeglichene EditorJS-Tooloberfläche: aktive Blocktools sind in der Admin-GUI und im generischen EditorJS-Service erreichbar; nicht registrierte Asset-Bundles wurden aus dem Core-Assetordner entfernt
-- Public-nahe Admin-Optik: Blockrahmen erscheinen nur noch beim Hover; Fokuszustände bleiben bewusst sehr dezent, damit der Canvas stärker der späteren Frontend-Ansicht entspricht
-- Auditierter Runtime-Vertrag: `onReady`/`onChange`/`onError`, seriell ausgeführte Hidden-JSON-Synchronisierung, Submit-Save, Pagehide-Cleanup, Upload-Response-Formate, LinkTool-CSRF-/GET-Parameter und Public-Renderer-Abdeckung sind in Factory, Page/Post-Binding und generischem EditorJS-Service aufeinander abgestimmt
-- Robuster Submit-Save bei lazy initialisierten Sprach-/Hidden-Editoren: laufende EditorJS-Bindings werden vor dem Formular-Submit vollständig abgewartet, damit schnell kopierte oder aktivierte Inhalte nicht als alter Hidden-JSON-Stand gespeichert werden
-- Text+Bild-Blöcke unterstützen eine optionale dezente Rahmenanzeige mit maximal 2px Rundung und zuverlässig durchgesetzten Abständen nach oben und unten; `30px`-Presets werden auch gegen globale Critical-CSS-Nullabstände erhalten
-- Text+Bild-Blöcke können optional eine echte H4-Überschrift anzeigen; bei aktivem Rahmen dockt diese als Band am oberen Rahmen an, während Abstand oben/unten getrennt einstellbar bleibt
-- EditorJS-Audit: Tool-/Asset-Registry ist bereinigt, Datei-Anhänge unterstützen explizit URL-Quellen und MediaText-Überschriften bleiben auch ohne `mbstring` robust
-- EditorJS-Runtime-Audit: Core-Factory, Tool-/Asset-Registry, Upload-Vertrag, Persistenz, Cleanup und Public-Renderer sind abgeglichen; die interne Runtime-/Debug-Version entspricht wieder dem Core-Release, Checklisten bleiben beim Reload/Speichern als Checklisten erhalten und bereits gerendertes `editorjs-media-text`/Galerie-HTML bleibt bei erneuter Normalisierung strukturerhaltend
-- Text+Bild-Abstände oben/unten greifen auf Publicseiten über die EditorJS-Core-Abstandsvariablen und werden nicht mehr von globalen `.editorjs-block`-Margin-Regeln überstimmt
-- Stabilere Bearbeitung großer Seiten und Beiträge: Admin-Bildvorschauen laden lazy/async, Offscreen-Blöcke werden browserseitig geschont, massenhafte Zwischenblock-Overlays werden bei sehr vielen Blöcken reduziert und Zahnrad-/Popover-Menüs bleiben vor nachfolgenden Blöcken bedienbar
-- Blockkarten und Schnellaktionen für typische Redaktionsmuster statt technischer JSON-Bearbeitung
-- Theme-nahe Editor-Vorschau durch Auswertung des aktiven Themes
-- Public-Rendering über einen eigenen Sanitizer/Renderer statt ungeprüfter HTML-Ausgabe
-- Entwurfsanzeige im Public-Bereich für angemeldete Autoren und berechtigte Admins
-
-Die gespeicherten EditorJS-Daten werden serverseitig sanitisiert und im Frontend als sauberes HTML gerendert. So bleiben Struktur, Formatierungen und Blöcke auch auf Live- und Entwurfsseiten erhalten, ohne die Sicherheitsgrenzen des CMS aufzugeben.
-
-### Kernbereiche
-
-| Bereich | Was 365CMS liefert |
-|---|---|
-| **Content & Publishing** | Seiten, Beiträge, Hub-Sites, Kategorien, Tags, Revisionen, Entwürfe, Public-Preview und EditorJS-Blockinhalte |
-| **Medien** | Medienbibliothek, Uploads, Ordner, Kategorien, Bildverwendung, Beitrags-/Seitenbilder, direkte öffentliche `/uploads/...`-Referenzen und geschützte Medienauslieferung für private Pfade |
-| **Mitglieder** | Member-Dashboard, konfigurierbare Profile mit Pflicht-/Optionalfeldern, Nachrichten, Benachrichtigungen, Favoriten und geschützte Bereiche |
-| **Benutzer & Rollen** | Rollen, Capabilities, Gruppen, Rechteprüfung und sichere Auth-Flows |
-| **Business & Pakete** | Pakete, Bestellungen, Abos, Limits, Gruppenlogik und Zugriffskontrolle |
-| **SEO** | Meta-Daten, unsichtbare Seiten-Keywords, Social-Daten, Sitemap, Robots, Redirects, 404-Monitoring, IndexNow und strukturierte Daten |
-| **Themes & Design** | Theme-System, Theme-Auswahl, Customizer, Menüs, lokale Fonts, Loginpage und Branding-Pfade |
-| **Plugins** | Hook-System, Plugin-Verwaltung, Erweiterungspunkte und modulare Integrationen |
-| **Datenschutz** | Legal-Seiten, Cookie-/Consent-Funktionen, DSGVO-Datenexporte und Löschprozesse |
-| **Betrieb** | Cache, Performance, Logs, Cron, Monitoring, Backups, Updates und Diagnose |
-
-### Admin-Erlebnis
-
-Der Admin-Bereich folgt einem klassischen professionellen Backend-Flow: klare Header, nachvollziehbare Toolbars, ruhige Tabellen, stabile Sidebars und reduzierte UI. 365CMS priorisiert Arbeitsgeschwindigkeit, Lesbarkeit und robuste Bedienung auf Desktop und Mobile. Die Admin-Sidebar hält den Logo-Bereich bewusst kompakt; Page-/Post-Editoren vermeiden künstliche Leerstrecken unterhalb des Inhaltsbereichs.
-
-Seit `3.3.44` ist der Plugin-Menüfluss im Admin explizit gehärtet: alle aktiven Plugin-Menüs werden aus der Registry gerendert, gleiche numerische Menüpositionen überschreiben keine anderen Einträge mehr, lange Plugin-Listen scrollen innerhalb der Sidebar und Plugin-Callbacks ohne vollständiges Layout erhalten automatisch den gemeinsamen Admin-Content-Wrapper. Knowledgebase- und ausgewählte M365-Pluginrouten besitzen zusätzliche Core-Fallbacks für verschachtelte `/admin/plugins/...`-Seiten.
-
-Die letzten Core-Nachträge seit dem 26.05.2026 sind dokumentiert: Seit `3.3.42` lädt der Admin keine externen Tabler-Icon-Webfonts mehr, sondern nutzt die lokale Runtime unter `CMS/assets/tabler-icons/`; seit `3.3.43` sind Kategorie-Zusatzdomains aus der Beitragskategorien-Verwaltung entfernt und bleiben klar von HubSite-Domains getrennt.
-
-Typische Workflows:
-
-- Inhalte mit EditorJS erstellen, prüfen, als Entwurf ansehen und veröffentlichen
-- Medien hochladen, organisieren und in Inhalten wiederverwenden
-- Rollen, Benutzer und Gruppen verwalten
-- Member-Profile zentral konfigurieren: Standardfelder, Pflichtfelder und zusätzliche projektbezogene Eingabefelder
-- SEO, Social Preview und technische Sichtbarkeit optimieren
-- Datenschutzseiten und Consent-Prozesse pflegen
-- Themes, Menüs und lokale Fonts anpassen
-- Plugins aktivieren und projektbezogene Funktionen ergänzen
-- Systemzustand, Performance, Backups und Logs kontrollieren
-
-### Sicherheit und Betrieb
-
-365CMS ist auf produktive Self-hosted-Umgebungen ausgelegt. Dazu gehören CSRF-Schutz, serverseitige Sanitizer, rollenbasierte Berechtigungen, sichere Upload-Pfade, kontrollierte Medienauslieferung, Datenschutzfunktionen, Diagnosewerkzeuge und klare Update-Pfade. Öffentliche Beitrags-/Seitenbilder werden im aktuellen Stand als hostneutrale direkte `/uploads/...`-Referenzen gespeichert und mit webserverlesbaren Dateirechten abgesichert; private Member- und Hidden-Pfade bleiben geschützt und laufen über den kontrollierten Delivery-Pfad.
-
-Performance wird nicht als Deko-Schalter verstanden, sondern als Zusammenspiel aus Cache, Medienauslieferung, schlanken Assets, Cron, Monitoring, Datenbankpflege und sauberem Frontend-Rendering.
-
-### Schnellstart
-
-#### Voraussetzungen
-
-- PHP `8.4+`
-- MySQL `5.7+` oder MariaDB `10.3+`
-- Apache `2.4+` mit `mod_rewrite`
-- PHP-Erweiterungen: `PDO`, `pdo_mysql`, `mbstring`, `json`, `dom`
-
-#### Installation in Kürze
-
-1. Projekt auf den Webserver kopieren
-2. Datenbank und Schreibrechte vorbereiten
-3. `install.php` im Browser öffnen
-4. Admin-Konto und Grundeinstellungen anlegen
-5. `install.php` nach Abschluss entfernen
-6. Theme, Mail, SEO, Datenschutz, Rollen und Medienpfade konfigurieren
-
-### Dokumentation
-
-| Thema | Dokument |
-|---|---|
-| Dokumentationsindex | [`CMS/DOC/INDEX.md`](CMS/DOC/INDEX.md) |
-| Installation | [`CMS/DOC/INSTALLATION.md`](CMS/DOC/INSTALLATION.md) |
-| Admin-Bereich | [`CMS/DOC/admin/README.md`](CMS/DOC/admin/README.md) |
-| Member-Bereich | [`CMS/DOC/member/README.md`](CMS/DOC/member/README.md) |
-| Core & Services | [`CMS/DOC/core/ARCHITECTURE.md`](CMS/DOC/core/ARCHITECTURE.md), [`CMS/DOC/core/SERVICES.md`](CMS/DOC/core/SERVICES.md) |
-| Medien-Workflow | [`CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md`](CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md) |
-| Theme-System | [`CMS/DOC/theme/README.md`](CMS/DOC/theme/README.md) |
-| Plugin-Einstieg | [`CMS/DOC/plugins/GUIDE.md`](CMS/DOC/plugins/GUIDE.md) |
-| Performance | [`CMS/DOC/admin/performance/PERFORMANCE.md`](CMS/DOC/admin/performance/PERFORMANCE.md) |
-| Updates & Deployment | [`CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md`](CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |
-
-### Support und Lizenz
-
-- **Entwicklung:** Andreas Hepp
-- **Web:** [365CMS.DE](https://365cms.de) · [PhinIT.DE](https://phinit.de)
-- **Support:** GitHub Issues, Kontaktformular und lokale Projektdokumentation
-- **Lizenz:** Freie Verwendung für private und geschäftliche Projekte
-
----
-
-## 🇬🇧 English
+## English
 
 ### What is 365CMS?
 
-365CMS is a self-hosted CMS and portal platform that combines content, media, members, packages, roles, SEO, themes, privacy and operations in one administration system.
+365CMS is a self-hosted PHP CMS and portal platform for content, members, themes, plugins, SEO, privacy and day-to-day operations. The runtime is located in [`CMS/`](CMS/); the public documentation is maintained in [`DOC/`](DOC/).
 
-It is designed for projects that need more than a basic page editor: editorial workflows, protected member areas, branding, extension points, security and predictable operations.
+The current product version is defined by [`CMS/core/Version.php`](CMS/core/Version.php). Release `3.4.00` requires PHP `8.4+` and uses schema version `v22`.
 
-### WordPress-like EditorJS
+### Core capabilities
 
-The page and post editor is built on EditorJS and extended towards a WordPress-like block editing experience.
-
-The editing flow intentionally behaves like a Gutenberg-style canvas: authors insert blocks through grouped block cards or a command bar, reorder content via drag & drop, use undo/redo for quick corrections and choose between text, media, layout and special-purpose blocks. The stored format remains structured EditorJS JSON rather than unchecked HTML.
-
-Highlights:
-
-- block-based editing for pages and posts
-- paragraphs, headings, lists, checklists, quotes, tables, code, subtle delimiter variants and spacers
-- image blocks with upload or media-library selection, live preview, alignment, width, borders, rounding, background and shadow
-- multi-image galleries with upload, media-library selection, preview, column control and deduplicated save/reload normalization
-- inline formatting such as bold, italic, underline, strikethrough, code, safe hyperlinks and spoiler text
-- grouped block inserter, commandbar, drag & drop, undo/redo and width modes
-- block cards and quick actions for editorial workflows instead of raw JSON editing
-- editor preview aligned with the active theme where possible
-- sanitized server-side rendering for live and draft pages
-- public draft preview for logged-in authors and authorized admins
-
-### Main capabilities
-
-| Area | Capabilities |
+| Area | Current runtime capability |
 |---|---|
-| **Content & Publishing** | Pages, posts, categories, tags, revisions, drafts, public preview and EditorJS blocks |
-| **Media** | Media library, uploads, folders, categories, usage tracking and controlled media delivery |
-| **Members** | Member dashboard, profiles, notifications, messages, favorites and protected areas |
-| **Users & Roles** | Users, groups, roles, capabilities and secure authentication flows |
-| **Business & Packages** | Packages, orders, subscriptions, limits, groups and access logic |
-| **SEO** | Metadata, social previews, sitemap, robots, redirects, 404 monitoring, IndexNow and structured data |
-| **Themes & Design** | Theme system, customization, menus, local fonts, login page and branding paths |
-| **Plugins** | Hooks, plugin management, extension points and modular integrations |
-| **Privacy** | Legal pages, cookie/consent features, GDPR exports and deletion workflows |
-| **Operations** | Cache, performance, logs, cron, monitoring, backups, updates and diagnostics |
+| Content | Pages, posts, EditorJS blocks, revisions, categories and tags |
+| Administration | Dashboard, users, roles, settings, media, SEO, updates and diagnostics |
+| Members | Member area, profiles, notifications and protected features |
+| Security | CSRF protection, capability checks, secure sessions, audit logging and hardened uploads |
+| Extensions | Runtime plugins in `CMS/plugins/` and themes in `CMS/themes/` |
+| Operations | Cache, logs, backups, cron, schema updates and update packages |
+
+### Requirements
+
+- PHP `8.4+`
+- PDO with `pdo_mysql`
+- A MySQL- or MariaDB-compatible database
+- A web server configured to serve the `CMS/` directory
+- Writable runtime directories required by the installer, including configuration, logs, cache, uploads and backups
+
+The installer performs the authoritative environment checks. See [`DOC/INSTALLATION.md`](DOC/INSTALLATION.md) for the complete procedure.
 
 ### Quick start
 
-Requirements:
+```text
+1. Deploy the contents of CMS/ to the web root or configure the web root to CMS/.
+2. Open install.php in the browser.
+3. Enter database, site and administrator values.
+4. Complete the schema installation or update.
+5. Remove or protect the installer after completion.
+```
 
-- PHP `8.4+`
-- MySQL `5.7+` or MariaDB `10.3+`
-- Apache `2.4+` with `mod_rewrite`
-- PHP extensions: `PDO`, `pdo_mysql`, `mbstring`, `json`, `dom`
-
-Install flow:
-
-1. Copy the project to your web server
-2. Prepare database credentials and writable directories
-3. Open `install.php` in the browser
-4. Create the admin account and base configuration
-5. Remove `install.php` after installation
-6. Configure theme, mail, SEO, privacy, roles and media paths
+The runtime entry points are [`CMS/index.php`](CMS/index.php) and [`CMS/install.php`](CMS/install.php). Do not copy installation-specific configuration, logs, uploads or backups into a release archive.
 
 ### Documentation
 
-| Topic | Document |
+| Topic | Link |
 |---|---|
-| Documentation index | [`CMS/DOC/INDEX.md`](CMS/DOC/INDEX.md) |
-| Installation | [`CMS/DOC/INSTALLATION.md`](CMS/DOC/INSTALLATION.md) |
-| Admin area | [`CMS/DOC/admin/README.md`](CMS/DOC/admin/README.md) |
-| Member area | [`CMS/DOC/member/README.md`](CMS/DOC/member/README.md) |
-| Core & services | [`CMS/DOC/core/ARCHITECTURE.md`](CMS/DOC/core/ARCHITECTURE.md), [`CMS/DOC/core/SERVICES.md`](CMS/DOC/core/SERVICES.md) |
-| Media workflow | [`CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md`](CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md) |
-| Themes | [`CMS/DOC/theme/README.md`](CMS/DOC/theme/README.md) |
-| Plugins | [`CMS/DOC/plugins/GUIDE.md`](CMS/DOC/plugins/GUIDE.md) |
-| Performance | [`CMS/DOC/admin/performance/PERFORMANCE.md`](CMS/DOC/admin/performance/PERFORMANCE.md) |
-| Updates & deployment | [`CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md`](CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |
+| Documentation hub | [`DOC/README.md`](DOC/README.md) |
+| Documentation index | [`DOC/INDEX.md`](DOC/INDEX.md) |
+| Installation | [`DOC/INSTALLATION.md`](DOC/INSTALLATION.md) |
+| Runtime structure | [`DOC/FILESTRUCTUR.md`](DOC/FILESTRUCTUR.md) |
+| Core developer reference | [`DOC/DEVLIST.md`](DOC/DEVLIST.md) |
+| Security and audits | [`AUDIT/audit/`](AUDIT/audit/) |
+| Release history | [`Changelog.md`](Changelog.md) |
+| Community rules | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) |
 
-### Support and license
+### Contributing and security
 
-- **Development:** Andreas Hepp
-- **Web:** [365CMS.DE](https://365cms.de) · [PhinIT.DE](https://phinit.de)
-- **Support:** GitHub Issues, contact form and local project documentation
-- **License:** Free to use for private and commercial projects
+Please keep changes focused, document behavior changes and validate PHP syntax before opening a pull request. Follow the project [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) and report security issues privately to the maintainers rather than publishing exploit details in a public issue.
 
----
+## Deutsch
 
-## Bereit? / Ready?
+### Was ist 365CMS?
 
-Wenn du Content, Mitglieder, SEO, Datenschutz, Design und Betrieb in einem klaren Self-hosted-System zusammenführen willst, ist 365CMS genau dafür gebaut.
+365CMS ist ein selbst gehostetes PHP-CMS und Portal-System für Inhalte, Mitglieder, Themes, Plugins, SEO, Datenschutz und den laufenden Betrieb. Die Runtime liegt unter [`CMS/`](CMS/); die öffentliche Projektdokumentation liegt unter [`DOC/`](DOC/).
 
-If you want content, members, SEO, privacy, design and operations in one clear self-hosted system, 365CMS is built for exactly that.
+Die aktuelle Produktversion wird in [`CMS/core/Version.php`](CMS/core/Version.php) definiert. Release `3.4.00` benötigt PHP `8.4+` und verwendet die Schema-Version `v22`.
 
-[🚀 Installation starten](CMS/DOC/INSTALLATION.md) · [📚 Dokumentation öffnen](CMS/DOC/INDEX.md) · [🎨 Themes erkunden](CMS/DOC/theme/README.md) · [🔌 Plugins ansehen](CMS/DOC/plugins/GUIDE.md)
+### Zentrale Funktionen
 
-[🚀 Start installation](CMS/DOC/INSTALLATION.md) · [📚 Open documentation](CMS/DOC/INDEX.md) · [🎨 Explore themes](CMS/DOC/theme/README.md) · [🔌 Browse plugins](CMS/DOC/plugins/GUIDE.md)
+| Bereich | Aktuelle Runtime-Funktion |
+|---|---|
+| Inhalte | Seiten, Beiträge, EditorJS-Blöcke, Revisionen, Kategorien und Tags |
+| Administration | Dashboard, Benutzer, Rollen, Einstellungen, Medien, SEO, Updates und Diagnose |
+| Mitglieder | Mitgliederbereich, Profile, Benachrichtigungen und geschützte Funktionen |
+| Sicherheit | CSRF-Schutz, Capability-Prüfungen, sichere Sessions, Audit-Logging und gehärtete Uploads |
+| Erweiterungen | Runtime-Plugins unter `CMS/plugins/` und Themes unter `CMS/themes/` |
+| Betrieb | Cache, Logs, Backups, Cron, Schema-Updates und Update-Pakete |
+
+### Voraussetzungen und Schnellstart
+
+Benötigt werden PHP `8.4+`, PDO mit `pdo_mysql`, eine MySQL- oder MariaDB-kompatible Datenbank sowie ein Webserver, der das Verzeichnis `CMS/` ausliefert. Der Installer prüft die verbindlichen Voraussetzungen und benötigt Schreibrechte für die vorgesehenen Runtime-Verzeichnisse.
+
+Die vollständige Installationsanleitung steht unter [`DOC/INSTALLATION.md`](DOC/INSTALLATION.md). Nach der Installation muss [`CMS/install.php`](CMS/install.php) entfernt oder geschützt werden.
+
+### Mitwirken
+
+Bitte Änderungen fokussiert halten, Verhaltensänderungen dokumentieren und die PHP-Syntax vor einem Pull Request prüfen. Für das Projekt gelten [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) und die privaten Meldewege für Sicherheitsprobleme.

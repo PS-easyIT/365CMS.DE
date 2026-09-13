@@ -1,3 +1,14 @@
+# 365CMS – Projektdokumentation | Abschnitt: Beispielbericht WordPress-Import
+> **Stand:** 2026-09-13 | **Version:** 3.4.00 | **Status:** Example report | **Update:** 2026-09-13
+
+## English
+
+This file is a generated example report from the WordPress importer. It documents unmapped source metadata and is not a live database migration result.
+
+## Deutsch
+
+Diese Datei ist ein generierter Beispielbericht des WordPress-Importers. Sie dokumentiert nicht zugeordnete Quelldaten und ist kein aktuelles Ergebnis einer Datenbankmigration.
+
 # WordPress-Import – Unbekannte Meta-Felder
 
 > **Import-Datei:** `phinitde.WordPress.2026-01-10.xml`
