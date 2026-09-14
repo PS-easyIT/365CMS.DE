@@ -1,4 +1,15 @@
-CHANGELOG
+# 365CMS – Projektdokumentation | Abschnitt: Asset – Mailer Changelog
+> **Stand:** 2026-09-14 | **Version:** 3.4.00 | **Status:** Historical asset record | **Update:** 2026-09-14
+
+## English
+
+The following history belongs to the mailer asset shipped under `CMS/assets/mailer/`. It is retained as an upstream asset record; runtime behavior is implemented by the CMS mail services.
+
+## Deutsch
+
+Die folgende Historie gehört zum unter `CMS/assets/mailer/` ausgelieferten Mailer-Asset. Sie bleibt als Upstream-Assetnachweis erhalten; das Runtime-Verhalten wird durch die CMS-Mail-Services implementiert.
+
+## Changelog
 =========
 
 8.0

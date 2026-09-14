@@ -1,4 +1,15 @@
-CHANGELOG
+# 365CMS – Projektdokumentation | Abschnitt: Asset – MIME Changelog
+> **Stand:** 2026-09-14 | **Version:** 3.4.00 | **Status:** Historical asset record | **Update:** 2026-09-14
+
+## English
+
+The following history belongs to the MIME asset shipped under `CMS/assets/mime/`. It is retained as an upstream asset record; upload validation remains a CMS service responsibility.
+
+## Deutsch
+
+Die folgende Historie gehört zum unter `CMS/assets/mime/` ausgelieferten MIME-Asset. Sie bleibt als Upstream-Assetnachweis erhalten; Upload-Validierung bleibt Aufgabe eines CMS-Services.
+
+## Changelog
 =========
 
 8.0

@@ -1,4 +1,15 @@
-CHANGELOG
+# 365CMS – Projektdokumentation | Abschnitt: Asset – AI Platform Changelog
+> **Stand:** 2026-09-14 | **Version:** 3.4.00 | **Status:** Historical asset record | **Update:** 2026-09-14
+
+## English
+
+The following history belongs to the AI platform asset shipped under `CMS/assets/ai-platform/`. It is retained as an upstream asset record; current CMS integration is documented in the application services.
+
+## Deutsch
+
+Die folgende Historie gehört zum unter `CMS/assets/ai-platform/` ausgelieferten AI-Platform-Asset. Sie bleibt als Upstream-Assetnachweis erhalten; die aktuelle CMS-Integration ist in den Anwendungs-Services dokumentiert.
+
+## Changelog
 =========
 
 0.6

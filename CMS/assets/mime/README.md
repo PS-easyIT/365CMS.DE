@@ -1,13 +1,10 @@
-MIME Component
-==============
+# 365CMS – Projektdokumentation | Abschnitt: Asset – MIME
+> **Stand:** 2026-09-14 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-14
 
-The MIME component allows manipulating MIME messages.
+## English
 
-Resources
----------
+The MIME asset supplies MIME type handling for runtime services, including upload and media processing. Use the existing upload and media services for validation; do not trust a client-provided MIME type on its own.
 
- * [Documentation](https://symfony.com/doc/current/components/mime.html)
- * [Contributing](https://symfony.com/doc/current/contributing/index.html)
- * [Report issues](https://github.com/symfony/symfony/issues) and
-   [send Pull Requests](https://github.com/symfony/symfony/pulls)
-   in the [main Symfony repository](https://github.com/symfony/symfony)
+## Deutsch
+
+Das MIME-Asset stellt die MIME-Typ-Verarbeitung für Runtime-Services einschließlich Uploads und Medienverarbeitung bereit. Für Validierung die vorhandenen Upload- und Medien-Services verwenden; ein vom Client gelieferter MIME-Typ ist allein nicht vertrauenswürdig.

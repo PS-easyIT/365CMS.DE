@@ -1,40 +1,10 @@
-Translation Component
-=====================
+# 365CMS – Projektdokumentation | Abschnitt: Asset – Translation
+> **Stand:** 2026-09-14 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-14
 
-The Translation component provides tools to internationalize your application.
+## English
 
-Getting Started
----------------
+Translation assets support `CMS/core/Services/TranslationService.php` and the AI Editor.js translation pipeline. Language permissions, input limits, sanitization, and persistence remain application responsibilities.
 
-```bash
-composer require symfony/translation
-```
+## Deutsch
 
-```php
-use Symfony\Component\Translation\Translator;
-use Symfony\Component\Translation\Loader\ArrayLoader;
-
-$translator = new Translator('fr_FR');
-$translator->addLoader('array', new ArrayLoader());
-$translator->addResource('array', [
-    'Hello World!' => 'Bonjour !',
-], 'fr_FR');
-
-echo $translator->trans('Hello World!'); // outputs « Bonjour ! »
-```
-
-Sponsor
--------
-
-Help Symfony by [sponsoring][3] its development!
-
-Resources
----------
-
- * [Documentation](https://symfony.com/doc/current/translation.html)
- * [Contributing](https://symfony.com/doc/current/contributing/index.html)
- * [Report issues](https://github.com/symfony/symfony/issues) and
-   [send Pull Requests](https://github.com/symfony/symfony/pulls)
-   in the [main Symfony repository](https://github.com/symfony/symfony)
-
-[3]: https://symfony.com/sponsor
+Translation-Assets unterstützen `CMS/core/Services/TranslationService.php` und die AI-Editor.js-Übersetzungspipeline. Sprachberechtigungen, Eingabelimits, Sanitization und Persistenz bleiben Verantwortlichkeiten der Anwendung.

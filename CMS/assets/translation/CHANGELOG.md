@@ -1,4 +1,15 @@
-CHANGELOG
+# 365CMS – Projektdokumentation | Abschnitt: Asset – Translation Changelog
+> **Stand:** 2026-09-14 | **Version:** 3.4.00 | **Status:** Historical asset record | **Update:** 2026-09-14
+
+## English
+
+The following history belongs to the translation asset shipped under `CMS/assets/translation/`. It is retained as an upstream asset record; language policy and persistence remain CMS responsibilities.
+
+## Deutsch
+
+Die folgende Historie gehört zum unter `CMS/assets/translation/` ausgelieferten Translation-Asset. Sie bleibt als Upstream-Assetnachweis erhalten; Sprach-Policy und Persistenz bleiben Verantwortlichkeiten der CMS-Anwendung.
+
+## Changelog
 =========
 
 8.0
