@@ -1,180 +1,73 @@
-> **Website:** [365CMS](https://365cms.de/)
-> **Version:** 3.4.00
-> **Datum:** 2026-09-06
-> **Status:** Aktuell – **Zuletzt aktualisiert am: 2026-09-06**
-> **Kurzbeschreibung:** Einstieg in Aufbau, Zuständigkeiten und Betriebsweise des 365CMS-Core. Die Übersicht wurde mit dem vollständigen Verzeichnis `CMS/core/` abgeglichen.
+# 365CMS – Projektdokumentation | Abschnitt: Overview
+
+> **Stand:** 2026-09-13 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-13
 
 ## English
 
-### User-friendly
-The core contains the stable runtime of 365CMS: startup, routing, storage, security, authentication, plugins, themes and reusable services.
+# Core documentation overview
 
-### Technical
-The verified tree contains root classes and the `Auth`, `Contracts`, `Http`, `Member`, `Routing` and `Services` namespaces, including AI, Editor.js, Landing, Media, SEO and SiteTable modules. The complete detailed reference is retained in the German technical section below.
+This folder documents the active runtime implementation in `CMS/core` and intentionally stays within the facts confirmed by the source code. The authoritative files for this revision are the runtime classes under `CMS/core` and the route modules under `CMS/core/Routing`.
+
+## Source-of-truth files
+
+| File | Role |
+| --- | --- |
+| `CMS/core/Bootstrap.php` | startup bootstrap, mode detection, runtime validation |
+| `CMS/core/Container.php` | dependency injection container |
+| `CMS/core/Router.php` | request dispatch and routing rules |
+| `CMS/core/Api.php` | generic API request handling |
+| `CMS/core/Routing/ApiRouter.php` | active API route surface |
+| `CMS/core/Hooks.php` | action/filter hook registry |
+| `CMS/core/Security.php` | CSP, headers, CSRF, session hardening |
+| `CMS/core/Auth.php` | session, login, capability checks |
+| `CMS/core/Database.php` | PDO wrapper and schema/migration delegation |
+| `CMS/core/Version.php` | version metadata |
+
+## Current runtime facts
+
+- `Version::CURRENT` is `3.4.00`.
+- `Bootstrap::detectMode()` resolves the runtime mode to `cli`, `api`, `admin`, or `web`.
+- `Router::registerDefaultRoutes()` routes API requests to `CMS\Routing\ApiRouter`, admin requests to `CMS\Routing\AdminRouter`, member requests to `CMS\Routing\MemberRouter`, and the rest to `PublicRouter` and `ThemeRouter`.
+- The active API endpoints are defined in `CMS/core/Routing/ApiRouter.php`.
+- `Hooks` implements the action and filter registry.
+- `Security` generates a nonce-based CSP, sets security headers, validates CSRF, and adds no-store caching in admin/API mode.
+- `Database` uses native PDO prepared statements and delegates schema creation and repair to manager classes.
+
+## Validation notes
+
+The documentation in this directory is intentionally conservative. It only describes contracts and files that exist in the current repository and avoids invented endpoints or configuration values.
 
 ## Deutsch
 
-### Anwenderfreundlich
-Der Core enthält die stabile Laufzeit des 365CMS: Start, Routing, Speicherung, Sicherheit, Anmeldung, Plugins, Themes und Services.
+# Überblick zur Core-Dokumentation
 
-### Technisch
-Die nachfolgende vollständige Übersicht wurde mit dem gesamten Baum `CMS/core/` abgeglichen.
+Dieser Ordner dokumentiert die aktive Laufzeitimplementierung in `CMS/core` und bleibt bewusst innerhalb der Fakten, die im Code bestätigt sind. Die maßgeblichen Dateien für diese Revision sind die Laufzeitklassen unter `CMS/core` und die Routemodule unter `CMS/core/Routing`.
 
-## Deutsch
+## Verbindliche Quell-Dateien
 
-### Anwenderfreundlich
+| Datei | Rolle |
+| --- | --- |
+| `CMS/core/Bootstrap.php` | Bootstrap, Moduserkennung, Laufzeitvalidierung |
+| `CMS/core/Container.php` | Dependency-Injection-Container |
+| `CMS/core/Router.php` | Request-Dispatch und Routing-Regeln |
+| `CMS/core/Api.php` | generische API-Anfragebehandlung |
+| `CMS/core/Routing/ApiRouter.php` | aktives API-Route-Set |
+| `CMS/core/Hooks.php` | Action-/Filter-Registry |
+| `CMS/core/Security.php` | CSP, Header, CSRF, Session-Hardening |
+| `CMS/core/Auth.php` | Session, Login, Capability-Prüfungen |
+| `CMS/core/Database.php` | PDO-Wrapper und Schema-/Migrationsdelegation |
+| `CMS/core/Version.php` | Versionsmetadaten |
 
-Der Core stellt Start, Routing, Speicherung, Sicherheit, Authentifizierung, Plugins, Themes und gemeinsame Services bereit.
+## Aktuelle Laufzeitfakten
 
-### Technisch
+- `Version::CURRENT` ist `3.4.00`.
+- `Bootstrap::detectMode()` ermittelt den Laufzeitmodus als `cli`, `api`, `admin` oder `web`.
+- `Router::registerDefaultRoutes()` leitet API-Anfragen an `CMS\Routing\ApiRouter`, Admin-Anfragen an `CMS\Routing\AdminRouter`, Member-Anfragen an `CMS\Routing\MemberRouter` und den Rest an `PublicRouter` und `ThemeRouter`.
+- Das aktive API-Endpunkt-Set befindet sich in `CMS/core/Routing/ApiRouter.php`.
+- `Hooks` implementiert die Action- und Filter-Registry.
+- `Security` erzeugt eine nonce-basierte CSP, setzt Sicherheitsheader, validiert CSRF und fügt im Admin-/API-Modus `no-store`-Caching hinzu.
+- `Database` nutzt native PDO-Prepared-Statements und delegiert Schema-Erstellung und Reparatur an Manager-Klassen.
 
-# CMS Core – Übersicht
-> **Stand:** 2026-09-06 | **Version:** 3.4.00 | **Status:** Aktuell
+## Validierungsnotizen
 
-## Inhaltsverzeichnis
-- [Verzeichnisstruktur](#verzeichnisstruktur)
-- [Wichtige Muster](#wichtige-muster)
-- [Dokumentation](#dokumentation)
-
-<!-- UPDATED: 2026-09-06 -->
-
-Das `core/`-Verzeichnis enthält alle Kernklassen des 365CMS.
-Die meisten Klassen folgen dem **Singleton-Pattern** und sind über PSR-4 autogeladen.
-
----
-
-## Verzeichnisstruktur
-
-```
-core/
-├── autoload.php              PSR-4 Autoloader (CMS\ → /core/, CMS\Services\ → /core/Services/)
-├── Api.php                   REST API Controller v1
-├── AuditLogger.php           Sicherheits-Audit-Log (audit_log-Tabelle)
-├── Auth.php                  Authentifizierung, Session, Rollen
-├── Bootstrap.php             System-Initialisierung
-├── CacheManager.php          Datei-Cache, OPcache, APCu, LiteSpeed
-├── Container.php             Dependency-Injection-Container
-├── Database.php              PDO-Wrapper mit prepared statements
-├── Debug.php                 Debug-Logging, HTML-Ausgabe (statisch)
-├── Hooks.php                 WordPress-ähnliches Action/Filter-System
-├── Json.php                  Null-sichere JSON-Helfer für Settings und Runtime-Pfade
-├── Logger.php                PSR-3-kompatibles Logging mit Channel-Support
-├── MigrationManager.php      Inkrementelle ALTER-TABLE-Migrationen
-├── PageManager.php           Seitenverwaltung (CRUD, Suche, Revisions)
-├── PluginManager.php         Plugin-Laden, Aktivieren, Deaktivieren
-├── Router.php                URL-Routing und Request-Dispatching
-├── SchemaManager.php         CREATE TABLE – 44 Basis-Tabellen
-├── Security.php              CSRF, XSS, Sanitize, Rate-Limiting
-├── SubscriptionManager.php   Abo-Pakete, Gruppen, Nutzungsgrenzen
-├── TableOfContents.php       TOC-Widget, Anker-IDs, [cms_toc]-Shortcode
-├── ThemeManager.php          Theme-Laden, Template-Rendering
-├── Totp.php                  TOTP 2FA (RFC 6238, Google Authenticator)
-├── VendorRegistry.php        Registry für produktive Bundles und Plattformprüfung
-├── Version.php               Zentrale Release-Konstanten (Version, Datum, Status)
-├── WP_Error.php              WordPress-kompatible Fehlerklasse
-├── Contracts/
-│   ├── CacheInterface.php    PSR-16-ähnlicher Cache-Contract
-│   ├── DatabaseInterface.php Datenbank-Abstraktions-Contract
-│   └── LoggerInterface.php   PSR-3-kompatibler Logger-Contract
-├── Http/
-│   └── Client.php            SSRF-gehärteter HTTP-Client für Remote-Pfade
-├── Member/
-│   └── PluginDashboardRegistry.php  Plugin-Bereiche im Member-Dashboard
-├── Routing/
-│   ├── AdminRouter.php       Teilrouter für Admin- und AJAX-Einstiege
-│   ├── ApiRouter.php         API-/Upload-/Medien-Routen
-│   ├── MemberRouter.php      Member-Dashboard- und Plugin-Routen
-│   ├── PublicRouter.php      Public-Routen inkl. Archive, Kommentare und Sitemaps
-│   └── ThemeRouter.php       Theme-spezifische Frontend-Dispatching-Hilfe
-└── Services/
-    ├── AnalyticsService.php       Besucherstatistiken
-    ├── BackupService.php          Datenbank-/Datei-Backups
-    ├── CommentService.php         Kommentar-Verwaltung
-    ├── ContentLocalizationService.php Lokalisierte Basis-URIs und Sprachpfade
-    ├── CoreWebVitalsService.php   Feldmessung für Web Vitals
-    ├── CookieConsentService.php   Cookie-Consent-Banner
-    ├── DashboardService.php       Dashboard-Statistiken
-    ├── ErrorReportService.php     Persistente Fehlerreports mit Audit-Logging
-    ├── EditorJsRenderer.php       Editor.js Block-Rendering
-    ├── EditorJsService.php        Editor.js Integration
-    ├── EditorService.php          Seiten-Editor Logik
-    ├── FeatureUsageService.php    Datensparsame Nutzungsmetriken für Admin/Member
-    ├── FeedService.php            RSS-/Atom-Feed-Generierung
-    ├── FileUploadService.php      Datei-Upload-Verarbeitung
-    ├── ImageService.php           Bildverarbeitung (Resize, WebP)
-    ├── LandingPageService.php     Landing Pages (Sections)
-    ├── MailService.php            E-Mail-Versand (SMTP/Symfony Mailer)
-    ├── MediaDeliveryService.php   Kontrollierte Auslieferung privater Uploads
-    ├── MediaService.php           Medienbibliothek & Upload
-    ├── MemberService.php          Member-Dashboard-Logik
-    ├── MessageService.php         Internes Nachrichten-System
-    ├── OpcacheWarmupService.php   Warmup der größten PHP-Dateien
-    ├── PdfService.php             PDF-Generierung (DomPDF)
-    ├── PermalinkService.php       Beitrags-URL-Strukturen und Slug-Migration
-    ├── PurifierService.php        HTML-Bereinigung (HTMLPurifier)
-    ├── RedirectService.php        URL-Weiterleitungen
-    ├── SearchService.php          Volltextsuche (TNTSearch)
-    ├── SeoAnalysisService.php     SEO-Analyse & Scoring
-    ├── SEOService.php             Sitemap, Robots.txt, Meta-Tags
-    ├── SiteTableService.php       Tabellen-Verwaltung
-    ├── StatusService.php          System-Health-Checks, Reparatur
-    ├── SystemService.php          System-Infos, DB-Status
-    ├── ThemeCustomizer.php        Theme-Einstellungen (Farben, Fonts)
-    ├── TrackingService.php        Page-View-Tracking
-    ├── TranslationService.php     Übersetzungssystem (i18n)
-    ├── UpdateService.php          CMS-Update-Prüfung
-    └── UserService.php            Benutzer-CRUD für Admin
-```
-
-Im Stand `3.4.00` dokumentiert [STRUCTURE.md](STRUCTURE.md) zusätzlich den aktuellen Release-Snapshot des Core-/Admin-Scopes inklusive neuer Service- und Admin-Einstiege. Für die aktuelle Gesamtstruktur der Runtime ergänzt [../FILELIST.md](../FILELIST.md) diesen Core-Blick um Assets, Member, Plugins, Themes und weitere Runtime-Zonen.
-
-Die Referenz wurde am `2026-09-06` gegen `CMS/core/Version.php`,
-`CMS/core/Bootstrap.php`, `CMS/core/Routing/ApiRouter.php` und den vollständigen
-Service-Bestand geprüft. Verbindliche Codewerte bleiben Version `3.4.00`,
-Release-Datum `2026-09-05` und PHP `8.4+`.
-
----
-
-## Wichtige Muster
-
-### Singleton-Aufruf
-
-```php
-$db   = Database::instance();
-$auth = Auth::instance();
-$sec  = Security::instance();
-```
-
-Services nutzen `getInstance()` (historische Abweichung, funktional identisch):
-
-```php
-$dashboard = DashboardService::getInstance();
-$user      = UserService::getInstance();
-```
-
-### Konstanten
-
-| Konstante          | Bedeutung                         |
-|--------------------|-----------------------------------|
-| `ABSPATH`          | Absoluter Serverpfad zum CMS-Root |
-| `CORE_PATH`        | `ABSPATH . 'core/'`               |
-| `SITE_URL`         | Öffentliche Base-URL              |
-| `DB_PREFIX`        | Datenbank-Tabellenpräfix (Standard: `cms_`) |
-| `CMS_VERSION`      | Aktuelle CMS-Version              |
-| `CMS_DEBUG`        | Debug-Modus (bool)                |
-| `MAX_LOGIN_ATTEMPTS`| Rate-Limit Login                 |
-| `LOGIN_TIMEOUT`    | Rate-Limit Zeitfenster (Sekunden) |
-
----
-
-## Dokumentation
-
-| Datei                    | Inhalt                                        |
-|--------------------------|-----------------------------------------------|
-| [STRUCTURE.md](STRUCTURE.md)         | Release-Snapshot für `CMS/core`, `CMS/admin`, `CMS/config` |
-| [CORE-CLASSES.md](CORE-CLASSES.md) | Detailreferenz aller 22 Core-Klassen  |
-| [SERVICES.md](SERVICES.md)         | Alle 30 Service-Klassen dokumentiert  |
-| [SECURITY.md](SECURITY.md)         | Sicherheitsmodell                     |
-| [../ARCHITECTURE.md](../ARCHITECTURE.md) | Gesamt-Systemarchitektur      |
-| [../DATABASE-SCHEMA.md](../DATABASE-SCHEMA.md)   | Alle DB-Tabellen          |
-| [../HOOKS-REFERENCE.md](../HOOKS-REFERENCE.md)   | Action/Filter-Referenz    |
+Die Dokumentation in diesem Verzeichnis ist bewusst konservativ. Sie beschreibt nur Contracts und Dateien, die im aktuellen Repository existieren, und vermeidet erfundene Endpunkte oder Konfigurationswerte.
