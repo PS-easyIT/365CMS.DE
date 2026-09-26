@@ -825,8 +825,12 @@ var Hyperlink = /*#__PURE__*/function () {
   }, {
     key: "validateURL",
     value: function validateURL(str) {
+      // 365CMS: Längenlimit + eindeutige Label-Definition (keine verschachtelten Quantoren) gegen ReDoS (CodeQL js/redos).
+      if (typeof str !== 'string' || str.length > 2048) {
+        return false;
+      }
       var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
-      '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
+      '(([a-z\\d](?:[a-z\\d-]{0,61}[a-z\\d])?\\.)+[a-z]{2,}|' + // domain name
       '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
       '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
       '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
