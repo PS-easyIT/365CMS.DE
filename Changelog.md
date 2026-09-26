@@ -1,5 +1,4 @@
 ﻿# 365CMS – Projektdokumentation | Abschnitt: Änderungsprotokoll
-> **Stand:** 2026-09-26 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-26
 
 ## English
 
