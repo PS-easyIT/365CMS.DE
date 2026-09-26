@@ -425,6 +425,7 @@ final class VendorRegistry
             'cms-images' => ['url' => 'https://github.com/PS-easyIT/365CMS.DE', 'label' => 'GitHub'],
             'tabler-icons' => ['url' => 'https://tabler.io/icons', 'label' => 'Website'],
             'dompurify' => ['url' => 'https://github.com/cure53/DOMPurify', 'label' => 'GitHub'],
+            'bacon/bacon-qr-code' => ['url' => 'https://github.com/Bacon/BaconQrCode', 'label' => 'GitHub'],
             'symfony/yaml' => ['url' => 'https://github.com/symfony/yaml', 'label' => 'GitHub'],
             'symfony/clock' => ['url' => 'https://github.com/symfony/clock', 'label' => 'GitHub'],
             'symfony/event-dispatcher' => ['url' => 'https://github.com/symfony/event-dispatcher', 'label' => 'GitHub'],
@@ -575,10 +576,17 @@ final class VendorRegistry
             [
                 'package' => 'robthree/twofactorauth',
                 'label' => 'TwoFactorAuth',
-                'paths' => [$dir('twofactorauth')],
+                'paths' => [$dir('twofactorauth'), $dir('bacon-qr-code'), $dir('dasprid-enum')],
                 'symbol' => '\\RobThree\\Auth\\TwoFactorAuth',
                 'symbol_type' => 'class',
-                'notes' => 'TOTP-/MFA-Bundle.',
+                'probe' => static function (): void {
+                    $svg = (new \RobThree\Auth\Providers\Qr\BaconQrCodeProvider(2, '#ffffff', '#000000', 'svg'))
+                        ->getQRCodeImage('otpauth://totp/probe?secret=JBSWY3DPEHPK3PXP', 120);
+                    if (!str_contains($svg, '<svg')) {
+                        throw new \RuntimeException('BaconQrCode liefert kein SVG.');
+                    }
+                },
+                'notes' => 'TOTP-/MFA-Bundle; QR-Codes werden lokal per bacon/bacon-qr-code (+ dasprid/enum) als SVG erzeugt.',
             ],
             [
                 'package' => 'ldaprecord',

@@ -45,7 +45,8 @@ final class TotpAdapter
 
     /**
      * Gibt die RobThree-Instanz zurück (lazy init).
-    * Nutzt keinen externen QR-Code-Provider; QR wird als OTP-URI bzw. lokal im Frontend erzeugt.
+     * QR-Codes werden lokal per BaconQrCode als SVG erzeugt (kein externer QR-Dienst,
+     * keine GD/Imagick-Abhängigkeit). Fehlt BaconQrCode, liefert der Provider leer.
      */
     private function getTfa(): ?\RobThree\Auth\TwoFactorAuth
     {
@@ -55,8 +56,9 @@ final class TotpAdapter
 
         if ($this->tfa === null) {
             $issuer = defined('SITE_NAME') ? SITE_NAME : '365CMS';
-            $this->tfa = new \RobThree\Auth\TwoFactorAuth(
-                new class implements \RobThree\Auth\Providers\Qr\IQRCodeProvider {
+            $qrProvider = class_exists(\BaconQrCode\Writer::class)
+                ? new \RobThree\Auth\Providers\Qr\BaconQrCodeProvider(2, '#ffffff', '#000000', 'svg')
+                : new class implements \RobThree\Auth\Providers\Qr\IQRCodeProvider {
                     public function getQRCodeImage(string $qrText, int $size): string
                     {
                         return '';
@@ -66,12 +68,31 @@ final class TotpAdapter
                     {
                         return 'image/svg+xml';
                     }
-                },
-                $issuer
-            );
+                };
+            $this->tfa = new \RobThree\Auth\TwoFactorAuth($qrProvider, $issuer);
         }
 
         return $this->tfa;
+    }
+
+    /**
+     * Lokal erzeugter QR-Code als data:-URI (SVG) oder '' wenn nicht verfügbar.
+     */
+    public function getQrCodeDataUri(string $secret, string $account, int $size = 200): string
+    {
+        $tfa = $this->getTfa();
+        if ($tfa === null || !class_exists(\BaconQrCode\Writer::class)) {
+            return '';
+        }
+
+        try {
+            $dataUri = $tfa->getQRCodeImageAsDataUri($account, $secret, $size);
+        } catch (\Throwable) {
+            return '';
+        }
+
+        // Nur ein nicht-leeres SVG-Bild akzeptieren (leerer Provider → "data:…;base64,").
+        return preg_match('#^data:image/svg\+xml;base64,[A-Za-z0-9+/=]{16,}$#', $dataUri) === 1 ? $dataUri : '';
     }
 
     // ── Öffentliche API ──────────────────────────────────────────────────────
@@ -151,12 +172,13 @@ final class TotpAdapter
         $this->setUserMeta($userId, 'mfa_pending_secret', $secret);
 
         $otpUri = $this->getOtpAuthUri($secret, $accountLabel);
-        $qrDataUri = '';
+        $qrDataUri = $this->getQrCodeDataUri($secret, $accountLabel);
 
         return [
             'secret'      => $secret,
             'otp_uri'     => $otpUri,
-            'qr_url'      => $qrDataUri !== '' ? $qrDataUri : $otpUri,
+            // Nie die otpauth://-URI als Bildquelle ausgeben (führt zu kaputtem <img>).
+            'qr_url'      => $qrDataUri,
             'qr_data_uri' => $qrDataUri,
         ];
     }

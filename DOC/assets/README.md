@@ -21,6 +21,7 @@
 | Auth | `php-jwt` | gebündelter Snapshot | JWT | API / Auth |
 | Auth | `ldaprecord` | `4.0.3` | LDAP / AD | Auth |
 | Auth | `twofactorauth` | gebündelter Snapshot | TOTP | Auth |
+| Auth | `bacon-qr-code` + `dasprid-enum` | `3.1.1` / `1.0.7` | lokale TOTP-QR-Codes als SVG (kein externer QR-Dienst, kein GD) | Auth / Member |
 | Auth | `webauthn` | gebündelter Snapshot | Passkeys | Auth |
 | Mail | `mailer` | `8.0.8` | Mail-Versand | System |
 | Mail | `mime` | `8.0.8` | MIME-Objekte / Anhänge | System |

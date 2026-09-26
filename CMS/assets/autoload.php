@@ -91,6 +91,8 @@ if (!function_exists('cms_vendor_psr4_map')) {
             'Carbon\\'            => ['Carbon/src/Carbon'],
             'lbuchs\\WebAuthn\\'  => ['webauthn'],
             'RobThree\\Auth\\'    => ['twofactorauth'],
+            'BaconQrCode\\'       => ['bacon-qr-code'],
+            'DASPRiD\\Enum\\'     => ['dasprid-enum'],
             'LdapRecord\\'        => ['ldaprecord'],
             'Firebase\\JWT\\'     => ['php-jwt'],
         ];
