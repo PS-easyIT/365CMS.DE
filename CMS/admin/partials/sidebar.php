@@ -570,38 +570,8 @@ $menuGroups = [
     ],
 ];
 
-if ($pluginMenuGroups !== []) {
-    foreach ($menuGroups as $index => $item) {
-        if (($item['type'] ?? '') === 'group' && in_array('plugins', (array)($item['slugs'] ?? []), true)) {
-            $pluginCount = count($pluginMenuGroups);
-            array_splice($menuGroups, $index + 1, 0, array_merge([
-                [
-                    'type'  => 'spacer',
-                    'class' => 'nav-spacer--plugins-start',
-                ],
-            ], array_map(static function (array $pluginGroup, int $pluginIndex) use ($pluginCount): array {
-                $classes = ['nav-item--plugin'];
-
-                if ($pluginIndex === 0) {
-                    $classes[] = 'nav-item--plugin-first';
-                }
-
-                if ($pluginIndex === $pluginCount - 1) {
-                    $classes[] = 'nav-item--plugin-last';
-                }
-
-                $pluginGroup['class'] = trim((string)($pluginGroup['class'] ?? '') . ' ' . implode(' ', $classes));
-                return $pluginGroup;
-            }, $pluginMenuGroups, array_keys($pluginMenuGroups)), [
-                [
-                    'type'  => 'spacer',
-                    'class' => 'nav-spacer--plugins-end',
-                ],
-            ]));
-            break;
-        }
-    }
-}
+// Plugin-Menüs werden erst nach ALLEN 365CMS-Menüpunkten angehängt (siehe unten),
+// damit das Ende der Core-Navigation sofort erkennbar ist.
 
 $sectionMap = [
     'dashboard' => ['label' => 'Kernsystem', 'class' => 'nav-section-label--core'],
@@ -636,6 +606,36 @@ foreach ($menuGroups as $item) {
     $menuGroupsWithSections[] = $item;
 }
 $menuGroups = $menuGroupsWithSections;
+
+// ─── Plugin-Erweiterungen: immer unterhalb aller 365CMS-Menüpunkte ─────────
+if ($pluginMenuGroups !== []) {
+    $pluginMenuGroups = array_values(array_filter($pluginMenuGroups, static function (array $item): bool {
+        return ($item['type'] ?? '') !== 'group' || !empty($item['children']);
+    }));
+}
+
+if ($pluginMenuGroups !== []) {
+    $pluginCount = count($pluginMenuGroups);
+    $menuGroups[] = ['type' => 'divider', 'class' => 'nav-divider--section nav-divider--plugins'];
+    $menuGroups[] = [
+        'type'  => 'section-label',
+        'label' => 'Plugin-Erweiterungen',
+        'class' => 'nav-section-label--plugins',
+    ];
+
+    foreach ($pluginMenuGroups as $pluginIndex => $pluginGroup) {
+        $classes = ['nav-item--plugin'];
+        if ($pluginIndex === 0) {
+            $classes[] = 'nav-item--plugin-first';
+        }
+        if ($pluginIndex === $pluginCount - 1) {
+            $classes[] = 'nav-item--plugin-last';
+        }
+
+        $pluginGroup['class'] = trim((string) ($pluginGroup['class'] ?? '') . ' ' . implode(' ', $classes));
+        $menuGroups[] = $pluginGroup;
+    }
+}
 
 $menuGroups = array_values(array_filter($menuGroups, static function (array $item): bool {
     if (($item['type'] ?? '') !== 'group') {

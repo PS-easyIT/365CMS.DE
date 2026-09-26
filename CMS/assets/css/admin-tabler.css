@@ -331,40 +331,31 @@ body.admin-body .cms-plugin-admin-content {
     margin: 0.35rem 0.5rem;
 }
 
-.navbar-vertical .nav-spacer--plugins-start,
-.navbar-vertical .nav-spacer--plugins-end {
-    display: block;
-    height: 25px;
-    flex: 0 0 25px;
+.navbar-vertical .nav-divider--plugins {
+    height: 2px;
+    margin: 1.1rem 0.75rem 0.3rem;
+    background: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 0.55) 15%, rgba(56, 189, 248, 0.55) 85%, transparent 100%);
+}
+
+.navbar-vertical .nav-section-label--plugins {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #7dd3fc;
+}
+
+.navbar-vertical .nav-section-label--plugins::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #38bdf8;
+    flex: 0 0 auto;
 }
 
 .navbar-vertical .nav-item--plugin > .nav-link {
     background: rgba(56, 189, 248, 0.04);
     border-left-color: rgba(56, 189, 248, 0.18);
-}
-
-.navbar-vertical .nav-item--plugin-first,
-.navbar-vertical .nav-item--plugin-last {
-    position: relative;
-}
-
-.navbar-vertical .nav-item--plugin-first::before,
-.navbar-vertical .nav-item--plugin-last::after {
-    content: '';
-    position: absolute;
-    left: 0.9rem;
-    right: 0.9rem;
-    height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(30, 51, 80, 0.25) 8%, rgba(30, 51, 80, 0.9) 50%, rgba(30, 51, 80, 0.25) 92%, transparent 100%);
-    pointer-events: none;
-}
-
-.navbar-vertical .nav-item--plugin-first::before {
-    top: -12px;
-}
-
-.navbar-vertical .nav-item--plugin-last::after {
-    bottom: -12px;
 }
 
 .navbar-vertical .nav-item--plugin > .nav-link:hover {

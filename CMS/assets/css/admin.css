@@ -9073,6 +9073,32 @@ body.admin-body .admin-section-toolbar__actions {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Grenze zwischen 365CMS-Kernnavigation und Plugin-Erweiterungen */
+#sidebar-menu .nav-divider--plugins {
+    margin: 18px 12px 4px;
+    border-top: 2px solid rgba(56, 189, 248, 0.45);
+    background: none;
+    height: 0;
+}
+
+#sidebar-menu .nav-section-label--plugins {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px 8px;
+    color: #7dd3fc;
+}
+
+#sidebar-menu .nav-section-label--plugins::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+    flex: 0 0 auto;
+}
+
 #sidebar-menu .nav-link {
     min-height: 38px;
     margin: 0 9px;

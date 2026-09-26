@@ -295,9 +295,47 @@ final class InlineStyleRewriter
             return null;
         }
 
+        // Unbalancierte Quotes/Klammern würden im gemeinsamen <style>-Block alle folgenden Regeln verschlucken.
+        if (!$this->hasBalancedCssSyntax($value)) {
+            return null;
+        }
+
         $value = rtrim($value, " \t\n\r;");
 
         return $value === '' ? '' : $value . ';';
+    }
+
+    private function hasBalancedCssSyntax(string $value): bool
+    {
+        $quote = null;
+        $depth = [];
+        $pairs = [')' => '(', ']' => '['];
+        $length = strlen($value);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $value[$i];
+
+            if ($quote !== null) {
+                if ($char === $quote) {
+                    $quote = null;
+                } elseif ($char === "\n" || $char === "\r" || $char === "\f") {
+                    return false;
+                }
+                continue;
+            }
+
+            if ($char === '"' || $char === "'") {
+                $quote = $char;
+            } elseif ($char === '(' || $char === '[') {
+                $depth[] = $char;
+            } elseif (isset($pairs[$char])) {
+                if (array_pop($depth) !== $pairs[$char]) {
+                    return false;
+                }
+            }
+        }
+
+        return $quote === null && $depth === [];
     }
 
     private function isHtmlResponse(): bool
