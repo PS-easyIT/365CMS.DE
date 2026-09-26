@@ -1,5 +1,4 @@
 # 365CMS – Projektdokumentation | Abschnitt: CMSFILESTRUCTUR
-> **Stand:** 2026-09-13 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-13
 
 ## Table of contents | Inhaltsverzeichnis
 

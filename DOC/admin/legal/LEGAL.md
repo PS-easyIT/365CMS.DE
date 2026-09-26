@@ -1,5 +1,4 @@
 # 365CMS – Projektdokumentation | Abschnitt: Admin – LEGAL
-> **Stand:** 2026-09-13 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-13
 
 ## 365CMS Admin – Legal
 

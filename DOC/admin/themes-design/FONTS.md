@@ -1,5 +1,4 @@
 # 365CMS – Projektdokumentation | Abschnitt: Fonts
-> **Stand:** 2026-09-13 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-13
 
 ## English
 ### Purpose
