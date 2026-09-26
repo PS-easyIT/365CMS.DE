@@ -28,6 +28,182 @@
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
     var VERSION = 'cms-editorjs-org-assets-2026-06-05-paste-sanitize-warning-colors';
     var CMS_BLOCK_CLIPBOARD_PREFIX = 'CMS_EDITORJS_BLOCKS_V1:';
+    // Deutsche Oberfläche für Editor.js-Core, Plugins und Block-Tunes (i18n.messages).
+    var EDITOR_I18N_DE = {
+        ui: {
+            blockTunes: {
+                toggler: {
+                    'Click to tune': 'Klicken zum Anpassen',
+                    'or drag to move': 'oder ziehen zum Verschieben'
+                }
+            },
+            inlineToolbar: {
+                converter: {
+                    'Convert to': 'Umwandeln in'
+                }
+            },
+            toolbar: {
+                toolbox: {
+                    'Add': 'Hinzufügen'
+                }
+            },
+            popover: {
+                'Filter': 'Filtern',
+                'Search': 'Suchen',
+                'Nothing found': 'Nichts gefunden',
+                'Convert to': 'Umwandeln in'
+            }
+        },
+        toolNames: {
+            'Text': 'Text',
+            'Heading': 'Überschrift',
+            'List': 'Liste',
+            'Unordered List': 'Aufzählung',
+            'Ordered List': 'Nummerierte Liste',
+            'Checklist': 'Checkliste',
+            'Warning': 'Hinweis',
+            'Quote': 'Zitat',
+            'Code': 'Code',
+            'Delimiter': 'Trennlinie',
+            'Raw HTML': 'HTML',
+            'Table': 'Tabelle',
+            'Link': 'Link',
+            'Hyperlink': 'Link',
+            'Marker': 'Markierung',
+            'Bold': 'Fett',
+            'Italic': 'Kursiv',
+            'InlineCode': 'Inline-Code',
+            'Underline': 'Unterstrichen',
+            'Strikethrough': 'Durchgestrichen',
+            'Image': 'Bild',
+            'Attachment': 'Anhang',
+            'Alert': 'Alert-Box',
+            'Accordion': 'Akkordeon',
+            'Embed': 'Einbettung',
+            'Spoiler': 'Spoiler',
+            'Color': 'Farbe',
+            'Text Color': 'Textfarbe',
+            'Anchor': 'Anker'
+        },
+        tools: {
+            stub: {
+                'The block can not be displayed correctly.': 'Der Block kann nicht korrekt angezeigt werden.'
+            },
+            link: {
+                'Add a link': 'Link einfügen'
+            },
+            hyperlink: {
+                'Save': 'Übernehmen',
+                'Select target': 'Ziel wählen',
+                'Select rel': 'rel-Attribut wählen'
+            },
+            paragraph: {
+                'Enter something': 'Text eingeben'
+            },
+            header: {
+                'Heading 1': 'Überschrift 1',
+                'Heading 2': 'Überschrift 2',
+                'Heading 3': 'Überschrift 3',
+                'Heading 4': 'Überschrift 4',
+                'Heading 5': 'Überschrift 5',
+                'Heading 6': 'Überschrift 6'
+            },
+            list: {
+                'Unordered': 'Aufzählung',
+                'Ordered': 'Nummeriert',
+                'Checklist': 'Checkliste',
+                'Counter type': 'Zählweise',
+                'Start with': 'Beginnen mit',
+                'Numeric': 'Zahlen',
+                'Lower Roman': 'Römisch (klein)',
+                'Upper Roman': 'Römisch (groß)',
+                'Lower Alpha': 'Buchstaben (klein)',
+                'Upper Alpha': 'Buchstaben (groß)'
+            },
+            image: {
+                'Caption': 'Bildunterschrift',
+                'Select an Image': 'Bild auswählen',
+                'With border': 'Mit Rahmen',
+                'Stretch image': 'Bild strecken',
+                'With background': 'Mit Hintergrund',
+                'With caption': 'Mit Bildunterschrift',
+                'Couldn’t upload image. Please try another.': 'Das Bild konnte nicht hochgeladen werden. Bitte ein anderes versuchen.'
+            },
+            quote: {
+                'Enter a quote': 'Zitat eingeben',
+                'Enter a caption': 'Quelle eingeben',
+                'Align Left': 'Linksbündig',
+                'Align Center': 'Zentriert'
+            },
+            code: {
+                'Enter a code': 'Code eingeben'
+            },
+            warning: {
+                'Title': 'Titel',
+                'Message': 'Hinweistext'
+            },
+            embed: {
+                'Enter a caption': 'Bildunterschrift eingeben'
+            },
+            linkTool: {
+                'Link': 'Link',
+                "Couldn't fetch the link data": 'Die Link-Daten konnten nicht abgerufen werden',
+                "Couldn't get this link data, try the other one": 'Für diesen Link sind keine Daten verfügbar, bitte einen anderen versuchen',
+                'Wrong response format from the server': 'Unerwartetes Antwortformat vom Server'
+            },
+            attaches: {
+                'File title': 'Dateititel',
+                'Select file to upload': 'Datei zum Hochladen auswählen'
+            },
+            table: {
+                'Heading': 'Überschrift',
+                'With headings': 'Mit Kopfzeile',
+                'Without headings': 'Ohne Kopfzeile',
+                'Stretch': 'Volle Breite',
+                'Collapse': 'Normale Breite',
+                'Add column to left': 'Spalte links einfügen',
+                'Add column to right': 'Spalte rechts einfügen',
+                'Add row above': 'Zeile oberhalb einfügen',
+                'Add row below': 'Zeile unterhalb einfügen',
+                'Delete column': 'Spalte löschen',
+                'Delete row': 'Zeile löschen'
+            },
+            accordion: {
+                'Settings': 'Einstellungen',
+                'Block Count': 'Anzahl Blöcke',
+                'Default Expanded': 'Standardmäßig geöffnet',
+                'Save': 'Übernehmen'
+            },
+            textVariant: {
+                'Call-out': 'Hervorhebung',
+                'Citation': 'Zitat',
+                'Details': 'Details'
+            },
+            indentTune: {
+                'Indent': 'Einrücken'
+            }
+        },
+        blockTunes: {
+            delete: {
+                'Delete': 'Löschen',
+                'Click to delete': 'Zum Löschen erneut klicken'
+            },
+            moveUp: {
+                'Move up': 'Nach oben'
+            },
+            moveDown: {
+                'Move down': 'Nach unten'
+            },
+            textVariant: {
+                'Call-out': 'Hervorhebung',
+                'Citation': 'Zitat',
+                'Details': 'Details'
+            },
+            indentTune: {
+                'Indent': 'Einrücken'
+            }
+        }
+    };
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -5571,6 +5747,10 @@
                 minHeight: 160,
                 autofocus: false,
                 placeholder: 'Schreibe Inhalt oder wähle einen Block ...',
+                i18n: {
+                    direction: 'ltr',
+                    messages: EDITOR_I18N_DE
+                },
                 onReady: function () {
                     holder.dataset.editorState = 'editor';
                     holder.setAttribute('aria-busy', 'false');

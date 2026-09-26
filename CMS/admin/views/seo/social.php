@@ -42,7 +42,7 @@ $coverage = $social['coverage'] ?? [];
                 <div class="col-12"><button class="btn btn-primary" type="submit">Social Defaults speichern</button></div>
             </form>
         </div></div></div>
-        <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h3 class="card-title">Preview-Beispiele</h3></div><div class="card-body">
+        <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h3 class="card-title">Vorschau-Beispiele</h3></div><div class="card-body">
             <?php foreach ($examples as $example): ?>
                 <div class="border rounded overflow-hidden bg-light mb-3">
                     <?php $image = (string)($example['og_image'] ?: $example['featured_image'] ?? ''); ?>

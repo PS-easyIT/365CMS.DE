@@ -294,7 +294,7 @@ if (empty($summary['translation_ready'])) {
                             <li class="mb-2">✅ Provider erscheinen jetzt nur noch als bewusst angelegte Liste statt als starre Komplettmatrix.</li>
                             <li class="mb-2">✅ Der Editor.js-Übersetzungs-Endpoint bleibt geschützt und an die zentralen Feature-Gates gekoppelt.</li>
                             <li class="mb-2">✅ Ollama und Azure AI sind als erste echte Live-Provider im Gateway verdrahtet.</li>
-                            <li class="mb-2">✅ Translation, Content-Assist und SEO-Assist lassen sich auf Provider-Ebene getrennt schalten.</li>
+                            <li class="mb-2">✅ Translation, Inhalts-Assistent und SEO-Assist lassen sich auf Provider-Ebene getrennt schalten.</li>
                             <li class="mb-2">✅ Das AI-Dashboard zeigt jetzt request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus dem Audit-Log, ohne Rohprompts oder Volltexte offenzulegen.</li>
                             <li class="mb-2">✅ Prompt-Vorlagen lassen sich je Bereich verwalten; die Translation-Vorlage wirkt direkt in der Live-Pipeline und bleibt durch serverseitige Pflicht-Leitplanken abgesichert.</li>
                             <li class="mb-2">✅ Der SEO-Assistent erzeugt im Page-/Post-Editor aus dem Haupttext einen übernehmbaren Entwurf für Meta-, Social-, Schema-, Sitemap- und Robots-Felder; Dokumenttitel, Slug und URL-Felder bleiben ausgeschlossen.</li>
@@ -307,14 +307,14 @@ if (empty($summary['translation_ready'])) {
             </div>
             <div class="col-12 col-xl-5">
                 <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Readiness-Check</h3></div>
+                    <div class="card-header"><h3 class="card-title">Bereitschaftsprüfung</h3></div>
                     <div class="card-body">
                         <dl class="row mb-0 small">
                             <dt class="col-7">Master-Schalter</dt>
                             <dd class="col-5"><?php $renderBadge(!empty($features['ai_services_enabled']) ? 'success' : 'secondary', !empty($features['ai_services_enabled']) ? 'an' : 'aus'); ?></dd>
-                            <dt class="col-7">Translation-Gate</dt>
+                            <dt class="col-7">Übersetzungs-Freigabe</dt>
                             <dd class="col-5"><?php $renderBadge(!empty($features['ai_translation_enabled']) ? 'success' : 'secondary', !empty($features['ai_translation_enabled']) ? 'an' : 'aus'); ?></dd>
-                            <dt class="col-7">Content-Assist</dt>
+                            <dt class="col-7">Inhalts-Assistent</dt>
                             <dd class="col-5"><?php echo count($contentAssistProviders); ?> Provider</dd>
                             <dt class="col-7">SEO-Assist</dt>
                             <dd class="col-5"><?php echo count($seoAssistProviders); ?> Provider</dd>
@@ -360,7 +360,7 @@ if (empty($summary['translation_ready'])) {
                                 <dd class="col-5"><?php echo (int) ($activeProviderMonitoring['requests_30d'] ?? 0); ?> / <?php echo (int) ($activeProviderMonitoring['request_limit'] ?? 0); ?></dd>
                             </dl>
 
-                            <div class="text-secondary small mb-2">Top-Provider der letzten 30 Tage</div>
+                            <div class="text-secondary small mb-2">Meistgenutzte Provider der letzten 30 Tage</div>
                             <div class="table-responsive">
                                 <table class="table table-sm table-vcenter mb-0">
                                     <thead>
@@ -473,7 +473,7 @@ if (empty($summary['translation_ready'])) {
                     <?php $renderFormContext('save_translation'); ?>
                     <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                         <h3 class="card-title mb-0">Übersetzungsprofil</h3>
-                        <button type="submit" class="btn btn-primary">Translation-Einstellungen speichern</button>
+                        <button type="submit" class="btn btn-primary">Übersetzungs-Einstellungen speichern</button>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
@@ -520,8 +520,8 @@ if (empty($summary['translation_ready'])) {
                     <div class="card-body text-secondary small">
                         <p>Die bestehende Übersetzungspipeline bedient aktuell Editor.js-Inhalte und führt DE-Inhalte nach EN in lokalisierte Felder zurück.</p>
                         <ul class="mb-0 ps-3">
-                            <li>Preview-/Diff-Schritt vor der Übernahme</li>
-                            <li>Provider-abhängige Translation-Freigaben</li>
+                            <li>Vorschau-/Vergleichsschritt vor der Übernahme</li>
+                            <li>Provider-abhängige Übersetzungs-Freigaben</li>
                             <li>Blocktypen können granular eingegrenzt werden</li>
                             <li>Nicht unterstützte Inhalte lassen sich fail-soft bewahren</li>
                         </ul>
@@ -546,14 +546,14 @@ if (empty($summary['translation_ready'])) {
                     <?php $renderFormContext('generate_content_draft'); ?>
                     <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                         <div>
-                            <h3 class="card-title mb-1">Content-Entwurf erstellen</h3>
+                            <h3 class="card-title mb-1">Inhaltsentwurf erstellen</h3>
                             <div class="text-secondary small">Erstellt einen redaktionellen Vorschlag ausschließlich für die manuelle Prüfung.</div>
                         </div>
                         <button type="submit" class="btn btn-primary" <?php echo $contentCreatorTasks === [] ? 'disabled' : ''; ?>>Entwurf erstellen</button>
                     </div>
                     <div class="card-body text-secondary small">
                         <?php if ($contentCreatorTasks === []): ?>
-                            <div class="alert alert-warning mb-3">Aktiviere unter <a href="/admin/ai-settings" class="alert-link">AI-Einstellungen</a> mindestens Summary oder Rewrite sowie die entsprechende Fähigkeit des aktiven Providers.</div>
+                            <div class="alert alert-warning mb-3">Aktiviere unter <a href="/admin/ai-settings" class="alert-link">AI-Einstellungen</a> mindestens Zusammenfassung oder Umschreiben sowie die entsprechende Fähigkeit des aktiven Providers.</div>
                         <?php endif; ?>
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -631,7 +631,7 @@ if (empty($summary['translation_ready'])) {
                             </thead>
                             <tbody>
                                 <?php if ($contentAssistProviders === []): ?>
-                                    <tr><td colspan="4" class="text-center text-secondary py-4">Derzeit kein Provider mit Content-Assist-Fähigkeiten aktiv.</td></tr>
+                                    <tr><td colspan="4" class="text-center text-secondary py-4">Derzeit kein Provider mit Inhalts-Assistent-Fähigkeiten aktiv.</td></tr>
                                 <?php else: ?>
                                     <?php foreach ($contentAssistProviders as $provider): ?>
                                         <tr>
@@ -754,7 +754,7 @@ if (empty($summary['translation_ready'])) {
                         <div class="card-body d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <div>
                                 <div class="fw-semibold text-danger">Provider dauerhaft löschen</div>
-                                <div class="text-secondary small">Entfernt <strong><?php echo htmlspecialchars((string) ($activeProvider['label'] ?? $activeProviderId)); ?></strong> inklusive zugehörigem API-Secret. Der aktive bzw. Fallback-Provider wird anschließend sicher neu aufgelöst.</div>
+                                <div class="text-secondary small">Entfernt <strong><?php echo htmlspecialchars((string) ($activeProvider['label'] ?? $activeProviderId)); ?></strong> inklusive zugehörigem API-Secret. Der aktive bzw. Ersatz-Provider wird anschließend sicher neu aufgelöst.</div>
                             </div>
                             <button type="submit" class="btn btn-outline-danger">Provider löschen</button>
                         </div>
@@ -796,9 +796,9 @@ if (empty($summary['translation_ready'])) {
                                 <div class="form-hint">„Alle Funktionen“ erlaubt alle aktivierten Provider-Scopes. Globale Features, Berechtigungen, Locale-, Beta- und Datenfreigabe-Gates bleiben weiterhin verpflichtend.</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label" for="aiFallbackProvider">Fallback-Provider</label>
+                                <label class="form-label" for="aiFallbackProvider">Ersatz-Provider</label>
                                 <select class="form-select" name="fallback_provider_id" id="aiFallbackProvider">
-                                    <option value="">Kein Fallback</option>
+                                    <option value="">Kein Ersatz-Provider</option>
                                     <?php foreach ($providers as $provider): ?>
                                         <?php $providerId = (string) ($provider['id'] ?? ''); ?>
                                         <?php if ($providerId === '' || $providerId === $activeProviderId): continue; endif; ?>
@@ -879,7 +879,7 @@ if (empty($summary['translation_ready'])) {
                     <?php $renderFormContext('check_provider_health'); ?>
                     <div class="card-body d-flex justify-content-between align-items-center gap-3 flex-wrap">
                         <div>
-                            <div class="fw-semibold">Provider-Healthcheck</div>
+                            <div class="fw-semibold">Provider-Verbindungstest</div>
                             <div class="text-secondary small">Sendet keine Redaktionsinhalte und prüft Konfiguration, Policy sowie bei Live-Providern einen minimalen Modellaufruf.</div>
                         </div>
                         <input type="hidden" name="provider_id" value="<?php echo htmlspecialchars($activeProviderId, ENT_QUOTES); ?>">
@@ -933,11 +933,11 @@ if (empty($summary['translation_ready'])) {
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Max. Zeichen pro Request</label>
+                                <label class="form-label">Max. Zeichen pro Anfrage</label>
                                 <input type="number" class="form-control" name="max_chars_per_request" min="250" max="250000" value="<?php echo (int) ($quotas['max_chars_per_request'] ?? 12000); ?>">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Max. Blöcke pro Request</label>
+                                <label class="form-label">Max. Blöcke pro Anfrage</label>
                                 <input type="number" class="form-control" name="max_blocks_per_request" min="1" max="500" value="<?php echo (int) ($quotas['max_blocks_per_request'] ?? 40); ?>">
                             </div>
                             <div class="col-md-4">
@@ -949,7 +949,7 @@ if (empty($summary['translation_ready'])) {
                                 <input type="number" class="form-control" name="retry_count" min="0" max="2" value="<?php echo (int) ($quotas['retry_count'] ?? 1); ?>">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Requests pro Nutzer / Tag</label>
+                                <label class="form-label">Anfragen pro Nutzer / Tag</label>
                                 <input type="number" class="form-control" name="daily_requests_per_user" min="1" max="5000" value="<?php echo (int) ($quotas['daily_requests_per_user'] ?? 40); ?>">
                             </div>
                             <div class="col-md-6">
@@ -957,7 +957,7 @@ if (empty($summary['translation_ready'])) {
                                 <input type="number" class="form-control" name="daily_chars_per_user" min="500" max="2000000" value="<?php echo (int) ($quotas['daily_chars_per_user'] ?? 120000); ?>">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Requests pro Provider / Monat</label>
+                                <label class="form-label">Anfragen pro Provider / Monat</label>
                                 <input type="number" class="form-control" name="monthly_requests_per_provider" min="10" max="1000000" value="<?php echo (int) ($quotas['monthly_requests_per_provider'] ?? 5000); ?>">
                             </div>
                         </div>

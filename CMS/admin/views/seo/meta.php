@@ -101,7 +101,7 @@ $buildRuntimePublicUrl = static function (string $path): string {
                     <div class="list-group-item"><code><?= htmlspecialchars((string)$variable['token']) ?></code><div class="text-secondary small"><?= htmlspecialchars((string)$variable['description']) ?></div></div>
                 <?php endforeach; ?>
             </div></div>
-            <div class="card mb-4"><div class="card-header"><h3 class="card-title">Globaler Preview-Modus</h3></div><div class="card-body">
+            <div class="card mb-4"><div class="card-header"><h3 class="card-title">Globaler Vorschau-Modus</h3></div><div class="card-body">
                 <p class="text-secondary small mb-3">Testet live, wie globale Meta-Defaults im Editor-freien Kontext für Startseite, Archive und Taxonomien wirken – ohne zusätzlichen Schreibpfad und ohne Token in URLs.</p>
                 <div class="btn-list mb-3" role="group" aria-label="Preview-Kontexte">
                     <?php foreach ($previewContexts as $index => $previewContext): ?>

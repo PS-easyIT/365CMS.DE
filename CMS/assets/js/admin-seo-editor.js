@@ -828,7 +828,7 @@
             })();
             var ogImage = (ogImageInput && ogImageInput.value.trim()) || (twitterImageInput && twitterImageInput.value.trim()) || (featuredInput && featuredInput.value.trim()) || '';
             var socialResolvedTitle = ogTitle || (twitterTitleInput && twitterTitleInput.value.trim()) || resolvedTitle || config.siteName;
-            var socialResolvedDesc = ogDescription || (twitterDescriptionInput && twitterDescriptionInput.value.trim()) || resolvedDesc || 'Social Preview';
+            var socialResolvedDesc = ogDescription || (twitterDescriptionInput && twitterDescriptionInput.value.trim()) || resolvedDesc || 'Social-Vorschau';
             var descriptionSource = buildDescriptionDefaultSource(excerpt, firstParagraph);
             var descriptionSourceLabel = descriptionSource === 'Kurzfassung'
                 ? 'der Kurzfassung'
@@ -937,7 +937,7 @@
             setPreviewText(previewUrl, 'serp-url', previewHref, config.previewBaseUrl || '/');
             setPreviewText(previewDesc, 'serp-description', resolvedDesc, 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.');
             setPreviewText(socialTitle, 'social-title', socialResolvedTitle, config.siteName || '');
-            setPreviewText(socialDesc, 'social-description', socialResolvedDesc, 'Social Preview');
+            setPreviewText(socialDesc, 'social-description', socialResolvedDesc, 'Social-Vorschau');
             setPreviewImage(socialImage, 'social-image', ogImage, config.fallbackImage || '');
             if (progressBar) {
                 progressBar.style.width = score + '%';
