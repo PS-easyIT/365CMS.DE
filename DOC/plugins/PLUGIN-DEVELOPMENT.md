@@ -70,8 +70,8 @@ The runtime emits `cms_init`, plugin-specific hooks, `cms_admin_menu`, `plugin_l
 | `cms_admin_menu` | action | register admin menus and submenus |
 | `head` | action | add approved head-level output or assets |
 | `after_header` | action | add early frontend content |
-| `before_footer` | action | add footer-area output |
-| `body_end` | action | add scripts or modals through the asset policy |
+| `before_footer` | action | add footer-area output (runs once per request, before `footer.php`) |
+| `body_end` | action | add scripts or modals through the asset policy (runs once per request, before `</body>`) |
 | `plugin_loaded` | action | react to a plugin that loaded successfully |
 | `plugins_loaded` | action | run work that requires all active plugins |
 | `member_menu_items` | filter | add a member navigation item |
@@ -230,8 +230,8 @@ Die Runtime löst `cms_init`, Plugin-Hooks, `cms_admin_menu`, `plugin_loaded` un
 | `cms_admin_menu` | Action | Admin-Menüs und Untermenüs registrieren |
 | `head` | Action | freigegebene Head-Ausgaben oder Assets ergänzen |
 | `after_header` | Action | frühen Frontend-Inhalt ergänzen |
-| `before_footer` | Action | Ausgaben im Footer-Bereich ergänzen |
-| `body_end` | Action | Scripts oder Modals über die Asset-Regeln ergänzen |
+| `before_footer` | Action | Ausgaben im Footer-Bereich ergänzen (einmal pro Request, vor `footer.php`) |
+| `body_end` | Action | Scripts oder Modals über die Asset-Regeln ergänzen (einmal pro Request, vor `</body>`) |
 | `plugin_loaded` | Action | auf erfolgreich geladenes Plugin reagieren |
 | `plugins_loaded` | Action | von allen aktiven Plugins abhängige Logik ausführen |
 | `member_menu_items` | Filter | Member-Navigation erweitern |
