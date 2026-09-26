@@ -27,6 +27,9 @@ class Security
      */
     private string $cspNonce = '';
 
+    /** @var array<string, array<string, bool>> Direktive => zusätzliche Quellen */
+    private array $extraCspSources = [];
+
     /**
      * Singleton instance
      */
@@ -108,11 +111,11 @@ class Security
     {
         $directives = [
             "default-src 'self'",
-            "script-src 'self' 'nonce-{$nonce}'",
+            "script-src 'self' 'nonce-{$nonce}'" . $this->getExtraCspSources('script-src'),
             "style-src 'self' 'nonce-{$nonce}' https://fonts.googleapis.com",
-            "img-src 'self' data: blob:",
+            "img-src 'self' data: blob:" . $this->getExtraCspSources('img-src'),
             "font-src 'self' data: https://fonts.gstatic.com",
-            "connect-src 'self'",
+            "connect-src 'self'" . $this->getExtraCspSources('connect-src'),
             "media-src 'self' data: blob:",
             "object-src 'none'",
             "frame-ancestors 'none'",
@@ -131,6 +134,59 @@ class Security
     private function buildCspPolicy(array $directives): string
     {
         return implode('; ', $directives);
+    }
+
+    /**
+     * Erlaubt zusätzliche HTTPS-Quellen für einzelne CSP-Direktiven (z. B. einen
+     * explizit konfigurierten Analytics-Anbieter) und sendet die CSP neu.
+     * Nur script-src, connect-src und img-src; nur https-Hosts ohne Pfad.
+     *
+     * @param array<string, list<string>> $sourcesByDirective
+     */
+    public function allowCspSources(array $sourcesByDirective): bool
+    {
+        if (headers_sent()) {
+            return false;
+        }
+
+        $added = false;
+        foreach ($sourcesByDirective as $directive => $sources) {
+            if (!in_array($directive, ['script-src', 'connect-src', 'img-src'], true)) {
+                continue;
+            }
+
+            foreach ((array) $sources as $source) {
+                $source = strtolower(trim((string) $source));
+                if (preg_match('#^https://(?:\*\.)?[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+(?::\d{2,5})?$#', $source) !== 1) {
+                    continue;
+                }
+                $this->extraCspSources[$directive][$source] = true;
+                $added = true;
+            }
+        }
+
+        if ($added) {
+            $this->sendCspHeader();
+        }
+
+        return true;
+    }
+
+    /**
+     * Zusätzlich freigegebene Script-Origins (für die Trusted-Types-Policy der CSP-Runtime).
+     *
+     * @return list<string>
+     */
+    public function getAllowedScriptOrigins(): array
+    {
+        return array_keys($this->extraCspSources['script-src'] ?? []);
+    }
+
+    private function getExtraCspSources(string $directive): string
+    {
+        $sources = array_keys($this->extraCspSources[$directive] ?? []);
+
+        return $sources === [] ? '' : ' ' . implode(' ', $sources);
     }
 
     private function getHttpsRedirectStrategy(): string
@@ -220,30 +276,39 @@ class Security
                 header('Strict-Transport-Security: ' . $hstsValue);
             }
 
-            $nonce = $this->cspNonce;
-            $enforcedCsp = $this->buildCspPolicy(array_merge(
-                $this->getBaseCspDirectives($nonce, true),
-                [
-                    "trusted-types cms365 default sanitize-html dompurify",
-                    "require-trusted-types-for 'script'",
-                ]
-            ));
-            $reportOnlyCsp = $this->buildCspPolicy(array_merge(
-                $this->getBaseCspDirectives($nonce, false),
-                [
-                    "trusted-types cms365 default sanitize-html dompurify",
-                    "require-trusted-types-for 'script'",
-                ]
-            ));
-
-            if (CMS_DEBUG) {
-                header('Content-Security-Policy-Report-Only: ' . $reportOnlyCsp);
-            } else {
-                header('Content-Security-Policy: ' . $enforcedCsp);
-            }
+            $this->sendCspHeader();
         }
     }
     
+    private function sendCspHeader(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        $nonce = $this->cspNonce;
+        $enforcedCsp = $this->buildCspPolicy(array_merge(
+            $this->getBaseCspDirectives($nonce, true),
+            [
+                "trusted-types cms365 default sanitize-html dompurify",
+                "require-trusted-types-for 'script'",
+            ]
+        ));
+        $reportOnlyCsp = $this->buildCspPolicy(array_merge(
+            $this->getBaseCspDirectives($nonce, false),
+            [
+                "trusted-types cms365 default sanitize-html dompurify",
+                "require-trusted-types-for 'script'",
+            ]
+        ));
+
+        if (CMS_DEBUG) {
+            header('Content-Security-Policy-Report-Only: ' . $reportOnlyCsp);
+        } else {
+            header('Content-Security-Policy: ' . $enforcedCsp);
+        }
+    }
+
     /**
      * Start secure session
      */

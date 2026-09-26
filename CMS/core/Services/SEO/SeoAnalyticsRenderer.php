@@ -7,10 +7,100 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * Consent-gesteuerte, CSP-konforme Analytics-Einbindung.
+ *
+ * Statt Inline-Snippets wird eine JSON-Konfiguration plus der Loader
+ * `assets/js/cms-analytics.js` ausgegeben. Der Loader lädt einen Anbieter erst,
+ * wenn die zugehörige Cookie-Kategorie (analytics/marketing) eingewilligt ist.
+ * Die CSP wird nur um die Hosts der tatsächlich konfigurierten Anbieter erweitert.
+ * Freier Custom-Code (analytics_custom_head/body, Matomo-Code) wird unter der
+ * strikten CSP bewusst nicht ausgeführt.
+ */
 final class SeoAnalyticsRenderer
 {
+    private const array GOOGLE_CONNECT = ['https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://www.googletagmanager.com'];
+    private const array GOOGLE_IMG = ['https://*.google-analytics.com', 'https://www.googletagmanager.com'];
+
     public function __construct(private readonly SeoSettingsStore $settings)
     {
+    }
+
+    /**
+     * Konfiguration aller aktiven Anbieter (IDs validiert).
+     *
+     * @return array{respectDnt: bool, providers: array<string, array<string, mixed>>}
+     */
+    public function getClientConfig(): array
+    {
+        $providers = [];
+        $anonymizeIp = $this->settings->getSetting('analytics_anonymize_ip') === '1';
+
+        $matomoUrl = $this->sanitizeMatomoUrl($this->settings->getSetting('analytics_matomo_url'));
+        $matomoSiteId = $this->sanitizeId($this->settings->getSetting('analytics_matomo_site_id'), '/^\d{1,10}$/') ?: '1';
+        if ($matomoUrl !== '' && $this->isProviderEnabled('matomo')) {
+            $providers['matomo'] = ['category' => 'analytics', 'url' => $matomoUrl, 'siteId' => $matomoSiteId, 'disableCookies' => $anonymizeIp];
+        }
+
+        $ga4Id = $this->sanitizeId($this->settings->getSetting('analytics_ga4_id'), '/^G-[A-Z0-9]{4,20}$/');
+        if ($ga4Id !== '' && $this->isProviderEnabled('ga4')) {
+            $providers['ga4'] = ['category' => 'analytics', 'id' => $ga4Id, 'anonymizeIp' => $anonymizeIp];
+        }
+
+        $gtmId = $this->sanitizeId($this->settings->getSetting('analytics_gtm_id'), '/^GTM-[A-Z0-9]{4,12}$/');
+        if ($gtmId !== '' && $this->isProviderEnabled('gtm')) {
+            // Container können beliebige Marketing-Tags laden → strengere Kategorie.
+            $providers['gtm'] = ['category' => 'marketing', 'id' => $gtmId];
+        }
+
+        $pixelId = $this->sanitizeId($this->settings->getSetting('analytics_fb_pixel_id'), '/^\d{5,20}$/');
+        if ($pixelId !== '' && $this->isProviderEnabled('fb_pixel')) {
+            $providers['metaPixel'] = ['category' => 'marketing', 'id' => $pixelId];
+        }
+
+        return [
+            'respectDnt' => $this->settings->getSetting('analytics_respect_dnt') === '1',
+            'providers' => $providers,
+        ];
+    }
+
+    /**
+     * CSP-Quellen der aktiven Anbieter.
+     *
+     * @return array<string, list<string>>
+     */
+    public function getCspSources(): array
+    {
+        if ($this->shouldExcludeAdmins()) {
+            return [];
+        }
+
+        $sources = ['script-src' => [], 'connect-src' => [], 'img-src' => []];
+        foreach ($this->getClientConfig()['providers'] as $key => $provider) {
+            switch ($key) {
+                case 'matomo':
+                    $origin = $this->originOf((string) $provider['url']);
+                    if ($origin !== '') {
+                        $sources['script-src'][] = $origin;
+                        $sources['connect-src'][] = $origin;
+                        $sources['img-src'][] = $origin;
+                    }
+                    break;
+                case 'ga4':
+                case 'gtm':
+                    $sources['script-src'][] = 'https://www.googletagmanager.com';
+                    array_push($sources['connect-src'], ...self::GOOGLE_CONNECT);
+                    array_push($sources['img-src'], ...self::GOOGLE_IMG);
+                    break;
+                case 'metaPixel':
+                    $sources['script-src'][] = 'https://connect.facebook.net';
+                    array_push($sources['connect-src'], 'https://www.facebook.com', 'https://connect.facebook.net');
+                    $sources['img-src'][] = 'https://www.facebook.com';
+                    break;
+            }
+        }
+
+        return array_filter(array_map(static fn(array $list): array => array_values(array_unique($list)), $sources));
     }
 
     public function getAnalyticsHeadCode(): string
@@ -19,84 +109,42 @@ final class SeoAnalyticsRenderer
             return '';
         }
 
-        $respectDnt = $this->settings->getSetting('analytics_respect_dnt') === '1';
-        $anonymizeIp = $this->settings->getSetting('analytics_anonymize_ip') === '1';
-        $output = '';
-
-        if ($this->settings->getSetting('analytics_matomo_enabled') === '1') {
-            $customCode = trim($this->settings->getSetting('analytics_matomo_code'));
-            if ($customCode !== '') {
-                $output .= "\n" . $customCode . "\n";
-            } else {
-                $mUrl = $this->sanitizeMatomoUrl($this->settings->getSetting('analytics_matomo_url'));
-                $mSiteId = $this->sanitizeId($this->settings->getSetting('analytics_matomo_site_id'), '/^\d{1,10}$/') ?: '1';
-                if ($mUrl !== '/') {
-                    $dntLine = $respectDnt ? "\n  if (navigator.doNotTrack == '1') { return; }" : '';
-                    $anonLine = $anonymizeIp ? "\n  _paq.push(['setDoNotTrack', true]);\n  _paq.push(['disableCookies']);" : '';
-                    $output .= "\n<!-- Matomo Analytics -->\n<script>\n  var _paq = window._paq = window._paq || [];" . $dntLine . $anonLine . "\n  _paq.push(['trackPageView']);\n  _paq.push(['enableLinkTracking']);\n  (function() {\n    var u=\"{$mUrl}\";\n    _paq.push(['setTrackerUrl', u+'matomo.php']);\n    _paq.push(['setSiteId', '{$mSiteId}']);\n    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];\n    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);\n  })();\n</script>\n<!-- End Matomo Code -->\n";
-                }
-            }
-        }
-
-        if ($this->settings->getSetting('analytics_ga4_enabled') === '1') {
-            $ga4Id = $this->sanitizeId($this->settings->getSetting('analytics_ga4_id'), '/^G-[A-Z0-9]{4,20}$/');
-            if ($ga4Id !== '') {
-                $configOptions = $anonymizeIp ? "{ 'anonymize_ip': true }" : '{}';
-                $dntBlock = $respectDnt ? "\n  if (navigator.doNotTrack === '1') { window['ga-disable-{$ga4Id}'] = true; }" : '';
-                $output .= "\n<!-- Google Analytics 4 -->\n<script async src=\"https://www.googletagmanager.com/gtag/js?id={$ga4Id}\"></script>\n<script>{$dntBlock}\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js', new Date());\n  gtag('config', '{$ga4Id}', {$configOptions});\n</script>\n";
-            }
-        }
-
-        if ($this->settings->getSetting('analytics_gtm_enabled') === '1') {
-            $gtmId = $this->sanitizeId($this->settings->getSetting('analytics_gtm_id'), '/^GTM-[A-Z0-9]{4,12}$/');
-            if ($gtmId !== '') {
-                $dntBlock = $respectDnt ? "\n  if (navigator.doNotTrack === '1') { return; }" : '';
-                $output .= "\n<!-- Google Tag Manager -->\n<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':\nnew Date().getTime(),event:'gtm.js'});{$dntBlock}\nvar f=d.getElementsByTagName(s)[0],\nj=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=\n'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);\n})(window,document,'script','dataLayer','{$gtmId}');</script>\n<!-- End Google Tag Manager -->\n";
-            }
-        }
-
-        if ($this->settings->getSetting('analytics_fb_pixel_enabled') === '1') {
-            $pixelId = $this->sanitizeId($this->settings->getSetting('analytics_fb_pixel_id'), '/^\d{5,20}$/');
-            if ($pixelId !== '') {
-                $dntBlock = $respectDnt ? "\nif (navigator.doNotTrack === '1') { return; }" : '';
-                $output .= "\n<!-- Meta Pixel Code -->\n<script>{$dntBlock}\n!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?\nn.callMethod.apply(n,arguments):n.queue.push(arguments)};\nif(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';\nn.queue=[];t=b.createElement(e);t.async=!0;\nt.src=v;s=b.getElementsByTagName(e)[0];\ns.parentNode.insertBefore(t,s)}(window,document,'script',\n'https://connect.facebook.net/en_US/fbevents.js');\nfbq('init', '{$pixelId}');\nfbq('track', 'PageView');\n</script>\n<noscript><img height=\"1\" width=\"1\" style=\"display:none\" alt=\"\"\nsrc=\"https://www.facebook.com/tr?id={$pixelId}&ev=PageView&noscript=1\"/></noscript>\n<!-- End Meta Pixel Code -->\n";
-            }
-        }
-
-        $customHead = trim($this->settings->getSetting('analytics_custom_head'));
-        if ($customHead !== '') {
-            $output .= "\n<!-- Custom Analytics Head Code -->\n" . $customHead . "\n";
-        }
-
-        return $output;
-    }
-
-    public function getAnalyticsBodyCode(): string
-    {
-        if ($this->shouldExcludeAdmins()) {
+        $config = $this->getClientConfig();
+        if ($config['providers'] === []) {
             return '';
         }
 
-        $output = '';
-
-        if ($this->settings->getSetting('analytics_gtm_enabled') === '1') {
-            $gtmId = $this->sanitizeId($this->settings->getSetting('analytics_gtm_id'), '/^GTM-[A-Z0-9]{4,12}$/');
-            if ($gtmId !== '') {
-                $output .= "\n<!-- Google Tag Manager (noscript) -->\n<noscript><iframe src=\"https://www.googletagmanager.com/ns.html?id={$gtmId}\"\nheight=\"0\" width=\"0\" style=\"display:none;visibility:hidden\" title=\"Google Tag Manager\"></iframe></noscript>\n<!-- End Google Tag Manager (noscript) -->\n";
-            }
+        $json = json_encode($config, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        if (!is_string($json)) {
+            return '';
         }
 
-        $customBody = trim($this->settings->getSetting('analytics_custom_body'));
-        if ($customBody !== '') {
-            $output .= "\n<!-- Custom Analytics Body Code -->\n" . $customBody . "\n";
-        }
+        $loader = function_exists('cms_asset_url')
+            ? \cms_asset_url('js/cms-analytics.js')
+            : rtrim((string) (defined('SITE_URL') ? SITE_URL : ''), '/') . '/assets/js/cms-analytics.js';
 
-        return $output;
+        return "\n<!-- Analytics (lädt erst nach Einwilligung) -->\n"
+            . '<script type="application/json" id="cms-analytics-config">' . $json . '</script>' . "\n"
+            . '<script src="' . htmlspecialchars($loader, ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
     }
 
     /**
-     * IDs werden ungeprüft in JS/URLs eingesetzt; nur das dokumentierte Format zulassen.
+     * Kein <noscript>-Tracking: ohne JavaScript lässt sich keine Einwilligung prüfen.
      */
+    public function getAnalyticsBodyCode(): string
+    {
+        return '';
+    }
+
+    /**
+     * Die aktuelle SEO-Oberfläche pflegt nur die IDs; alte `*_enabled`-Flags
+     * aus der früheren Oberfläche deaktivieren einen Anbieter nur explizit mit '0'.
+     */
+    private function isProviderEnabled(string $key): bool
+    {
+        return $this->settings->getSetting('analytics_' . $key . '_enabled') !== '0';
+    }
+
     private function sanitizeId(string $value, string $pattern): string
     {
         $value = strtoupper(trim($value));
@@ -108,11 +156,19 @@ final class SeoAnalyticsRenderer
     {
         $url = trim($url);
         if ($url === '' || filter_var($url, FILTER_VALIDATE_URL) === false || strtolower((string) parse_url($url, PHP_URL_SCHEME)) !== 'https'
-            || preg_match('/[\'"<>\\\\\s]/', $url) === 1) {
-            return '/';
+            || preg_match('/[\'"<>\\\\\s?#]/', $url) === 1) {
+            return '';
         }
 
         return rtrim($url, '/') . '/';
+    }
+
+    private function originOf(string $url): string
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $port = parse_url($url, PHP_URL_PORT);
+
+        return $host === '' ? '' : 'https://' . $host . ($port !== null && $port !== false ? ':' . (int) $port : '');
     }
 
     private function shouldExcludeAdmins(): bool
