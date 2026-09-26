@@ -1,13 +1,13 @@
 ﻿# 365CMS – Projektdokumentation | Abschnitt: Änderungsprotokoll
-> **Stand:** 2026-09-13 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-13
+> **Stand:** 2026-09-26 | **Version:** 3.4.00 | **Status:** Stable | **Update:** 2026-09-26
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` and `v3.4.02` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01` und `v3.4.02` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -22,6 +22,20 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.4.02 — 26.09.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.02** | 🟢 feat | AI / Editor.js-Übersetzung | „Mit AI nach EN übersetzen“ arbeitet Block für Block: zuerst Titel/Kurzfassung, danach genau ein Editor.js-Block pro Request. Jeder übersetzte Block wird sofort in den EN-Editor übernommen, bevor der nächste angefragt wird. Fortschrittsanzeige („Übersetze Block 3/12 …“), Abbrechen nach dem laufenden Block sowie Fortsetzen ab einem fehlgeschlagenen oder abgebrochenen Block sind enthalten. Große Dokumente laufen dadurch nicht mehr in Timeouts, auch Dokumente mit mehr als 120 Blöcken sind übersetzbar. |
+| **3.4.02** | 🟢 feat | AI / Editor.js-Übersetzung | Enthält die EN-Fassung bereits Inhalte, wird gefragt, ob blockweise direkt übernommen oder erst vollständig übersetzt und als Vorschau geprüft werden soll. `preview_required` bzw. der Ergebnismodus `preview` erzwingen weiterhin die Vorschau vor jeder Übernahme. |
+| **3.4.02** | 🛡️ security | AI / Quota | Blockweise Läufe zählen nur einen Tages-Request pro Benutzer: Der erste Request öffnet eine serverseitige Sitzung (30 Minuten, gebunden an Benutzer, Inhaltstyp und Zielsprache, Budget max. 121 Requests plus 10 Wiederholungen). Folge-Requests reservieren weiterhin Zeichen und jeden Provider-Aufruf, dürfen höchstens einen Block und keine Titel-/Kurzfassungsdaten enthalten; manipulierte oder abgelaufene Sitzungen werden mit `chunk_session_invalid` abgelehnt und protokolliert. Die Sitzungskennung wird nur nach erfolgreicher, bereits gezählter Anfrage ausgegeben. |
+| **3.4.02** | 🔴 fix | AI / Editor.js-Übersetzung | Fehlgeschlagene Blöcke werden einmal automatisch wiederholt; Berechtigungs-/Token-Fehler (HTTP 401/403/405) werden nicht wiederholt. Abgelaufene Sitzungen starten automatisch eine neue Sitzung mit der korrekten Restanzahl. |
+| **3.4.02** | 🔴 fix | AI / SEO im Editor | Fehlt „SEO mit AI füllen“ im deutschen (oder englischen) Editor, weil der aktive Provider für die Editorsprache nicht freigegeben ist oder aus einem anderen Grund nicht bereit ist, zeigt die SEO-Card von Beiträgen und Seiten jetzt einen Hinweis mit Ursache. Nutzer mit `manage_settings` erhalten bei aktivierter Seite einen Link zu `/admin/ai-settings`. Die Verfügbarkeit wird anhand der tatsächlichen Editorsprache (auch beim Inline-Speichern) statt nur über `$_GET['lang']` geprüft. Die Locale-Policy für SEO-/Content-Entwürfe bleibt unverändert erzwungen. |
+| **3.4.02** | 🔴 fix | AI / Provider-Einstellungen | Ein leer gespeichertes Feld „Erlaubte Sprachen“ fiel still auf `en` zurück und blendete dadurch alle AI-Buttons im deutschen Editor aus. Leere Eingaben verwenden jetzt die Provider-Standardwerte `de,en` (Speichern, Laden und Anzeige). Das Feld heißt „Erlaubte Sprachen“ und erklärt, dass es Übersetzungsziele und die Editorsprache für SEO-/Content-Entwürfe steuert. |
+| **3.4.02** | 🔵 docs | AI / Dokumentation | `DOC/ai/AI-SERVICES.md` (DE/EN) beschreibt die blockweise Übersetzung, das Sitzungs-/Quota-Modell und die Bedeutung von `allowed_locales`; `DOC/assets/ASSETS_NEW.md` empfiehlt `de,en` statt „nur `en`“. `TESTS/ai-admin-contract` prüft zusätzlich die serverseitige Chunk-Sitzung und die Zeichen-Quota für Folge-Requests. |
 
 ---
 
