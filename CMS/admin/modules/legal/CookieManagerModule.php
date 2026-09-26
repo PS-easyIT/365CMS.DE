@@ -803,7 +803,7 @@ class CookieManagerModule
 
         $settings = $this->getSettingsMap($settingNames);
 
-        if (($settings['seo_analytics_matomo_enabled'] ?? '0') === '1') {
+        if (($settings['seo_analytics_matomo_enabled'] ?? '') !== '0') {
             $matomoCode = trim((string)($settings['seo_analytics_matomo_code'] ?? ''));
             $matomoUrl = $this->sanitizeOptionalUrl((string)($settings['seo_analytics_matomo_url'] ?? ''));
             if ($matomoCode !== '' || $matomoUrl !== '') {
@@ -813,19 +813,19 @@ class CookieManagerModule
         }
 
         $ga4Id = trim((string)($settings['seo_analytics_ga4_id'] ?? ''));
-        if (($settings['seo_analytics_ga4_enabled'] ?? '0') === '1' && !$this->isPlaceholderAnalyticsId($ga4Id)) {
+        if (($settings['seo_analytics_ga4_enabled'] ?? '') !== '0' && !$this->isPlaceholderAnalyticsId($ga4Id)) {
             $detected['google_analytics'] = self::CURATED_SERVICES['google_analytics']['name'];
             $sources['google_analytics'][] = 'System: Analytics-Einstellungen (GA4)';
         }
 
         $gtmId = trim((string)($settings['seo_analytics_gtm_id'] ?? ''));
-        if (($settings['seo_analytics_gtm_enabled'] ?? '0') === '1' && !$this->isPlaceholderAnalyticsId($gtmId)) {
+        if (($settings['seo_analytics_gtm_enabled'] ?? '') !== '0' && !$this->isPlaceholderAnalyticsId($gtmId)) {
             $detected['google_tag_manager'] = self::CURATED_SERVICES['google_tag_manager']['name'];
             $sources['google_tag_manager'][] = 'System: Analytics-Einstellungen (GTM)';
         }
 
         $pixelId = trim((string)($settings['seo_analytics_fb_pixel_id'] ?? ''));
-        if (($settings['seo_analytics_fb_pixel_enabled'] ?? '0') === '1' && !$this->isPlaceholderAnalyticsId($pixelId)) {
+        if (($settings['seo_analytics_fb_pixel_enabled'] ?? '') !== '0' && !$this->isPlaceholderAnalyticsId($pixelId)) {
             $detected['facebook_pixel'] = self::CURATED_SERVICES['facebook_pixel']['name'];
             $sources['facebook_pixel'][] = 'System: Analytics-Einstellungen (Meta Pixel)';
         }

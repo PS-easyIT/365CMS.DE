@@ -304,6 +304,11 @@ $hasTable = $analytics['has_page_views'] ?? false;
                         <form method="post" class="row g-3">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                             <input type="hidden" name="action" value="save_analytics_settings">
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0">
+                                    Tracker werden erst nach Einwilligung geladen: GA4 und Matomo über die Cookie-Kategorie <strong>Analytics</strong>, GTM und Meta Pixel über <strong>Marketing</strong>. Die Content-Security-Policy wird nur für die Hosts der hier eingetragenen Anbieter geöffnet; Matomo muss per <code>https://</code> erreichbar sein. Eigener Tracking-Code (Inline-Skripte) wird aus Sicherheitsgründen nicht ausgeführt.
+                                </div>
+                            </div>
                             <div class="col-12"><label class="form-label">Google Search Console Property</label><input class="form-control" type="text" name="gsc_property" value="<?= htmlspecialchars((string)($trackingSettings['seo_analytics_gsc_property'] ?? '')) ?>" placeholder="sc-domain:example.de"></div>
                             <div class="col-md-6"><label class="form-label">GA4 ID</label><input class="form-control" type="text" name="ga4_id" value="<?= htmlspecialchars((string)($trackingSettings['seo_analytics_ga4_id'] ?? '')) ?>" placeholder="G-XXXXXXX"></div>
                             <div class="col-md-6"><label class="form-label">GTM ID</label><input class="form-control" type="text" name="gtm_id" value="<?= htmlspecialchars((string)($trackingSettings['seo_analytics_gtm_id'] ?? '')) ?>" placeholder="GTM-XXXX"></div>

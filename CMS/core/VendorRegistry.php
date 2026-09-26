@@ -343,6 +343,14 @@ final class VendorRegistry
                 'source_package' => 'cms-js',
             ],
             [
+                'asset' => 'Analytics-Loader (Consent)',
+                'module_slug' => 'seo',
+                'module_label' => 'SEO',
+                'paths' => [['path' => $assets . 'js' . DIRECTORY_SEPARATOR . 'cms-analytics.js', 'type' => 'file']],
+                'notes' => 'Lädt GA4/Matomo/GTM/Meta Pixel erst nach Cookie-Einwilligung; CSP nur für konfigurierte Anbieter-Hosts.',
+                'source_package' => 'cms-js',
+            ],
+            [
                 'asset' => 'Core Web Vitals Tracker',
                 'module_slug' => 'seo',
                 'module_label' => 'SEO',

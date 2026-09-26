@@ -22,6 +22,7 @@ Der Ordner `CMS/assets/js/` enthält interne 365CMS-Skripte für Admin, Frontend
   - `data-cms-call="fn"` + `data-cms-call-args='[…]'`, `data-cms-call-context="form|element"`, `data-cms-call-on="click|change"` (nur freigegebene Funktionen aus der `CALLABLE`-Liste)
   - `data-cms-enter-call="fn"`, `data-cms-sync-target="id"`
 - `tabler-bootstrap-bridge.js` – setzt `window.bootstrap` auf `window.tabler.bootstrap` (Tabler 1.4); direkt nach `tabler.min.js` laden
+- `cms-analytics.js` – consent-gesteuerter Loader für GA4/Matomo (Kategorie *analytics*) sowie GTM/Meta Pixel (*marketing*); Konfiguration aus `#cms-analytics-config` (`SeoAnalyticsRenderer`), CSP-Hosts nur für konfigurierte Anbieter (`Security::allowCspSources()` im Hook `cms_csp_prepare`)
 
 ## Website / GitHub
 
