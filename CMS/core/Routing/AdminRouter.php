@@ -76,6 +76,24 @@ final class AdminRouter
             return;
         }
 
+        // Frühere Einstiege, deren Dateien entfernt wurden (fehlende Legacy-Partials) → aktuelle Seiten
+        $legacyTargets = [
+            'backup' => 'backups',
+            'cms-firewall' => 'firewall',
+            'cookies' => 'cookie-manager',
+            'system' => 'info',
+            'theme-customizer' => 'theme-editor',
+            'menus' => 'menu-editor',
+            'rbac' => 'roles',
+            'seo' => 'seo-dashboard',
+            'subscriptions' => 'subscription-settings',
+            'data-deletion' => 'deletion-requests',
+        ];
+        if (isset($legacyTargets[$page]) && !is_file(ABSPATH . 'admin/' . $page . '.php')) {
+            $this->router->redirect('/admin/' . $legacyTargets[$page]);
+            return;
+        }
+
         $candidates = [
             ABSPATH . 'admin/' . $page . '.php',
             ABSPATH . 'admin/modules/' . $page . '/page.php',

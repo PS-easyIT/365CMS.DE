@@ -8,7 +8,7 @@ This section documents the CMS login page, theme editor/customizer, menus, fonts
 | Area | Route | Source |
 |---|---|---|
 | CMS login page | `/admin/cms-loginpage` | `CMS/admin/cms-loginpage.php`, `CMS/admin/views/themes/cms-loginpage.php` |
-| Editor/customizer | `/admin/theme-editor` | `CMS/admin/theme-editor.php`, `CMS/admin/theme-customizer.php` |
+| Editor/customizer | `/admin/theme-editor` | `CMS/admin/theme-editor.php` |
 | Menus | `/admin/menu-editor` | `CMS/admin/menu-editor.php`, `CMS/admin/modules/menus/MenuEditorModule.php` |
 | Fonts | `/admin/font-manager` | `CMS/admin/fonts-local.php`, `CMS/admin/views/themes/fonts.php` |
 | Widgets/design | `/admin/member-dashboard-widgets`, `/admin/design-settings` | `CMS/admin/member-dashboard-widgets.php`, `CMS/admin/design-settings.php` |
@@ -25,7 +25,7 @@ Dieser Abschnitt beschreibt CMS-Loginseite, Theme-Editor/Customizer, Menüs, Fon
 | Bereich | Route | Quelle |
 |---|---|---|
 | CMS-Loginseite | `/admin/cms-loginpage` | `CMS/admin/cms-loginpage.php`, `CMS/admin/views/themes/cms-loginpage.php` |
-| Editor/Customizer | `/admin/theme-editor` | `CMS/admin/theme-editor.php`, `CMS/admin/theme-customizer.php` |
+| Editor/Customizer | `/admin/theme-editor` | `CMS/admin/theme-editor.php` |
 | Menüs | `/admin/menu-editor` | `CMS/admin/menu-editor.php`, `CMS/admin/modules/menus/MenuEditorModule.php` |
 | Fonts | `/admin/font-manager` | `CMS/admin/fonts-local.php`, `CMS/admin/views/themes/fonts.php` |
 | Widgets/Design | `/admin/member-dashboard-widgets`, `/admin/design-settings` | `CMS/admin/member-dashboard-widgets.php`, `CMS/admin/design-settings.php` |

@@ -9,7 +9,7 @@ This section covers users, groups, RBAC, and authentication settings. All screen
 |---|---|---|
 | Users | `/admin/users` | `CMS/admin/users.php`, `CMS/admin/modules/users/UsersModule.php` |
 | Groups | `/admin/groups` | `CMS/admin/groups.php`, `CMS/admin/modules/users/GroupsModule.php` |
-| RBAC | `/admin/rbac` | `CMS/admin/rbac.php` |
+| RBAC | `/admin/roles` | `CMS/admin/roles.php` |
 | Authentication | `/admin/user-settings` | `CMS/admin/modules/users/UserSettingsModule.php`, `CMS/admin/views/users/settings.php` |
 
 ### Security baseline
@@ -24,7 +24,7 @@ Dieser Abschnitt behandelt Benutzer, Gruppen, RBAC und Authentifizierungs-Einste
 |---|---|---|
 | Benutzer | `/admin/users` | `CMS/admin/users.php`, `CMS/admin/modules/users/UsersModule.php` |
 | Gruppen | `/admin/groups` | `CMS/admin/groups.php`, `CMS/admin/modules/users/GroupsModule.php` |
-| RBAC | `/admin/rbac` | `CMS/admin/rbac.php` |
+| RBAC | `/admin/roles` | `CMS/admin/roles.php` |
 | Authentifizierung | `/admin/user-settings` | `CMS/admin/modules/users/UserSettingsModule.php`, `CMS/admin/views/users/settings.php` |
 
 ### Sicherheitsstandard

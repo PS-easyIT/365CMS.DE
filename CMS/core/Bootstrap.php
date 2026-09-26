@@ -864,6 +864,11 @@ class Bootstrap
         // Allow plugins to register routes (MUST be before dispatch)
         Hooks::doAction('register_routes', $this->router);
         
+        // Style-Attribute vollständiger HTML-Antworten in nonce-geschützte Klassen überführen (CSP style-src-attr)
+        if (in_array($this->mode, ['web', 'admin'], true) && class_exists(Http\InlineStyleRewriter::class)) {
+            Http\InlineStyleRewriter::startBuffer(Security::instance()->getNonce());
+        }
+
         // Handle routing
         $this->router->dispatch();
         Debug::checkpoint('bootstrap.run.after_dispatch', ['mode' => $this->mode]);

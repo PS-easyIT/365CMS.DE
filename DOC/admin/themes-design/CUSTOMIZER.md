@@ -5,7 +5,7 @@
 Theme appearance settings are managed through the theme editor route `/admin/theme-editor`.
 
 ### Implementation
-- Entries: `CMS/admin/theme-editor.php`, `CMS/admin/theme-customizer.php`
+- Entries: `CMS/admin/theme-editor.php`
 - Module/service: `CMS/admin/modules/themes/ThemeEditorModule.php`, `CMS/core/Services/ThemeCustomizer.php`
 - Routing: `CMS/core/Routing/AdminRouter.php`, `CMS/core/Router.php`
 
@@ -17,7 +17,7 @@ Preview before publishing. Save only allowlisted settings with capability and CS
 Theme-Darstellung wird über die Theme-Editor-Route `/admin/theme-editor` verwaltet.
 
 ### Implementierung
-- Einstiege: `CMS/admin/theme-editor.php`, `CMS/admin/theme-customizer.php`
+- Einstiege: `CMS/admin/theme-editor.php`
 - Modul/Service: `CMS/admin/modules/themes/ThemeEditorModule.php`, `CMS/core/Services/ThemeCustomizer.php`
 - Routing: `CMS/core/Routing/AdminRouter.php`, `CMS/core/Router.php`
 

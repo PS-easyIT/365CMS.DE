@@ -28,8 +28,8 @@ final class SeoAnalyticsRenderer
             if ($customCode !== '') {
                 $output .= "\n" . $customCode . "\n";
             } else {
-                $mUrl = rtrim($this->settings->getSetting('analytics_matomo_url'), '/') . '/';
-                $mSiteId = $this->settings->getSetting('analytics_matomo_site_id') ?: '1';
+                $mUrl = $this->sanitizeMatomoUrl($this->settings->getSetting('analytics_matomo_url'));
+                $mSiteId = $this->sanitizeId($this->settings->getSetting('analytics_matomo_site_id'), '/^\d{1,10}$/') ?: '1';
                 if ($mUrl !== '/') {
                     $dntLine = $respectDnt ? "\n  if (navigator.doNotTrack == '1') { return; }" : '';
                     $anonLine = $anonymizeIp ? "\n  _paq.push(['setDoNotTrack', true]);\n  _paq.push(['disableCookies']);" : '';
@@ -39,7 +39,7 @@ final class SeoAnalyticsRenderer
         }
 
         if ($this->settings->getSetting('analytics_ga4_enabled') === '1') {
-            $ga4Id = trim($this->settings->getSetting('analytics_ga4_id'));
+            $ga4Id = $this->sanitizeId($this->settings->getSetting('analytics_ga4_id'), '/^G-[A-Z0-9]{4,20}$/');
             if ($ga4Id !== '') {
                 $configOptions = $anonymizeIp ? "{ 'anonymize_ip': true }" : '{}';
                 $dntBlock = $respectDnt ? "\n  if (navigator.doNotTrack === '1') { window['ga-disable-{$ga4Id}'] = true; }" : '';
@@ -48,7 +48,7 @@ final class SeoAnalyticsRenderer
         }
 
         if ($this->settings->getSetting('analytics_gtm_enabled') === '1') {
-            $gtmId = trim($this->settings->getSetting('analytics_gtm_id'));
+            $gtmId = $this->sanitizeId($this->settings->getSetting('analytics_gtm_id'), '/^GTM-[A-Z0-9]{4,12}$/');
             if ($gtmId !== '') {
                 $dntBlock = $respectDnt ? "\n  if (navigator.doNotTrack === '1') { return; }" : '';
                 $output .= "\n<!-- Google Tag Manager -->\n<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':\nnew Date().getTime(),event:'gtm.js'});{$dntBlock}\nvar f=d.getElementsByTagName(s)[0],\nj=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=\n'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);\n})(window,document,'script','dataLayer','{$gtmId}');</script>\n<!-- End Google Tag Manager -->\n";
@@ -56,7 +56,7 @@ final class SeoAnalyticsRenderer
         }
 
         if ($this->settings->getSetting('analytics_fb_pixel_enabled') === '1') {
-            $pixelId = trim($this->settings->getSetting('analytics_fb_pixel_id'));
+            $pixelId = $this->sanitizeId($this->settings->getSetting('analytics_fb_pixel_id'), '/^\d{5,20}$/');
             if ($pixelId !== '') {
                 $dntBlock = $respectDnt ? "\nif (navigator.doNotTrack === '1') { return; }" : '';
                 $output .= "\n<!-- Meta Pixel Code -->\n<script>{$dntBlock}\n!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?\nn.callMethod.apply(n,arguments):n.queue.push(arguments)};\nif(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';\nn.queue=[];t=b.createElement(e);t.async=!0;\nt.src=v;s=b.getElementsByTagName(e)[0];\ns.parentNode.insertBefore(t,s)}(window,document,'script',\n'https://connect.facebook.net/en_US/fbevents.js');\nfbq('init', '{$pixelId}');\nfbq('track', 'PageView');\n</script>\n<noscript><img height=\"1\" width=\"1\" style=\"display:none\" alt=\"\"\nsrc=\"https://www.facebook.com/tr?id={$pixelId}&ev=PageView&noscript=1\"/></noscript>\n<!-- End Meta Pixel Code -->\n";
@@ -80,7 +80,7 @@ final class SeoAnalyticsRenderer
         $output = '';
 
         if ($this->settings->getSetting('analytics_gtm_enabled') === '1') {
-            $gtmId = trim($this->settings->getSetting('analytics_gtm_id'));
+            $gtmId = $this->sanitizeId($this->settings->getSetting('analytics_gtm_id'), '/^GTM-[A-Z0-9]{4,12}$/');
             if ($gtmId !== '') {
                 $output .= "\n<!-- Google Tag Manager (noscript) -->\n<noscript><iframe src=\"https://www.googletagmanager.com/ns.html?id={$gtmId}\"\nheight=\"0\" width=\"0\" style=\"display:none;visibility:hidden\" title=\"Google Tag Manager\"></iframe></noscript>\n<!-- End Google Tag Manager (noscript) -->\n";
             }
@@ -92,6 +92,27 @@ final class SeoAnalyticsRenderer
         }
 
         return $output;
+    }
+
+    /**
+     * IDs werden ungeprüft in JS/URLs eingesetzt; nur das dokumentierte Format zulassen.
+     */
+    private function sanitizeId(string $value, string $pattern): string
+    {
+        $value = strtoupper(trim($value));
+
+        return preg_match($pattern, $value) === 1 ? $value : '';
+    }
+
+    private function sanitizeMatomoUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '' || filter_var($url, FILTER_VALIDATE_URL) === false || strtolower((string) parse_url($url, PHP_URL_SCHEME)) !== 'https'
+            || preg_match('/[\'"<>\\\\\s]/', $url) === 1) {
+            return '/';
+        }
+
+        return rtrim($url, '/') . '/';
     }
 
     private function shouldExcludeAdmins(): bool

@@ -5,7 +5,7 @@
 Role and capability assignments are reviewed at `/admin/rbac`.
 
 ### Implementation
-- Entry: `CMS/admin/rbac.php`
+- Entry: `CMS/admin/roles.php` (`/admin/rbac` redirects to `/admin/roles`)
 - Core authorization: `CMS/core/Auth.php`, `CMS/core/Auth/AuthManager.php`, `CMS/core/Security.php`
 - Audit: `CMS/core/AuditLogger.php`
 
@@ -17,7 +17,7 @@ Grant the smallest capability set needed and check inheritance before saving. Pr
 Rollen- und Capability-Zuweisungen werden unter `/admin/rbac` geprüft.
 
 ### Implementierung
-- Einstieg: `CMS/admin/rbac.php`
+- Einstieg: `CMS/admin/roles.php` (`/admin/rbac` leitet auf `/admin/roles` weiter)
 - Core-Autorisierung: `CMS/core/Auth.php`, `CMS/core/Auth/AuthManager.php`, `CMS/core/Security.php`
 - Audit: `CMS/core/AuditLogger.php`
 

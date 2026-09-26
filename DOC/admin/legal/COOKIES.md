@@ -19,7 +19,7 @@ Empty results, unavailable optional modules, and service errors are displayed as
 
 ### Technical reference
 
-**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/cookies.php`, `CMS/admin/views/legal/cookies.php`.
+**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/cookie-manager.php`, `CMS/admin/views/legal/cookies.php`.
 
 **Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
 
@@ -48,7 +48,7 @@ Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als 
 
 ### Technische Referenz
 
-**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/cookies.php`, `CMS/admin/views/legal/cookies.php`.
+**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/cookie-manager.php`, `CMS/admin/views/legal/cookies.php`.
 
 **Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
 

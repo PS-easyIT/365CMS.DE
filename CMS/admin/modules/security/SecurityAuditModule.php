@@ -322,7 +322,6 @@ class SecurityAuditModule
         $externalRuntimeHits = [];
         foreach ([
             'themes/cms-default/functions.php',
-            'themes/cms-default/includes/theme-class.php',
             'core/Security.php',
             '.htaccess',
         ] as $relativePath) {

@@ -4,7 +4,7 @@
  *
  * Verantwortlich für:
  * - Hinzufügen fehlender Spalten / Indizes zu bestehenden Tabellen (ALTER TABLE)
- * - Öffentliche repairTables()-Methode (admin/system.php → DB-Reparatur-Tool)
+ * - Öffentliche repairTables()-Methode (Diagnose → Tabellen-Reparatur)
  *
  * Ausgelagert aus Database.php, um die God-Klasse aufzuteilen.
  *
