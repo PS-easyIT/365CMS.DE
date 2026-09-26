@@ -43,6 +43,14 @@ final class SeoMetaService
         return $this->headRenderer->renderCurrentHeadTags();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function getCurrentSeoPayload(): array
+    {
+        return $this->headRenderer->getCurrentPayload();
+    }
+
     /** @param array<string,mixed> $payload */
     public function setRequestMeta(array $payload): void
     {
@@ -91,6 +99,14 @@ final class SeoMetaService
     public function getAnalyticsCspSources(): array
     {
         return $this->analyticsRenderer->getCspSources();
+    }
+
+    /**
+     * @return array{respectDnt: bool, providers: array<string, array<string, mixed>>}
+     */
+    public function getAnalyticsClientConfig(): array
+    {
+        return $this->analyticsRenderer->getClientConfig();
     }
 
     public function getHomepageTitle(string $default = ''): string

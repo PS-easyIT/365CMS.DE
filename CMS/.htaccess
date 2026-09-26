@@ -38,6 +38,10 @@ Options +FollowSymLinks
     RewriteRule ^assets/.*\.(?:php[0-9]?|phtml|phar|inc|ser|json|lock|md|dist|neon|ya?ml|xml|scss|sh)$ - [F,L,NC]
     RewriteRule ^assets/(?:.*?/)?\. - [F,L,NC]
 
+    # Backup-/Editor-Artefakte (z. B. customizer.php.bak) nie ausliefern – sie enthalten oft PHP-Quelltext.
+    RewriteRule \.(?:bak|old|orig|save|swp|swo|tmp|dist)$ - [F,L,NC]
+    RewriteRule (?:^|/)\.(?:git|svn|vscode|idea|github)(?:/|$) - [F,L,NC]
+
     # Installer internals are only loaded server-side by install.php.
     RewriteRule ^install/.*\.php$ - [F,L,NC]
 

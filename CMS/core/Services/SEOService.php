@@ -82,6 +82,17 @@ class SEOService
     }
 
     /**
+     * SEO-Daten der aktuellen Seite/des Beitrags inkl. Overrides (Meta-Titel, -Beschreibung,
+     * Canonical, Robots, Open Graph, Twitter) – für Themes mit eigener Head-Ausgabe.
+     *
+     * @return array<string, mixed>
+     */
+    public function getCurrentSeoPayload(): array
+    {
+        return $this->metaService->getCurrentSeoPayload();
+    }
+
+    /**
      * Stores metadata only for the active HTTP request. No database value is changed.
      *
      * @param array<string,mixed> $payload
@@ -262,6 +273,16 @@ class SEOService
     public function getAnalyticsCspSources(): array
     {
         return $this->metaService->getAnalyticsCspSources();
+    }
+
+    /**
+     * Aktive, validierte Analytics-Anbieter (z. B. damit Themes kein doppeltes Tracking ausgeben).
+     *
+     * @return array{respectDnt: bool, providers: array<string, array<string, mixed>>}
+     */
+    public function getAnalyticsClientConfig(): array
+    {
+        return $this->metaService->getAnalyticsClientConfig();
     }
 
     /**

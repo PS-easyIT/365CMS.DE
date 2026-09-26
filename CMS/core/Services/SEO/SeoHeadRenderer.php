@@ -21,6 +21,17 @@ final class SeoHeadRenderer
     ) {
     }
 
+    /**
+     * Aufgelöste SEO-Daten der aktuellen Anfrage (inkl. Redaktions-Overrides aus dem SEO-Panel),
+     * damit Themes mit eigener Meta-Ausgabe dieselben Werte verwenden können.
+     *
+     * @return array<string, mixed>
+     */
+    public function getCurrentPayload(): array
+    {
+        return $this->getCurrentSeoPayload();
+    }
+
     public function renderCurrentHeadTags(): string
     {
         $payload = $this->getCurrentSeoPayload();
