@@ -105,10 +105,12 @@ final class AiQuotaService
 
     /**
      * Reserves the user-visible AI operation exactly once before execution starts.
+     * Continuation chunks of an already reserved operation pass `$countRequest = false`
+     * and only consume the character quota.
      *
      * @param array<string, mixed> $quotaConfig
      */
-    public function reserveUserOperation(int $userId, int $characterCount, array $quotaConfig): void
+    public function reserveUserOperation(int $userId, int $characterCount, array $quotaConfig, bool $countRequest = true): void
     {
         if ($userId <= 0) {
             throw new \RuntimeException('AI-Quota kann keinem angemeldeten Benutzer zugeordnet werden.');
@@ -121,10 +123,12 @@ final class AiQuotaService
             self::USER_DAILY_CHARACTERS => max(500, (int) ($quotaConfig['daily_chars_per_user'] ?? 120000)),
         ];
 
-        $this->reserveRows([
-            [self::USER_DAILY_REQUESTS, $today, $userId, '', 1, 0],
-            [self::USER_DAILY_CHARACTERS, $today, $userId, '', 0, $characterCount],
-        ], $limits);
+        $reservations = [[self::USER_DAILY_CHARACTERS, $today, $userId, '', 0, $characterCount]];
+        if ($countRequest) {
+            $reservations[] = [self::USER_DAILY_REQUESTS, $today, $userId, '', 1, 0];
+        }
+
+        $this->reserveRows($reservations, $limits);
     }
 
     /**

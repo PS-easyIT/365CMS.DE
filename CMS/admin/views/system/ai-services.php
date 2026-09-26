@@ -41,7 +41,7 @@ foreach ($providers as $provider) {
             'endpoint' => (string) ($provider['endpoint'] ?? ''),
             'deployment' => (string) ($provider['deployment'] ?? ''),
             'api_version' => (string) ($provider['api_version'] ?? ''),
-            'allowed_locales' => implode(',', (array) ($provider['allowed_locales'] ?? ['en'])),
+            'allowed_locales' => implode(',', (array) ($provider['allowed_locales'] ?? ['de', 'en'])),
             'allowed_internal_hosts' => implode(',', (array) ($provider['allowed_internal_hosts'] ?? [])),
             'profile' => (string) ($provider['profile'] ?? 'editor-translation'),
             'translation_enabled' => !empty($provider['translation_enabled']),
@@ -828,8 +828,9 @@ if (empty($summary['translation_ready'])) {
                                 <input type="text" class="form-control" name="provider_api_version" id="aiProviderApiVersion" maxlength="120" value="<?php echo htmlspecialchars((string) ($activeProvider['api_version'] ?? ''), ENT_QUOTES); ?>" placeholder="2024-10-21">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Erlaubte Zielsprachen</label>
-                                <input type="text" class="form-control" name="provider_allowed_locales" id="aiProviderAllowedLocales" value="<?php echo htmlspecialchars(implode(',', (array) ($activeProvider['allowed_locales'] ?? ['en'])), ENT_QUOTES); ?>" placeholder="en,de">
+                                <label class="form-label" for="aiProviderAllowedLocales">Erlaubte Sprachen</label>
+                                <input type="text" class="form-control" name="provider_allowed_locales" id="aiProviderAllowedLocales" value="<?php echo htmlspecialchars(implode(',', (array) ($activeProvider['allowed_locales'] ?? ['de', 'en'])), ENT_QUOTES); ?>" placeholder="de,en">
+                                <div class="form-hint">Gilt für Übersetzungsziele und für SEO-/Content-Entwürfe in der jeweiligen Editorsprache. Für AI-Buttons im deutschen Editor muss <code>de</code> enthalten sein.</div>
                             </div>
                             <div class="col-md-6" data-provider-field="internal_hosts">
                                 <label class="form-label">Erlaubte interne Ollama-Hosts</label>

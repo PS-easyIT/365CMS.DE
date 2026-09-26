@@ -39,17 +39,25 @@ function cms_admin_posts_can_access(): bool
         );
 }
 
-function cms_admin_posts_is_ai_seo_metadata_available(): bool
+/**
+ * `reason` is only filled when the SEO AI feature is switched on but the active provider is not ready
+ * for the current editor locale, so the editor can explain why the AI button is missing.
+ *
+ * @return array{available:bool,reason:string}
+ */
+function cms_admin_posts_ai_seo_metadata_state(string $editorLocale): array
 {
+    $editorLocale = cms_admin_posts_normalize_editor_locale($editorLocale);
+
     try {
         if (class_exists(CoreModuleService::class) && !CoreModuleService::getInstance()->isModuleEnabled('ai_services')) {
-            return false;
+            return ['available' => false, 'reason' => ''];
         }
 
         $configuration = AiSettingsService::getInstance()->getConfiguration();
         $features = is_array($configuration['features'] ?? null) ? $configuration['features'] : [];
         if (empty($features['ai_services_enabled']) || empty($features['ai_seo_meta_enabled']) || empty($features['ai_editorjs_enabled'])) {
-            return false;
+            return ['available' => false, 'reason' => ''];
         }
 
         $providers = is_array($configuration['providers'] ?? null) ? $configuration['providers'] : [];
@@ -59,20 +67,48 @@ function cms_admin_posts_is_ai_seo_metadata_available(): bool
                 continue;
             }
 
-            $readiness = AiSettingsService::getInstance()->getProviderReadiness(
-                $configuration,
-                $provider,
-                'seo_metadata',
-                cms_admin_posts_normalize_editor_locale($_GET['lang'] ?? 'de')
-            );
+            $readiness = AiSettingsService::getInstance()->getProviderReadiness($configuration, $provider, 'seo_metadata', $editorLocale);
+            if (!empty($readiness['ready'])) {
+                return ['available' => true, 'reason' => ''];
+            }
 
-            return !empty($readiness['ready']);
+            $readinessWithoutLocale = AiSettingsService::getInstance()->getProviderReadiness($configuration, $provider, 'seo_metadata', '');
+            if (!empty($readinessWithoutLocale['ready'])) {
+                return [
+                    'available' => false,
+                    'reason' => sprintf(
+                        'Die Sprache „%s“ ist für den aktiven AI-Provider nicht freigegeben. Unter AI-Services → Einstellungen → Provider bei „Erlaubte Sprachen“ „%s“ ergänzen.',
+                        strtoupper($editorLocale),
+                        $editorLocale
+                    ),
+                ];
+            }
+
+            return ['available' => false, 'reason' => (string) ($readiness['reason'] ?? '')];
         }
     } catch (\Throwable) {
-        return false;
+        return ['available' => false, 'reason' => ''];
     }
 
-    return false;
+    return ['available' => false, 'reason' => ''];
+}
+
+/** Link to the AI provider settings, only for users who may change them and only if the admin page is enabled. */
+function cms_admin_posts_ai_settings_url(): string
+{
+    try {
+        if (!Auth::instance()->hasCapability('manage_settings')) {
+            return '';
+        }
+
+        if (class_exists(CoreModuleService::class) && !CoreModuleService::getInstance()->isAdminPageEnabled('ai-settings')) {
+            return '';
+        }
+    } catch (\Throwable) {
+        return '';
+    }
+
+    return '/admin/ai-settings';
 }
 
 function cms_admin_posts_normalize_editor_locale(mixed $locale): string
@@ -380,13 +416,16 @@ function cms_admin_posts_view_config(object $module, string $view, ?array $overr
     $editorLocale = cms_admin_posts_normalize_editor_locale($editorLocale);
     $aiTranslationEnabled = !class_exists(CoreModuleService::class)
         || CoreModuleService::getInstance()->isModuleEnabled('ai_services');
-    $aiSeoMetadataEnabled = cms_admin_posts_is_ai_seo_metadata_available();
+    $aiSeoMetadataState = cms_admin_posts_ai_seo_metadata_state($editorLocale);
+    $aiSeoMetadataEnabled = $aiSeoMetadataState['available'];
     $baseTemplateVars = [
         'editorMediaToken' => Security::instance()->generateToken('editorjs_media'),
         'aiTranslationEnabled' => $aiTranslationEnabled,
         'aiTranslationToken' => $aiTranslationEnabled ? Security::instance()->generateToken('admin_ai_editorjs_translation') : '',
         'aiTranslationUrl' => $aiTranslationEnabled ? '/admin/ai-translate-editorjs' : '',
         'aiSeoMetadataEnabled' => $aiSeoMetadataEnabled,
+        'aiSeoMetadataUnavailableReason' => $aiSeoMetadataState['reason'],
+        'aiSettingsUrl' => cms_admin_posts_ai_settings_url(),
         'aiSeoMetadataToken' => $aiSeoMetadataEnabled ? Security::instance()->generateToken('admin_ai_seo_metadata') : '',
         'aiSeoMetadataUrl' => $aiSeoMetadataEnabled ? '/admin/ai-generate-seo-metadata' : '',
         'editorLocale' => $editorLocale,

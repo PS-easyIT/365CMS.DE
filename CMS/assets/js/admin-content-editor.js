@@ -4175,17 +4175,28 @@
             }
         }
 
-        function buildTranslationPayload(aiTranslation, sourceData) {
+        function buildTranslationChunkPayload(aiTranslation, state, chunk) {
             var params = new URLSearchParams();
+            var editorData = { blocks: chunk.blocks.slice() };
+
+            if (state.sourceVersion) {
+                editorData.version = state.sourceVersion;
+            }
 
             params.append('csrf_token', String(aiTranslation.csrfToken || ''));
             params.append('content_type', String(aiTranslation.contentType || 'editorjs'));
             params.append('source_locale', String(aiTranslation.sourceLocale || 'de'));
             params.append('target_locale', String(aiTranslation.targetLocale || 'en'));
-            params.append('title', getFieldValue(aiTranslation.sourceTitleId));
-            params.append('slug', getFieldValue(aiTranslation.sourceSlugId));
-            params.append('excerpt', getFieldValue(aiTranslation.sourceExcerptId));
-            params.append('editor_data', JSON.stringify(normalizeEditorData(sourceData)));
+            params.append('title', chunk.includeMeta ? state.source.title : '');
+            params.append('slug', chunk.includeMeta ? state.source.slug : '');
+            params.append('excerpt', chunk.includeMeta ? state.source.excerpt : '');
+            params.append('editor_data', JSON.stringify(editorData));
+
+            if (state.sessionId) {
+                params.append('chunk_session', state.sessionId);
+            } else {
+                params.append('chunk_total', String(Math.max(1, state.chunks.length - state.nextIndex)));
+            }
 
             return params;
         }
@@ -4494,6 +4505,397 @@
             }
         }
 
+        var translationChunkResumeState = null;
+
+        function waitMs(delayMs) {
+            return new Promise(function (resolve) {
+                window.setTimeout(resolve, delayMs);
+            });
+        }
+
+        function createTranslationError(message, code) {
+            var error = new Error(message);
+            error.code = code || '';
+
+            return error;
+        }
+
+        function buildTranslationSourceSnapshot(aiTranslation, sourceData) {
+            var normalizedData = normalizeEditorData(sourceData) || { blocks: [] };
+            var blocks = Array.isArray(normalizedData.blocks) ? normalizedData.blocks : [];
+            var source = {
+                title: getFieldValue(aiTranslation.sourceTitleId),
+                slug: getFieldValue(aiTranslation.sourceSlugId),
+                excerpt: getFieldValue(aiTranslation.sourceExcerptId)
+            };
+
+            return {
+                source: source,
+                blocks: blocks,
+                version: typeof normalizedData.version === 'string' ? normalizedData.version : '',
+                signature: JSON.stringify([source.title, source.slug, source.excerpt, blocks])
+            };
+        }
+
+        function createTranslationChunkState(snapshot, targetHadContent) {
+            var chunks = [];
+
+            if (snapshot.source.title !== '' || snapshot.source.excerpt !== '') {
+                chunks.push({ includeMeta: true, blocks: [], label: 'Titel & Kurzfassung' });
+            }
+
+            snapshot.blocks.forEach(function (block, index) {
+                chunks.push({
+                    includeMeta: false,
+                    blocks: [block],
+                    label: 'Block ' + String(index + 1) + '/' + String(snapshot.blocks.length)
+                });
+            });
+
+            return {
+                signature: snapshot.signature,
+                source: snapshot.source,
+                sourceVersion: snapshot.version,
+                chunks: chunks,
+                nextIndex: 0,
+                sessionId: '',
+                mode: '',
+                targetHadContent: targetHadContent,
+                targetPaneActivated: false,
+                editorRecreated: false,
+                appliedBlockCount: 0,
+                metaApplied: false,
+                meta: null,
+                translatedBlocks: [],
+                provider: null,
+                message: '',
+                warnings: [],
+                stats: {
+                    total_blocks: snapshot.blocks.length,
+                    translated_blocks: 0,
+                    translated_segments: 0,
+                    translation_batches: 0,
+                    preserved_blocks: 0,
+                    dropped_blocks: 0,
+                    skipped_block_types: []
+                },
+                cancelled: false
+            };
+        }
+
+        function extractTranslatedBlocks(translation) {
+            var translatedData = translation && translation.content_data ? translation.content_data : null;
+
+            if (!translatedData && translation && typeof translation.content_json === 'string') {
+                try {
+                    translatedData = JSON.parse(translation.content_json);
+                } catch (_error) {
+                    translatedData = null;
+                }
+            }
+
+            translatedData = normalizeEditorData(translatedData || { blocks: [] });
+
+            return translatedData && Array.isArray(translatedData.blocks) ? translatedData.blocks : [];
+        }
+
+        function mergeTranslationChunkResult(state, chunk, result) {
+            var translation = result.translation && typeof result.translation === 'object' ? result.translation : {};
+            var stats = result.stats && typeof result.stats === 'object' ? result.stats : {};
+
+            if (!state.provider && result.provider && typeof result.provider === 'object') {
+                state.provider = result.provider;
+            }
+
+            if (state.mode === '' && (result.preview_required || result.result_mode === 'preview')) {
+                state.mode = 'preview';
+            }
+
+            if (!state.message && typeof result.message === 'string') {
+                state.message = result.message;
+            }
+
+            if (result.chunk && typeof result.chunk.session === 'string' && result.chunk.session !== '') {
+                state.sessionId = result.chunk.session;
+            }
+
+            if (chunk.includeMeta) {
+                state.meta = {
+                    title: typeof translation.title === 'string' ? translation.title : '',
+                    slug: typeof translation.slug === 'string' ? translation.slug : '',
+                    excerpt: typeof translation.excerpt === 'string' ? translation.excerpt : ''
+                };
+            } else {
+                extractTranslatedBlocks(translation).forEach(function (block) {
+                    state.translatedBlocks.push(block);
+                });
+            }
+
+            (Array.isArray(result.warnings) ? result.warnings : []).forEach(function (warning) {
+                var text = String(warning || '');
+
+                if (text !== '' && state.warnings.indexOf(text) === -1) {
+                    state.warnings.push(text);
+                }
+            });
+
+            ['translated_blocks', 'translated_segments', 'translation_batches', 'preserved_blocks', 'dropped_blocks'].forEach(function (key) {
+                if (typeof stats[key] === 'number') {
+                    state.stats[key] += stats[key];
+                }
+            });
+
+            (Array.isArray(stats.skipped_block_types) ? stats.skipped_block_types : []).forEach(function (type) {
+                if (state.stats.skipped_block_types.indexOf(type) === -1) {
+                    state.stats.skipped_block_types.push(type);
+                }
+            });
+        }
+
+        function buildChunkedTranslationOutput(aiTranslation, state) {
+            var contentData = { blocks: state.translatedBlocks.slice() };
+            var meta = state.meta || { title: '', slug: '', excerpt: '' };
+
+            if (state.sourceVersion) {
+                contentData.version = state.sourceVersion;
+            }
+
+            return resolveTranslationOutput(aiTranslation, {
+                title: meta.title,
+                slug: meta.slug,
+                excerpt: meta.excerpt,
+                content_data: contentData
+            });
+        }
+
+        function buildChunkedTranslationResult(state) {
+            return {
+                provider: state.provider || {},
+                warnings: state.warnings.slice(),
+                stats: state.stats,
+                message: state.message
+            };
+        }
+
+        function requestTranslationChunk(aiTranslation, state, chunk, attempt) {
+            return requestJson(
+                aiTranslation.endpointUrl,
+                buildTranslationChunkPayload(aiTranslation, state, chunk),
+                aiTranslation.requestTimeoutMs
+            ).then(function (response) {
+                var result = response.data || {};
+
+                if (!response.ok || !result.success) {
+                    throw createTranslationError(
+                        (result && result.error) ? result.error : 'AI-Übersetzung konnte nicht verarbeitet werden.',
+                        (result && result.error_code)
+                            ? String(result.error_code)
+                            : ([401, 403, 405].indexOf(Number(response.status)) !== -1 ? 'not_retryable' : '')
+                    );
+                }
+
+                return result;
+            }).catch(function (error) {
+                if (state.cancelled || attempt >= 2 || (error && error.code === 'not_retryable')) {
+                    throw error;
+                }
+
+                if (error && error.code === 'chunk_session_invalid') {
+                    state.sessionId = '';
+                }
+
+                return waitMs(1500).then(function () {
+                    return requestTranslationChunk(aiTranslation, state, chunk, attempt + 1);
+                });
+            });
+        }
+
+        function applyTranslationMetaFields(aiTranslation, output) {
+            if (aiTranslation.targetTitleId) {
+                setFieldValue(aiTranslation.targetTitleId, output.title);
+            }
+
+            if (aiTranslation.targetSlugId) {
+                setFieldValue(aiTranslation.targetSlugId, output.slug);
+            }
+
+            if (aiTranslation.targetExcerptId) {
+                setFieldValue(aiTranslation.targetExcerptId, output.excerpt);
+            }
+        }
+
+        function applyTranslationChunkProgress(aiTranslation, state, chunk) {
+            var output = buildChunkedTranslationOutput(aiTranslation, state);
+
+            return withSuppressedPreviewClear(function () {
+                var ready = state.targetPaneActivated
+                    ? Promise.resolve()
+                    : activateTargetPane(aiTranslation.targetPaneButtonId, aiTranslation.targetEditorKey, {
+                        suppressInitialCopy: true
+                    }).then(function () {
+                        state.targetPaneActivated = true;
+                    });
+
+                return ready.then(function () {
+                    var recreateEditor = !state.editorRecreated;
+
+                    if (chunk.includeMeta) {
+                        applyTranslationMetaFields(aiTranslation, output);
+                        state.metaApplied = true;
+                        return null;
+                    }
+
+                    if (!recreateEditor && output.contentData.blocks.length === state.appliedBlockCount) {
+                        return null;
+                    }
+
+                    return applyEditorData(aiTranslation.targetEditorKey, output.contentData, {
+                        recreateEditor: recreateEditor
+                    }).then(function () {
+                        state.editorRecreated = true;
+                        state.appliedBlockCount = output.contentData.blocks.length;
+                    });
+                });
+            });
+        }
+
+        function resolveChunkedTranslationMode(state) {
+            if (state.mode !== '') {
+                return state.mode;
+            }
+
+            if (state.targetHadContent && !window.confirm('Die EN-Bearbeitung enthält bereits Inhalte. Die AI-Übersetzung ersetzt Titel, Slug, Kurzfassung und Editor-Inhalt jetzt Block für Block.\n\nOK = blockweise direkt übernehmen\nAbbrechen = erst alles übersetzen und dann als Vorschau prüfen')) {
+                state.mode = 'preview';
+            } else {
+                state.mode = 'progressive';
+            }
+
+            return state.mode;
+        }
+
+        function runChunkedTranslation(aiTranslation, state, onProgress) {
+            function next() {
+                var chunk;
+
+                if (state.nextIndex >= state.chunks.length) {
+                    return Promise.resolve(state);
+                }
+
+                if (state.cancelled) {
+                    return Promise.reject(createTranslationError('Die AI-Übersetzung wurde abgebrochen.', 'cancelled'));
+                }
+
+                chunk = state.chunks[state.nextIndex];
+                onProgress(state, chunk);
+
+                return requestTranslationChunk(aiTranslation, state, chunk, 1).then(function (result) {
+                    mergeTranslationChunkResult(state, chunk, result);
+                    state.nextIndex += 1;
+
+                    if (resolveChunkedTranslationMode(state) === 'progressive') {
+                        return applyTranslationChunkProgress(aiTranslation, state, chunk);
+                    }
+
+                    return null;
+                }).then(next);
+            }
+
+            return next();
+        }
+
+        function createTranslationCancelButton(button, state) {
+            var cancelButton = document.createElement('button');
+
+            cancelButton.type = 'button';
+            cancelButton.className = 'btn btn-outline-danger btn-sm';
+            cancelButton.textContent = 'Übersetzung abbrechen';
+            cancelButton.addEventListener('click', function () {
+                state.cancelled = true;
+                cancelButton.disabled = true;
+                cancelButton.textContent = 'Wird nach aktuellem Block abgebrochen …';
+            });
+            button.insertAdjacentElement('afterend', cancelButton);
+
+            return cancelButton;
+        }
+
+        function finishChunkedTranslation(aiTranslation, state) {
+            var output = buildChunkedTranslationOutput(aiTranslation, state);
+            var result = buildChunkedTranslationResult(state);
+            var warningText = state.warnings.length > 0 ? ' Hinweise: ' + state.warnings.join(' · ') : '';
+
+            translationChunkResumeState = null;
+
+            if (state.mode === 'preview') {
+                showNotice('info', 'AI-Übersetzung wurde blockweise erzeugt. Bitte Vorschau prüfen und Änderungen nur bei Bedarf übernehmen.' + warningText);
+
+                renderTranslationPreview(aiTranslation, result, output, function () {
+                    applyResolvedTranslation(aiTranslation, output).then(function () {
+                        showNotice('success', 'AI-Übersetzung wurde in die EN-Bearbeitung übernommen.' + warningText);
+                    }).catch(function (error) {
+                        showNotice('danger', (error && error.message) ? error.message : 'AI-Übersetzung konnte nicht in die EN-Bearbeitung übernommen werden.');
+                    });
+                }, function () {
+                    clearPreviewPanel();
+                    showNotice('info', 'AI-Vorschlag wurde verworfen. Die aktuelle EN-Bearbeitung blieb unverändert.' + warningText);
+                });
+
+                return Promise.resolve();
+            }
+
+            return Promise.resolve(withSuppressedPreviewClear(function () {
+                if (!state.metaApplied) {
+                    applyTranslationMetaFields(aiTranslation, output);
+                    state.metaApplied = true;
+                }
+
+                if (!state.editorRecreated) {
+                    state.editorRecreated = true;
+                    return applyEditorData(aiTranslation.targetEditorKey, output.contentData, { recreateEditor: true });
+                }
+
+                return null;
+            })).then(function () {
+                showNotice('success', 'AI-Übersetzung wurde Block für Block in die EN-Bearbeitung übernommen (' + String(state.translatedBlocks.length) + ' Blöcke). Dauerhaft gespeichert wird erst beim regulären Speichern.' + warningText);
+            });
+        }
+
+        function describeInterruptedTranslation(state, error) {
+            var chunk = state.chunks[state.nextIndex] || null;
+            var position = chunk ? chunk.label : 'Abschluss';
+            var keptText = state.mode === 'progressive'
+                ? ' Bereits übersetzte Inhalte (' + String(state.appliedBlockCount) + ' Blöcke) wurden übernommen.'
+                : ' Bereits übersetzte Inhalte bleiben für die Fortsetzung zwischengespeichert.';
+            var resumeText = ' Erneut auf den Übersetzen-Button klicken, um ab „' + position + '“ fortzusetzen.';
+
+            if (error && error.code === 'cancelled') {
+                return 'AI-Übersetzung wurde vor „' + position + '“ abgebrochen.' + keptText + resumeText;
+            }
+
+            return 'AI-Übersetzung bei „' + position + '“ fehlgeschlagen: ' + ((error && error.message) ? error.message : 'Unbekannter Fehler.') + keptText + resumeText;
+        }
+
+        function resolveResumableTranslationState(snapshot, targetData) {
+            var state = translationChunkResumeState;
+            var targetBlocks = targetData && Array.isArray(targetData.blocks) ? targetData.blocks : [];
+
+            if (!state || state.signature !== snapshot.signature || state.nextIndex >= state.chunks.length) {
+                return null;
+            }
+
+            if (state.mode === 'progressive' && state.editorRecreated && targetBlocks.length !== state.appliedBlockCount) {
+                return null;
+            }
+
+            if (!window.confirm('Die letzte AI-Übersetzung wurde bei „' + state.chunks[state.nextIndex].label + '“ unterbrochen.\n\nOK = dort fortsetzen\nAbbrechen = komplett neu übersetzen')) {
+                return null;
+            }
+
+            state.cancelled = false;
+
+            return state;
+        }
+
         function handleAiTranslation(aiTranslation) {
             var button = aiTranslation && aiTranslation.buttonId ? getElement(aiTranslation.buttonId) : null;
 
@@ -4502,6 +4904,9 @@
             }
 
             button.addEventListener('click', function () {
+                var state = null;
+                var cancelButton = null;
+
                 clearNotice();
                 clearPreviewPanel();
                 setButtonBusy(button, true, 'Übersetze …');
@@ -4510,46 +4915,38 @@
                     ensureEditorSaved(aiTranslation.sourceEditorKey),
                     ensureEditorSaved(aiTranslation.targetEditorKey)
                 ]).then(function (savedStates) {
-                    var sourceData = savedStates[0];
-                    var requestBody = buildTranslationPayload(aiTranslation, sourceData);
+                    var snapshot = buildTranslationSourceSnapshot(aiTranslation, savedStates[0]);
 
-                    return requestJson(aiTranslation.endpointUrl, requestBody, aiTranslation.requestTimeoutMs).then(function (response) {
-                        var result = response.data || {};
-                        var translation = result.translation || {};
-                        var shouldConfirm = result.preview_required || result.result_mode === 'preview' || targetAlreadyHasContent(aiTranslation);
-                        var resolvedOutput = resolveTranslationOutput(aiTranslation, translation);
-                        var warningText = Array.isArray(result.warnings) && result.warnings.length > 0
-                            ? ' Hinweise: ' + result.warnings.join(' · ')
-                            : '';
+                    state = resolveResumableTranslationState(snapshot, normalizeEditorData(savedStates[1]));
+                    if (!state) {
+                        state = createTranslationChunkState(snapshot, targetAlreadyHasContent(aiTranslation));
+                    }
 
-                        if (!response.ok || !result.success) {
-                            throw new Error((result && result.error) ? result.error : 'AI-Übersetzung konnte nicht verarbeitet werden.');
-                        }
+                    if (state.chunks.length === 0) {
+                        throw createTranslationError('Es gibt keinen deutschen Inhalt, der übersetzt werden könnte.', 'empty');
+                    }
 
-                        if (shouldConfirm) {
-                            showNotice('info', (result.message || 'AI-Übersetzung wurde erzeugt.') + ' Bitte Vorschau prüfen und Änderungen nur bei Bedarf übernehmen.' + warningText);
+                    translationChunkResumeState = state;
+                    cancelButton = createTranslationCancelButton(button, state);
 
-                            renderTranslationPreview(aiTranslation, result, resolvedOutput, function () {
-                                applyResolvedTranslation(aiTranslation, resolvedOutput).then(function () {
-                                    showNotice('success', (result.message || 'AI-Übersetzung wurde in die EN-Bearbeitung übernommen.') + warningText);
-                                }).catch(function (error) {
-                                    showNotice('danger', (error && error.message) ? error.message : 'AI-Übersetzung konnte nicht in die EN-Bearbeitung übernommen werden.');
-                                });
-                            }, function () {
-                                clearPreviewPanel();
-                                showNotice('info', 'AI-Vorschlag wurde verworfen. Die aktuelle EN-Bearbeitung blieb unverändert.' + warningText);
-                            });
-
-                            return;
-                        }
-
-                        return applyResolvedTranslation(aiTranslation, resolvedOutput).then(function () {
-                            showNotice('success', (result.message || 'AI-Übersetzung wurde in die EN-Bearbeitung übernommen.') + warningText);
-                        });
+                    return runChunkedTranslation(aiTranslation, state, function (currentState, chunk) {
+                        setButtonBusy(button, true, 'Übersetze ' + chunk.label + ' …');
+                        showNotice('info', 'AI-Übersetzung läuft Block für Block (' + String(currentState.nextIndex + 1) + ' von ' + String(currentState.chunks.length) + ': ' + chunk.label + '). Bitte währenddessen nicht im EN-Editor arbeiten.');
+                    }).then(function () {
+                        return finishChunkedTranslation(aiTranslation, state);
                     });
                 }).catch(function (error) {
+                    if (state && state === translationChunkResumeState && state.chunks.length > 0) {
+                        showNotice(error && error.code === 'cancelled' ? 'warning' : 'danger', describeInterruptedTranslation(state, error));
+                        return;
+                    }
+
                     showNotice('danger', (error && error.message) ? error.message : 'AI-Übersetzung konnte nicht verarbeitet werden.');
                 }).finally(function () {
+                    if (cancelButton) {
+                        cancelButton.remove();
+                    }
+
                     setButtonBusy(button, false);
                 });
             });

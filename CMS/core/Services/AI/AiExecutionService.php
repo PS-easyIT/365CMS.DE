@@ -20,11 +20,14 @@ final class AiExecutionService
      * Runs a logical AI feature request with policy checks, atomic quota reservation,
      * bounded retry and an optional, equally policy-checked fallback provider.
      *
+     * `$countUserRequest = false` marks a continuation chunk of an already counted user operation;
+     * its characters are still reserved against the user quota.
+     *
      * @param array<string, mixed> $configuration
      * @param callable(AiProviderInterface): mixed $operation
      * @return array{result:mixed,provider:AiProviderInterface,provider_config:array<string,mixed>,resolved_via:string,attempts:int,used_fallback:bool}
      */
-    public function execute(array $configuration, string $feature, int $userId, int $characterCount, callable $operation, string $targetLocale = ''): array
+    public function execute(array $configuration, string $feature, int $userId, int $characterCount, callable $operation, string $targetLocale = '', bool $countUserRequest = true): array
     {
         $providers = is_array($configuration['providers'] ?? null) ? $configuration['providers'] : [];
         $features = is_array($configuration['features'] ?? null) ? $configuration['features'] : [];
@@ -42,7 +45,8 @@ final class AiExecutionService
                 $operation,
                 'global',
                 $targetLocale,
-                true
+                true,
+                $countUserRequest
             );
         } catch (\Throwable $primaryError) {
             if (!$this->isTransientFailure($primaryError)) {
@@ -136,13 +140,14 @@ final class AiExecutionService
         callable $operation,
         string $resolvedVia,
         string $targetLocale,
-        bool $countUserQuota
+        bool $countUserQuota,
+        bool $countUserRequest = true
     ): array {
         $this->policyService->assertFeatureAllowed($features, $providerConfig, $feature);
         $this->providerFactory->assertReady($providerConfig, $targetLocale);
         $provider = $this->providerFactory->create($providerConfig, $quotas);
         if ($countUserQuota) {
-            $this->quotaService->reserveUserOperation($userId, $characterCount, $quotas);
+            $this->quotaService->reserveUserOperation($userId, $characterCount, $quotas, $countUserRequest);
         }
         $provider = new QuotaAwareAiProvider($provider, $this->quotaService, $quotas);
 

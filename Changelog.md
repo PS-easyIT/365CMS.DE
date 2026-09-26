@@ -3,11 +3,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v4.0.1` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v4.0.1` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -25,16 +25,15 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 
 ---
 
-### v4.0.1 — 12.09.2026
+### v3.4.01 — 12.09.2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|--------------|
-| **4.0.1** | 🔴 fix | Admin / Rollen & Rechte | Die Berechtigungsmatrix dedupliziert Rechte wie `manage_users` zentral beim Laden und unmittelbar vor dem Speichern. Damit werden keine doppelten `(role, capability)`-Datensätze mehr erzeugt und der Unique-Key-Fehler beim Speichern ist behoben. |
-| **4.0.1** | 🟢 feat | Admin / Rollen & Rechte | Rechte sind über klar beschriftete Schalter „Erlaubt“ bzw. „Nicht erlaubt“ bedienbar; die gesamte Schalterfläche ist auswählbar. „Standardrechte wiederherstellen“ setzt zuvor leer gespeicherte Rollenrechte gezielt auf die vorgesehenen Defaultwerte zurück. |
-| **4.0.1** | 🔴 fix | Admin / Beiträge | Administratoren und Redakteure sehen alle Beiträge. Andere Rollen sehen im Adminbereich nur eigene Beiträge. Diese Eigentümerprüfung gilt auch bei direktem Aufruf, Speichern, Löschen und Bulk-Aktionen. Die Beitragsstatistiken verwenden denselben Sichtbarkeitsumfang. |
-| **4.0.1** | 🔴 fix | Medienauslieferung | Der Dateinamen-Sanitizer verwendet einen gültigen Regex für Steuerzeichen, Anführungszeichen, Backslashes und Slashes. Die Warnung `preg_replace(): Unknown modifier ']'` ist behoben. |
-| **4.0.1** | 🔴 fix | PHINIT Theme / Post Tech | Die Sidebar-Kategorieabfrage verwendet das aktuelle Core-Schema `post_categories` und `post_category_rel` statt der nicht vorhandenen Legacy-Tabellen `categories` und `post_categories`. |
-| **4.0.1** | 🛡️ security | Admin / Beitragsberechtigungen | Serverseitige Eigentümerprüfungen verhindern, dass Rollen ohne globale Beitragsberechtigung fremde Beiträge über manipulierte URLs oder Formulardaten verändern bzw. löschen. |
+| **3.4.01** | 🔴 fix | Admin / Rollen & Rechte | Die Berechtigungsmatrix dedupliziert Rechte wie `manage_users` zentral beim Laden und unmittelbar vor dem Speichern. Damit werden keine doppelten `(role, capability)`-Datensätze mehr erzeugt und der Unique-Key-Fehler beim Speichern ist behoben. |
+| **3.4.01** | 🟢 feat | Admin / Rollen & Rechte | Rechte sind über klar beschriftete Schalter „Erlaubt“ bzw. „Nicht erlaubt“ bedienbar; die gesamte Schalterfläche ist auswählbar. „Standardrechte wiederherstellen“ setzt zuvor leer gespeicherte Rollenrechte gezielt auf die vorgesehenen Defaultwerte zurück. |
+| **3.4.01** | 🔴 fix | Admin / Beiträge | Administratoren und Redakteure sehen alle Beiträge. Andere Rollen sehen im Adminbereich nur eigene Beiträge. Diese Eigentümerprüfung gilt auch bei direktem Aufruf, Speichern, Löschen und Bulk-Aktionen. Die Beitragsstatistiken verwenden denselben Sichtbarkeitsumfang. |
+| **3.4.01** | 🔴 fix | Medienauslieferung | Der Dateinamen-Sanitizer verwendet einen gültigen Regex für Steuerzeichen, Anführungszeichen, Backslashes und Slashes. Die Warnung `preg_replace(): Unknown modifier ']'` ist behoben. |
+| **3.4.01** | 🛡️ security | Admin / Beitragsberechtigungen | Serverseitige Eigentümerprüfungen verhindern, dass Rollen ohne globale Beitragsberechtigung fremde Beiträge über manipulierte URLs oder Formulardaten verändern bzw. löschen. |
 
 ---
 

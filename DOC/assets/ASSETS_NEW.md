@@ -224,7 +224,7 @@ Nicht jeder aktivierte Provider darf automatisch alles. Die effektive Verfügbar
 | `summary_enabled` | Zusammenfassungen erlaubt | ja/nein |
 | `seo_meta_enabled` | SEO-/Meta-Generierung erlaubt | ja/nein |
 | `editorjs_enabled` | Editor.js-Verarbeitung erlaubt | ja/nein |
-| `allowed_locales` | Sprachziele begrenzen | z. B. nur `en` |
+| `allowed_locales` | Erlaubte Sprachen: Übersetzungsziele und Editorsprache für SEO-/Content-Entwürfe | z. B. `de,en` (nur `en` blendet AI-SEO im DE-Editor aus) |
 | `max_chars_per_request` | Kosten-/Stabilitätsgrenze | z. B. 12.000 Zeichen |
 | `max_blocks_per_request` | Strukturgrenze | z. B. 50 Blöcke |
 | `beta_only` | nur für Testbetrieb | ja/nein |

@@ -165,7 +165,8 @@ final class AiService
                     is_array($promptsConfig['translation'] ?? null) ? $promptsConfig['translation'] : []
                 );
             },
-            $targetLocale
+            $targetLocale,
+            ($request['count_user_request'] ?? true) !== false
         );
         $pipelineResult = is_array($execution['result'] ?? null) ? $execution['result'] : [];
         $provider = $execution['provider'];

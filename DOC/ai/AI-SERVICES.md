@@ -104,6 +104,12 @@ Translations are split into compact provider batches:
 
 These limits reduce provider timeouts and make partial failures easier to understand.
 
+#### 5.3a Block-by-block translation in the editor
+
+The editor's “Mit AI nach EN übersetzen” button sends one HTTP request per unit: first title/excerpt (if present), then exactly one Editor.js block per request. Each translated block is applied to the EN editor before the next block is requested. A failed block is retried once; afterwards the run stops, already applied blocks remain, and clicking again resumes at the failed block. If the EN version already has content, the editor asks whether to apply block by block or to collect everything and show a preview; `preview_required` / result mode `preview` always forces the preview.
+
+The first request of a run (`chunk_total`) counts as one user request and opens a server-side session in `$_SESSION` (30 minutes, bound to user, content type and target locale; budget = requests of the run, max. 121, plus up to 10 retries). Continuation requests (`chunk_session`) do not count another daily request but still reserve characters and every provider call; they may contain at most one block and no title/excerpt. Invalid or expired sessions return `error_code = chunk_session_invalid`, and the editor then starts a new session automatically.
+
 #### 5.4 Translation result
 
 A successful response contains, depending on the request:
@@ -175,7 +181,7 @@ Each provider can have:
 - a default model;
 - endpoint, deployment, and API version values where applicable;
 - feature scopes;
-- allowed locales;
+- allowed locales (translation targets and the editor language for SEO/content drafts; the German editor requires `de`);
 - a beta-only flag;
 - a configured secret indicator.
 
@@ -652,7 +658,7 @@ Fehlt eine Bedingung, bleibt die Funktion gesperrt oder liefert einen verständl
 2. Prüfen, dass der Ausgangstext vollständig ist und als Entwurf gespeichert wurde.
 3. Die AI-Übersetzungsaktion im Editor auslösen.
 4. Die Zielsprache auswählen oder bestätigen, normalerweise Englisch.
-5. Auf das Ergebnis und die Verarbeitungsstatistik warten.
+5. Die Übersetzung läuft Block für Block (siehe 5.3a); Fortschritt und Ergebnis abwarten.
 6. Titel, Excerpt, Slug und Editor.js-Blöcke prüfen.
 7. Die Vorschau bzw. den Diff-Vergleich verwenden.
 8. Das Ergebnis nur übernehmen, wenn Sprache, Links, Formatierung und Bedeutung stimmen.
@@ -681,6 +687,18 @@ Ob ein Typ tatsächlich übersetzt wird, entscheidet `supported_block_types`. Ni
 - wenn kein unterstütztes Textsegment gefunden wird, kommt eine Warnung zurück.
 
 Die Limits verringern Timeouts und machen Teilfehler nachvollziehbarer.
+
+#### 5.3a Blockweise Übersetzung im Editor
+
+Der Button „Mit AI nach EN übersetzen“ sendet nicht mehr das komplette Dokument in einem HTTP-Request, sondern arbeitet Block für Block:
+
+1. zuerst Titel und Kurzfassung (falls vorhanden), danach jeweils genau ein Editor.js-Block pro Request;
+2. jeder übersetzte Block wird sofort in den EN-Editor übernommen, bevor der nächste Block angefragt wird;
+3. ein fehlgeschlagener Block wird einmal automatisch wiederholt; bleibt er fehlerhaft, stoppt der Lauf, bereits übernommene Blöcke bleiben erhalten und ein erneuter Klick setzt ab dem fehlgeschlagenen Block fort;
+4. „Übersetzung abbrechen“ stoppt nach dem aktuell laufenden Block;
+5. enthält die EN-Fassung bereits Inhalte, fragt der Editor, ob blockweise direkt übernommen oder zuerst alles übersetzt und als Vorschau geprüft werden soll; ist `preview_required` bzw. der Ergebnismodus `preview` aktiv, wird immer erst am Ende eine Vorschau gezeigt.
+
+Quota: Der erste Request eines Laufs (`chunk_total`) zählt als ein Benutzer-Request und legt eine serverseitige Sitzung in `$_SESSION` an (30 Minuten gültig, benutzer-, inhaltstyp- und zielsprachengebunden, Budget = Anzahl Requests des Laufs (max. 121) plus max. 10 Wiederholungen; Folge-Requests dürfen höchstens einen Block und keine Titel-/Kurzfassungsdaten enthalten). Folge-Requests (`chunk_session`) zählen keinen weiteren Tages-Request, reservieren aber weiterhin Zeichen und jeden Provider-Aufruf. Ungültige oder abgelaufene Sitzungen liefern `error_code = chunk_session_invalid`; der Editor startet dann automatisch eine neue Sitzung.
 
 #### 5.4 Ergebnis
 

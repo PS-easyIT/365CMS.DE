@@ -8,6 +8,8 @@ if (!defined('ABSPATH')) {
 
 $aiTranslationEnabled = !empty($aiTranslationEnabled);
 $aiSeoMetadataEnabled = !empty($aiSeoMetadataEnabled);
+$aiSeoMetadataUnavailableReason = is_string($aiSeoMetadataUnavailableReason ?? null) ? trim($aiSeoMetadataUnavailableReason) : '';
+$aiSettingsUrl = is_string($aiSettingsUrl ?? null) ? trim($aiSettingsUrl) : '';
 
 /**
  * Posts – Edit / Create View
@@ -694,6 +696,14 @@ $additionalCategoryIds = array_values(array_filter(
                                         <span class="small">Erzeugt SEO-Metadaten aus dem Haupttext. Beitragstitel, Slug und URL-Felder bleiben unverändert.</span>
                                         <button type="button" class="btn btn-primary btn-sm" id="generatePostSeoMetadataButton">SEO mit AI füllen</button>
                                     </div>
+                                </div>
+                            <?php elseif ($aiSeoMetadataUnavailableReason !== ''): ?>
+                                <div class="alert alert-warning py-2 mb-3 small" role="status">
+                                    <strong>SEO mit AI ist hier nicht verfügbar.</strong>
+                                    <?php echo htmlspecialchars($aiSeoMetadataUnavailableReason); ?>
+                                    <?php if ($aiSettingsUrl !== ''): ?>
+                                        <a href="<?php echo htmlspecialchars($aiSettingsUrl); ?>">Zu den AI-Einstellungen</a>
+                                    <?php endif; ?>
                                 </div>
                             <?php endif; ?>
                             <div class="mb-3">

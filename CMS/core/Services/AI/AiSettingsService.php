@@ -486,7 +486,7 @@ final class AiSettingsService
             'summary_enabled' => (bool) ($stored['summary_enabled'] ?? $defaults['summary_enabled']),
             'seo_meta_enabled' => (bool) ($stored['seo_meta_enabled'] ?? $defaults['seo_meta_enabled']),
             'editorjs_enabled' => (bool) ($stored['editorjs_enabled'] ?? $defaults['editorjs_enabled']),
-            'allowed_locales' => $this->normalizeStringList($stored['allowed_locales'] ?? $defaults['allowed_locales'], ['en']),
+            'allowed_locales' => $this->normalizeStringList($stored['allowed_locales'] ?? $defaults['allowed_locales'], (array) ($defaults['allowed_locales'] ?? ['de', 'en'])),
             'allowed_internal_hosts' => $this->normalizeStringList($stored['allowed_internal_hosts'] ?? ($defaults['allowed_internal_hosts'] ?? []), (array) ($defaults['allowed_internal_hosts'] ?? [])),
             'beta_only' => (bool) ($stored['beta_only'] ?? $defaults['beta_only']),
             'secret_configured' => $this->hasProviderSecret($providerId, $providerType),
@@ -1148,7 +1148,7 @@ final class AiSettingsService
             'summary_enabled' => (bool) ($entry['summary_enabled'] ?? $defaults['summary_enabled']),
             'seo_meta_enabled' => (bool) ($entry['seo_meta_enabled'] ?? $defaults['seo_meta_enabled']),
             'editorjs_enabled' => (bool) ($entry['editorjs_enabled'] ?? $defaults['editorjs_enabled']),
-            'allowed_locales' => $this->normalizeStringList($entry['allowed_locales'] ?? $defaults['allowed_locales'], ['en']),
+            'allowed_locales' => $this->normalizeStringList($entry['allowed_locales'] ?? $defaults['allowed_locales'], (array) ($defaults['allowed_locales'] ?? ['de', 'en'])),
             'allowed_internal_hosts' => $this->normalizeStringList($entry['allowed_internal_hosts'] ?? ($defaults['allowed_internal_hosts'] ?? []), (array) ($defaults['allowed_internal_hosts'] ?? [])),
             'beta_only' => (bool) ($entry['beta_only'] ?? $defaults['beta_only']),
         ];

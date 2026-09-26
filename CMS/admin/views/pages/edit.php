@@ -21,6 +21,8 @@ use CMS\Services\ContentLocalizationService;
 
 $aiTranslationEnabled = !empty($aiTranslationEnabled);
 $aiSeoMetadataEnabled = !empty($aiSeoMetadataEnabled);
+$aiSeoMetadataUnavailableReason = is_string($aiSeoMetadataUnavailableReason ?? null) ? trim($aiSeoMetadataUnavailableReason) : '';
+$aiSettingsUrl = is_string($aiSettingsUrl ?? null) ? trim($aiSettingsUrl) : '';
 
 $pageAdminBaseUrl = '/admin/pages';
 $page    = $editData['page'] ?? null;
@@ -499,6 +501,14 @@ $isEnglishEditorView = $editorLocale === 'en';
                                         <span class="small">Erzeugt SEO-Metadaten aus dem Haupttext. Seitentitel, Slug und URL-Felder bleiben unverändert.</span>
                                         <button type="button" class="btn btn-primary btn-sm" id="generatePageSeoMetadataButton">SEO mit AI füllen</button>
                                     </div>
+                                </div>
+                            <?php elseif ($aiSeoMetadataUnavailableReason !== ''): ?>
+                                <div class="alert alert-warning py-2 mb-3 small" role="status">
+                                    <strong>SEO mit AI ist hier nicht verfügbar.</strong>
+                                    <?= htmlspecialchars($aiSeoMetadataUnavailableReason) ?>
+                                    <?php if ($aiSettingsUrl !== ''): ?>
+                                        <a href="<?= htmlspecialchars($aiSettingsUrl) ?>">Zu den AI-Einstellungen</a>
+                                    <?php endif; ?>
                                 </div>
                             <?php endif; ?>
                             <div class="mb-3">

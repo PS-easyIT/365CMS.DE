@@ -1216,7 +1216,7 @@ final class AiServicesModule
             'summary_enabled' => !empty($post['provider_summary_enabled']),
             'seo_meta_enabled' => !empty($post['provider_seo_meta_enabled']),
             'editorjs_enabled' => !empty($post['provider_editorjs_enabled']),
-            'allowed_locales' => $this->sanitizeCsvList((string) ($post['provider_allowed_locales'] ?? implode(',', (array) ($currentEntry['allowed_locales'] ?? $defaultEntry['allowed_locales'] ?? ['en']))), ['en']),
+            'allowed_locales' => $this->sanitizeCsvList((string) ($post['provider_allowed_locales'] ?? implode(',', (array) ($currentEntry['allowed_locales'] ?? $defaultEntry['allowed_locales'] ?? ['de', 'en']))), (array) ($defaultEntry['allowed_locales'] ?? ['de', 'en'])),
             'allowed_internal_hosts' => $this->sanitizeCsvList((string) ($post['provider_allowed_internal_hosts'] ?? implode(',', (array) ($currentEntry['allowed_internal_hosts'] ?? $defaultEntry['allowed_internal_hosts'] ?? []))), (array) ($defaultEntry['allowed_internal_hosts'] ?? [])),
             'beta_only' => !empty($post['provider_beta_only']),
         ];

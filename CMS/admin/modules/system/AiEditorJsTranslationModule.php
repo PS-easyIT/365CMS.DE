@@ -17,6 +17,11 @@ final class AiEditorJsTranslationModule
     private const int MAX_EDITOR_JSON_LENGTH = 250000;
     private const int MAX_EDITOR_BLOCKS = 120;
     private const int MAX_BLOCK_TYPE_LENGTH = 80;
+    private const string CHUNK_SESSION_KEY = 'ai_editorjs_translation_chunks';
+    private const int CHUNK_SESSION_TTL_SECONDS = 1800;
+    private const int CHUNK_RETRY_ALLOWANCE = 10;
+    private const int MAX_CHUNK_SESSIONS = 5;
+    private const string CHUNK_SESSION_INVALID_MESSAGE = 'Die blockweise AI-Übersetzung ist abgelaufen oder ungültig. Bitte die Übersetzung neu starten.';
 
     private AiService $aiService;
 
@@ -36,6 +41,8 @@ final class AiEditorJsTranslationModule
             $sourceLocale = $this->sanitizeLocale((string) ($post['source_locale'] ?? 'de'), 'de');
             $targetLocale = $this->sanitizeLocale((string) ($post['target_locale'] ?? 'en'), 'en');
             $editorData = $this->sanitizeEditorJson((string) ($post['editor_data'] ?? ''));
+            $this->assertValidChunkPayload($post, $editorData, $title, $excerpt);
+            $chunk = $this->resolveChunkSession($post, $userId, $contentType, $targetLocale);
 
             $result = $this->aiService->translateEditorJsDraft([
                 'user_id' => $userId,
@@ -46,6 +53,7 @@ final class AiEditorJsTranslationModule
                 'source_locale' => $sourceLocale,
                 'target_locale' => $targetLocale,
                 'editor_data' => $editorData,
+                'count_user_request' => $chunk === null || $chunk['count_user_request'],
             ]);
 
             $telemetry = is_array($result['telemetry'] ?? null) ? $result['telemetry'] : [];
@@ -70,14 +78,34 @@ final class AiEditorJsTranslationModule
                     'source_hash' => (string) ($telemetry['source_hash'] ?? ''),
                     'translated_hash' => (string) ($telemetry['translated_hash'] ?? ''),
                     'resolved_via' => (string) ($result['provider']['resolved_via'] ?? 'direct'),
+                    'chunked' => $chunk !== null ? 1 : null,
                 ], static fn (mixed $value): bool => $value !== '' && $value !== null),
                 'info'
             );
 
-            return [
+            $response = [
                 'success' => true,
                 'message' => 'AI-Übersetzung für Editor.js wurde erzeugt.',
             ] + $result;
+
+            if ($chunk !== null) {
+                $response['chunk'] = [
+                    'session' => $chunk['session_id'],
+                    'remaining' => $chunk['remaining'],
+                ];
+            }
+
+            return $response;
+        } catch (\DomainException $e) {
+            Logger::instance()->withChannel('admin.ai-translate')->warning('Blockweise Editor.js-AI-Übersetzung mit ungültiger Sitzung abgelehnt.', [
+                'user_id' => $userId,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => self::CHUNK_SESSION_INVALID_MESSAGE,
+                'error_code' => 'chunk_session_invalid',
+            ];
         } catch (\Throwable $e) {
             Logger::instance()->withChannel('admin.ai-translate')->error('Editor.js-AI-Übersetzung konnte nicht verarbeitet werden.', [
                 'exception' => $e::class,
@@ -102,6 +130,103 @@ final class AiEditorJsTranslationModule
                 'success' => false,
                 'error' => 'Editor.js-AI-Übersetzung konnte nicht verarbeitet werden. Bitte Logs prüfen.',
             ];
+        }
+    }
+
+    /**
+     * Block-by-block translations send one request per Editor.js block. The first chunk reserves the
+     * user-visible operation; continuation chunks prove membership via a server-side session entry so
+     * that a single document does not consume one daily request per block. Characters and provider
+     * calls are still counted for every chunk.
+     *
+     * @return array{session_id:string,count_user_request:bool,remaining:int}|null
+     */
+    private function resolveChunkSession(array $post, int $userId, string $contentType, string $targetLocale): ?array
+    {
+        $rawSessionId = $post['chunk_session'] ?? '';
+        $rawTotal = $post['chunk_total'] ?? 0;
+        $sessionId = is_scalar($rawSessionId) ? strtolower(trim((string) $rawSessionId)) : 'invalid';
+        $declaredTotal = is_scalar($rawTotal) ? (int) $rawTotal : 0;
+
+        if ($sessionId === '' && $declaredTotal <= 0) {
+            return null;
+        }
+
+        if (session_status() !== PHP_SESSION_ACTIVE || $userId <= 0) {
+            throw new \DomainException(self::CHUNK_SESSION_INVALID_MESSAGE);
+        }
+
+        $now = time();
+        $sessions = is_array($_SESSION[self::CHUNK_SESSION_KEY] ?? null) ? $_SESSION[self::CHUNK_SESSION_KEY] : [];
+        $sessions = array_filter(
+            $sessions,
+            static fn (mixed $entry): bool => is_array($entry) && (int) ($entry['expires'] ?? 0) > $now
+        );
+
+        if ($sessionId === '') {
+            $total = min($declaredTotal, self::MAX_EDITOR_BLOCKS + 1);
+            $remaining = ($total - 1) + min(self::CHUNK_RETRY_ALLOWANCE, $total);
+            $sessionId = bin2hex(random_bytes(16));
+
+            if ($remaining > 0) {
+                $sessions[$sessionId] = [
+                    'user_id' => $userId,
+                    'content_type' => $contentType,
+                    'target_locale' => $targetLocale,
+                    'remaining' => $remaining,
+                    'expires' => $now + self::CHUNK_SESSION_TTL_SECONDS,
+                ];
+                if (count($sessions) > self::MAX_CHUNK_SESSIONS) {
+                    $sessions = array_slice($sessions, -self::MAX_CHUNK_SESSIONS, null, true);
+                }
+            }
+            $_SESSION[self::CHUNK_SESSION_KEY] = $sessions;
+
+            return ['session_id' => $sessionId, 'count_user_request' => true, 'remaining' => $remaining];
+        }
+
+        $entry = preg_match('/^[a-f0-9]{32}$/', $sessionId) === 1 ? ($sessions[$sessionId] ?? null) : null;
+        if (!is_array($entry)
+            || (int) ($entry['user_id'] ?? 0) !== $userId
+            || (string) ($entry['content_type'] ?? '') !== $contentType
+            || (string) ($entry['target_locale'] ?? '') !== $targetLocale
+            || (int) ($entry['remaining'] ?? 0) <= 0
+        ) {
+            $_SESSION[self::CHUNK_SESSION_KEY] = $sessions;
+            throw new \DomainException(self::CHUNK_SESSION_INVALID_MESSAGE);
+        }
+
+        $entry['remaining'] = (int) $entry['remaining'] - 1;
+        $entry['expires'] = $now + self::CHUNK_SESSION_TTL_SECONDS;
+        if ($entry['remaining'] > 0) {
+            $sessions[$sessionId] = $entry;
+        } else {
+            unset($sessions[$sessionId]);
+        }
+        $_SESSION[self::CHUNK_SESSION_KEY] = $sessions;
+
+        return ['session_id' => $sessionId, 'count_user_request' => false, 'remaining' => (int) $entry['remaining']];
+    }
+
+    /**
+     * Chunk requests must stay small: at most one Editor.js block, and metadata (title/excerpt) only in the
+     * request that opens a chunk session. This prevents continuation chunks from carrying whole documents.
+     */
+    private function assertValidChunkPayload(array $post, string $editorJson, string $title, string $excerpt): void
+    {
+        $rawSessionId = $post['chunk_session'] ?? '';
+        $rawTotal = $post['chunk_total'] ?? 0;
+        $isContinuation = !is_scalar($rawSessionId) || trim((string) $rawSessionId) !== '';
+        $isChunkStart = is_scalar($rawTotal) && (int) $rawTotal > 0;
+
+        if (!$isContinuation && !$isChunkStart) {
+            return;
+        }
+
+        $decoded = json_decode($editorJson, true);
+        $blockCount = is_array($decoded) && is_array($decoded['blocks'] ?? null) ? count($decoded['blocks']) : 0;
+        if ($blockCount > 1 || ($isContinuation && ($title !== '' || $excerpt !== ''))) {
+            throw new \InvalidArgumentException('Ein Teilauftrag der blockweisen AI-Übersetzung ist zu groß.');
         }
     }
 
