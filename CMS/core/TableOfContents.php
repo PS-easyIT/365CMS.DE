@@ -647,7 +647,7 @@ class TableOfContents
         if ($allowToggle && $showHeader) {
             $uidJson      = json_encode($uid);
             $bodyIdJson   = json_encode($uid . '-body');
-            $html .= '<script>(function(){'
+            $html .= '<script ' . \CMS\Security::instance()->nonceAttr() . '>(function(){'
                 . 'var n=document.getElementById(' . $uidJson . ');'
                 . 'if(!n)return;'
                 . 'var btn=n.querySelector("[data-cms-toc-toggle]");'
@@ -667,7 +667,7 @@ class TableOfContents
 
         // Smooth Scroll
         if ($smoothScroll) {
-            $html .= '<script>(function(){'
+            $html .= '<script ' . \CMS\Security::instance()->nonceAttr() . '>(function(){'
                 . 'document.querySelectorAll("[data-cms-toc-root] [data-tl]").forEach(function(a){'
                 .   'a.addEventListener("click",function(e){'
                 .     'var id=a.getAttribute("href").slice(1);'

@@ -353,7 +353,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
         </div>
     </div>
-    <script>
+    <script <?= \CMS\Security::instance()->nonceAttr() ?>>
     (function(){
         var _pendingForm = null;
         document.querySelectorAll('.js-needs-confirm').forEach(function(form){

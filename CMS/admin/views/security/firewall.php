@@ -205,7 +205,7 @@ $showRuleCreateSimulatedSuccess = isset($alert['type'], $alert['message'])
                                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                                                     <input type="hidden" name="action" value="apply_baseline_profile">
                                                     <input type="hidden" name="baseline_profile" value="<?php echo htmlspecialchars((string)$profileKey, ENT_QUOTES, 'UTF-8'); ?>">
-                                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyFirewallBaseline(this.form, <?php echo htmlspecialchars(json_encode((string)($profile['label'] ?? $profileKey), JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"Profil"', ENT_QUOTES, 'UTF-8'); ?>)">Profil anwenden</button>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm" data-cms-call="applyFirewallBaseline" data-cms-call-context="form" data-cms-call-args="<?php echo htmlspecialchars((string) json_encode([(string)($profile['label'] ?? $profileKey)], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>">Profil anwenden</button>
                                                 </form>
                                             </div>
                                         </div>
@@ -539,9 +539,9 @@ $showRuleCreateSimulatedSuccess = isset($alert['type'], $alert['message'])
                                                             <input type="hidden" name="id" value="<?php echo (int)$rule['id']; ?>">
                                                             <input type="hidden" name="target_mode" value="<?php echo ($rule['rule_mode'] ?? '') === 'simulate' ? 'enforce' : 'simulate'; ?>">
                                                             <?php if (($rule['rule_mode'] ?? '') === 'simulate'): ?>
-                                                                <button type="button" class="btn btn-warning btn-sm" onclick="changeFirewallRuleMode(this.form, 'enforce')">Scharfschalten</button>
+                                                                <button type="button" class="btn btn-warning btn-sm" data-cms-call="changeFirewallRuleMode" data-cms-call-context="form" data-cms-call-args='["enforce"]'>Scharfschalten</button>
                                                             <?php else: ?>
-                                                                <button type="button" class="btn btn-ghost-secondary btn-sm" onclick="changeFirewallRuleMode(this.form, 'simulate')">Nur simulieren</button>
+                                                                <button type="button" class="btn btn-ghost-secondary btn-sm" data-cms-call="changeFirewallRuleMode" data-cms-call-context="form" data-cms-call-args='["simulate"]'>Nur simulieren</button>
                                                             <?php endif; ?>
                                                         </form>
                                                     <?php endif; ?>
@@ -555,7 +555,7 @@ $showRuleCreateSimulatedSuccess = isset($alert['type'], $alert['message'])
                                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                                                         <input type="hidden" name="action" value="delete_rule">
                                                         <input type="hidden" name="id" value="<?php echo (int)$rule['id']; ?>">
-                                                        <button type="button" class="btn btn-ghost-danger btn-sm" onclick="deleteFirewallRule(this.form)">Löschen</button>
+                                                        <button type="button" class="btn btn-ghost-danger btn-sm" data-cms-call="deleteFirewallRule" data-cms-call-context="form">Löschen</button>
                                                     </form>
                                                 </div>
                                             </td>
@@ -571,7 +571,7 @@ $showRuleCreateSimulatedSuccess = isset($alert['type'], $alert['message'])
     </div>
 </div>
 
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 function submitWithFallback(form) {
     if (window.cmsSubmitFormSafely) {
         window.cmsSubmitFormSafely(form);

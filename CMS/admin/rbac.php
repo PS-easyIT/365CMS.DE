@@ -389,7 +389,7 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
 <?php /* =========================================================
    CSS
    ========================================================= */ ?>
-<style>
+<style <?= \CMS\Security::instance()->nonceAttr() ?>>
 /* ── Caps & Plugin Pills ── */
 .rbac-cap-pill {
     background: #eff6ff;
@@ -430,7 +430,7 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
 <?php /* =========================================================
    JAVASCRIPT
    ========================================================= */ ?>
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 // ── Modal-Hilfsfunktionen ────────────────────────────────────────────────────
 function openModal(id) {
     const el = document.getElementById(id);

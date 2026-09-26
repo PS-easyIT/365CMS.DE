@@ -1231,7 +1231,7 @@ final class EditorJsRenderer
             $renderedTabs++;
 
             $buttonsHtml .= '<button type="button" data-target="' . htmlspecialchars($tabId, ENT_QUOTES, 'UTF-8') . '" aria-pressed="' . ($isActive ? 'true' : 'false') . '" style="padding:.5rem .85rem;border:1px solid ' . ($isActive ? '#60a5fa' : 'rgba(148,163,184,.16)') . ';border-radius:999px;background:' . ($isActive ? 'rgba(59,130,246,.16)' : 'transparent') . ';color:' . ($isActive ? '#dbeafe' : '#94a3b8') . ';font:600 .75rem/1.2 var(--font-sans,system-ui,sans-serif);cursor:pointer;">' . $label . '</button>';
-            $panesHtml .= '<div id="' . htmlspecialchars($tabId, ENT_QUOTES, 'UTF-8') . '" data-code-tab-pane style="display:' . ($isActive ? 'block' : 'none') . ';">'
+            $panesHtml .= '<div id="' . htmlspecialchars($tabId, ENT_QUOTES, 'UTF-8') . '" data-code-tab-pane' . ($isActive ? '' : ' hidden') . ' style="display:' . ($isActive ? 'block' : 'none') . ';">'
                 . '<div style="display:flex;justify-content:flex-end;padding:.65rem 1rem 0;color:#94a3b8;font:600 .68rem/1.2 var(--font-mono,ui-monospace,monospace);text-transform:uppercase;letter-spacing:.08em;">' . ($language !== '' ? $language : 'code') . '</div>'
                 . '<pre style="margin:0;padding:.8rem 1rem 1rem;overflow:auto;"><code class="' . ($language !== '' ? 'language-' . $language : '') . '">' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '</code></pre>'
                 . '</div>';
@@ -1241,7 +1241,7 @@ final class EditorJsRenderer
             return '';
         }
 
-        $script = '(function(){var root=document.getElementById(' . json_encode($instanceId) . ');if(!root){return;}var buttons=root.querySelectorAll("[data-target]");var panes=root.querySelectorAll("[data-code-tab-pane]");buttons.forEach(function(button){button.addEventListener("click",function(){var targetId=button.getAttribute("data-target");buttons.forEach(function(item){var active=item===button;item.setAttribute("aria-pressed",active?"true":"false");item.style.borderColor=active?"#60a5fa":"rgba(148,163,184,.16)";item.style.background=active?"rgba(59,130,246,.16)":"transparent";item.style.color=active?"#dbeafe":"#94a3b8";});panes.forEach(function(pane){pane.style.display=pane.id===targetId?"block":"none";});});});})();';
+        $script = '(function(){var root=document.getElementById(' . json_encode($instanceId) . ');if(!root){return;}var buttons=root.querySelectorAll("[data-target]");var panes=root.querySelectorAll("[data-code-tab-pane]");buttons.forEach(function(button){button.addEventListener("click",function(){var targetId=button.getAttribute("data-target");buttons.forEach(function(item){var active=item===button;item.setAttribute("aria-pressed",active?"true":"false");item.style.borderColor=active?"#60a5fa":"rgba(148,163,184,.16)";item.style.background=active?"rgba(59,130,246,.16)":"transparent";item.style.color=active?"#dbeafe":"#94a3b8";});panes.forEach(function(pane){var show=pane.id===targetId;pane.hidden=!show;pane.style.display=show?"block":"none";});});});})();';
 
         $html = '<section class="editorjs-block editorjs-code-tabs" id="' . htmlspecialchars($instanceId, ENT_QUOTES, 'UTF-8') . '" style="margin:1.5rem 0;border:1px solid #1f2937;border-radius:16px;overflow:hidden;background:#0f172a;color:#e2e8f0;">';
         if ($title !== '') {
@@ -1249,7 +1249,7 @@ final class EditorJsRenderer
         }
         $html .= '<div style="display:flex;flex-wrap:wrap;gap:.55rem;padding:1rem 1rem .35rem;">' . $buttonsHtml . '</div>';
         $html .= $panesHtml;
-        $html .= '<script>' . $script . '</script>';
+        $html .= '<script ' . \CMS\Security::instance()->nonceAttr() . '>' . $script . '</script>';
         $html .= '</section>';
 
         return $html;
@@ -1266,18 +1266,18 @@ final class EditorJsRenderer
         $instanceId = 'editorjs-mermaid-' . uniqid();
         $title = $this->sanitizeInline((string) ($data['title'] ?? ''));
         $caption = $this->sanitizeInline((string) ($data['caption'] ?? ''));
-        $script = '(function(){var root=document.getElementById(' . json_encode($instanceId) . ');if(!root||!window.mermaid||typeof window.mermaid.render!=="function"){return;}var source=root.querySelector("[data-mermaid-source]");var target=root.querySelector("[data-mermaid-target]");var preview=root.querySelector("[data-mermaid-preview]");if(!source||!target){return;}try{window.mermaid.initialize({startOnLoad:false,securityLevel:"strict"});window.mermaid.render(' . json_encode($instanceId . '-svg') . ',source.textContent||"").then(function(result){target.innerHTML=result.svg;target.style.display="block";if(preview){preview.style.display="none";}}).catch(function(){});}catch(error){}})();';
+        $script = '(function(){var root=document.getElementById(' . json_encode($instanceId) . ');if(!root||!window.mermaid||typeof window.mermaid.render!=="function"){return;}var source=root.querySelector("[data-mermaid-source]");var target=root.querySelector("[data-mermaid-target]");var preview=root.querySelector("[data-mermaid-preview]");if(!source||!target){return;}try{window.mermaid.initialize({startOnLoad:false,securityLevel:"strict"});window.mermaid.render(' . json_encode($instanceId . '-svg') . ',source.textContent||"").then(function(result){target.innerHTML=result.svg;target.hidden=false;target.style.display="block";if(preview){preview.hidden=true;preview.style.display="none";}}).catch(function(){});}catch(error){}})();';
 
         $html = '<figure class="editorjs-block editorjs-mermaid" id="' . htmlspecialchars($instanceId, ENT_QUOTES, 'UTF-8') . '" style="margin:1.5rem 0;padding:1rem 1.1rem;border:1px solid #dbe4f0;border-radius:16px;background:linear-gradient(180deg,#fff 0%,#f8fbff 100%);">';
         if ($title !== '') {
             $html .= '<div style="margin-bottom:.65rem;font:700 .95rem/1.3 var(--font-sans,system-ui,sans-serif);color:#0f172a;">' . $title . '</div>';
         }
-        $html .= '<div data-mermaid-target style="display:none;overflow:auto;"></div>';
+        $html .= '<div data-mermaid-target hidden style="display:none;overflow:auto;"></div>';
         $html .= '<pre data-mermaid-preview style="margin:0;padding:1rem;border-radius:12px;background:#0f172a;color:#dbeafe;overflow:auto;"><code data-mermaid-source class="language-mermaid">' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '</code></pre>';
         if ($caption !== '') {
             $html .= '<figcaption style="margin-top:.75rem;color:#64748b;font-size:.86rem;">' . $caption . '</figcaption>';
         }
-        $html .= '<script>' . $script . '</script>';
+        $html .= '<script ' . \CMS\Security::instance()->nonceAttr() . '>' . $script . '</script>';
         $html .= '</figure>';
 
         return $html;

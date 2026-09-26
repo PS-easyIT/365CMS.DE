@@ -26,10 +26,14 @@ $siteName   = function_exists('cms_get_site_name') ? cms_get_site_name() : (defi
 <html lang="de">
 <head>
     <meta charset="utf-8">
+    <?= function_exists('cms_csp_runtime_tags') ? cms_csp_runtime_tags() : '' ?>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="robots" content="noindex,nofollow">
     <title><?= htmlspecialchars($pageTitle) ?> – <?= htmlspecialchars($siteName) ?> Admin</title>
+    <?php $adminIconUrl = htmlspecialchars(cms_asset_url('images/365CMS-DASHBOARD-Admin-100px.png', false), ENT_QUOTES); ?>
+    <link rel="icon" href="<?= $adminIconUrl ?>" type="image/png">
+    <link rel="apple-touch-icon" href="<?= $adminIconUrl ?>">
 
     <!-- Tabler Core CSS -->
     <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('tabler/css/tabler.min.css'), ENT_QUOTES) ?>">

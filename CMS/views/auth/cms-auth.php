@@ -67,9 +67,11 @@ $passwordPolicyHint = 'Mindestens 12 Zeichen sowie Groß-/Kleinbuchstabe, Zahl u
 <html lang="<?php echo htmlspecialchars($documentLanguage !== '' ? $documentLanguage : 'de', ENT_QUOTES, 'UTF-8'); ?>">
 <head>
     <meta charset="UTF-8">
+    <?= function_exists('cms_csp_runtime_tags') ? cms_csp_runtime_tags() : '' ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($pageTitleText, ENT_QUOTES, 'UTF-8'); ?></title>
-    <style>
+    <?php if (class_exists('\CMS\ThemeManager')) { try { \CMS\ThemeManager::instance()->renderSiteFavicon(); } catch (\Throwable) {} } ?>
+    <style <?= \CMS\Security::instance()->nonceAttr() ?>>
         :root {
             --cms-auth-bg-start: <?php echo htmlspecialchars((string) ($settings['background_start'] ?? '#0f172a'), ENT_QUOTES, 'UTF-8'); ?>;
             --cms-auth-bg-end: <?php echo htmlspecialchars((string) ($settings['background_end'] ?? '#1d4ed8'), ENT_QUOTES, 'UTF-8'); ?>;
@@ -452,7 +454,7 @@ $passwordPolicyHint = 'Mindestens 12 Zeichen sowie Groß-/Kleinbuchstabe, Zahl u
                         <input type="hidden" name="credential_id" value="">
                         <button id="cms-passkey-button" class="cms-auth-secondary-button" type="button"><?php echo htmlspecialchars($loginPasskeyButtonText, ENT_QUOTES, 'UTF-8'); ?></button>
                     </form>
-                    <script>
+                    <script <?= \CMS\Security::instance()->nonceAttr() ?>>
                         (function () {
                             const button = document.getElementById('cms-passkey-button');
                             const form = document.getElementById('cms-passkey-form');

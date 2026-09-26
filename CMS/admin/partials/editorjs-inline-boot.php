@@ -25,7 +25,7 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
     $editorInlineBootJson = '{}';
 }
 ?>
-<script data-cms-editorjs-inline-boot="1">
+<script <?= \CMS\Security::instance()->nonceAttr() ?> data-cms-editorjs-inline-boot="1">
 (function () {
     'use strict';
 

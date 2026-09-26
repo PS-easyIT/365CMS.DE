@@ -1131,7 +1131,7 @@ class ThemeManager
             return;
         }
 
-        echo "<style id='cms-customizer'>\n:root {\n";
+        echo "<style id='cms-customizer' " . \CMS\Security::instance()->nonceAttr() . ">\n:root {\n";
         
         $s = $this->settings;
         if (isset($s['color_primary'])) echo "    --primary-color: " . htmlspecialchars($s['color_primary']) . ";\n";
@@ -1268,11 +1268,17 @@ class ThemeManager
         $this->loadSettings();
 
         $favicon = trim((string) ($this->settings['site_favicon'] ?? ''));
-        if ($favicon === '') {
-            return;
+        $faviconUrl = $favicon !== '' ? $this->normalizeSiteAssetUrl($favicon) : '';
+
+        if ($faviconUrl === '') {
+            // Ohne eigenes Favicon das mitgelieferte 365CMS-Signet verwenden; der
+            // Member-Bereich überschreibt den Default per Filter mit seinem Dashboard-Icon.
+            $defaultIcon = (string) Hooks::applyFilters('site_favicon_default', 'images/LOGO_365CMS-wo_Text-50px.png');
+            $faviconUrl = function_exists('cms_asset_url')
+                ? \cms_asset_url($defaultIcon, false)
+                : rtrim((string) SITE_URL, '/') . '/assets/' . ltrim($defaultIcon, '/');
         }
 
-        $faviconUrl = $this->normalizeSiteAssetUrl($favicon);
         if ($faviconUrl === '') {
             return;
         }

@@ -224,7 +224,7 @@ $currentIncompleteSamples = is_array($profileFieldCompatibility['current_incompl
     </div>
 </div>
 
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 document.addEventListener('DOMContentLoaded', function () {
     var dataElement = document.getElementById('profileFieldCompatibilityData');
     var summaryElement = document.getElementById('profileCompatibilityLiveSummary');

@@ -285,7 +285,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
     <?php renderAdminSidebarStyles(); ?>
-    <style>
+    <style <?= \CMS\Security::instance()->nonceAttr() ?>>
         /* ── Firewall Page Styles ─────────────────────────────── */
         .fw-stats-grid {
             display: grid;
@@ -928,7 +928,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
     </div><!-- /.admin-content -->
 
     <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
-    <script>
+    <script <?= \CMS\Security::instance()->nonceAttr() ?>>
     // ── Firewall: Bestätigungs-Modal (ersetzt window.confirm) ──
     (function () {
         // Modal HTML einmalig erzeugen

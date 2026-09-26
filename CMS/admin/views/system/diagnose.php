@@ -166,7 +166,7 @@ foreach ($tables as $tableInfo) {
                             <input type="hidden" name="action" value="create_tables">
                             <button type="submit" class="btn btn-outline-success w-100" <?php echo $missingCount === 0 ? 'disabled' : ''; ?>>Fehlende Tabellen erstellen</button>
                         </form>
-                        <form method="post" onsubmit="return confirm('Tabellen-Reparatur starten?');">
+                        <form method="post" data-cms-confirm="Tabellen-Reparatur starten?">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                             <input type="hidden" name="action" value="repair_tables">
                             <button type="submit" class="btn btn-outline-warning w-100">Tabellen reparieren</button>

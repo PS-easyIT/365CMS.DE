@@ -1,29 +1,27 @@
-# PSR-Minimalkompatibilität
+# PSR-Interfaces
 
 ## Kurzbeschreibung
 
-`CMS/assets/psr/` stellt eine kleine lokale PSR-Kompatibilitätsschicht für Logging und Event-Dispatching bereit, damit abhängige Bundles ohne Composer-Installation funktionieren.
+`CMS/assets/psr/` enthält die offiziellen PHP-FIG-Interfacepakete, damit die gebündelten Libraries ohne Composer-Installation funktionieren.
 
 ## Quellordner
 
-- `CMS/assets/psr/`
+- `CMS/assets/psr/Log/` – `psr/log` 3.0.2
+- `CMS/assets/psr/EventDispatcher/` – `psr/event-dispatcher` 1.0.0
+- `CMS/assets/psr/Container/` – `psr/container` 2.0.2
+- `CMS/assets/psr/Clock/` – `psr/clock` 1.0.0
 
 ## Verwendung in 365CMS
 
 - Eingebunden in: `CMS/assets/autoload.php`
-- Funktion: Bereitstellung von `Psr\Log` und `Psr\EventDispatcher` für `mailer/`, `translation/` und Teile von `ldaprecord/`
-
-## Abhängigkeiten
-
-- Benötigt: –
-- Wird benötigt von: `mailer/`, `mime/` (über Mailer-Kette), `translation/`, Teile von `ldaprecord/`
+- Wird benötigt von: `mailer/`, `event-dispatcher/`, `symfony-contracts/` (Service), `type-info/`, `clock/`, `Carbon/`, `ai-platform/`, Teile von `ldaprecord/`
 
 ## Website / GitHub
 
 - Website: https://www.php-fig.org/psr/
-- GitHub: –
+- GitHub: https://github.com/php-fig
 
 ## Stand
 
-- Zuletzt geprüft: 2026-03-08
-- Version: lokale Minimalimplementierung
+- Zuletzt geprüft: 2026-09-26
+- Version: vollständige Originalpakete (vorher lokale Minimalimplementierung)

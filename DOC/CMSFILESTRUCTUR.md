@@ -309,7 +309,6 @@ Das einzige installierte Runtime-Theme in diesem Baum ist `cms-default`.
 
 - `admin-dashboard.css`
 - `admin-hub-site-edit.css`
-- `admin-hub-template-edit.css`
 - `admin-hub-template-editor.css`
 - `admin-sidebar.css`
 - `admin-site-tables.css`
@@ -330,16 +329,13 @@ Das einzige installierte Runtime-Theme in diesem Baum ist `cms-default`.
 - `admin-dashboard.js`
 - `admin-data-requests.js`
 - `admin-font-manager.js`
-- `admin-grid.js`
 - `admin-hub-site-edit.js`
 - `admin-hub-sites.js`
-- `admin-hub-template-edit.js`
 - `admin-hub-template-editor.js`
 - `admin-legal-sites.js`
 - `admin-media-integrations.js`
 - `admin-member-dashboard.js`
 - `admin-menu-editor.js`
-- `admin-pages.js`
 - `admin-plugin-marketplace.js`
 - `admin-plugins.js`
 - `admin-seo-editor.js`
@@ -355,23 +351,23 @@ Das einzige installierte Runtime-Theme in diesem Baum ist `cms-default`.
 - `admin-user-groups.js`
 - `admin-users.js`
 - `admin.js`
+- `cms-csp-runtime.js`
+- `cms-inline-actions.js`
 - `cookieconsent-init.js`
 - `editor-init.js`
-- `editorjs-core-boot.js`
-- `editorjs-core-loader.js`
-- `gridjs-init.js`
 - `member-dashboard.js`
 - `photoswipe-init.js`
 - `site-tables.js`
+- `tabler-bootstrap-bridge.js`
 - `web-vitals.js`
 
 ### Bundled library folders | Gebündelte Bibliotheksordner
 
 Present under `CMS/assets/` (not every inner file listed):
 
-`ai-platform`, `Carbon`, `cron`, `css`, `editorjs`, `gridjs`, `htmlpurifier`, `images`, `js`, `ldaprecord`, `mailer`, `melbahja-seo`, `mime`, `photoswipe`, `php-jwt`, `psr`, `simplepielibrary`, `simplepiesrc`, `suneditor`, `symfony-contracts`, `tabler`, `tabler-icons`, `tntsearchhelper`, `tntsearchsrc`, `translation`, `twofactorauth`, `webauthn`, `autoload.php`
+`ai-platform`, `Carbon`, `clock`, `cron`, `css`, `doctrine-deprecations`, `doctrine-lexer`, `dompurify`, `editorjs`, `egulias-email-validator`, `event-dispatcher`, `htmlpurifier`, `images`, `js`, `ldaprecord`, `mailer`, `melbahja-seo`, `mime`, `oskarstark-enum-helper`, `photoswipe`, `php-jwt`, `phpdocumentor-reflection-common`, `phpdocumentor-reflection-docblock`, `phpdocumentor-type-resolver`, `phpstan-phpdoc-parser`, `polyfill-ctype`, `polyfill-intl-grapheme`, `polyfill-intl-idn`, `polyfill-intl-normalizer`, `polyfill-mbstring`, `polyfill-uuid`, `property-access`, `property-info`, `psr`, `serializer`, `string`, `suneditor`, `symfony-contracts`, `tabler`, `tabler-icons`, `tntsearchhelper`, `tntsearchsrc`, `translation`, `twofactorauth`, `type-info`, `uid`, `webauthn`, `webmozart-assert`, `yaml`, `autoload.php`
 
-These folders were **not** found under `CMS/assets/` (older docs mentioned them): `cookieconsent`, `elfinder`, `filepond`, `msgraph`. Init scripts such as `assets/js/cookieconsent-init.js` still exist.
+These folders were **not** found under `CMS/assets/` (older docs mentioned them): `cookieconsent`, `elfinder`, `filepond`, `msgraph`. Removed in 3.4.02 as unused: `gridjs`, `simplepielibrary`, `simplepiesrc`. Init scripts such as `assets/js/cookieconsent-init.js` still exist.
 
 ---
 

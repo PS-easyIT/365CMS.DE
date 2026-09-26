@@ -71,11 +71,16 @@ $securityHref = $sanitizeMemberHeaderHref('/member/security', '/member/security'
 $logoutHref = $sanitizeMemberHeaderHref('/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->generateToken('logout')), '/logout');
 $adminHref = $sanitizeMemberHeaderHref($adminPortalUrl, '/admin');
 $dashboardLogo = $sanitizeMemberHeaderAsset($settings['dashboard_logo'] ?? '');
+if ($dashboardLogo === '') {
+    $dashboardLogo = cms_asset_url('images/365CMS-DASHBOARD-Member-100px.png', false);
+}
+\CMS\Hooks::addFilter('site_favicon_default', static fn(): string => 'images/365CMS-DASHBOARD-Member-100px.png');
 ?>
 <!doctype html>
 <html lang="de">
 <head>
     <meta charset="utf-8">
+    <?= function_exists('cms_csp_runtime_tags') ? cms_csp_runtime_tags() : '' ?>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="robots" content="noindex,nofollow">
@@ -87,7 +92,7 @@ $dashboardLogo = $sanitizeMemberHeaderAsset($settings['dashboard_logo'] ?? '');
             <link rel="stylesheet" href="<?= htmlspecialchars((string)$css) ?>">
         <?php endforeach; ?>
     <?php endif; ?>
-    <style>
+    <style <?= \CMS\Security::instance()->nonceAttr() ?>>
         :root {
             --member-primary: <?= htmlspecialchars($memberPrimary, ENT_QUOTES) ?>;
             --member-accent: <?= htmlspecialchars($memberAccent, ENT_QUOTES) ?>;
@@ -111,8 +116,8 @@ $dashboardLogo = $sanitizeMemberHeaderAsset($settings['dashboard_logo'] ?? '');
             <h1 class="navbar-brand navbar-brand-autodark">
                 <a href="<?= htmlspecialchars($dashboardHref, ENT_QUOTES) ?>" class="text-reset text-decoration-none d-flex align-items-center gap-2">
                     <?php if ($dashboardLogo !== ''): ?>
-                        <span class="d-inline-flex align-items-center justify-content-center rounded bg-white border p-1" style="width: 2.5rem; height: 2.5rem;">
-                            <img src="<?= htmlspecialchars($dashboardLogo, ENT_QUOTES) ?>" alt="<?= htmlspecialchars($siteName) ?>" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                        <span class="d-inline-flex align-items-center justify-content-center rounded bg-white border p-1 member-brand-logo">
+                            <img src="<?= htmlspecialchars($dashboardLogo, ENT_QUOTES) ?>" alt="<?= htmlspecialchars($siteName) ?>" class="member-brand-logo__img" width="40" height="40">
                         </span>
                     <?php else: ?>
                         <span class="avatar avatar-sm member-brand-avatar"><?= htmlspecialchars($controller->getInitials()) ?></span>

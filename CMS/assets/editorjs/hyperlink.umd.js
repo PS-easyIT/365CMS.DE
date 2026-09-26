@@ -103,7 +103,18 @@ return /******/ (function(modules) { // webpackBootstrap
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-eval("// Imports\nvar ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../node_modules/css-loader/dist/runtime/api.js */ \"./node_modules/css-loader/dist/runtime/api.js\");\nexports = ___CSS_LOADER_API_IMPORT___(false);\n// Module\nexports.push([module.i, \".ce-inline-tool-hyperlink-wrapper {\\r\\n    outline: none;\\r\\n    border: 0;\\r\\n    border-radius: 0 0 4px 4px;\\r\\n    margin: 0;\\r\\n    font-size: 13px;\\r\\n    padding: 10px;\\r\\n    width: 100%;\\r\\n    -webkit-box-sizing: border-box;\\r\\n    box-sizing: border-box;\\r\\n    display: none;\\r\\n    font-weight: 500;\\r\\n    border-top: 1px solid rgba(201,201,204,.48);\\r\\n}\\r\\n\\r\\n.ce-inline-tool-hyperlink-wrapper.ce-inline-tool-hyperlink-wrapper--showed {\\r\\n    display: block;\\r\\n}\\r\\n\\r\\n.ce-inline-tool-hyperlink--input,\\r\\n.ce-inline-tool-hyperlink--select-target,\\r\\n.ce-inline-tool-hyperlink--select-rel {\\r\\n    border: 1px solid rgba(201,201,204,.48);\\r\\n    -webkit-box-shadow: inset 0 1px 2px 0 rgba(35,44,72,.06);\\r\\n    box-shadow: inset 0 1px 2px 0 rgba(35,44,72,.06);\\r\\n    border-radius: 5px;\\r\\n    padding: 5px 8px;\\r\\n    margin-bottom: 10px;\\r\\n    outline: none;\\r\\n    width: 100%;\\r\\n    -webkit-box-sizing: border-box;\\r\\n    box-sizing: border-box;\\r\\n}\\r\\n\\r\\n.ce-inline-tool-hyperlink--select-target,\\r\\n.ce-inline-tool-hyperlink--select-rel {\\r\\n    width: 48%;\\r\\n    display: inline-block;\\r\\n}\\r\\n.ce-inline-tool-hyperlink--select-target {\\r\\n    margin-right: 2%;\\r\\n}\\r\\n.ce-inline-tool-hyperlink--select-rel {\\r\\n    margin-left: 2%;\\r\\n}\\r\\n\\r\\n.ce-inline-tool-hyperlink--button {\\r\\n    display: block;\\r\\n    width: 100%;\\r\\n    background-color: #34c38f;\\r\\n    color: #fff;\\r\\n    padding: 7px 0;\\r\\n    border: none;\\r\\n    text-align: center;\\r\\n    text-decoration: none;\\r\\n    font-size: 16px;\\r\\n    border-radius: 5px;\\r\\n    cursor: pointer;\\r\\n}\\r\\n\", \"\"]);\n// Exports\nmodule.exports = exports;\n\n\n//# sourceURL=webpack://Hyperlink/./src/Hyperlink.css?./node_modules/css-loader/dist/cjs.js");
+
+// Imports
+var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js");
+exports = ___CSS_LOADER_API_IMPORT___(false);
+// Module
+exports.push([module.i, ".ce-inline-tool-hyperlink-wrapper {\r\n    outline: none;\r\n    border: 0;\r\n    border-radius: 0 0 4px 4px;\r\n    margin: 0;\r\n    font-size: 13px;\r\n    padding: 10px;\r\n    width: 100%;\r\n    -webkit-box-sizing: border-box;\r\n    box-sizing: border-box;\r\n    display: none;\r\n    font-weight: 500;\r\n    border-top: 1px solid rgba(201,201,204,.48);\r\n}\r\n\r\n.ce-inline-tool-hyperlink-wrapper.ce-inline-tool-hyperlink-wrapper--showed {\r\n    display: block;\r\n}\r\n\r\n.ce-inline-tool-hyperlink--input,\r\n.ce-inline-tool-hyperlink--select-target,\r\n.ce-inline-tool-hyperlink--select-rel {\r\n    border: 1px solid rgba(201,201,204,.48);\r\n    -webkit-box-shadow: inset 0 1px 2px 0 rgba(35,44,72,.06);\r\n    box-shadow: inset 0 1px 2px 0 rgba(35,44,72,.06);\r\n    border-radius: 5px;\r\n    padding: 5px 8px;\r\n    margin-bottom: 10px;\r\n    outline: none;\r\n    width: 100%;\r\n    -webkit-box-sizing: border-box;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.ce-inline-tool-hyperlink--select-target,\r\n.ce-inline-tool-hyperlink--select-rel {\r\n    width: 48%;\r\n    display: inline-block;\r\n}\r\n.ce-inline-tool-hyperlink--select-target {\r\n    margin-right: 2%;\r\n}\r\n.ce-inline-tool-hyperlink--select-rel {\r\n    margin-left: 2%;\r\n}\r\n\r\n.ce-inline-tool-hyperlink--button {\r\n    display: block;\r\n    width: 100%;\r\n    background-color: #34c38f;\r\n    color: #fff;\r\n    padding: 7px 0;\r\n    border: none;\r\n    text-align: center;\r\n    text-decoration: none;\r\n    font-size: 16px;\r\n    border-radius: 5px;\r\n    cursor: pointer;\r\n}\r\n", ""]);
+// Exports
+module.exports = exports;
+
+
+
+;
 
 /***/ }),
 
@@ -115,7 +126,104 @@ eval("// Imports\nvar ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../n
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-eval("\n\n/*\n  MIT License http://www.opensource.org/licenses/mit-license.php\n  Author Tobias Koppers @sokra\n*/\n// css base code, injected by the css-loader\n// eslint-disable-next-line func-names\nmodule.exports = function (useSourceMap) {\n  var list = []; // return the list of modules as css string\n\n  list.toString = function toString() {\n    return this.map(function (item) {\n      var content = cssWithMappingToString(item, useSourceMap);\n\n      if (item[2]) {\n        return \"@media \".concat(item[2], \" {\").concat(content, \"}\");\n      }\n\n      return content;\n    }).join('');\n  }; // import a list of modules into the list\n  // eslint-disable-next-line func-names\n\n\n  list.i = function (modules, mediaQuery, dedupe) {\n    if (typeof modules === 'string') {\n      // eslint-disable-next-line no-param-reassign\n      modules = [[null, modules, '']];\n    }\n\n    var alreadyImportedModules = {};\n\n    if (dedupe) {\n      for (var i = 0; i < this.length; i++) {\n        // eslint-disable-next-line prefer-destructuring\n        var id = this[i][0];\n\n        if (id != null) {\n          alreadyImportedModules[id] = true;\n        }\n      }\n    }\n\n    for (var _i = 0; _i < modules.length; _i++) {\n      var item = [].concat(modules[_i]);\n\n      if (dedupe && alreadyImportedModules[item[0]]) {\n        // eslint-disable-next-line no-continue\n        continue;\n      }\n\n      if (mediaQuery) {\n        if (!item[2]) {\n          item[2] = mediaQuery;\n        } else {\n          item[2] = \"\".concat(mediaQuery, \" and \").concat(item[2]);\n        }\n      }\n\n      list.push(item);\n    }\n  };\n\n  return list;\n};\n\nfunction cssWithMappingToString(item, useSourceMap) {\n  var content = item[1] || ''; // eslint-disable-next-line prefer-destructuring\n\n  var cssMapping = item[3];\n\n  if (!cssMapping) {\n    return content;\n  }\n\n  if (useSourceMap && typeof btoa === 'function') {\n    var sourceMapping = toComment(cssMapping);\n    var sourceURLs = cssMapping.sources.map(function (source) {\n      return \"/*# sourceURL=\".concat(cssMapping.sourceRoot || '').concat(source, \" */\");\n    });\n    return [content].concat(sourceURLs).concat([sourceMapping]).join('\\n');\n  }\n\n  return [content].join('\\n');\n} // Adapted from convert-source-map (MIT)\n\n\nfunction toComment(sourceMap) {\n  // eslint-disable-next-line no-undef\n  var base64 = btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap))));\n  var data = \"sourceMappingURL=data:application/json;charset=utf-8;base64,\".concat(base64);\n  return \"/*# \".concat(data, \" */\");\n}\n\n//# sourceURL=webpack://Hyperlink/./node_modules/css-loader/dist/runtime/api.js?");
+
+
+
+/*
+  MIT License http://www.opensource.org/licenses/mit-license.php
+  Author Tobias Koppers @sokra
+*/
+// css base code, injected by the css-loader
+// eslint-disable-next-line func-names
+module.exports = function (useSourceMap) {
+  var list = []; // return the list of modules as css string
+
+  list.toString = function toString() {
+    return this.map(function (item) {
+      var content = cssWithMappingToString(item, useSourceMap);
+
+      if (item[2]) {
+        return "@media ".concat(item[2], " {").concat(content, "}");
+      }
+
+      return content;
+    }).join('');
+  }; // import a list of modules into the list
+  // eslint-disable-next-line func-names
+
+
+  list.i = function (modules, mediaQuery, dedupe) {
+    if (typeof modules === 'string') {
+      // eslint-disable-next-line no-param-reassign
+      modules = [[null, modules, '']];
+    }
+
+    var alreadyImportedModules = {};
+
+    if (dedupe) {
+      for (var i = 0; i < this.length; i++) {
+        // eslint-disable-next-line prefer-destructuring
+        var id = this[i][0];
+
+        if (id != null) {
+          alreadyImportedModules[id] = true;
+        }
+      }
+    }
+
+    for (var _i = 0; _i < modules.length; _i++) {
+      var item = [].concat(modules[_i]);
+
+      if (dedupe && alreadyImportedModules[item[0]]) {
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
+      if (mediaQuery) {
+        if (!item[2]) {
+          item[2] = mediaQuery;
+        } else {
+          item[2] = "".concat(mediaQuery, " and ").concat(item[2]);
+        }
+      }
+
+      list.push(item);
+    }
+  };
+
+  return list;
+};
+
+function cssWithMappingToString(item, useSourceMap) {
+  var content = item[1] || ''; // eslint-disable-next-line prefer-destructuring
+
+  var cssMapping = item[3];
+
+  if (!cssMapping) {
+    return content;
+  }
+
+  if (useSourceMap && typeof btoa === 'function') {
+    var sourceMapping = toComment(cssMapping);
+    var sourceURLs = cssMapping.sources.map(function (source) {
+      return "/*# sourceURL=".concat(cssMapping.sourceRoot || '').concat(source, " */");
+    });
+    return [content].concat(sourceURLs).concat([sourceMapping]).join('\n');
+  }
+
+  return [content].join('\n');
+} // Adapted from convert-source-map (MIT)
+
+
+function toComment(sourceMap) {
+  // eslint-disable-next-line no-undef
+  var base64 = btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap))));
+  var data = "sourceMappingURL=data:application/json;charset=utf-8;base64,".concat(base64);
+  return "/*# ".concat(data, " */");
+}
+
+
+;
 
 /***/ }),
 
@@ -127,7 +235,279 @@ eval("\n\n/*\n  MIT License http://www.opensource.org/licenses/mit-license.php\n
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-eval("\n\nvar isOldIE = function isOldIE() {\n  var memo;\n  return function memorize() {\n    if (typeof memo === 'undefined') {\n      // Test for IE <= 9 as proposed by Browserhacks\n      // @see http://browserhacks.com/#hack-e71d8692f65334173fee715c222cb805\n      // Tests for existence of standard globals is to allow style-loader\n      // to operate correctly into non-standard environments\n      // @see https://github.com/webpack-contrib/style-loader/issues/177\n      memo = Boolean(window && document && document.all && !window.atob);\n    }\n\n    return memo;\n  };\n}();\n\nvar getTarget = function getTarget() {\n  var memo = {};\n  return function memorize(target) {\n    if (typeof memo[target] === 'undefined') {\n      var styleTarget = document.querySelector(target); // Special case to return head of iframe instead of iframe itself\n\n      if (window.HTMLIFrameElement && styleTarget instanceof window.HTMLIFrameElement) {\n        try {\n          // This will throw an exception if access to iframe is blocked\n          // due to cross-origin restrictions\n          styleTarget = styleTarget.contentDocument.head;\n        } catch (e) {\n          // istanbul ignore next\n          styleTarget = null;\n        }\n      }\n\n      memo[target] = styleTarget;\n    }\n\n    return memo[target];\n  };\n}();\n\nvar stylesInDom = [];\n\nfunction getIndexByIdentifier(identifier) {\n  var result = -1;\n\n  for (var i = 0; i < stylesInDom.length; i++) {\n    if (stylesInDom[i].identifier === identifier) {\n      result = i;\n      break;\n    }\n  }\n\n  return result;\n}\n\nfunction modulesToDom(list, options) {\n  var idCountMap = {};\n  var identifiers = [];\n\n  for (var i = 0; i < list.length; i++) {\n    var item = list[i];\n    var id = options.base ? item[0] + options.base : item[0];\n    var count = idCountMap[id] || 0;\n    var identifier = \"\".concat(id, \" \").concat(count);\n    idCountMap[id] = count + 1;\n    var index = getIndexByIdentifier(identifier);\n    var obj = {\n      css: item[1],\n      media: item[2],\n      sourceMap: item[3]\n    };\n\n    if (index !== -1) {\n      stylesInDom[index].references++;\n      stylesInDom[index].updater(obj);\n    } else {\n      stylesInDom.push({\n        identifier: identifier,\n        updater: addStyle(obj, options),\n        references: 1\n      });\n    }\n\n    identifiers.push(identifier);\n  }\n\n  return identifiers;\n}\n\nfunction insertStyleElement(options) {\n  var style = document.createElement('style');\n  var attributes = options.attributes || {};\n\n  if (typeof attributes.nonce === 'undefined') {\n    var nonce =  true ? __webpack_require__.nc : undefined;\n\n    if (nonce) {\n      attributes.nonce = nonce;\n    }\n  }\n\n  Object.keys(attributes).forEach(function (key) {\n    style.setAttribute(key, attributes[key]);\n  });\n\n  if (typeof options.insert === 'function') {\n    options.insert(style);\n  } else {\n    var target = getTarget(options.insert || 'head');\n\n    if (!target) {\n      throw new Error(\"Couldn't find a style target. This probably means that the value for the 'insert' parameter is invalid.\");\n    }\n\n    target.appendChild(style);\n  }\n\n  return style;\n}\n\nfunction removeStyleElement(style) {\n  // istanbul ignore if\n  if (style.parentNode === null) {\n    return false;\n  }\n\n  style.parentNode.removeChild(style);\n}\n/* istanbul ignore next  */\n\n\nvar replaceText = function replaceText() {\n  var textStore = [];\n  return function replace(index, replacement) {\n    textStore[index] = replacement;\n    return textStore.filter(Boolean).join('\\n');\n  };\n}();\n\nfunction applyToSingletonTag(style, index, remove, obj) {\n  var css = remove ? '' : obj.media ? \"@media \".concat(obj.media, \" {\").concat(obj.css, \"}\") : obj.css; // For old IE\n\n  /* istanbul ignore if  */\n\n  if (style.styleSheet) {\n    style.styleSheet.cssText = replaceText(index, css);\n  } else {\n    var cssNode = document.createTextNode(css);\n    var childNodes = style.childNodes;\n\n    if (childNodes[index]) {\n      style.removeChild(childNodes[index]);\n    }\n\n    if (childNodes.length) {\n      style.insertBefore(cssNode, childNodes[index]);\n    } else {\n      style.appendChild(cssNode);\n    }\n  }\n}\n\nfunction applyToTag(style, options, obj) {\n  var css = obj.css;\n  var media = obj.media;\n  var sourceMap = obj.sourceMap;\n\n  if (media) {\n    style.setAttribute('media', media);\n  } else {\n    style.removeAttribute('media');\n  }\n\n  if (sourceMap && typeof btoa !== 'undefined') {\n    css += \"\\n/*# sourceMappingURL=data:application/json;base64,\".concat(btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))), \" */\");\n  } // For old IE\n\n  /* istanbul ignore if  */\n\n\n  if (style.styleSheet) {\n    style.styleSheet.cssText = css;\n  } else {\n    while (style.firstChild) {\n      style.removeChild(style.firstChild);\n    }\n\n    style.appendChild(document.createTextNode(css));\n  }\n}\n\nvar singleton = null;\nvar singletonCounter = 0;\n\nfunction addStyle(obj, options) {\n  var style;\n  var update;\n  var remove;\n\n  if (options.singleton) {\n    var styleIndex = singletonCounter++;\n    style = singleton || (singleton = insertStyleElement(options));\n    update = applyToSingletonTag.bind(null, style, styleIndex, false);\n    remove = applyToSingletonTag.bind(null, style, styleIndex, true);\n  } else {\n    style = insertStyleElement(options);\n    update = applyToTag.bind(null, style, options);\n\n    remove = function remove() {\n      removeStyleElement(style);\n    };\n  }\n\n  update(obj);\n  return function updateStyle(newObj) {\n    if (newObj) {\n      if (newObj.css === obj.css && newObj.media === obj.media && newObj.sourceMap === obj.sourceMap) {\n        return;\n      }\n\n      update(obj = newObj);\n    } else {\n      remove();\n    }\n  };\n}\n\nmodule.exports = function (list, options) {\n  options = options || {}; // Force single-tag solution on IE6-9, which has a hard limit on the # of <style>\n  // tags it will allow on a page\n\n  if (!options.singleton && typeof options.singleton !== 'boolean') {\n    options.singleton = isOldIE();\n  }\n\n  list = list || [];\n  var lastIdentifiers = modulesToDom(list, options);\n  return function update(newList) {\n    newList = newList || [];\n\n    if (Object.prototype.toString.call(newList) !== '[object Array]') {\n      return;\n    }\n\n    for (var i = 0; i < lastIdentifiers.length; i++) {\n      var identifier = lastIdentifiers[i];\n      var index = getIndexByIdentifier(identifier);\n      stylesInDom[index].references--;\n    }\n\n    var newLastIdentifiers = modulesToDom(newList, options);\n\n    for (var _i = 0; _i < lastIdentifiers.length; _i++) {\n      var _identifier = lastIdentifiers[_i];\n\n      var _index = getIndexByIdentifier(_identifier);\n\n      if (stylesInDom[_index].references === 0) {\n        stylesInDom[_index].updater();\n\n        stylesInDom.splice(_index, 1);\n      }\n    }\n\n    lastIdentifiers = newLastIdentifiers;\n  };\n};\n\n//# sourceURL=webpack://Hyperlink/./node_modules/style-loader/dist/runtime/injectStylesIntoStyleTag.js?");
+
+
+
+var isOldIE = function isOldIE() {
+  var memo;
+  return function memorize() {
+    if (typeof memo === 'undefined') {
+      // Test for IE <= 9 as proposed by Browserhacks
+      // @see http://browserhacks.com/#hack-e71d8692f65334173fee715c222cb805
+      // Tests for existence of standard globals is to allow style-loader
+      // to operate correctly into non-standard environments
+      // @see https://github.com/webpack-contrib/style-loader/issues/177
+      memo = Boolean(window && document && document.all && !window.atob);
+    }
+
+    return memo;
+  };
+}();
+
+var getTarget = function getTarget() {
+  var memo = {};
+  return function memorize(target) {
+    if (typeof memo[target] === 'undefined') {
+      var styleTarget = document.querySelector(target); // Special case to return head of iframe instead of iframe itself
+
+      if (window.HTMLIFrameElement && styleTarget instanceof window.HTMLIFrameElement) {
+        try {
+          // This will throw an exception if access to iframe is blocked
+          // due to cross-origin restrictions
+          styleTarget = styleTarget.contentDocument.head;
+        } catch (e) {
+          // istanbul ignore next
+          styleTarget = null;
+        }
+      }
+
+      memo[target] = styleTarget;
+    }
+
+    return memo[target];
+  };
+}();
+
+var stylesInDom = [];
+
+function getIndexByIdentifier(identifier) {
+  var result = -1;
+
+  for (var i = 0; i < stylesInDom.length; i++) {
+    if (stylesInDom[i].identifier === identifier) {
+      result = i;
+      break;
+    }
+  }
+
+  return result;
+}
+
+function modulesToDom(list, options) {
+  var idCountMap = {};
+  var identifiers = [];
+
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i];
+    var id = options.base ? item[0] + options.base : item[0];
+    var count = idCountMap[id] || 0;
+    var identifier = "".concat(id, " ").concat(count);
+    idCountMap[id] = count + 1;
+    var index = getIndexByIdentifier(identifier);
+    var obj = {
+      css: item[1],
+      media: item[2],
+      sourceMap: item[3]
+    };
+
+    if (index !== -1) {
+      stylesInDom[index].references++;
+      stylesInDom[index].updater(obj);
+    } else {
+      stylesInDom.push({
+        identifier: identifier,
+        updater: addStyle(obj, options),
+        references: 1
+      });
+    }
+
+    identifiers.push(identifier);
+  }
+
+  return identifiers;
+}
+
+function insertStyleElement(options) {
+  var style = document.createElement('style');
+  var attributes = options.attributes || {};
+
+  if (typeof attributes.nonce === 'undefined') {
+    var nonce =  true ? __webpack_require__.nc : undefined;
+
+    if (nonce) {
+      attributes.nonce = nonce;
+    }
+  }
+
+  Object.keys(attributes).forEach(function (key) {
+    style.setAttribute(key, attributes[key]);
+  });
+
+  if (typeof options.insert === 'function') {
+    options.insert(style);
+  } else {
+    var target = getTarget(options.insert || 'head');
+
+    if (!target) {
+      throw new Error("Couldn't find a style target. This probably means that the value for the 'insert' parameter is invalid.");
+    }
+
+    target.appendChild(style);
+  }
+
+  return style;
+}
+
+function removeStyleElement(style) {
+  // istanbul ignore if
+  if (style.parentNode === null) {
+    return false;
+  }
+
+  style.parentNode.removeChild(style);
+}
+/* istanbul ignore next  */
+
+
+var replaceText = function replaceText() {
+  var textStore = [];
+  return function replace(index, replacement) {
+    textStore[index] = replacement;
+    return textStore.filter(Boolean).join('\n');
+  };
+}();
+
+function applyToSingletonTag(style, index, remove, obj) {
+  var css = remove ? '' : obj.media ? "@media ".concat(obj.media, " {").concat(obj.css, "}") : obj.css; // For old IE
+
+  /* istanbul ignore if  */
+
+  if (style.styleSheet) {
+    style.styleSheet.cssText = replaceText(index, css);
+  } else {
+    var cssNode = document.createTextNode(css);
+    var childNodes = style.childNodes;
+
+    if (childNodes[index]) {
+      style.removeChild(childNodes[index]);
+    }
+
+    if (childNodes.length) {
+      style.insertBefore(cssNode, childNodes[index]);
+    } else {
+      style.appendChild(cssNode);
+    }
+  }
+}
+
+function applyToTag(style, options, obj) {
+  var css = obj.css;
+  var media = obj.media;
+  var sourceMap = obj.sourceMap;
+
+  if (media) {
+    style.setAttribute('media', media);
+  } else {
+    style.removeAttribute('media');
+  }
+
+  if (sourceMap && typeof btoa !== 'undefined') {
+    css += "\n/*# sourceMappingURL=data:application/json;base64,".concat(btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))), " */");
+  } // For old IE
+
+  /* istanbul ignore if  */
+
+
+  if (style.styleSheet) {
+    style.styleSheet.cssText = css;
+  } else {
+    while (style.firstChild) {
+      style.removeChild(style.firstChild);
+    }
+
+    style.appendChild(document.createTextNode(css));
+  }
+}
+
+var singleton = null;
+var singletonCounter = 0;
+
+function addStyle(obj, options) {
+  var style;
+  var update;
+  var remove;
+
+  if (options.singleton) {
+    var styleIndex = singletonCounter++;
+    style = singleton || (singleton = insertStyleElement(options));
+    update = applyToSingletonTag.bind(null, style, styleIndex, false);
+    remove = applyToSingletonTag.bind(null, style, styleIndex, true);
+  } else {
+    style = insertStyleElement(options);
+    update = applyToTag.bind(null, style, options);
+
+    remove = function remove() {
+      removeStyleElement(style);
+    };
+  }
+
+  update(obj);
+  return function updateStyle(newObj) {
+    if (newObj) {
+      if (newObj.css === obj.css && newObj.media === obj.media && newObj.sourceMap === obj.sourceMap) {
+        return;
+      }
+
+      update(obj = newObj);
+    } else {
+      remove();
+    }
+  };
+}
+
+module.exports = function (list, options) {
+  options = options || {}; // Force single-tag solution on IE6-9, which has a hard limit on the # of <style>
+  // tags it will allow on a page
+
+  if (!options.singleton && typeof options.singleton !== 'boolean') {
+    options.singleton = isOldIE();
+  }
+
+  list = list || [];
+  var lastIdentifiers = modulesToDom(list, options);
+  return function update(newList) {
+    newList = newList || [];
+
+    if (Object.prototype.toString.call(newList) !== '[object Array]') {
+      return;
+    }
+
+    for (var i = 0; i < lastIdentifiers.length; i++) {
+      var identifier = lastIdentifiers[i];
+      var index = getIndexByIdentifier(identifier);
+      stylesInDom[index].references--;
+    }
+
+    var newLastIdentifiers = modulesToDom(newList, options);
+
+    for (var _i = 0; _i < lastIdentifiers.length; _i++) {
+      var _identifier = lastIdentifiers[_i];
+
+      var _index = getIndexByIdentifier(_identifier);
+
+      if (stylesInDom[_index].references === 0) {
+        stylesInDom[_index].updater();
+
+        stylesInDom.splice(_index, 1);
+      }
+    }
+
+    lastIdentifiers = newLastIdentifiers;
+  };
+};
+
+
+;
 
 /***/ }),
 
@@ -138,7 +518,29 @@ eval("\n\nvar isOldIE = function isOldIE() {\n  var memo;\n  return function mem
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-eval("var api = __webpack_require__(/*! ../node_modules/style-loader/dist/runtime/injectStylesIntoStyleTag.js */ \"./node_modules/style-loader/dist/runtime/injectStylesIntoStyleTag.js\");\n            var content = __webpack_require__(/*! !../node_modules/css-loader/dist/cjs.js!./Hyperlink.css */ \"./node_modules/css-loader/dist/cjs.js!./src/Hyperlink.css\");\n\n            content = content.__esModule ? content.default : content;\n\n            if (typeof content === 'string') {\n              content = [[module.i, content, '']];\n            }\n\nvar options = {};\n\noptions.insert = \"head\";\noptions.singleton = false;\n\nvar update = api(content, options);\n\n\n\nmodule.exports = content.locals || {};\n\n//# sourceURL=webpack://Hyperlink/./src/Hyperlink.css?");
+
+var api = __webpack_require__(/*! ../node_modules/style-loader/dist/runtime/injectStylesIntoStyleTag.js */ "./node_modules/style-loader/dist/runtime/injectStylesIntoStyleTag.js");
+            var content = __webpack_require__(/*! !../node_modules/css-loader/dist/cjs.js!./Hyperlink.css */ "./node_modules/css-loader/dist/cjs.js!./src/Hyperlink.css");
+
+            content = content.__esModule ? content.default : content;
+
+            if (typeof content === 'string') {
+              content = [[module.i, content, '']];
+            }
+
+var options = {};
+
+options.insert = "head";
+options.singleton = false;
+
+var update = api(content, options);
+
+
+
+module.exports = content.locals || {};
+
+
+;
 
 /***/ }),
 
@@ -150,7 +552,401 @@ eval("var api = __webpack_require__(/*! ../node_modules/style-loader/dist/runtim
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"default\", function() { return Hyperlink; });\n/* harmony import */ var _SelectionUtils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./SelectionUtils */ \"./src/SelectionUtils.js\");\n/* harmony import */ var _Hyperlink_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Hyperlink.css */ \"./src/Hyperlink.css\");\n/* harmony import */ var _Hyperlink_css__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_Hyperlink_css__WEBPACK_IMPORTED_MODULE_1__);\nfunction _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError(\"Cannot call a class as a function\"); } }\n\nfunction _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if (\"value\" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }\n\nfunction _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }\n\n\n\n\nvar Hyperlink = /*#__PURE__*/function () {\n  function Hyperlink(_ref) {\n    var data = _ref.data,\n        config = _ref.config,\n        api = _ref.api,\n        readOnly = _ref.readOnly;\n\n    _classCallCheck(this, Hyperlink);\n\n    this.toolbar = api.toolbar;\n    this.inlineToolbar = api.inlineToolbar;\n    this.tooltip = api.tooltip;\n    this.i18n = api.i18n;\n    this.config = config;\n    this.selection = new _SelectionUtils__WEBPACK_IMPORTED_MODULE_0__[\"default\"]();\n    this.commandLink = 'createLink';\n    this.commandUnlink = 'unlink';\n    this.CSS = {\n      wrapper: 'ce-inline-tool-hyperlink-wrapper',\n      wrapperShowed: 'ce-inline-tool-hyperlink-wrapper--showed',\n      button: 'ce-inline-tool',\n      buttonActive: 'ce-inline-tool--active',\n      buttonModifier: 'ce-inline-tool--link',\n      buttonUnlink: 'ce-inline-tool--unlink',\n      input: 'ce-inline-tool-hyperlink--input',\n      selectTarget: 'ce-inline-tool-hyperlink--select-target',\n      selectRel: 'ce-inline-tool-hyperlink--select-rel',\n      buttonSave: 'ce-inline-tool-hyperlink--button'\n    };\n    this.targetAttributes = this.config.availableTargets || ['_blank', // Opens the linked document in a new window or tab\n    '_self', // Opens the linked document in the same frame as it was clicked (this is default)\n    '_parent', // Opens the linked document in the parent frame\n    '_top' // Opens the linked document in the full body of the window\n    ];\n    this.relAttributes = this.config.availableRels || ['alternate', //Provides a link to an alternate representation of the document (i.e. print page, translated or mirror)\n    'author', //Provides a link to the author of the document\n    'bookmark', //Permanent URL used for bookmarking\n    'external', //Indicates that the referenced document is not part of the same site as the current document\n    'help', //Provides a link to a help document\n    'license', //Provides a link to licensing information for the document\n    'next', //Provides a link to the next document in the series\n    'nofollow', //Links to an unendorsed document, like a paid link. (\"nofollow\" is used by Google, to specify that the Google search spider should not follow that link)\n    'noreferrer', //Requires that the browser should not send an HTTP referer header if the user follows the hyperlink\n    'noopener', //Requires that any browsing context created by following the hyperlink must not have an opener browsing context\n    'prev', //The previous document in a selection\n    'search', //Links to a search tool for the document\n    'tag' //A tag (keyword) for the current document\n    ];\n    this.nodes = {\n      button: null,\n      wrapper: null,\n      input: null,\n      selectTarget: null,\n      selectRel: null,\n      buttonSave: null\n    };\n    this.inputOpened = false;\n  }\n\n  _createClass(Hyperlink, [{\n    key: \"render\",\n    value: function render() {\n      this.nodes.button = document.createElement('button');\n      this.nodes.button.type = 'button';\n      this.nodes.button.classList.add(this.CSS.button, this.CSS.buttonModifier);\n      this.nodes.button.appendChild(this.iconSvg('link', 14, 10));\n      this.nodes.button.appendChild(this.iconSvg('unlink', 15, 11));\n      return this.nodes.button;\n    }\n  }, {\n    key: \"renderActions\",\n    value: function renderActions() {\n      var _this = this;\n\n      this.nodes.wrapper = document.createElement('div');\n      this.nodes.wrapper.classList.add(this.CSS.wrapper); // Input\n\n      this.nodes.input = document.createElement('input');\n      this.nodes.input.placeholder = 'https://...';\n      this.nodes.input.classList.add(this.CSS.input);\n      var i; // Target\n\n      this.nodes.selectTarget = document.createElement('select');\n      this.nodes.selectTarget.classList.add(this.CSS.selectTarget);\n      this.addOption(this.nodes.selectTarget, this.i18n.t('Select target'), '');\n\n      for (i = 0; i < this.targetAttributes.length; i++) {\n        this.addOption(this.nodes.selectTarget, this.targetAttributes[i], this.targetAttributes[i]);\n      }\n\n      if (!!this.config.target) {\n        this.nodes.selectTarget.value = this.config.target;\n      } // Rel\n\n\n      this.nodes.selectRel = document.createElement('select');\n      this.nodes.selectRel.classList.add(this.CSS.selectRel);\n      this.addOption(this.nodes.selectRel, this.i18n.t('Select rel'), '');\n\n      for (i = 0; i < this.relAttributes.length; i++) {\n        this.addOption(this.nodes.selectRel, this.relAttributes[i], this.relAttributes[i]);\n      }\n\n      if (!!this.config.rel) {\n        this.nodes.selectRel.value = this.config.rel;\n      } // Button\n\n\n      this.nodes.buttonSave = document.createElement('button');\n      this.nodes.buttonSave.type = 'button';\n      this.nodes.buttonSave.classList.add(this.CSS.buttonSave);\n      this.nodes.buttonSave.innerHTML = this.i18n.t('Save');\n      this.nodes.buttonSave.addEventListener('click', function (event) {\n        _this.savePressed(event);\n      }); // append\n\n      this.nodes.wrapper.appendChild(this.nodes.input);\n      this.nodes.wrapper.appendChild(this.nodes.selectTarget);\n      this.nodes.wrapper.appendChild(this.nodes.selectRel);\n      this.nodes.wrapper.appendChild(this.nodes.buttonSave);\n      return this.nodes.wrapper;\n    }\n  }, {\n    key: \"surround\",\n    value: function surround(range) {\n      if (range) {\n        if (!this.inputOpened) {\n          this.selection.setFakeBackground();\n          this.selection.save();\n        } else {\n          this.selection.restore();\n          this.selection.removeFakeBackground();\n        }\n\n        var parentAnchor = this.selection.findParentTag('A');\n\n        if (parentAnchor) {\n          this.selection.expandToTag(parentAnchor);\n          this.unlink();\n          this.closeActions();\n          this.checkState();\n          this.toolbar.close();\n          return;\n        }\n      }\n\n      this.toggleActions();\n    }\n  }, {\n    key: \"checkState\",\n    value: function checkState() {\n      var selection = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;\n      var anchorTag = this.selection.findParentTag('A');\n\n      if (anchorTag) {\n        this.nodes.button.classList.add(this.CSS.buttonUnlink);\n        this.nodes.button.classList.add(this.CSS.buttonActive);\n        this.openActions();\n        var hrefAttr = anchorTag.getAttribute('href');\n        var targetAttr = anchorTag.getAttribute('target');\n        var relAttr = anchorTag.getAttribute('rel');\n        this.nodes.input.value = !!hrefAttr ? hrefAttr : '';\n        this.nodes.selectTarget.value = !!targetAttr ? targetAttr : '';\n        this.nodes.selectRel.value = !!relAttr ? relAttr : '';\n        this.selection.save();\n      } else {\n        this.nodes.button.classList.remove(this.CSS.buttonUnlink);\n        this.nodes.button.classList.remove(this.CSS.buttonActive);\n      }\n\n      return !!anchorTag;\n    }\n  }, {\n    key: \"clear\",\n    value: function clear() {\n      this.closeActions();\n    }\n  }, {\n    key: \"toggleActions\",\n    value: function toggleActions() {\n      if (!this.inputOpened) {\n        this.openActions(true);\n      } else {\n        this.closeActions(false);\n      }\n    }\n  }, {\n    key: \"openActions\",\n    value: function openActions() {\n      var needFocus = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;\n      this.nodes.wrapper.classList.add(this.CSS.wrapperShowed);\n\n      if (needFocus) {\n        this.nodes.input.focus();\n      }\n\n      this.inputOpened = true;\n    }\n  }, {\n    key: \"closeActions\",\n    value: function closeActions() {\n      var clearSavedSelection = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;\n\n      if (this.selection.isFakeBackgroundEnabled) {\n        var currentSelection = new _SelectionUtils__WEBPACK_IMPORTED_MODULE_0__[\"default\"]();\n        currentSelection.save();\n        this.selection.restore();\n        this.selection.removeFakeBackground();\n        currentSelection.restore();\n      }\n\n      this.nodes.wrapper.classList.remove(this.CSS.wrapperShowed);\n      this.nodes.input.value = '';\n      this.nodes.selectTarget.value = '';\n      this.nodes.selectRel.value = '';\n\n      if (clearSavedSelection) {\n        this.selection.clearSaved();\n      }\n\n      this.inputOpened = false;\n    }\n  }, {\n    key: \"savePressed\",\n    value: function savePressed(event) {\n      event.preventDefault();\n      event.stopPropagation();\n      event.stopImmediatePropagation();\n      var value = this.nodes.input.value || '';\n      var target = this.nodes.selectTarget.value || '';\n      var rel = this.nodes.selectRel.value || '';\n\n      if (!value.trim()) {\n        this.selection.restore();\n        this.unlink();\n        event.preventDefault();\n        this.closeActions();\n      } // if (!this.validateURL(value)) {\n      //     this.tooltip.show(this.nodes.input, 'Pasted link is not valid.', {\n      //         placement: 'top',\n      //     });\n      //     setTimeout(() => {\n      //         this.tooltip.hide();\n      //     }, 1000);\n      //     return;\n      // }\n\n\n      value = this.prepareLink(value);\n      this.selection.restore();\n      this.selection.removeFakeBackground();\n      this.insertLink(value, target, rel);\n      this.selection.collapseToEnd();\n      this.inlineToolbar.close();\n    }\n  }, {\n    key: \"validateURL\",\n    value: function validateURL(str) {\n      var pattern = new RegExp('^(https?:\\\\/\\\\/)?' + // protocol\n      '((([a-z\\\\d]([a-z\\\\d-]*[a-z\\\\d])*)\\\\.)+[a-z]{2,}|' + // domain name\n      '((\\\\d{1,3}\\\\.){3}\\\\d{1,3}))' + // OR ip (v4) address\n      '(\\\\:\\\\d+)?(\\\\/[-a-z\\\\d%_.~+]*)*' + // port and path\n      '(\\\\?[;&a-z\\\\d%_.~+=-]*)?' + // query string\n      '(\\\\#[-a-z\\\\d_]*)?$', 'i'); // fragment locator\n\n      return !!pattern.test(str);\n    }\n  }, {\n    key: \"prepareLink\",\n    value: function prepareLink(link) {\n      link = link.trim();\n      link = this.addProtocol(link);\n      return link;\n    }\n  }, {\n    key: \"addProtocol\",\n    value: function addProtocol(link) {\n      if (/^(\\w+):(\\/\\/)?/.test(link)) {\n        return link;\n      }\n\n      var isInternal = /^\\/[^/\\s]/.test(link),\n          isAnchor = link.substring(0, 1) === '#',\n          isProtocolRelative = /^\\/\\/[^/\\s]/.test(link);\n\n      if (!isInternal && !isAnchor && !isProtocolRelative) {\n        link = 'http://' + link;\n      }\n\n      return link;\n    }\n  }, {\n    key: \"insertLink\",\n    value: function insertLink(link) {\n      var target = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';\n      var rel = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';\n      var anchorTag = this.selection.findParentTag('A');\n\n      if (anchorTag) {\n        this.selection.expandToTag(anchorTag);\n      } else {\n        document.execCommand(this.commandLink, false, link);\n        anchorTag = this.selection.findParentTag('A');\n      }\n\n      if (anchorTag) {\n        if (!!target) {\n          anchorTag['target'] = target;\n        } else {\n          anchorTag.removeAttribute('target');\n        }\n\n        if (!!rel) {\n          anchorTag['rel'] = rel;\n        } else {\n          anchorTag.removeAttribute('rel');\n        }\n      }\n    }\n  }, {\n    key: \"unlink\",\n    value: function unlink() {\n      document.execCommand(this.commandUnlink);\n    }\n  }, {\n    key: \"iconSvg\",\n    value: function iconSvg(name) {\n      var width = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 14;\n      var height = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 14;\n      var icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');\n      icon.classList.add('icon', 'icon--' + name);\n      icon.setAttribute('width', width + 'px');\n      icon.setAttribute('height', height + 'px');\n      icon.innerHTML = \"<use xmlns:xlink=\\\"http://www.w3.org/1999/xlink\\\" xlink:href=\\\"#\".concat(name, \"\\\"></use>\");\n      return icon;\n    }\n  }, {\n    key: \"addOption\",\n    value: function addOption(element, text) {\n      var value = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;\n      var option = document.createElement('option');\n      option.text = text;\n      option.value = value;\n      element.add(option);\n    }\n  }, {\n    key: \"shortcut\",\n    get: function get() {\n      return this.config.shortcut || 'CMD+L';\n    }\n  }, {\n    key: \"title\",\n    get: function get() {\n      return 'Hyperlink';\n    }\n  }], [{\n    key: \"isInline\",\n    get: function get() {\n      return true;\n    }\n  }, {\n    key: \"sanitize\",\n    get: function get() {\n      return {\n        a: {\n          href: true,\n          target: true,\n          rel: true\n        }\n      };\n    }\n  }]);\n\n  return Hyperlink;\n}();\n\n\n\n//# sourceURL=webpack://Hyperlink/./src/Hyperlink.js?");
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Hyperlink; });
+/* harmony import */ var _SelectionUtils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./SelectionUtils */ "./src/SelectionUtils.js");
+/* harmony import */ var _Hyperlink_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Hyperlink.css */ "./src/Hyperlink.css");
+/* harmony import */ var _Hyperlink_css__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_Hyperlink_css__WEBPACK_IMPORTED_MODULE_1__);
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+
+
+
+var Hyperlink = /*#__PURE__*/function () {
+  function Hyperlink(_ref) {
+    var data = _ref.data,
+        config = _ref.config,
+        api = _ref.api,
+        readOnly = _ref.readOnly;
+
+    _classCallCheck(this, Hyperlink);
+
+    this.toolbar = api.toolbar;
+    this.inlineToolbar = api.inlineToolbar;
+    this.tooltip = api.tooltip;
+    this.i18n = api.i18n;
+    this.config = config;
+    this.selection = new _SelectionUtils__WEBPACK_IMPORTED_MODULE_0__["default"]();
+    this.commandLink = 'createLink';
+    this.commandUnlink = 'unlink';
+    this.CSS = {
+      wrapper: 'ce-inline-tool-hyperlink-wrapper',
+      wrapperShowed: 'ce-inline-tool-hyperlink-wrapper--showed',
+      button: 'ce-inline-tool',
+      buttonActive: 'ce-inline-tool--active',
+      buttonModifier: 'ce-inline-tool--link',
+      buttonUnlink: 'ce-inline-tool--unlink',
+      input: 'ce-inline-tool-hyperlink--input',
+      selectTarget: 'ce-inline-tool-hyperlink--select-target',
+      selectRel: 'ce-inline-tool-hyperlink--select-rel',
+      buttonSave: 'ce-inline-tool-hyperlink--button'
+    };
+    this.targetAttributes = this.config.availableTargets || ['_blank', // Opens the linked document in a new window or tab
+    '_self', // Opens the linked document in the same frame as it was clicked (this is default)
+    '_parent', // Opens the linked document in the parent frame
+    '_top' // Opens the linked document in the full body of the window
+    ];
+    this.relAttributes = this.config.availableRels || ['alternate', //Provides a link to an alternate representation of the document (i.e. print page, translated or mirror)
+    'author', //Provides a link to the author of the document
+    'bookmark', //Permanent URL used for bookmarking
+    'external', //Indicates that the referenced document is not part of the same site as the current document
+    'help', //Provides a link to a help document
+    'license', //Provides a link to licensing information for the document
+    'next', //Provides a link to the next document in the series
+    'nofollow', //Links to an unendorsed document, like a paid link. ("nofollow" is used by Google, to specify that the Google search spider should not follow that link)
+    'noreferrer', //Requires that the browser should not send an HTTP referer header if the user follows the hyperlink
+    'noopener', //Requires that any browsing context created by following the hyperlink must not have an opener browsing context
+    'prev', //The previous document in a selection
+    'search', //Links to a search tool for the document
+    'tag' //A tag (keyword) for the current document
+    ];
+    this.nodes = {
+      button: null,
+      wrapper: null,
+      input: null,
+      selectTarget: null,
+      selectRel: null,
+      buttonSave: null
+    };
+    this.inputOpened = false;
+  }
+
+  _createClass(Hyperlink, [{
+    key: "render",
+    value: function render() {
+      this.nodes.button = document.createElement('button');
+      this.nodes.button.type = 'button';
+      this.nodes.button.classList.add(this.CSS.button, this.CSS.buttonModifier);
+      this.nodes.button.appendChild(this.iconSvg('link', 14, 10));
+      this.nodes.button.appendChild(this.iconSvg('unlink', 15, 11));
+      return this.nodes.button;
+    }
+  }, {
+    key: "renderActions",
+    value: function renderActions() {
+      var _this = this;
+
+      this.nodes.wrapper = document.createElement('div');
+      this.nodes.wrapper.classList.add(this.CSS.wrapper); // Input
+
+      this.nodes.input = document.createElement('input');
+      this.nodes.input.placeholder = 'https://...';
+      this.nodes.input.classList.add(this.CSS.input);
+      var i; // Target
+
+      this.nodes.selectTarget = document.createElement('select');
+      this.nodes.selectTarget.classList.add(this.CSS.selectTarget);
+      this.addOption(this.nodes.selectTarget, this.i18n.t('Select target'), '');
+
+      for (i = 0; i < this.targetAttributes.length; i++) {
+        this.addOption(this.nodes.selectTarget, this.targetAttributes[i], this.targetAttributes[i]);
+      }
+
+      if (!!this.config.target) {
+        this.nodes.selectTarget.value = this.config.target;
+      } // Rel
+
+
+      this.nodes.selectRel = document.createElement('select');
+      this.nodes.selectRel.classList.add(this.CSS.selectRel);
+      this.addOption(this.nodes.selectRel, this.i18n.t('Select rel'), '');
+
+      for (i = 0; i < this.relAttributes.length; i++) {
+        this.addOption(this.nodes.selectRel, this.relAttributes[i], this.relAttributes[i]);
+      }
+
+      if (!!this.config.rel) {
+        this.nodes.selectRel.value = this.config.rel;
+      } // Button
+
+
+      this.nodes.buttonSave = document.createElement('button');
+      this.nodes.buttonSave.type = 'button';
+      this.nodes.buttonSave.classList.add(this.CSS.buttonSave);
+      this.nodes.buttonSave.innerHTML = this.i18n.t('Save');
+      this.nodes.buttonSave.addEventListener('click', function (event) {
+        _this.savePressed(event);
+      }); // append
+
+      this.nodes.wrapper.appendChild(this.nodes.input);
+      this.nodes.wrapper.appendChild(this.nodes.selectTarget);
+      this.nodes.wrapper.appendChild(this.nodes.selectRel);
+      this.nodes.wrapper.appendChild(this.nodes.buttonSave);
+      return this.nodes.wrapper;
+    }
+  }, {
+    key: "surround",
+    value: function surround(range) {
+      if (range) {
+        if (!this.inputOpened) {
+          this.selection.setFakeBackground();
+          this.selection.save();
+        } else {
+          this.selection.restore();
+          this.selection.removeFakeBackground();
+        }
+
+        var parentAnchor = this.selection.findParentTag('A');
+
+        if (parentAnchor) {
+          this.selection.expandToTag(parentAnchor);
+          this.unlink();
+          this.closeActions();
+          this.checkState();
+          this.toolbar.close();
+          return;
+        }
+      }
+
+      this.toggleActions();
+    }
+  }, {
+    key: "checkState",
+    value: function checkState() {
+      var selection = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+      var anchorTag = this.selection.findParentTag('A');
+
+      if (anchorTag) {
+        this.nodes.button.classList.add(this.CSS.buttonUnlink);
+        this.nodes.button.classList.add(this.CSS.buttonActive);
+        this.openActions();
+        var hrefAttr = anchorTag.getAttribute('href');
+        var targetAttr = anchorTag.getAttribute('target');
+        var relAttr = anchorTag.getAttribute('rel');
+        this.nodes.input.value = !!hrefAttr ? hrefAttr : '';
+        this.nodes.selectTarget.value = !!targetAttr ? targetAttr : '';
+        this.nodes.selectRel.value = !!relAttr ? relAttr : '';
+        this.selection.save();
+      } else {
+        this.nodes.button.classList.remove(this.CSS.buttonUnlink);
+        this.nodes.button.classList.remove(this.CSS.buttonActive);
+      }
+
+      return !!anchorTag;
+    }
+  }, {
+    key: "clear",
+    value: function clear() {
+      this.closeActions();
+    }
+  }, {
+    key: "toggleActions",
+    value: function toggleActions() {
+      if (!this.inputOpened) {
+        this.openActions(true);
+      } else {
+        this.closeActions(false);
+      }
+    }
+  }, {
+    key: "openActions",
+    value: function openActions() {
+      var needFocus = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+      this.nodes.wrapper.classList.add(this.CSS.wrapperShowed);
+
+      if (needFocus) {
+        this.nodes.input.focus();
+      }
+
+      this.inputOpened = true;
+    }
+  }, {
+    key: "closeActions",
+    value: function closeActions() {
+      var clearSavedSelection = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
+
+      if (this.selection.isFakeBackgroundEnabled) {
+        var currentSelection = new _SelectionUtils__WEBPACK_IMPORTED_MODULE_0__["default"]();
+        currentSelection.save();
+        this.selection.restore();
+        this.selection.removeFakeBackground();
+        currentSelection.restore();
+      }
+
+      this.nodes.wrapper.classList.remove(this.CSS.wrapperShowed);
+      this.nodes.input.value = '';
+      this.nodes.selectTarget.value = '';
+      this.nodes.selectRel.value = '';
+
+      if (clearSavedSelection) {
+        this.selection.clearSaved();
+      }
+
+      this.inputOpened = false;
+    }
+  }, {
+    key: "savePressed",
+    value: function savePressed(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      var value = this.nodes.input.value || '';
+      var target = this.nodes.selectTarget.value || '';
+      var rel = this.nodes.selectRel.value || '';
+
+      if (!value.trim()) {
+        this.selection.restore();
+        this.unlink();
+        event.preventDefault();
+        this.closeActions();
+      } // if (!this.validateURL(value)) {
+      //     this.tooltip.show(this.nodes.input, 'Pasted link is not valid.', {
+      //         placement: 'top',
+      //     });
+      //     setTimeout(() => {
+      //         this.tooltip.hide();
+      //     }, 1000);
+      //     return;
+      // }
+
+
+      value = this.prepareLink(value);
+      this.selection.restore();
+      this.selection.removeFakeBackground();
+      this.insertLink(value, target, rel);
+      this.selection.collapseToEnd();
+      this.inlineToolbar.close();
+    }
+  }, {
+    key: "validateURL",
+    value: function validateURL(str) {
+      var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+      '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
+      '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+      '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+      '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+      '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
+
+      return !!pattern.test(str);
+    }
+  }, {
+    key: "prepareLink",
+    value: function prepareLink(link) {
+      link = link.trim();
+      link = this.addProtocol(link);
+      return link;
+    }
+  }, {
+    key: "addProtocol",
+    value: function addProtocol(link) {
+      if (/^(\w+):(\/\/)?/.test(link)) {
+        return link;
+      }
+
+      var isInternal = /^\/[^/\s]/.test(link),
+          isAnchor = link.substring(0, 1) === '#',
+          isProtocolRelative = /^\/\/[^/\s]/.test(link);
+
+      if (!isInternal && !isAnchor && !isProtocolRelative) {
+        link = 'http://' + link;
+      }
+
+      return link;
+    }
+  }, {
+    key: "insertLink",
+    value: function insertLink(link) {
+      var target = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
+      var rel = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
+      var anchorTag = this.selection.findParentTag('A');
+
+      if (anchorTag) {
+        this.selection.expandToTag(anchorTag);
+      } else {
+        document.execCommand(this.commandLink, false, link);
+        anchorTag = this.selection.findParentTag('A');
+      }
+
+      if (anchorTag) {
+        if (!!target) {
+          anchorTag['target'] = target;
+        } else {
+          anchorTag.removeAttribute('target');
+        }
+
+        if (!!rel) {
+          anchorTag['rel'] = rel;
+        } else {
+          anchorTag.removeAttribute('rel');
+        }
+      }
+    }
+  }, {
+    key: "unlink",
+    value: function unlink() {
+      document.execCommand(this.commandUnlink);
+    }
+  }, {
+    key: "iconSvg",
+    value: function iconSvg(name) {
+      var width = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 14;
+      var height = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 14;
+      var icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.classList.add('icon', 'icon--' + name);
+      icon.setAttribute('width', width + 'px');
+      icon.setAttribute('height', height + 'px');
+      icon.innerHTML = "<use xmlns:xlink=\"http://www.w3.org/1999/xlink\" xlink:href=\"#".concat(name, "\"></use>");
+      return icon;
+    }
+  }, {
+    key: "addOption",
+    value: function addOption(element, text) {
+      var value = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+      var option = document.createElement('option');
+      option.text = text;
+      option.value = value;
+      element.add(option);
+    }
+  }, {
+    key: "shortcut",
+    get: function get() {
+      return this.config.shortcut || 'CMD+L';
+    }
+  }, {
+    key: "title",
+    get: function get() {
+      return 'Hyperlink';
+    }
+  }], [{
+    key: "isInline",
+    get: function get() {
+      return true;
+    }
+  }, {
+    key: "sanitize",
+    get: function get() {
+      return {
+        a: {
+          href: true,
+          target: true,
+          rel: true
+        }
+      };
+    }
+  }]);
+
+  return Hyperlink;
+}();
+
+
+
+
+;
 
 /***/ }),
 
@@ -162,7 +958,336 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) *
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"default\", function() { return SelectionUtils; });\nfunction _typeof(obj) { \"@babel/helpers - typeof\"; if (typeof Symbol === \"function\" && typeof Symbol.iterator === \"symbol\") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === \"function\" && obj.constructor === Symbol && obj !== Symbol.prototype ? \"symbol\" : typeof obj; }; } return _typeof(obj); }\n\nfunction _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError(\"Cannot call a class as a function\"); } }\n\nfunction _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if (\"value\" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }\n\nfunction _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }\n\nvar SelectionUtils = /*#__PURE__*/function () {\n  function SelectionUtils() {\n    _classCallCheck(this, SelectionUtils);\n\n    this.selection = null;\n    this.savedSelectionRange = null;\n    this.isFakeBackgroundEnabled = false;\n    this.commandBackground = 'backColor';\n    this.commandRemoveFormat = 'removeFormat';\n  }\n\n  _createClass(SelectionUtils, [{\n    key: \"isElement\",\n    value: function isElement(node) {\n      return node && _typeof(node) === 'object' && node.nodeType && node.nodeType === Node.ELEMENT_NODE;\n    }\n  }, {\n    key: \"isContentEditable\",\n    value: function isContentEditable(element) {\n      return element.contentEditable === 'true';\n    }\n  }, {\n    key: \"isNativeInput\",\n    value: function isNativeInput(target) {\n      var nativeInputs = ['INPUT', 'TEXTAREA'];\n      return target && target.tagName ? nativeInputs.includes(target.tagName) : false;\n    }\n  }, {\n    key: \"canSetCaret\",\n    value: function canSetCaret(target) {\n      var result = true;\n\n      if (this.isNativeInput(target)) {\n        switch (target.type) {\n          case 'file':\n          case 'checkbox':\n          case 'radio':\n          case 'hidden':\n          case 'submit':\n          case 'button':\n          case 'image':\n          case 'reset':\n            result = false;\n            break;\n\n          default:\n        }\n      } else {\n        result = this.isContentEditable(target);\n      }\n\n      return result;\n    }\n  }, {\n    key: \"CSS\",\n    value: function CSS() {\n      return {\n        editorWrapper: 'codex-editor',\n        editorZone: 'codex-editor__redactor'\n      };\n    }\n  }, {\n    key: \"anchorNode\",\n    value: function anchorNode() {\n      var selection = window.getSelection();\n      return selection ? selection.anchorNode : null;\n    }\n  }, {\n    key: \"anchorElement\",\n    value: function anchorElement() {\n      var selection = window.getSelection();\n\n      if (!selection) {\n        return null;\n      }\n\n      var anchorNode = selection.anchorNode;\n\n      if (!anchorNode) {\n        return null;\n      }\n\n      if (!this.isElement(anchorNode)) {\n        return anchorNode.parentElement;\n      } else {\n        return anchorNode;\n      }\n    }\n  }, {\n    key: \"anchorOffset\",\n    value: function anchorOffset() {\n      var selection = window.getSelection();\n      return selection ? selection.anchorOffset : null;\n    }\n  }, {\n    key: \"isCollapsed\",\n    value: function isCollapsed() {\n      var selection = window.getSelection();\n      return selection ? selection.isCollapsed : null;\n    }\n  }, {\n    key: \"isAtEditor\",\n    value: function isAtEditor() {\n      var selection = SelectionUtils.get();\n      var selectedNode = selection.anchorNode || selection.focusNode;\n\n      if (selectedNode && selectedNode.nodeType === Node.TEXT_NODE) {\n        selectedNode = selectedNode.parentNode;\n      }\n\n      var editorZone = null;\n\n      if (selectedNode) {\n        editorZone = selectedNode.closest(\".\".concat(SelectionUtils.CSS.editorZone));\n      }\n\n      return editorZone && editorZone.nodeType === Node.ELEMENT_NODE;\n    }\n  }, {\n    key: \"isSelectionExists\",\n    value: function isSelectionExists() {\n      var selection = SelectionUtils.get();\n      return !!selection.anchorNode;\n    }\n  }, {\n    key: \"get\",\n    value: function get() {\n      return window.getSelection();\n    }\n  }, {\n    key: \"setCursor\",\n    value: function setCursor(element) {\n      var offset = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;\n      var range = document.createRange();\n      var selection = window.getSelection();\n\n      if (this.isNativeInput(element)) {\n        if (!this.canSetCaret(element)) {\n          return;\n        }\n\n        element.focus();\n        element.selectionStart = element.selectionEnd = offset;\n        return element.getBoundingClientRect();\n      }\n\n      range.setStart(element, offset);\n      range.setEnd(element, offset);\n      selection.removeAllRanges();\n      selection.addRange(range);\n      return range.getBoundingClientRect();\n    }\n  }, {\n    key: \"removeFakeBackground\",\n    value: function removeFakeBackground() {\n      if (!this.isFakeBackgroundEnabled) {\n        return;\n      }\n\n      this.isFakeBackgroundEnabled = false;\n      document.execCommand(this.commandRemoveFormat);\n    }\n  }, {\n    key: \"setFakeBackground\",\n    value: function setFakeBackground() {\n      document.execCommand(this.commandBackground, false, '#a8d6ff');\n      this.isFakeBackgroundEnabled = true;\n    }\n  }, {\n    key: \"save\",\n    value: function save() {\n      this.savedSelectionRange = SelectionUtils.range;\n    }\n  }, {\n    key: \"restore\",\n    value: function restore() {\n      if (!this.savedSelectionRange) {\n        return;\n      }\n\n      var sel = window.getSelection();\n      sel.removeAllRanges();\n      sel.addRange(this.savedSelectionRange);\n    }\n  }, {\n    key: \"clearSaved\",\n    value: function clearSaved() {\n      this.savedSelectionRange = null;\n    }\n  }, {\n    key: \"collapseToEnd\",\n    value: function collapseToEnd() {\n      var sel = window.getSelection();\n      var range = document.createRange();\n      range.selectNodeContents(sel.focusNode);\n      range.collapse(false);\n      sel.removeAllRanges();\n      sel.addRange(range);\n    }\n  }, {\n    key: \"findParentTag\",\n    value: function findParentTag(tagName) {\n      var className = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;\n      var searchDepth = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;\n      var selection = window.getSelection();\n      var parentTag = null;\n\n      if (!selection || !selection.anchorNode || !selection.focusNode) {\n        return null;\n      }\n\n      var boundNodes = [selection.anchorNode, selection.focusNode];\n      boundNodes.forEach(function (parent) {\n        var searchDepthIterable = searchDepth;\n\n        while (searchDepthIterable > 0 && parent.parentNode) {\n          if (parent.tagName === tagName) {\n            parentTag = parent;\n\n            if (className && parent.classList && !parent.classList.contains(className)) {\n              parentTag = null;\n            }\n\n            if (parentTag) {\n              break;\n            }\n          }\n\n          parent = parent.parentNode;\n          searchDepthIterable--;\n        }\n      });\n      return parentTag;\n    }\n  }, {\n    key: \"expandToTag\",\n    value: function expandToTag(element) {\n      var selection = window.getSelection();\n      selection.removeAllRanges();\n      var range = document.createRange();\n      range.selectNodeContents(element);\n      selection.addRange(range);\n    }\n  }], [{\n    key: \"range\",\n    get: function get() {\n      var selection = window.getSelection();\n      return selection && selection.rangeCount ? selection.getRangeAt(0) : null;\n    }\n  }, {\n    key: \"rect\",\n    get: function get() {\n      var sel = document.selection,\n          range;\n      var rect = {\n        x: 0,\n        y: 0,\n        width: 0,\n        height: 0\n      };\n\n      if (sel && sel.type !== 'Control') {\n        range = sel.createRange();\n        rect.x = range.boundingLeft;\n        rect.y = range.boundingTop;\n        rect.width = range.boundingWidth;\n        rect.height = range.boundingHeight;\n        return rect;\n      }\n\n      if (!window.getSelection) {\n        return rect;\n      }\n\n      sel = window.getSelection();\n\n      if (sel.rangeCount === null || isNaN(sel.rangeCount)) {\n        return rect;\n      }\n\n      if (sel.rangeCount === 0) {\n        return rect;\n      }\n\n      range = sel.getRangeAt(0).cloneRange();\n\n      if (range.getBoundingClientRect) {\n        rect = range.getBoundingClientRect();\n      }\n\n      if (rect.x === 0 && rect.y === 0) {\n        var span = document.createElement('span');\n\n        if (span.getBoundingClientRect) {\n          span.appendChild(document.createTextNode(\"\\u200B\"));\n          range.insertNode(span);\n          rect = span.getBoundingClientRect();\n          var spanParent = span.parentNode;\n          spanParent.removeChild(span);\n          spanParent.normalize();\n        }\n      }\n\n      return rect;\n    }\n  }, {\n    key: \"text\",\n    get: function get() {\n      return window.getSelection ? window.getSelection().toString() : '';\n    }\n  }]);\n\n  return SelectionUtils;\n}();\n\n\n\n//# sourceURL=webpack://Hyperlink/./src/SelectionUtils.js?");
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return SelectionUtils; });
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var SelectionUtils = /*#__PURE__*/function () {
+  function SelectionUtils() {
+    _classCallCheck(this, SelectionUtils);
+
+    this.selection = null;
+    this.savedSelectionRange = null;
+    this.isFakeBackgroundEnabled = false;
+    this.commandBackground = 'backColor';
+    this.commandRemoveFormat = 'removeFormat';
+  }
+
+  _createClass(SelectionUtils, [{
+    key: "isElement",
+    value: function isElement(node) {
+      return node && _typeof(node) === 'object' && node.nodeType && node.nodeType === Node.ELEMENT_NODE;
+    }
+  }, {
+    key: "isContentEditable",
+    value: function isContentEditable(element) {
+      return element.contentEditable === 'true';
+    }
+  }, {
+    key: "isNativeInput",
+    value: function isNativeInput(target) {
+      var nativeInputs = ['INPUT', 'TEXTAREA'];
+      return target && target.tagName ? nativeInputs.includes(target.tagName) : false;
+    }
+  }, {
+    key: "canSetCaret",
+    value: function canSetCaret(target) {
+      var result = true;
+
+      if (this.isNativeInput(target)) {
+        switch (target.type) {
+          case 'file':
+          case 'checkbox':
+          case 'radio':
+          case 'hidden':
+          case 'submit':
+          case 'button':
+          case 'image':
+          case 'reset':
+            result = false;
+            break;
+
+          default:
+        }
+      } else {
+        result = this.isContentEditable(target);
+      }
+
+      return result;
+    }
+  }, {
+    key: "CSS",
+    value: function CSS() {
+      return {
+        editorWrapper: 'codex-editor',
+        editorZone: 'codex-editor__redactor'
+      };
+    }
+  }, {
+    key: "anchorNode",
+    value: function anchorNode() {
+      var selection = window.getSelection();
+      return selection ? selection.anchorNode : null;
+    }
+  }, {
+    key: "anchorElement",
+    value: function anchorElement() {
+      var selection = window.getSelection();
+
+      if (!selection) {
+        return null;
+      }
+
+      var anchorNode = selection.anchorNode;
+
+      if (!anchorNode) {
+        return null;
+      }
+
+      if (!this.isElement(anchorNode)) {
+        return anchorNode.parentElement;
+      } else {
+        return anchorNode;
+      }
+    }
+  }, {
+    key: "anchorOffset",
+    value: function anchorOffset() {
+      var selection = window.getSelection();
+      return selection ? selection.anchorOffset : null;
+    }
+  }, {
+    key: "isCollapsed",
+    value: function isCollapsed() {
+      var selection = window.getSelection();
+      return selection ? selection.isCollapsed : null;
+    }
+  }, {
+    key: "isAtEditor",
+    value: function isAtEditor() {
+      var selection = SelectionUtils.get();
+      var selectedNode = selection.anchorNode || selection.focusNode;
+
+      if (selectedNode && selectedNode.nodeType === Node.TEXT_NODE) {
+        selectedNode = selectedNode.parentNode;
+      }
+
+      var editorZone = null;
+
+      if (selectedNode) {
+        editorZone = selectedNode.closest(".".concat(SelectionUtils.CSS.editorZone));
+      }
+
+      return editorZone && editorZone.nodeType === Node.ELEMENT_NODE;
+    }
+  }, {
+    key: "isSelectionExists",
+    value: function isSelectionExists() {
+      var selection = SelectionUtils.get();
+      return !!selection.anchorNode;
+    }
+  }, {
+    key: "get",
+    value: function get() {
+      return window.getSelection();
+    }
+  }, {
+    key: "setCursor",
+    value: function setCursor(element) {
+      var offset = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+      var range = document.createRange();
+      var selection = window.getSelection();
+
+      if (this.isNativeInput(element)) {
+        if (!this.canSetCaret(element)) {
+          return;
+        }
+
+        element.focus();
+        element.selectionStart = element.selectionEnd = offset;
+        return element.getBoundingClientRect();
+      }
+
+      range.setStart(element, offset);
+      range.setEnd(element, offset);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      return range.getBoundingClientRect();
+    }
+  }, {
+    key: "removeFakeBackground",
+    value: function removeFakeBackground() {
+      if (!this.isFakeBackgroundEnabled) {
+        return;
+      }
+
+      this.isFakeBackgroundEnabled = false;
+      document.execCommand(this.commandRemoveFormat);
+    }
+  }, {
+    key: "setFakeBackground",
+    value: function setFakeBackground() {
+      document.execCommand(this.commandBackground, false, '#a8d6ff');
+      this.isFakeBackgroundEnabled = true;
+    }
+  }, {
+    key: "save",
+    value: function save() {
+      this.savedSelectionRange = SelectionUtils.range;
+    }
+  }, {
+    key: "restore",
+    value: function restore() {
+      if (!this.savedSelectionRange) {
+        return;
+      }
+
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(this.savedSelectionRange);
+    }
+  }, {
+    key: "clearSaved",
+    value: function clearSaved() {
+      this.savedSelectionRange = null;
+    }
+  }, {
+    key: "collapseToEnd",
+    value: function collapseToEnd() {
+      var sel = window.getSelection();
+      var range = document.createRange();
+      range.selectNodeContents(sel.focusNode);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }, {
+    key: "findParentTag",
+    value: function findParentTag(tagName) {
+      var className = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+      var searchDepth = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
+      var selection = window.getSelection();
+      var parentTag = null;
+
+      if (!selection || !selection.anchorNode || !selection.focusNode) {
+        return null;
+      }
+
+      var boundNodes = [selection.anchorNode, selection.focusNode];
+      boundNodes.forEach(function (parent) {
+        var searchDepthIterable = searchDepth;
+
+        while (searchDepthIterable > 0 && parent.parentNode) {
+          if (parent.tagName === tagName) {
+            parentTag = parent;
+
+            if (className && parent.classList && !parent.classList.contains(className)) {
+              parentTag = null;
+            }
+
+            if (parentTag) {
+              break;
+            }
+          }
+
+          parent = parent.parentNode;
+          searchDepthIterable--;
+        }
+      });
+      return parentTag;
+    }
+  }, {
+    key: "expandToTag",
+    value: function expandToTag(element) {
+      var selection = window.getSelection();
+      selection.removeAllRanges();
+      var range = document.createRange();
+      range.selectNodeContents(element);
+      selection.addRange(range);
+    }
+  }], [{
+    key: "range",
+    get: function get() {
+      var selection = window.getSelection();
+      return selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+    }
+  }, {
+    key: "rect",
+    get: function get() {
+      var sel = document.selection,
+          range;
+      var rect = {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0
+      };
+
+      if (sel && sel.type !== 'Control') {
+        range = sel.createRange();
+        rect.x = range.boundingLeft;
+        rect.y = range.boundingTop;
+        rect.width = range.boundingWidth;
+        rect.height = range.boundingHeight;
+        return rect;
+      }
+
+      if (!window.getSelection) {
+        return rect;
+      }
+
+      sel = window.getSelection();
+
+      if (sel.rangeCount === null || isNaN(sel.rangeCount)) {
+        return rect;
+      }
+
+      if (sel.rangeCount === 0) {
+        return rect;
+      }
+
+      range = sel.getRangeAt(0).cloneRange();
+
+      if (range.getBoundingClientRect) {
+        rect = range.getBoundingClientRect();
+      }
+
+      if (rect.x === 0 && rect.y === 0) {
+        var span = document.createElement('span');
+
+        if (span.getBoundingClientRect) {
+          span.appendChild(document.createTextNode("\u200B"));
+          range.insertNode(span);
+          rect = span.getBoundingClientRect();
+          var spanParent = span.parentNode;
+          spanParent.removeChild(span);
+          spanParent.normalize();
+        }
+      }
+
+      return rect;
+    }
+  }, {
+    key: "text",
+    get: function get() {
+      return window.getSelection ? window.getSelection().toString() : '';
+    }
+  }]);
+
+  return SelectionUtils;
+}();
+
+
+
+
+;
 
 /***/ })
 

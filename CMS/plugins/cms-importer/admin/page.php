@@ -232,7 +232,7 @@ $selectedAuthorDisplayName = htmlspecialchars($selected_author_display_name ?? '
                     <!-- Verstecktes File-Input -->
                           <input type="file" name="wxr_file" id="wxr_file"
                               accept=".xml,.json,text/xml,application/xml,application/json,text/json"
-                           style="display:none">
+                           hidden style="display:none">
 
                     <div class="ci-wizard-wrap">
                         <div class="ci-wizard-intro">

@@ -161,7 +161,7 @@ $logoMaxH    = $lpIsCompact ? '50px'           : '90px';
 $logoMarginB = $lpIsCompact ? '0.75rem'        : '1.75rem';
 $subFontSz   = $lpIsCompact ? '1rem'           : '1.25rem';
 ?>
-<style>
+<style <?= \CMS\Security::instance()->nonceAttr() ?>>
 /* Landing Page: Abstände reset */
 .category-bar        { display: none !important; }
 footer, .site-footer { margin-top: 0 !important; }

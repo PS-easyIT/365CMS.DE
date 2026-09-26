@@ -185,7 +185,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
         </form>
     </div>
 </div>
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 (() => {
     const formatTimeoutHint = (secondsValue) => {
         if (!Number.isFinite(secondsValue)) {

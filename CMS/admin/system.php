@@ -541,7 +541,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         </div>
     </div>
     
-    <script>
+    <script <?= \CMS\Security::instance()->nonceAttr() ?>>
         function switchTab(tabId, btn) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));

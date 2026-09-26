@@ -189,7 +189,7 @@ final class EditorJsAssetService
             </div>
         </div>
 
-        <script>
+        <script <?= \CMS\Security::instance()->nonceAttr() ?>>
         (function() {
             function initEditorJs<?php echo $editorNum; ?>() {
                 var holderEl = document.getElementById(<?php echo $holderIdJs; ?>);

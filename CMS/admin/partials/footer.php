@@ -24,9 +24,12 @@ $inlineJs   = $inlineJs ?? '';
 
     <!-- Tabler Core JS -->
     <script src="<?= htmlspecialchars(cms_asset_url('tabler/js/tabler.min.js'), ENT_QUOTES) ?>" defer></script>
+    <script src="<?= htmlspecialchars(cms_asset_url('js/tabler-bootstrap-bridge.js'), ENT_QUOTES) ?>" defer></script>
 
     <!-- Admin JS -->
     <script src="<?= htmlspecialchars(cms_asset_url('js/admin.js'), ENT_QUOTES) ?>" defer></script>
+    <!-- CSP-konforme Ersatzlogik für Inline-Event-Handler (data-cms-*) -->
+    <script src="<?= htmlspecialchars(cms_asset_url('js/cms-inline-actions.js'), ENT_QUOTES) ?>" defer></script>
 
     <?php
     // Zusätzliche Scripts aus $pageAssets['js']
@@ -38,7 +41,7 @@ $inlineJs   = $inlineJs ?? '';
     ?>
 
     <?php if ($inlineJs !== ''): ?>
-    <script>
+    <script <?= \CMS\Security::instance()->nonceAttr() ?>>
     document.addEventListener('DOMContentLoaded', function() {
         <?= $inlineJs ?>
     });
@@ -77,7 +80,7 @@ $inlineJs   = $inlineJs ?? '';
         </div>
     </div>
 
-    <script>
+    <script <?= \CMS\Security::instance()->nonceAttr() ?>>
     /**
      * Globale Bestätigungsfunktion für destruktive Aktionen
      */

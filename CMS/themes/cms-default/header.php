@@ -12,6 +12,14 @@ if (!defined('ABSPATH')) {
 }
 
 $logoUrl       = (string) meridian_setting('header', 'logo_url', '');
+if ($logoUrl === '' && function_exists('get_option')) {
+    // Kein Theme-Logo gesetzt: auf das globale Website-Logo (Einstellungen → Allgemein) zurückfallen.
+    try {
+        $logoUrl = trim((string) get_option('site_logo', ''));
+    } catch (\Throwable) {
+        $logoUrl = '';
+    }
+}
 $logoText      = meridian_setting('header', 'logo_text', defined('SITE_NAME') ? SITE_NAME : '365CMS');
 $logoType      = meridian_setting('header', 'logo_type', 'text');
 $logoTagline   = meridian_setting('header', 'logo_tagline', '');
@@ -48,6 +56,7 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
 <html lang="<?php echo htmlspecialchars($currentLocale, ENT_QUOTES, 'UTF-8'); ?>">
 <head>
     <meta charset="UTF-8">
+    <?= function_exists('cms_csp_runtime_tags') ? cms_csp_runtime_tags() : '' ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php
     // Seitentitel ermitteln

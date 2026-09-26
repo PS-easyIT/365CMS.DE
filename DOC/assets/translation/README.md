@@ -1,5 +1,7 @@
 # Symfony Translation
 
+> **Stand:** 2026-09-26 | **Version:** 8.0.8 | **Status:** Aktiv
+
 ## Kurzbeschreibung
 
 `Symfony Translation` übernimmt die Internationalisierung von 365CMS.
@@ -7,11 +9,18 @@
 ## Quellordner
 
 - `CMS/assets/translation/`
+- `CMS/assets/yaml/` (`symfony/yaml` 8.0.8 zum Parsen von `CMS/lang/*.yaml`)
 
 ## Verwendung in 365CMS
 
-- zentrale Nutzung in `CMS/core/Services/TranslationService.php`
-- zusätzlich indirekt relevant für Carbon-Lokalisierung
+- zentrale Nutzung in `CMS/core/Services/TranslationService.php`: Kataloge werden per Symfony Yaml geparst und je Domain über den `ArrayLoader` registriert (der `YamlFileLoader` würde `default:` zu `default.Key` abflachen)
+- unbekannte Keys laufen über `MessageCatalogue::has()` direkt in den Fallback-Katalog
+- zusätzlich Basis der Carbon-Lokalisierung
+
+## Abhängigkeiten
+
+- `symfony-contracts` (Translation-Contracts 3.6.1), `symfony/polyfill-mbstring` (nur ohne ext-mbstring)
+- Nicht übernommen: `Command/`, `DataCollector/`, `DependencyInjection/`, `Extractor/`, `DataCollectorTranslator` (Framework-/Tooling-Integration)
 
 ## Website / GitHub
 

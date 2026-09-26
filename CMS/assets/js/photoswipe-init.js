@@ -13,10 +13,8 @@
 (async function () {
     'use strict';
 
-    const baseUrl = document.currentScript
-        ? new URL('.', document.currentScript.src).href
-        : '/assets/js/';
-    const photoswipeBase = baseUrl.replace(/js\/$/, 'photoswipe/');
+    // Als ES-Modul geladen: document.currentScript ist hier immer null.
+    const photoswipeBase = new URL('../photoswipe/', import.meta.url).href;
 
     const [{ default: PhotoSwipeLightbox }, { default: PhotoSwipe }] = await Promise.all([
         import(photoswipeBase + 'photoswipe-lightbox.esm.min.js'),

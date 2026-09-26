@@ -319,7 +319,7 @@ $assetPermissions = array_values(array_filter($permissions, static function ($pe
         </div>
     </div>
 </div>
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 (function () {
     const input = document.getElementById('assetLibrarySearch');
     const counter = document.getElementById('assetLibraryCounter');

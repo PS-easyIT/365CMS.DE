@@ -1,25 +1,15 @@
 # SimplePie
 
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Legacy-Bestand
+> **Stand:** 2026-09-26 | **Version:** 3.4.02 | **Status:** Entfernt
 
 ## Kurzbeschreibung
 
-`SimplePie` ist ein dokumentierter Legacy-Bestand für frühere RSS-/Atom-Feeds; aktive Feed-Verarbeitung läuft seit Folge-Batch 454 nativ über `FeedService` per DOM/XML.
+`SimplePie` war ein Legacy-Bestand für RSS-/Atom-Feeds. Die Feed-Verarbeitung läuft seit Folge-Batch 454 nativ über `CMS/core/Services/FeedService.php` per DOM/XML; SimplePie war weder im Autoloader registriert noch referenziert.
 
-## Quellordner
+## Status
 
-- `CMS/assets/simplepielibrary/`
-- `CMS/assets/simplepiesrc/`
-
-## Verwendung in 365CMS
-
-- keine aktive Laufzeitverdrahtung mehr in `FeedService`
-- keine aktive Klassenbereitstellung mehr über `CMS/assets/autoload.php`
-
-## Besondere Hinweise
-
-- die Dateien bleiben als Altbestand und werden hinsichtlich Vendor-Netzwerkpfaden separat beobachtet
-- produktive Feed-Logik hängt an `CMS/core/Services/FeedService.php`
+- `CMS/assets/simplepielibrary/` und `CMS/assets/simplepiesrc/` wurden in `3.4.02` entfernt.
+- Der Legacy-Eintrag in `CMS/core/VendorRegistry.php` wurde entfernt.
 
 ## Website / GitHub
 

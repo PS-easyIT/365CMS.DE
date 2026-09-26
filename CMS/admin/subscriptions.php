@@ -724,7 +724,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
         </div>
     </div>
     
-    <script>
+    <script <?= \CMS\Security::instance()->nonceAttr() ?>>
         function openDeletePlanModal(id, name) {
             document.getElementById('deletePlanId').value = id;
             document.getElementById('deletePlanName').textContent = name;

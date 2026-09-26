@@ -81,15 +81,13 @@ final class TranslationService
 
     public function translate(string $message, string $domain = 'default', array $parameters = []): string
     {
-        if ($this->translator !== null && method_exists($this->translator, 'trans')) {
+        if ($this->translatorHas($message, $domain)) {
             try {
                 /** @var string $result */
                 $result = $this->translator->trans($message, $parameters, $domain, $this->locale);
-                if ($result !== $message) {
-                    return $result;
-                }
+                return $result;
             } catch (\Throwable) {
-                // Fallback unten
+                $this->translator = null;
             }
         }
 
@@ -106,17 +104,14 @@ final class TranslationService
 
     public function translatePlural(string $single, string $plural, int $number, string $domain = 'default'): string
     {
-        if ($this->translator !== null && method_exists($this->translator, 'trans')) {
+        $key = $single . '|' . $plural;
+        if ($this->translatorHas($key, $domain)) {
             try {
-                $key = $single . '|'.$plural;
                 /** @var string $result */
                 $result = $this->translator->trans($key, ['%count%' => $number], $domain, $this->locale);
-
-                if ($result !== $key) {
-                    return $result;
-                }
+                return $result;
             } catch (\Throwable) {
-                // Fallback unten
+                $this->translator = null;
             }
         }
 
@@ -142,46 +137,108 @@ final class TranslationService
         return in_array('de', $available, true) ? 'de' : ($available[0] ?? 'de');
     }
 
+    /**
+     * Prüft, ob der Symfony-Translator den Key im aktuellen Locale kennt.
+     * Unbekannte Keys laufen bewusst über den Fallback-Katalog, damit
+     * Plural-Keys nicht als unübersetzter Original-Text zurückkommen.
+     */
+    private function translatorHas(string $key, string $domain): bool
+    {
+        if ($this->translator === null) {
+            return false;
+        }
+
+        try {
+            return $this->translator->getCatalogue($this->locale)->has($key, $domain);
+        } catch (\Throwable) {
+            $this->translator = null;
+            return false;
+        }
+    }
+
     private function initTranslator(): void
     {
-        $available = $this->getAvailableLocales();
-
-        // Fallback-Katalog immer laden: Symfony gibt bei unbekannten Keys den
-        // Original-Key zurück, unser flaches Domain-Format liegt aber unter
-        // `default:` und muss dann weiterhin auflösbar bleiben.
-        foreach ($available as $locale) {
+        foreach ($this->getAvailableLocales() as $locale) {
             $file = $this->langPath . $locale . '.yaml';
             if (!is_file($file)) {
                 continue;
             }
-            $this->fallbackCatalog[$locale] = $this->parseSimpleYamlCatalog($file);
+            $this->fallbackCatalog[$locale] = $this->parseCatalogFile($file);
         }
 
         $translatorClass = '\\Symfony\\Component\\Translation\\Translator';
-        $yamlLoaderClass = '\\Symfony\\Component\\Translation\\Loader\\YamlFileLoader';
+        $arrayLoaderClass = '\\Symfony\\Component\\Translation\\Loader\\ArrayLoader';
 
-        if (class_exists($translatorClass) && class_exists($yamlLoaderClass)) {
-            try {
-                /** @var object $translator */
-                $translator = new $translatorClass($this->locale);
-                $translator->addLoader('yaml', new $yamlLoaderClass());
+        if (!class_exists($translatorClass) || !class_exists($arrayLoaderClass)) {
+            return;
+        }
 
-                foreach ($available as $locale) {
-                    $file = $this->langPath . $locale . '.yaml';
-                    if (!is_file($file)) {
-                        continue;
+        try {
+            /** @var object $translator */
+            $translator = new $translatorClass($this->locale);
+            $translator->addLoader('array', new $arrayLoaderClass());
+
+            // Die Sprachdateien gruppieren Keys unter Domain-Schlüsseln (`default:`).
+            // Der YamlFileLoader würde daraus `default.Key` flach klopfen, deshalb
+            // wird der bereits geparste Katalog je Domain direkt übergeben.
+            foreach ($this->fallbackCatalog as $locale => $domains) {
+                foreach ($domains as $domain => $messages) {
+                    if ($messages !== []) {
+                        $translator->addResource('array', $messages, $locale, $domain);
                     }
-
-                    // Domain default
-                    $translator->addResource('yaml', $file, $locale, 'default');
                 }
+            }
 
-                $this->translator = $translator;
-                return;
+            $this->translator = $translator;
+        } catch (\Throwable) {
+            $this->translator = null;
+        }
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    private function parseCatalogFile(string $file): array
+    {
+        $yamlClass = '\\Symfony\\Component\\Yaml\\Yaml';
+        if (class_exists($yamlClass)) {
+            try {
+                $parsed = $yamlClass::parseFile($file);
+                if (is_array($parsed)) {
+                    return $this->normalizeCatalog($parsed);
+                }
             } catch (\Throwable) {
-                $this->translator = null;
+                // Fallback auf den minimalen Parser
             }
         }
+
+        return $this->parseSimpleYamlCatalog($file);
+    }
+
+    /**
+     * @param array<mixed> $parsed
+     * @return array<string, array<string, string>>
+     */
+    private function normalizeCatalog(array $parsed): array
+    {
+        $catalog = ['default' => []];
+
+        foreach ($parsed as $domainOrKey => $value) {
+            if (is_array($value)) {
+                foreach ($value as $key => $message) {
+                    if (is_scalar($message)) {
+                        $catalog[(string) $domainOrKey][(string) $key] = (string) $message;
+                    }
+                }
+                continue;
+            }
+
+            if (is_scalar($value)) {
+                $catalog['default'][(string) $domainOrKey] = (string) $value;
+            }
+        }
+
+        return $catalog;
     }
 
     /**

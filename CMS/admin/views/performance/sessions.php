@@ -76,7 +76,7 @@ $formatBytes = static function (int $bytes): string {
 
     <div class="card"><div class="card-header"><h3 class="card-title">Zuletzt aktive Sessions</h3></div><div class="table-responsive"><table class="table table-vcenter card-table table-striped"><thead><tr><th>User ID</th><th>IP</th><th>User Agent</th><th>Letzte Aktivität</th><th>Läuft ab</th></tr></thead><tbody><?php if (empty($recentSessions)): ?><tr><td colspan="5" class="text-center text-secondary py-4">Keine Session-Daten verfügbar.</td></tr><?php else: ?><?php foreach ($recentSessions as $session): ?><tr><td><?php echo (int)$session['user_id']; ?></td><td><?php echo htmlspecialchars((string)$session['ip_address']); ?></td><td class="text-break"><?php echo htmlspecialchars(cms_truncate_text((string)$session['user_agent'], 90)); ?></td><td><?php echo htmlspecialchars((string)$session['last_activity']); ?></td><td><?php echo htmlspecialchars((string)$session['expires_at']); ?></td></tr><?php endforeach; ?><?php endif; ?></tbody></table></div></div>
 </div></div>
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 (() => {
     const formatTimeoutHint = (secondsValue) => {
         if (typeof window.formatSeconds === 'function') {

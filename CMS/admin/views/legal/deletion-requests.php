@@ -137,13 +137,13 @@ $statusBadges = ['pending' => 'bg-warning', 'processing' => 'bg-blue', 'complete
                                                     <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="process"><input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>"><button class="dropdown-item">Prüfung starten</button></form>
                                                 <?php endif; ?>
                                                 <?php if ($r['status'] === 'processing'): ?>
-                                                    <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="execute"><input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>"><button class="dropdown-item text-danger" onclick="return confirm('ACHTUNG: Benutzerdaten werden unwiderruflich anonymisiert. Fortfahren?')">Löschung durchführen</button></form>
+                                                    <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="execute"><input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>"><button class="dropdown-item text-danger" data-cms-confirm="ACHTUNG: Benutzerdaten werden unwiderruflich anonymisiert. Fortfahren?">Löschung durchführen</button></form>
                                                 <?php endif; ?>
                                                 <?php if (in_array($r['status'], ['pending', 'processing'], true)): ?>
-                                                    <a href="#" class="dropdown-item text-warning" onclick="rejectDeletion(<?php echo (int)$r['id']; ?>)">Ablehnen</a>
+                                                    <a href="#" class="dropdown-item text-warning" data-cms-call="rejectDeletion" data-cms-call-args="[<?php echo (int)$r['id']; ?>]">Ablehnen</a>
                                                 <?php endif; ?>
                                                 <?php if (in_array($r['status'], ['completed', 'rejected'], true)): ?>
-                                                    <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>"><button class="dropdown-item text-danger" onclick="return confirm('Antrag endgültig entfernen?')">Antrag löschen</button></form>
+                                                    <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>"><button class="dropdown-item text-danger" data-cms-confirm="Antrag endgültig entfernen?">Antrag löschen</button></form>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
@@ -183,7 +183,7 @@ $statusBadges = ['pending' => 'bg-warning', 'processing' => 'bg-blue', 'complete
             </div>
         </div>
 
-        <script>
+        <script <?= \CMS\Security::instance()->nonceAttr() ?>>
         function rejectDeletion(id) {
             document.getElementById('rejectDelId').value = id;
             new bootstrap.Modal(document.getElementById('rejectDeletionModal')).show();

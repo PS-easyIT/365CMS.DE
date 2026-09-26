@@ -618,7 +618,7 @@ class CacheManager implements CacheInterface
 
         $ifNoneMatch = trim((string)($_SERVER['HTTP_IF_NONE_MATCH'] ?? ''));
         if ($ifNoneMatch !== '' && $ifNoneMatch === $etag) {
-            http_response_code(304);
+            $this->sendNotModified();
             return false;
         }
 
@@ -626,12 +626,23 @@ class CacheManager implements CacheInterface
         if ($ifModifiedSince !== '') {
             $ifModifiedSinceTs = strtotime($ifModifiedSince);
             if ($ifModifiedSinceTs !== false && $ifModifiedSinceTs >= $timestamp) {
-                http_response_code(304);
+                $this->sendNotModified();
                 return false;
             }
         }
 
         return true;
+    }
+
+    /**
+     * 304-Antworten dürfen keine neue CSP mitsenden: Browser übernehmen Header aus
+     * dem 304 in die gecachte Antwort, deren Inline-Nonces dann nicht mehr passen würden.
+     */
+    private function sendNotModified(): void
+    {
+        http_response_code(304);
+        header_remove('Content-Security-Policy');
+        header_remove('Content-Security-Policy-Report-Only');
     }
 
     private function normalizeLastModifiedTimestamp(int|string|null $lastModified): ?int

@@ -70,8 +70,7 @@ final class MeridianCMSDefaultTheme
 
         if ($this->isLocalFontsEnabled() && $localCssPath && file_exists($localCssPath) && $localCssUrl) {
             $href = htmlspecialchars($localCssUrl, ENT_QUOTES, 'UTF-8');
-            echo '<link rel="preload" href="' . $href . '" as="style" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
-            echo '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>' . "\n";
+            echo '<link rel="stylesheet" href="' . $href . '">' . "\n";
 
             return;
         }
@@ -338,7 +337,7 @@ final class MeridianCMSDefaultTheme
 
             $esc = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 
-            echo '<style id="meridian-custom-vars">' . "\n";
+            echo '<style id="meridian-custom-vars" ' . \CMS\Security::instance()->nonceAttr() . '>' . "\n";
 
             $accent = $accent ?: '#c0862a';
             $accentDark = $accentDark ?: '#a06b18';
@@ -525,20 +524,27 @@ final class MeridianCMSDefaultTheme
             return;
         }
 
+        $nonceAttr = \CMS\Security::instance()->nonceAttr();
+
         echo <<<HTML
 <div id="cms-cookie-bar" style="display:none;position:fixed;bottom:0;left:0;width:100%;background:var(--ink);color:rgba(255,255,255,.7);padding:.9rem 1.5rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;box-shadow:0 -2px 10px rgba(0,0,0,.2);">
     <p style="margin:0;font-size:.82rem;line-height:1.6;">{$text} <a href="{$policy}" style="color:var(--accent);text-decoration:underline;">Mehr erfahren</a></p>
     <div style="display:flex;gap:.6rem;flex-shrink:0;">
-        <button onclick="cmsDeclineCookies()" style="padding:.35rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:3px;color:rgba(255,255,255,.7);font-size:.78rem;cursor:pointer;">{$essential}</button>
-        <button onclick="cmsAcceptCookies()" style="padding:.35rem .85rem;background:var(--accent);border:1px solid var(--accent);border-radius:3px;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;">{$accept}</button>
+        <button type="button" data-cms-cookie-choice="essential" style="padding:.35rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:3px;color:rgba(255,255,255,.7);font-size:.78rem;cursor:pointer;">{$essential}</button>
+        <button type="button" data-cms-cookie-choice="all" style="padding:.35rem .85rem;background:var(--accent);border:1px solid var(--accent);border-radius:3px;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;">{$accept}</button>
     </div>
 </div>
-<script>
+<script {$nonceAttr}>
 (function(){
     var b = document.getElementById('cms-cookie-bar');
-    if (b && !localStorage.getItem('cms_cookie_consent')) { b.style.display = 'flex'; }
-    window.cmsAcceptCookies   = function(){ localStorage.setItem('cms_cookie_consent','all');       if(b) b.style.display='none'; };
-    window.cmsDeclineCookies  = function(){ localStorage.setItem('cms_cookie_consent','essential'); if(b) b.style.display='none'; };
+    if (!b) { return; }
+    b.style.display = localStorage.getItem('cms_cookie_consent') ? 'none' : 'flex';
+    function choose(value){ localStorage.setItem('cms_cookie_consent', value); b.style.display = 'none'; }
+    window.cmsAcceptCookies  = function(){ choose('all'); };
+    window.cmsDeclineCookies = function(){ choose('essential'); };
+    b.querySelectorAll('[data-cms-cookie-choice]').forEach(function(button){
+        button.addEventListener('click', function(){ choose(button.getAttribute('data-cms-cookie-choice') === 'all' ? 'all' : 'essential'); });
+    });
 })();
 </script>
 HTML;

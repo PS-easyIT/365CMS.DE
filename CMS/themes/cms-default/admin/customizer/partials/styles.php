@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 ?>
-<style>
+<style <?= \CMS\Security::instance()->nonceAttr() ?>>
 .customizer-layout { display: flex; gap: 2rem; align-items: flex-start; }
 .customizer-nav { width: 240px; flex-shrink: 0; background: #fff; border-radius: var(--tblr-border-radius-lg, 12px); border: 1px solid var(--tblr-border-color, #e6e7e9); overflow: hidden; }
 .customizer-nav a { display: block; padding: 1rem 1.5rem; color: #64748b; text-decoration: none; border-left: 3px solid transparent; transition: all .2s; }

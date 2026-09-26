@@ -263,7 +263,7 @@ $customCss   = $data['custom_css'];
     </form>
 </div>
 
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('input[type="color"]').forEach(function(input) {
         input.addEventListener('input', function() {

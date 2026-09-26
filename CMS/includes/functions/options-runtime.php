@@ -635,3 +635,28 @@ function cms_asset_url(string $relativePath, bool $withVersion = true, string|in
 
     return $version !== '' ? $url . '?v=' . rawurlencode($version) : $url;
 }
+
+/**
+ * Liefert die CSP-Runtime-Scripts (DOMPurify + Trusted-Types-/Style-Nonce-Runtime).
+ *
+ * Muss als erstes Script im <head> jeder HTML-Seite ausgegeben werden, die unter
+ * der nonce-basierten CSP mit `require-trusted-types-for 'script'` läuft.
+ * Mehrfachaufrufe pro Request liefern nur beim ersten Mal Markup.
+ */
+function cms_csp_runtime_tags(): string {
+    static $rendered = false;
+    if ($rendered) {
+        return '';
+    }
+    $rendered = true;
+
+    $nonceAttr = class_exists(\CMS\Security::class) ? \CMS\Security::instance()->nonceAttr() : '';
+    $html = '';
+
+    foreach (['dompurify/purify.min.js', 'js/cms-csp-runtime.js'] as $asset) {
+        $html .= '<script src="' . htmlspecialchars(cms_asset_url($asset), ENT_QUOTES, 'UTF-8') . '"'
+            . ($nonceAttr !== '' ? ' ' . $nonceAttr : '') . '></script>' . "\n";
+    }
+
+    return $html;
+}

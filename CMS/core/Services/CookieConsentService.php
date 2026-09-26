@@ -78,9 +78,8 @@ final class CookieConsentService
         ];
 
         $cookieCssHref = htmlspecialchars(\cms_asset_url('css/cms-cookie-consent.css'), ENT_QUOTES, 'UTF-8');
-        echo '<link rel="preload" as="style" href="' . $cookieCssHref . '" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
-        echo '<noscript><link rel="stylesheet" href="' . $cookieCssHref . '"></noscript>' . "\n";
-        echo '<script>window.CMS_COOKIECONSENT_CONFIG=' . json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';</script>' . "\n";
+        echo '<link rel="stylesheet" href="' . $cookieCssHref . '">' . "\n";
+        echo '<script ' . \CMS\Security::instance()->nonceAttr() . '>window.CMS_COOKIECONSENT_CONFIG=' . json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';</script>' . "\n";
         echo '<script src="' . htmlspecialchars(\cms_asset_url('js/cookieconsent-init.js'), ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
     }
 
@@ -523,7 +522,7 @@ final class CookieConsentService
 
     private function buildPublicConsentPageStyles(): string
     {
-        return '<style>'
+        return '<style ' . \CMS\Security::instance()->nonceAttr() . '>'
             . '.cms-consent-page{--cms-consent-border:#e5e7eb;--cms-consent-text:#0f172a;--cms-consent-muted:#64748b;--cms-consent-bg:#ffffff;--cms-consent-bg-soft:#f8fafc;--cms-consent-accent:#2563eb;display:grid;gap:2rem;margin:0 0 2.5rem;color:var(--cms-consent-text)}'
             . '.cms-consent-page *{box-sizing:border-box}'
             . '.cms-consent-hero{display:grid;gap:1.25rem;padding:1.5rem;border:1px solid var(--cms-consent-border);border-radius:24px;background:linear-gradient(135deg,#eff6ff 0%,#ffffff 50%,#f8fafc 100%);box-shadow:0 20px 45px -34px rgba(15,23,42,.45)}'

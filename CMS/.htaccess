@@ -31,6 +31,13 @@ Options +FollowSymLinks
     RewriteRule ^\.git(?:/|$) - [F,L,NC]
     RewriteRule ^(?:config|core|logs|backups|cache)(?:/|$) - [F,L,NC]
 
+    # Gebündelte PHP-Libraries werden ausschließlich serverseitig per Autoloader
+    # geladen. vendor/ komplett sowie PHP-Dateien, Paket-Metadaten und versteckte
+    # Dateien unter assets/ nie direkt ausliefern; CSS/JS/Fonts/Bilder bleiben frei.
+    RewriteRule ^vendor(?:/|$) - [F,L,NC]
+    RewriteRule ^assets/.*\.(?:php[0-9]?|phtml|phar|inc|ser|json|lock|md|dist|neon|ya?ml|xml|scss|sh)$ - [F,L,NC]
+    RewriteRule ^assets/(?:.*?/)?\. - [F,L,NC]
+
     # Installer internals are only loaded server-side by install.php.
     RewriteRule ^install/.*\.php$ - [F,L,NC]
 

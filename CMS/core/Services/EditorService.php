@@ -135,8 +135,8 @@ class EditorService
         <textarea 
             id="<?php echo htmlspecialchars($editorId); ?>" 
             name="<?php echo htmlspecialchars($name); ?>" 
-            style="display:none;"></textarea>
-        <script>
+            hidden style="display:none;"></textarea>
+        <script <?= \CMS\Security::instance()->nonceAttr() ?>>
         (function() {
             var _initialContent = <?php echo $jsContent; ?>;
             if (typeof SUNEDITOR === 'undefined') {
@@ -250,12 +250,16 @@ class EditorService
             return;
         }
         
-        $siteUrl = defined('SITE_URL') ? SITE_URL : '';
+        $assetUrl = static fn(string $path): string => htmlspecialchars(
+            function_exists('cms_asset_url') ? \cms_asset_url($path) : (defined('SITE_URL') ? SITE_URL : '') . '/assets/' . $path,
+            ENT_QUOTES,
+            'UTF-8'
+        );
         
         echo "\n<!-- SunEditor Assets -->\n";
-        echo '<link rel="stylesheet" href="' . htmlspecialchars($siteUrl) . '/assets/suneditor/css/suneditor.min.css">' . "\n";
-        echo '<script src="' . htmlspecialchars($siteUrl) . '/assets/suneditor/suneditor.min.js" defer></script>' . "\n";
-        echo '<script src="' . htmlspecialchars($siteUrl) . '/assets/suneditor/lang/de.js" defer></script>' . "\n";
+        echo '<link rel="stylesheet" href="' . $assetUrl('suneditor/css/suneditor.min.css') . '">' . "\n";
+        echo '<script src="' . $assetUrl('suneditor/suneditor.min.js') . '" defer></script>' . "\n";
+        echo '<script src="' . $assetUrl('suneditor/lang/de.js') . '" defer></script>' . "\n";
         echo "<!-- /SunEditor Assets -->\n\n";
         
         self::$assetsEnqueued = true;

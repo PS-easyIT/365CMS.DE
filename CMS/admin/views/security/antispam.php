@@ -210,7 +210,7 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                                             <input type="hidden" name="action" value="delete_blacklist">
                                             <input type="hidden" name="id" value="<?php echo (int)$item['id']; ?>">
-                                            <button type="button" class="btn btn-ghost-danger btn-sm btn-icon-inline" aria-label="Eintrag löschen" onclick="cmsConfirm({title:'Eintrag löschen?',message:'Der Blacklist-Eintrag wird unwiderruflich entfernt.',confirmText:'Löschen',confirmClass:'btn-danger',onConfirm:()=>cmsSubmitFormSafely(this.closest('form'))})">×</button>
+                                            <button type="button" class="btn btn-ghost-danger btn-sm btn-icon-inline" aria-label="Eintrag löschen" data-cms-confirm-modal data-cms-confirm-title="Eintrag löschen?" data-cms-confirm-message="Der Blacklist-Eintrag wird unwiderruflich entfernt." data-cms-confirm-text="Löschen" data-cms-confirm-class="btn-danger">×</button>
                                         </form>
                                         </div>
                                     </td>

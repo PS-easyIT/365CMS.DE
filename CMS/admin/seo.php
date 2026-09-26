@@ -290,7 +290,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 ?>
 
 
-<style>
+<style <?= \CMS\Security::instance()->nonceAttr() ?>>
 /* SEO-spezifische Komponenten (nicht in admin.css) */
 .seo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; }
 .seo-panel { display: none; }

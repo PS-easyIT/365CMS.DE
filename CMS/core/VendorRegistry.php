@@ -216,6 +216,10 @@ final class VendorRegistry
                 ? $this->getRuntimeSymbolStatus($definition['symbol'], $definition['symbol_type'])
                 : $this->getDefaultRuntimeStatusFallback();
 
+            if ($runtimeStatus['ready'] && ($definition['probe'] ?? null) instanceof \Closure) {
+                $runtimeStatus = $this->runFunctionalProbe($definition['probe']);
+            }
+
             $diagnostics[] = [
                 'package' => $definition['package'],
                 'label' => $definition['label'],
@@ -413,14 +417,26 @@ final class VendorRegistry
             'symfony/mailer' => ['url' => 'https://github.com/symfony/mailer', 'label' => 'GitHub'],
             'psr/event-dispatcher' => ['url' => 'https://www.php-fig.org/psr/psr-14/', 'label' => 'Website'],
             'editorjs' => ['url' => 'https://editorjs.io/', 'label' => 'Website'],
-            'gridjs' => ['url' => 'https://gridjs.io/', 'label' => 'Website'],
             'photoswipe' => ['url' => 'https://photoswipe.com/', 'label' => 'Website'],
             'suneditor' => ['url' => 'https://github.com/JiHong88/suneditor', 'label' => 'GitHub'],
             'tabler' => ['url' => 'https://tabler.io/', 'label' => 'Website'],
             'cms-css' => ['url' => 'https://github.com/PS-easyIT/365CMS.DE', 'label' => 'GitHub'],
             'cms-js' => ['url' => 'https://github.com/PS-easyIT/365CMS.DE', 'label' => 'GitHub'],
             'cms-images' => ['url' => 'https://github.com/PS-easyIT/365CMS.DE', 'label' => 'GitHub'],
-            'simplepie' => ['url' => 'https://simplepie.org/', 'label' => 'Website'],
+            'tabler-icons' => ['url' => 'https://tabler.io/icons', 'label' => 'Website'],
+            'dompurify' => ['url' => 'https://github.com/cure53/DOMPurify', 'label' => 'GitHub'],
+            'symfony/yaml' => ['url' => 'https://github.com/symfony/yaml', 'label' => 'GitHub'],
+            'symfony/clock' => ['url' => 'https://github.com/symfony/clock', 'label' => 'GitHub'],
+            'symfony/event-dispatcher' => ['url' => 'https://github.com/symfony/event-dispatcher', 'label' => 'GitHub'],
+            'symfony/serializer' => ['url' => 'https://github.com/symfony/serializer', 'label' => 'GitHub'],
+            'symfony/property-info' => ['url' => 'https://github.com/symfony/property-info', 'label' => 'GitHub'],
+            'symfony/property-access' => ['url' => 'https://github.com/symfony/property-access', 'label' => 'GitHub'],
+            'symfony/type-info' => ['url' => 'https://github.com/symfony/type-info', 'label' => 'GitHub'],
+            'symfony/uid' => ['url' => 'https://github.com/symfony/uid', 'label' => 'GitHub'],
+            'symfony/string' => ['url' => 'https://github.com/symfony/string', 'label' => 'GitHub'],
+            'symfony/polyfills' => ['url' => 'https://github.com/symfony/polyfill', 'label' => 'GitHub'],
+            'egulias/email-validator' => ['url' => 'https://github.com/egulias/EmailValidator', 'label' => 'GitHub'],
+            'psr/container' => ['url' => 'https://www.php-fig.org/psr/psr-11/', 'label' => 'Website'],
             'symfony/cache' => ['url' => 'https://github.com/symfony/cache', 'label' => 'GitHub'],
             'msgraph-sdk-php' => ['url' => 'https://github.com/microsoftgraph/msgraph-sdk-php', 'label' => 'GitHub'],
         ];
@@ -472,10 +488,10 @@ final class VendorRegistry
                 'notes' => 'Produktiv gebündelte AI-Plattform-Basis unter CMS/assets/ai-platform für Core-Adapter und AI-Services-Pfade.',
             ],
             'symfony-contracts' => [
-                'label' => 'Symfony Contracts (lokaler Runtime-Shim)',
+                'label' => 'Symfony Contracts',
                 'path' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'symfony-contracts',
                 'path_type' => 'dir',
-                'notes' => 'Lokale Minimal-Contracts für Translation/Mailer, solange kein separates Contracts-Bundle gebündelt ist.',
+                'notes' => 'Vollständige symfony/contracts 3.6.1 für Mailer, Translation, EventDispatcher und AI Platform.',
             ],
         ];
     }
@@ -486,12 +502,14 @@ final class VendorRegistry
     private function getBundledLibraryDefinitions(): array
     {
         $assets = ABSPATH . 'assets' . DIRECTORY_SEPARATOR;
+        $dir = static fn(string ...$parts): array => ['path' => $assets . implode(DIRECTORY_SEPARATOR, $parts), 'type' => 'dir'];
+        $file = static fn(string ...$parts): array => ['path' => $assets . implode(DIRECTORY_SEPARATOR, $parts), 'type' => 'file'];
 
         return [
             [
                 'package' => 'htmlpurifier',
                 'label' => 'HTMLPurifier',
-                'paths' => [['path' => $assets . 'htmlpurifier' . DIRECTORY_SEPARATOR . 'HTMLPurifier.auto.php', 'type' => 'file']],
+                'paths' => [$file('htmlpurifier', 'HTMLPurifier.auto.php')],
                 'symbol' => 'HTMLPurifier',
                 'symbol_type' => 'class',
                 'notes' => 'HTML-Sanitizing für Rich-Content-Pfade.',
@@ -499,7 +517,7 @@ final class VendorRegistry
             [
                 'package' => 'tntsearch',
                 'label' => 'TNTSearch',
-                'paths' => [['path' => $assets . 'tntsearchsrc', 'type' => 'dir']],
+                'paths' => [$dir('tntsearchsrc')],
                 'symbol' => '\\TeamTNT\\TNTSearch\\TNTSearch',
                 'symbol_type' => 'class',
                 'notes' => 'Volltextsuche für SearchService.',
@@ -507,23 +525,49 @@ final class VendorRegistry
             [
                 'package' => 'carbon',
                 'label' => 'Carbon',
-                'paths' => [['path' => $assets . 'Carbon', 'type' => 'dir']],
+                'paths' => [$dir('Carbon', 'src', 'Carbon'), $dir('Carbon', 'lazy', 'Carbon')],
                 'symbol' => '\\Carbon\\Carbon',
                 'symbol_type' => 'class',
-                'notes' => 'Datums-/Zeit-Helfer in Core- und Theme-Pfaden.',
+                'probe' => static fn(): string => \Carbon\Carbon::now()->subMinute()->locale('de')->diffForHumans(),
+                'notes' => 'Datums-/Zeit-Helfer (time_ago). Benötigt symfony/clock, psr/clock und symfony/translation.',
             ],
             [
                 'package' => 'symfony/translation',
                 'label' => 'Symfony Translation',
-                'paths' => [['path' => $assets . 'translation', 'type' => 'dir']],
+                'paths' => [$dir('translation')],
                 'symbol' => '\\Symfony\\Component\\Translation\\Translator',
                 'symbol_type' => 'class',
-                'notes' => 'I18n-/Übersetzungs-Bundle.',
+                'probe' => static function (): void {
+                    $translator = new \Symfony\Component\Translation\Translator('de');
+                    $translator->addLoader('array', new \Symfony\Component\Translation\Loader\ArrayLoader());
+                    $translator->addResource('array', ['probe' => 'ok'], 'de');
+                    if ($translator->trans('probe') !== 'ok') {
+                        throw new \RuntimeException('Translator liefert keine Katalogwerte.');
+                    }
+                },
+                'notes' => 'I18n-Bundle für TranslationService.',
+            ],
+            [
+                'package' => 'symfony/yaml',
+                'label' => 'Symfony Yaml',
+                'paths' => [$dir('yaml')],
+                'symbol' => '\\Symfony\\Component\\Yaml\\Yaml',
+                'symbol_type' => 'class',
+                'probe' => static fn(): mixed => \Symfony\Component\Yaml\Yaml::parse("default:\n  probe: ok"),
+                'notes' => 'YAML-Parser für die Sprachkataloge in CMS/lang/.',
+            ],
+            [
+                'package' => 'symfony/clock',
+                'label' => 'Symfony Clock',
+                'paths' => [$dir('clock'), $dir('psr', 'Clock')],
+                'symbol' => '\\Symfony\\Component\\Clock\\Clock',
+                'symbol_type' => 'class',
+                'notes' => 'Clock-Abstraktion für Carbon und AI Platform (inkl. psr/clock).',
             ],
             [
                 'package' => 'lbuchs/webauthn',
                 'label' => 'WebAuthn',
-                'paths' => [['path' => $assets . 'webauthn', 'type' => 'dir']],
+                'paths' => [$dir('webauthn')],
                 'symbol' => '\\lbuchs\\WebAuthn\\WebAuthn',
                 'symbol_type' => 'class',
                 'notes' => 'Passkey-/FIDO2-Unterstützung.',
@@ -531,7 +575,7 @@ final class VendorRegistry
             [
                 'package' => 'robthree/twofactorauth',
                 'label' => 'TwoFactorAuth',
-                'paths' => [['path' => $assets . 'twofactorauth', 'type' => 'dir']],
+                'paths' => [$dir('twofactorauth')],
                 'symbol' => '\\RobThree\\Auth\\TwoFactorAuth',
                 'symbol_type' => 'class',
                 'notes' => 'TOTP-/MFA-Bundle.',
@@ -539,15 +583,15 @@ final class VendorRegistry
             [
                 'package' => 'ldaprecord',
                 'label' => 'LdapRecord',
-                'paths' => [['path' => $assets . 'ldaprecord', 'type' => 'dir']],
+                'paths' => [$dir('ldaprecord'), $dir('psr', 'SimpleCache')],
                 'symbol' => '\\LdapRecord\\Connection',
                 'symbol_type' => 'class',
-                'notes' => 'LDAP-/Verzeichnisintegration.',
+                'notes' => 'LDAP-/Verzeichnisintegration über Connection + Query-Builder (nutzt Carbon und psr/simple-cache). Die Eloquent-artigen Models benötigen illuminate/* und werden im Core nicht verwendet.',
             ],
             [
                 'package' => 'firebase/php-jwt',
                 'label' => 'Firebase JWT',
-                'paths' => [['path' => $assets . 'php-jwt', 'type' => 'dir']],
+                'paths' => [$dir('php-jwt')],
                 'symbol' => '\\Firebase\\JWT\\JWT',
                 'symbol_type' => 'class',
                 'notes' => 'JWT-Unterstützung.',
@@ -555,55 +599,100 @@ final class VendorRegistry
             [
                 'package' => 'psr/log',
                 'label' => 'PSR Log',
-                'paths' => [['path' => $assets . 'psr' . DIRECTORY_SEPARATOR . 'Log', 'type' => 'dir']],
+                'paths' => [$dir('psr', 'Log')],
                 'symbol' => '\\Psr\\Log\\LoggerInterface',
                 'symbol_type' => 'interface',
-                'notes' => 'PSR-Kompatibilität für Logging.',
+                'notes' => 'PSR-3 (vollständig) für Mailer, AI Platform und LdapRecord.',
+            ],
+            [
+                'package' => 'psr/container',
+                'label' => 'PSR Container',
+                'paths' => [$dir('psr', 'Container')],
+                'symbol' => '\\Psr\\Container\\ContainerInterface',
+                'symbol_type' => 'interface',
+                'notes' => 'PSR-11 für Symfony Service Contracts und TypeInfo.',
             ],
             [
                 'package' => 'symfony/mime',
                 'label' => 'Symfony Mime',
-                'paths' => [['path' => $assets . 'mime', 'type' => 'dir']],
+                'paths' => [$dir('mime')],
                 'symbol' => '\\Symfony\\Component\\Mime\\Email',
                 'symbol_type' => 'class',
-                'notes' => 'Mime-Komponenten für Mail- und Upload-Pfade.',
+                'probe' => static fn(): string => (new \Symfony\Component\Mime\Address('probe@example.org', 'Probe'))->toString(),
+                'notes' => 'Mime-Komponenten für Mail- und Upload-Pfade. Address benötigt egulias/email-validator.',
+            ],
+            [
+                'package' => 'egulias/email-validator',
+                'label' => 'Egulias EmailValidator',
+                'paths' => [$dir('egulias-email-validator'), $dir('doctrine-lexer')],
+                'symbol' => '\\Egulias\\EmailValidator\\EmailValidator',
+                'symbol_type' => 'class',
+                'probe' => static function (): void {
+                    $valid = (new \Egulias\EmailValidator\EmailValidator())
+                        ->isValid('probe@example.org', new \Egulias\EmailValidator\Validation\RFCValidation());
+                    if (!$valid) {
+                        throw new \RuntimeException('RFC-Validierung schlägt für eine gültige Adresse fehl.');
+                    }
+                },
+                'notes' => 'Pflichtabhängigkeit von Symfony Mime/Mailer für SMTP-Versand (inkl. doctrine/lexer).',
             ],
             [
                 'package' => 'symfony/mailer',
                 'label' => 'Symfony Mailer',
-                'paths' => [['path' => $assets . 'mailer', 'type' => 'dir']],
+                'paths' => [$dir('mailer')],
                 'symbol' => '\\Symfony\\Component\\Mailer\\Mailer',
                 'symbol_type' => 'class',
-                'notes' => 'Mail-Transport im Core.',
+                'probe' => static fn(): object => \Symfony\Component\Mailer\Transport::fromDsn('smtp://localhost:25'),
+                'notes' => 'SMTP-Mail-Transport im Core.',
             ],
             [
-                'package' => 'psr/event-dispatcher',
-                'label' => 'PSR Event Dispatcher',
-                'paths' => [['path' => $assets . 'psr' . DIRECTORY_SEPARATOR . 'EventDispatcher', 'type' => 'dir']],
-                'symbol' => '\\Psr\\EventDispatcher\\EventDispatcherInterface',
+                'package' => 'symfony/event-dispatcher',
+                'label' => 'Symfony EventDispatcher',
+                'paths' => [$dir('event-dispatcher'), $dir('psr', 'EventDispatcher')],
+                'symbol' => '\\Symfony\\Component\\EventDispatcher\\EventDispatcher',
+                'symbol_type' => 'class',
+                'notes' => 'Event-Dispatcher für Mailer und AI Platform (inkl. psr/event-dispatcher).',
+            ],
+            [
+                'package' => 'symfony-contracts',
+                'label' => 'Symfony Contracts',
+                'paths' => [$dir('symfony-contracts')],
+                'symbol' => '\\Symfony\\Contracts\\Service\\ResetInterface',
                 'symbol_type' => 'interface',
-                'notes' => 'PSR-Event-Dispatcher-Kompatibilität.',
+                'notes' => 'symfony/contracts 3.6.1 (Service, Translation, EventDispatcher, HttpClient, Deprecation).',
+            ],
+            [
+                'package' => 'symfony/polyfills',
+                'label' => 'Symfony Polyfills',
+                'paths' => [
+                    $dir('polyfill-mbstring'), $dir('polyfill-ctype'), $dir('polyfill-intl-idn'),
+                    $dir('polyfill-intl-normalizer'), $dir('polyfill-intl-grapheme'), $dir('polyfill-uuid'),
+                ],
+                'symbol' => '\\Symfony\\Polyfill\\Mbstring\\Mbstring',
+                'symbol_type' => 'class',
+                'probe' => static fn(): string => mb_strtoupper('ä') . idn_to_ascii('bücher.example'),
+                'notes' => 'mbstring-, ctype-, intl-idn/-normalizer/-grapheme- und uuid-Polyfills; greifen nur ohne passende PHP-Extension.',
+            ],
+            [
+                'package' => 'dompurify',
+                'label' => 'DOMPurify',
+                'paths' => [$file('dompurify', 'purify.min.js'), $file('js', 'cms-csp-runtime.js')],
+                'symbol' => $assets . 'dompurify' . DIRECTORY_SEPARATOR . 'purify.min.js',
+                'symbol_type' => 'path',
+                'notes' => 'HTML-Sanitizer der Trusted-Types-default-Policy (cms-csp-runtime.js) für Admin, Member und Frontend.',
             ],
             [
                 'package' => 'editorjs',
                 'label' => 'Editor.js',
-                'paths' => [['path' => $assets . 'editorjs', 'type' => 'dir']],
+                'paths' => [$dir('editorjs')],
                 'symbol' => $assets . 'editorjs' . DIRECTORY_SEPARATOR . 'editorjs.umd.js',
                 'symbol_type' => 'path',
                 'notes' => 'Produktives Block-Editor-Assetset für Admin und Frontend.',
             ],
             [
-                'package' => 'gridjs',
-                'label' => 'Grid.js',
-                'paths' => [['path' => $assets . 'gridjs', 'type' => 'dir']],
-                'symbol' => $assets . 'gridjs' . DIRECTORY_SEPARATOR . 'gridjs.umd.js',
-                'symbol_type' => 'path',
-                'notes' => 'Tabellen- und Grid-Bundle im Admin.',
-            ],
-            [
                 'package' => 'photoswipe',
                 'label' => 'PhotoSwipe',
-                'paths' => [['path' => $assets . 'photoswipe', 'type' => 'dir']],
+                'paths' => [$dir('photoswipe')],
                 'symbol' => $assets . 'photoswipe' . DIRECTORY_SEPARATOR . 'photoswipe.esm.min.js',
                 'symbol_type' => 'path',
                 'notes' => 'Lightbox-/Galerie-Assets für Frontend-Medienansichten.',
@@ -611,23 +700,31 @@ final class VendorRegistry
             [
                 'package' => 'suneditor',
                 'label' => 'SunEditor',
-                'paths' => [['path' => $assets . 'suneditor', 'type' => 'dir']],
-                'symbol' => $assets . 'suneditor',
+                'paths' => [$file('suneditor', 'suneditor.min.js'), $file('suneditor', 'css', 'suneditor.min.css'), $file('suneditor', 'lang', 'de.js')],
+                'symbol' => $assets . 'suneditor' . DIRECTORY_SEPARATOR . 'suneditor.min.js',
                 'symbol_type' => 'path',
                 'notes' => 'Legacy-WYSIWYG-Editor im Admin.',
             ],
             [
                 'package' => 'tabler',
                 'label' => 'Tabler',
-                'paths' => [['path' => $assets . 'tabler', 'type' => 'dir']],
-                'symbol' => $assets . 'tabler',
+                'paths' => [$file('tabler', 'css', 'tabler.min.css'), $file('tabler', 'js', 'tabler.min.js')],
+                'symbol' => $assets . 'tabler' . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_SEPARATOR . 'tabler.min.css',
                 'symbol_type' => 'path',
-                'notes' => 'Primäres Admin-UI-Framework.',
+                'notes' => 'Primäres Admin-/Member-UI-Framework.',
+            ],
+            [
+                'package' => 'tabler-icons',
+                'label' => 'Tabler Icons',
+                'paths' => [$file('tabler-icons', 'tabler-icons.min.css'), $file('tabler-icons', 'fonts', 'tabler-icons.woff2')],
+                'symbol' => $assets . 'tabler-icons' . DIRECTORY_SEPARATOR . 'tabler-icons.min.css',
+                'symbol_type' => 'path',
+                'notes' => 'Lokaler Icon-Webfont für den Admin (woff2/woff/ttf).',
             ],
             [
                 'package' => 'cms-css',
                 'label' => '365CMS CSS-Assets',
-                'paths' => [['path' => $assets . 'css', 'type' => 'dir']],
+                'paths' => [$dir('css')],
                 'symbol' => $assets . 'css',
                 'symbol_type' => 'path',
                 'notes' => 'Produktive Stylesheets für Admin, Frontend und Member-Bereich.',
@@ -635,7 +732,7 @@ final class VendorRegistry
             [
                 'package' => 'cms-js',
                 'label' => '365CMS JS-Assets',
-                'paths' => [['path' => $assets . 'js', 'type' => 'dir']],
+                'paths' => [$dir('js')],
                 'symbol' => $assets . 'js',
                 'symbol_type' => 'path',
                 'notes' => 'Produktive JavaScript-Helfer und Initializer.',
@@ -643,26 +740,22 @@ final class VendorRegistry
             [
                 'package' => 'cms-images',
                 'label' => '365CMS Bild-Assets',
-                'paths' => [['path' => $assets . 'images', 'type' => 'dir']],
+                'paths' => [$dir('images')],
                 'symbol' => $assets . 'images',
                 'symbol_type' => 'path',
-                'notes' => 'Produktive Dashboard-, Logo- und Branding-Bestände.',
+                'notes' => 'Logos und Branding-Assets.',
             ],
             [
                 'package' => 'symfony/ai-platform',
                 'label' => 'Symfony AI Platform',
-                'paths' => [['path' => $assets . 'ai-platform', 'type' => 'dir']],
+                'paths' => [$dir('ai-platform', 'src')],
                 'symbol' => '\\Symfony\\AI\\Platform\\PlatformInterface',
                 'symbol_type' => 'interface',
-                'notes' => 'Produktiv gebündelte AI-Platform-Basis für künftige Core-Adapter, Provider-Bridges und AI-Services-Runtimepfade.',
-            ],
-            [
-                'package' => 'simplepie',
-                'label' => 'SimplePie (Legacy)',
-                'paths' => [['path' => $assets . 'simplepielibrary', 'type' => 'dir']],
-                'symbol' => $assets . 'simplepielibrary',
-                'symbol_type' => 'legacy',
-                'notes' => 'Dokumentierter Legacy-Bestand; aktuell kein aktives Runtime-Bundle.',
+                'probe' => static fn(): object => new \Symfony\AI\Platform\Message\MessageBag(
+                    \Symfony\AI\Platform\Message\Message::forSystem('probe'),
+                    \Symfony\AI\Platform\Message\Message::ofUser('probe')
+                ),
+                'notes' => 'AI-Platform-Basis inkl. Serializer, PropertyInfo/-Access, TypeInfo, Uid, String, enum-helper und phpDocumentor-Reflection.',
             ],
             [
                 'package' => 'symfony/cache',
@@ -693,6 +786,16 @@ final class VendorRegistry
             'symfony/mailer' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'mailer' . DIRECTORY_SEPARATOR . 'composer.json',
             'symfony/mime' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'mime' . DIRECTORY_SEPARATOR . 'composer.json',
             'symfony/translation' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'translation' . DIRECTORY_SEPARATOR . 'composer.json',
+            'symfony/yaml' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'yaml' . DIRECTORY_SEPARATOR . 'composer.json',
+            'symfony/clock' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'clock' . DIRECTORY_SEPARATOR . 'composer.json',
+            'symfony/event-dispatcher' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'event-dispatcher' . DIRECTORY_SEPARATOR . 'composer.json',
+            'symfony/serializer' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'serializer' . DIRECTORY_SEPARATOR . 'composer.json',
+            'symfony/property-info' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'property-info' . DIRECTORY_SEPARATOR . 'composer.json',
+            'symfony/property-access' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'property-access' . DIRECTORY_SEPARATOR . 'composer.json',
+            'symfony/type-info' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'type-info' . DIRECTORY_SEPARATOR . 'composer.json',
+            'symfony/uid' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'uid' . DIRECTORY_SEPARATOR . 'composer.json',
+            'symfony/string' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'string' . DIRECTORY_SEPARATOR . 'composer.json',
+            'egulias/email-validator' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'egulias-email-validator' . DIRECTORY_SEPARATOR . 'composer.json',
         ];
     }
 
@@ -796,6 +899,34 @@ final class VendorRegistry
                 'error' => $this->formatRuntimeError($e),
                 'label' => 'Fehler',
                 'class' => 'warning',
+            ];
+        }
+    }
+
+    /**
+     * Reine class_exists-Prüfungen erkennen fehlende transitive Abhängigkeiten
+     * nicht (z. B. Carbon ohne symfony/clock). Der Probe führt deshalb einen
+     * minimalen echten Aufruf der Library aus.
+     *
+     * @return array{ready: bool, error: ?string, label: string, class: string}
+     */
+    private function runFunctionalProbe(\Closure $probe): array
+    {
+        try {
+            $probe();
+
+            return [
+                'ready' => true,
+                'error' => null,
+                'label' => 'funktionsfähig',
+                'class' => 'success',
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'ready' => false,
+                'error' => $this->formatRuntimeError($e),
+                'label' => 'Abhängigkeit fehlt',
+                'class' => 'danger',
             ];
         }
     }

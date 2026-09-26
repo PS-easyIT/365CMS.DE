@@ -158,7 +158,7 @@ if ($contactSuccess === '') {
                 <input type="hidden" name="contact_submit" value="1">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                 <!-- Honeypot (verstecktes Anti-Spam-Feld) -->
-                <div style="display:none;" aria-hidden="true">
+                <div hidden style="display:none;" aria-hidden="true">
                     <input type="text" name="website" tabindex="-1" autocomplete="off">
                 </div>
 

@@ -28,7 +28,17 @@ if (!headers_sent()) {
             <p class="error-desc"><?php echo htmlspecialchars($errorMessage); ?></p>
             <div class="error-actions">
                 <a href="<?php echo SITE_URL; ?>/" class="btn-solid">Zur Startseite</a>
-                <a href="javascript:history.back()" class="btn-ghost">Zurück</a>
+                <?php
+                $errorBackUrl = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+                $errorSiteHost = (string) parse_url(SITE_URL, PHP_URL_HOST);
+                if ($errorBackUrl === '' || $errorSiteHost === '' || strcasecmp((string) parse_url($errorBackUrl, PHP_URL_HOST), $errorSiteHost) !== 0
+                    || !in_array(strtolower((string) parse_url($errorBackUrl, PHP_URL_SCHEME)), ['http', 'https'], true)) {
+                    $errorBackUrl = '';
+                }
+                ?>
+                <?php if ($errorBackUrl !== ''): ?>
+                <a href="<?php echo htmlspecialchars($errorBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn-ghost">Zurück</a>
+                <?php endif; ?>
             </div>
         </div>
     </div>

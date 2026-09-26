@@ -16,23 +16,28 @@ Führende Quelle für **aktive Laufzeitpfade** ist `CMS/assets/` sowie der dokum
 
 | Library | Runtime-Stand | Zweck | Produktiver Pfad | Quelle in `/ASSETS` | Hinweis |
 |---|---|---|---|---|---|
-| `tabler` | `1.4.0` | Admin-/Member-UI | `CMS/assets/tabler/` | `ASSETS/tabler-core-1.4.0/core/dist/` | nur gebaute `css/`, `js/`, `img/` übernehmen |
+| `tabler` | `1.4.0` | Admin-/Member-UI | `CMS/assets/tabler/` | `ASSETS/tabler-core-1.4.0/core/dist/` | nur `css/tabler.min.css` und `js/tabler.min.js` übernehmen (Flags/Payments/RTL/Maps/`img/` werden nicht geladen) |
 | `editorjs` | `2.31.6` | Block-Editor | `CMS/assets/editorjs/` | `ASSETS/editor.js-2.31.6/` | kuratierter Runtime-Satz aus Core-Dateien und gezielt gebauten Plugin-Artefakten wie `delimiter.umd.js` |
 | `suneditor` | `3.0.5` | Legacy-WYSIWYG | `CMS/assets/suneditor/` | `ASSETS/suneditor-3.0.5/` | Runtime wird aus `dist/` + `src/langs/de.js` übernommen; fehlt `dist/` nach Upstream-Download, muss lokal gebaut werden |
-| `gridjs` | gebündelter Snapshot | Tabellen / Grids | `CMS/assets/gridjs/` | `ASSETS/gridjs/` | nur auslieferbare Build-Dateien übernehmen |
 | `photoswipe` | `5.x`-Build | Lightbox | `CMS/assets/photoswipe/` | `ASSETS/PhotoSwipe/` | nur produktive Frontend-Dateien übernehmen |
-| `Carbon` | `3.11.4` | Datum / Zeit | `CMS/assets/Carbon/` | `ASSETS/Carbon-3.11.4/src/Carbon/` | PSR-4-Verzeichnis direkt gespiegelt |
+| `Carbon` | `3.11.4` | Datum / Zeit | `CMS/assets/Carbon/src/Carbon/`, `CMS/assets/Carbon/lazy/Carbon/` | `ASSETS/Carbon-3.11.4/src/Carbon/`, `ASSETS/Carbon-3.11.4/lazy/` | Upstream-Layout `src/` + `lazy/` beibehalten (relative `lazy/`-Requires); ohne `Laravel/`, `PHPStan/`, `Cli/` |
 | `ldaprecord` | `4.0.3` | LDAP / Active Directory | `CMS/assets/ldaprecord/` | `ASSETS/LdapRecord-4.0.3/src/` | kompletter Source-Ordner für PSR-4 |
 | `mailer` | `8.0.8` | Mailversand | `CMS/assets/mailer/` | `ASSETS/mailer-8.0.8/` | Symfony-Komponente |
 | `mime` | `8.0.8` | MIME / Anhänge | `CMS/assets/mime/` | `ASSETS/mime-8.0.8/` | Symfony-Komponente |
-| `translation` | `8.0.8` | i18n | `CMS/assets/translation/` | `ASSETS/translation-8.0.8/` | Symfony-Komponente |
+| `translation` | `8.0.8` | i18n | `CMS/assets/translation/` | `ASSETS/translation-8.0.8/` | Symfony-Komponente, ohne Command/DataCollector/DI/Extractor |
+| `yaml` | `8.0.8` | YAML-Parser (Sprachkataloge) | `CMS/assets/yaml/` | Packagist `symfony/yaml` | ohne `Command/` |
+| `clock` | `8.0.8` | Clock für Carbon / AI | `CMS/assets/clock/` | Packagist `symfony/clock` | inkl. `Resources/now.php` (files-Autoload) |
+| `egulias-email-validator` | `4.0.4` | E-Mail-Validierung | `CMS/assets/egulias-email-validator/` | Packagist `egulias/email-validator` | Pflicht für `Mime\Address`/SMTP; benötigt `doctrine-lexer` 3.0.2 |
+| AI-Platform-Kette | `8.0.8` bzw. aktuelle Stable | Serializer, PropertyInfo/-Access, TypeInfo, Uid, String, EventDispatcher, enum-helper, phpDocumentor, phpdoc-parser, webmozart/assert, doctrine/deprecations | jeweils `CMS/assets/<paket>/` | Packagist | ohne Tests/Command/DataCollector/DI |
+| `polyfill-*` | `1.3x`/`1.4x` | mbstring, ctype, intl-idn/-normalizer/-grapheme, uuid | `CMS/assets/polyfill-*/` | Packagist `symfony/polyfill-*` | `bootstrap.php` über `files`-Liste im Autoloader |
+| `symfony-contracts` | `3.6.1` | Service-/Translation-/EventDispatcher-/HttpClient-/Deprecation-Contracts | `CMS/assets/symfony-contracts/` | `ASSETS/contracts-3.6.1/` | ersetzt den früheren Minimal-Shim; `Cache/` nicht übernommen (kein psr/cache) |
 | `tntsearch` | `5.0.3` | Volltextsuche | `CMS/assets/tntsearchsrc/`, `CMS/assets/tntsearchhelper/` | `ASSETS/tntsearch-5.0.3/` | `src/` und `helper/helpers.php` getrennt gespiegelt |
 | `php-jwt` | gebündelter Snapshot | JWT | `CMS/assets/php-jwt/` | `ASSETS/php-jwt/` | produktiv lokal gebündelt |
 | `twofactorauth` | gebündelter Snapshot | TOTP / 2FA | `CMS/assets/twofactorauth/` | `ASSETS/twofactorauth/` | sicherheitskritisch, nur kapseln |
 | `webauthn` | gebündelter Snapshot | Passkeys / WebAuthn | `CMS/assets/webauthn/` | `ASSETS/webauthn/` | sicherheitskritisch, nur kapseln |
 | `htmlpurifier` | gebündelter Snapshot | XSS-Schutz | `CMS/assets/htmlpurifier/` | `ASSETS/htmlpurifier/` | produktive Sanitizer-Basis |
 | `melbahja-seo` | gebündelter Snapshot | SEO-Helfer | `CMS/assets/melbahja-seo/` | `ASSETS/melbahja-seo/` | mittelfristig in Core-Services zerlegbar |
-| `psr` | gebündelter Snapshot | PSR-Interfaces | `CMS/assets/psr/` | `ASSETS/psr/` | transitive Basisschnittstellen |
+| `psr` | Log 3.0.2, EventDispatcher 1.0.0, Container 2.0.2, Clock 1.0.0 | PSR-Interfaces | `CMS/assets/psr/` | Packagist `psr/*` | vollständige Originalpakete statt Minimal-Shim |
 | `dompdf` | `3.1.5` | PDF-Erzeugung | `CMS/vendor/dompdf/` | `ASSETS/dompdf-3.1.5/dompdf/vendor/` | **kein** `CMS/assets`-Bundle, sondern Vendor-Sonderfall |
 | `css/js/images` | intern | 365CMS-eigene Runtime-Assets | `CMS/assets/css/`, `CMS/assets/js/`, `CMS/assets/images/` | `ASSETS/css/`, `ASSETS/js/`, `ASSETS/images/` | kein Third-Party-Bundle; Bildinventar siehe [`DOC/assets/images/README.md`](assets/images/README.md) |
 | `msgraph` | Referenzbestand | SDK-Ablage | `CMS/assets/msgraph/` | `ASSETS/msgraph-sdk-php-2.56.0/` | aktuell nicht als aktive Runtime-Integration dokumentiert |

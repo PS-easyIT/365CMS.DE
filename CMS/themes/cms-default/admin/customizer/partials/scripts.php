@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 ?>
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 (function() {
     var modal = document.getElementById('confirm-reset-modal');
     var resetForm = document.getElementById('reset-form');

@@ -854,7 +854,7 @@ class Router
             . '<meta name="viewport" content="width=device-width, initial-scale=1">'
             . '<meta name="robots" content="noindex,nofollow">'
             . '<title>' . (int) $status . ' – ' . $safeTitle . '</title>'
-            . '<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f8fafc;color:#0f172a}main{max-width:720px;margin:8vh auto;padding:2rem}a{color:#2563eb}h1{margin-bottom:.75rem}p{line-height:1.6}</style>'
+            . '<style ' . \CMS\Security::instance()->nonceAttr() . '>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f8fafc;color:#0f172a}main{max-width:720px;margin:8vh auto;padding:2rem}a{color:#2563eb}h1{margin-bottom:.75rem}p{line-height:1.6}</style>'
             . '</head><body><main>'
             . '<p>' . (int) $status . '</p>'
             . '<h1>' . $safeTitle . '</h1>'

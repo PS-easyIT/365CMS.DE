@@ -27,14 +27,16 @@ $pageKey = $pageKey ?? 'dashboard';
     </div>
 </div>
 <script src="<?= htmlspecialchars(cms_asset_url('tabler/js/tabler.min.js'), ENT_QUOTES) ?>" defer></script>
+<script src="<?= htmlspecialchars(cms_asset_url('js/tabler-bootstrap-bridge.js'), ENT_QUOTES) ?>" defer></script>
 <script src="<?= htmlspecialchars(cms_asset_url('js/member-dashboard.js'), ENT_QUOTES) ?>" defer></script>
+<script src="<?= htmlspecialchars(cms_asset_url('js/cms-inline-actions.js'), ENT_QUOTES) ?>" defer></script>
 <?php if (!empty($pageAssets['js'])): ?>
     <?php foreach ((array)$pageAssets['js'] as $js): ?>
         <script src="<?= htmlspecialchars((string)$js) ?>" defer></script>
     <?php endforeach; ?>
 <?php endif; ?>
 <?php if ($inlineJs !== ''): ?>
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 document.addEventListener('DOMContentLoaded', function () {
 <?= $inlineJs ?>
 });

@@ -89,7 +89,7 @@ $nonceAttr = $security->nonceAttr();
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>365CMS Datenbank-Update</title>
-    <style <?php echo $nonceAttr; ?>>
+    <style <?= \CMS\Security::instance()->nonceAttr() ?> <?php echo $nonceAttr; ?>>
         :root { color-scheme: light; }
         * { box-sizing: border-box; }
         body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 2rem; background: #0f172a; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }

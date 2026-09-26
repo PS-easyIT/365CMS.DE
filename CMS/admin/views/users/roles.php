@@ -303,7 +303,7 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
                     </div>
                     <div class="btn-list">
                         <button type="submit" name="action" value="reset_permissions" class="btn btn-outline-secondary"
-                                onclick="return confirm('Alle individuellen Rechte werden durch die Standardrechte ersetzt. Fortfahren?');">
+                                data-cms-confirm="Alle individuellen Rechte werden durch die Standardrechte ersetzt. Fortfahren?">
                             Standardrechte wiederherstellen
                         </button>
                         <button type="submit" class="btn btn-primary">

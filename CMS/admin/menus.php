@@ -354,7 +354,7 @@ renderAdminLayoutStart('Menü-Verwaltung', 'menus');
 
     </div><!-- /.admin-content -->
 
-<style>
+<style <?= \CMS\Security::instance()->nonceAttr() ?>>
 /* ═══ Menü-Editor ══════════════════════════════════════════════════ */
 .mrow {
     display: grid;
@@ -438,7 +438,7 @@ renderAdminLayoutStart('Menü-Verwaltung', 'menus');
 }
 </style>
 
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 // ─── State ───────────────────────────────────────────────────────────────────
 let menuItems = <?php echo $menuJsonForJs ?: '[]'; ?>;
 menuItems = (menuItems || []).map(norm);

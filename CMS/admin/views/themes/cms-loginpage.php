@@ -266,7 +266,7 @@ $renderSelect = static function (string $name, string $label, array $options, st
     </div>
 </div>
 </div>
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 (function () {
     var tabLinks = Array.prototype.slice.call(document.querySelectorAll('[data-login-tab]'));
     var panels = Array.prototype.slice.call(document.querySelectorAll('.cms-loginpage-tab-panel'));

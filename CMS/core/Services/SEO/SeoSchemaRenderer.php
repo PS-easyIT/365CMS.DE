@@ -166,7 +166,20 @@ final class SeoSchemaRenderer
     private function buildOrganizationThing(): Thing
     {
         $name = $this->settings->getSetting('schema_org_name', defined('SITE_NAME') ? SITE_NAME : '365CMS');
-        $logo = $this->settings->getSetting('schema_org_logo', SITE_URL . '/assets/images/logo.png');
+        $logo = trim((string) $this->settings->getSetting('schema_org_logo', ''));
+        if ($logo === '' && function_exists('get_option')) {
+            try {
+                $logo = trim((string) \get_option('site_logo', ''));
+            } catch (\Throwable) {
+                $logo = '';
+            }
+        }
+        if ($logo !== '' && preg_match('#^https?://#i', $logo) !== 1) {
+            $logo = rtrim((string) SITE_URL, '/') . '/' . ltrim($logo, '/');
+        }
+        if ($logo === '') {
+            $logo = SITE_URL . '/assets/images/LOGO_365CMS-150px.png';
+        }
         $twitter = $this->settings->getSetting('twitter_site', '');
         $sameAs = [];
 

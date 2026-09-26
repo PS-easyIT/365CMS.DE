@@ -16,314 +16,145 @@
 
 declare(strict_types=1);
 
-// Basisverzeichnis der CMS-Assets
 if (!defined('CMS_VENDOR_PATH')) {
     define('CMS_VENDOR_PATH', __DIR__ . DIRECTORY_SEPARATOR);
 }
 
-// ─── Symfony Contracts (lokale Runtime-Kompatibilität) ────────────────────
-// Minimaler lokaler Ersatz für produktiv referenzierte Contracts-Namensräume,
-// solange die vollständigen Symfony-Contracts nicht separat gebündelt sind.
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Symfony\\Contracts\\';
-    $baseDir = CMS_VENDOR_PATH . 'symfony-contracts' . DIRECTORY_SEPARATOR;
+if (!function_exists('cms_vendor_psr4_map')) {
+    /**
+     * PSR-4-Zuordnung Namespace-Präfix → Verzeichnis(se) relativ zu CMS/assets/.
+     * Längere Präfixe werden zuerst geprüft, damit z. B. Symfony\Component\Mailer\
+     * nicht von einem allgemeineren Präfix verschluckt wird.
+     *
+     * @return array<string, list<string>>
+     */
+    function cms_vendor_psr4_map(): array
+    {
+        static $map = null;
+        if ($map !== null) {
+            return $map;
+        }
 
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
+        $map = [
+            // ─── PSR-Interfaces ───────────────────────────────────────────
+            'Psr\\Log\\'             => ['psr/Log'],
+            'Psr\\EventDispatcher\\' => ['psr/EventDispatcher'],
+            'Psr\\Container\\'       => ['psr/Container'],
+            'Psr\\Clock\\'           => ['psr/Clock'],
+            'Psr\\SimpleCache\\'     => ['psr/SimpleCache'],
+
+            // ─── Symfony Contracts (symfony/contracts 3.6.1, vollständig) ─
+            'Symfony\\Contracts\\' => ['symfony-contracts'],
+
+            // ─── Symfony Polyfills (greifen nur ohne passende PHP-Extension) ─
+            'Symfony\\Polyfill\\Mbstring\\'         => ['polyfill-mbstring'],
+            'Symfony\\Polyfill\\Ctype\\'            => ['polyfill-ctype'],
+            'Symfony\\Polyfill\\Intl\\Idn\\'        => ['polyfill-intl-idn'],
+            'Symfony\\Polyfill\\Intl\\Normalizer\\' => ['polyfill-intl-normalizer'],
+            'Symfony\\Polyfill\\Intl\\Grapheme\\'   => ['polyfill-intl-grapheme'],
+            'Symfony\\Polyfill\\Uuid\\'             => ['polyfill-uuid'],
+
+            // ─── Symfony Komponenten (8.0.x) ──────────────────────────────
+            'Symfony\\Component\\Mailer\\'          => ['mailer'],
+            'Symfony\\Component\\Mime\\'            => ['mime'],
+            'Symfony\\Component\\Translation\\'     => ['translation'],
+            'Symfony\\Component\\Yaml\\'            => ['yaml'],
+            'Symfony\\Component\\Clock\\'           => ['clock'],
+            'Symfony\\Component\\EventDispatcher\\' => ['event-dispatcher'],
+            'Symfony\\Component\\Serializer\\'      => ['serializer'],
+            'Symfony\\Component\\PropertyInfo\\'    => ['property-info'],
+            'Symfony\\Component\\PropertyAccess\\'  => ['property-access'],
+            'Symfony\\Component\\TypeInfo\\'        => ['type-info'],
+            'Symfony\\Component\\Uid\\'             => ['uid'],
+            'Symfony\\Component\\String\\'          => ['string'],
+            'Symfony\\AI\\Platform\\'               => ['ai-platform/src'],
+
+            // ─── Mail-Validierung (Pflicht für Symfony Mime Address/SMTP) ─
+            'Egulias\\EmailValidator\\' => ['egulias-email-validator'],
+            'Doctrine\\Common\\Lexer\\' => ['doctrine-lexer'],
+            'Doctrine\\Deprecations\\'  => ['doctrine-deprecations'],
+
+            // ─── AI-Platform-Abhängigkeiten ───────────────────────────────
+            'OskarStark\\Enum\\'      => ['oskarstark-enum-helper'],
+            'phpDocumentor\\Reflection\\' => [
+                'phpdocumentor-reflection-docblock',
+                'phpdocumentor-type-resolver',
+                'phpdocumentor-reflection-common',
+            ],
+            'PHPStan\\PhpDocParser\\' => ['phpstan-phpdoc-parser'],
+            'Webmozart\\Assert\\'     => ['webmozart-assert'],
+
+            // ─── Fach-Libraries ───────────────────────────────────────────
+            'Melbahja\\Seo\\'     => ['melbahja-seo/src'],
+            'Poliander\\Cron\\'   => ['cron'],
+            'TeamTNT\\TNTSearch\\' => ['tntsearchsrc'],
+            'Carbon\\'            => ['Carbon/src/Carbon'],
+            'lbuchs\\WebAuthn\\'  => ['webauthn'],
+            'RobThree\\Auth\\'    => ['twofactorauth'],
+            'LdapRecord\\'        => ['ldaprecord'],
+            'Firebase\\JWT\\'     => ['php-jwt'],
+        ];
+
+        uksort($map, static fn(string $a, string $b): int => strlen($b) <=> strlen($a));
+
+        return $map;
+    }
+}
+
+spl_autoload_register(static function (string $class): void {
+    static $classMap = [
+        // polyfill-intl-normalizer: globale Normalizer-Klasse nur ohne ext-intl
+        'Normalizer' => 'polyfill-intl-normalizer/Resources/stubs/Normalizer.php',
+    ];
+
+    if (isset($classMap[$class])) {
+        $file = CMS_VENDOR_PATH . str_replace('/', DIRECTORY_SEPARATOR, $classMap[$class]);
+        if (is_file($file)) {
+            require_once $file;
+        }
         return;
     }
 
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
+    foreach (cms_vendor_psr4_map() as $prefix => $dirs) {
+        if (strncmp($prefix, $class, strlen($prefix)) !== 0) {
+            continue;
+        }
 
-    if (file_exists($file)) {
-        require_once $file;
+        $relative = str_replace('\\', DIRECTORY_SEPARATOR, substr($class, strlen($prefix))) . '.php';
+        foreach ($dirs as $dir) {
+            $file = CMS_VENDOR_PATH . str_replace('/', DIRECTORY_SEPARATOR, $dir) . DIRECTORY_SEPARATOR . $relative;
+            if (is_file($file)) {
+                require_once $file;
+                return;
+            }
+        }
     }
 });
 
-// ─── HTMLPurifier ──────────────────────────────────────────────────────────
-// Library: htmlpurifier/ (Quelle: htmlpurifier-4.19.0)
+// ─── Composer-"files"-Einträge (Funktionen/Polyfills) ──────────────────────
+// Reihenfolge wie bei Composer: Polyfills vor den Paketen, die sie nutzen.
+foreach ([
+    'polyfill-ctype/bootstrap.php',
+    'polyfill-mbstring/bootstrap.php',
+    'polyfill-intl-normalizer/bootstrap.php',
+    'polyfill-intl-idn/bootstrap.php',
+    'polyfill-intl-grapheme/bootstrap.php',
+    'polyfill-uuid/bootstrap.php',
+    'symfony-contracts/Deprecation/function.php',
+    'clock/Resources/now.php',
+    'string/Resources/functions.php',
+    'tntsearchhelper/helpers.php',
+] as $_cmsVendorFile) {
+    $_cmsVendorFile = CMS_VENDOR_PATH . str_replace('/', DIRECTORY_SEPARATOR, $_cmsVendorFile);
+    if (is_file($_cmsVendorFile)) {
+        require_once $_cmsVendorFile;
+    }
+}
+unset($_cmsVendorFile);
+
+// ─── HTMLPurifier (bringt eigenen Autoloader mit) ──────────────────────────
 $_htmlPurifierLib = CMS_VENDOR_PATH . 'htmlpurifier' . DIRECTORY_SEPARATOR . 'HTMLPurifier.auto.php';
-if (file_exists($_htmlPurifierLib)) {
+if (is_file($_htmlPurifierLib)) {
     require_once $_htmlPurifierLib;
 }
 unset($_htmlPurifierLib);
-
-// schema-org/ (Spatie) – ersetzt durch melbahja/seo (Schema-Modul)
-
-// melbahja/seo – Sitemap, IndexNow, Schema
-// PSR-4: Melbahja\Seo\ → melbahja-seo/src/
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Melbahja\\Seo\\';
-    $baseDir = CMS_VENDOR_PATH . 'melbahja-seo' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── poliander/cron ────────────────────────────────────────────────────────
-// PSR-4: Poliander\Cron\ → cron/
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Poliander\\Cron\\';
-    $baseDir = CMS_VENDOR_PATH . 'cron' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── TNTSearch ─────────────────────────────────────────────────────────────
-// PSR-4: TeamTNT\TNTSearch\ → tntsearchsrc/
-spl_autoload_register(function (string $class): void {
-    $prefix = 'TeamTNT\\TNTSearch\\';
-    $baseDir = CMS_VENDOR_PATH . 'tntsearchsrc' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// TNTSearch Helper-Funktionen
-$_tntHelpers = CMS_VENDOR_PATH . 'tntsearchhelper' . DIRECTORY_SEPARATOR . 'helpers.php';
-if (file_exists($_tntHelpers)) {
-    require_once $_tntHelpers;
-}
-unset($_tntHelpers);
-
-// ─── Carbon (nesbot/carbon) ────────────────────────────────────────────────
-// PSR-4: Carbon\ → Carbon/
-// Genutzt von time_ago() in includes/functions.php (mit class_exists-Guard)
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Carbon\\';
-    $baseDir = CMS_VENDOR_PATH . 'Carbon' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── Symfony Translation ───────────────────────────────────────────────────
-// PSR-4: Symfony\Component\Translation\ → translation/
-// Genutzt von TranslationService (mit class_exists-Guard)
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Symfony\\Component\\Translation\\';
-    $baseDir = CMS_VENDOR_PATH . 'translation' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── lbuchs/WebAuthn ──────────────────────────────────────────────────────
-// Passkey / FIDO2: webauthn/
-// Hinweis: Library verwendet interne require_once-Aufrufe.
-spl_autoload_register(function (string $class): void {
-    $prefix = 'lbuchs\\WebAuthn\\';
-    $baseDir = CMS_VENDOR_PATH . 'webauthn' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── RobThree/TwoFactorAuth ───────────────────────────────────────────────
-// PSR-4: RobThree\Auth\ → twofactorauth/
-spl_autoload_register(function (string $class): void {
-    $prefix = 'RobThree\\Auth\\';
-    $baseDir = CMS_VENDOR_PATH . 'twofactorauth' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── DirectoryTree/LdapRecord ──────────────────────────────────────────────
-// PSR-4: LdapRecord\ → ldaprecord/
-spl_autoload_register(function (string $class): void {
-    $prefix = 'LdapRecord\\';
-    $baseDir = CMS_VENDOR_PATH . 'ldaprecord' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── Firebase/php-jwt ──────────────────────────────────────────────────────
-// PSR-4: Firebase\JWT\ → php-jwt/
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Firebase\\JWT\\';
-    $baseDir = CMS_VENDOR_PATH . 'php-jwt' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── PSR Log (minimale Kompatibilität) ─────────────────────────────────────
-// PSR-4: Psr\Log\ → psr/Log/
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Psr\\Log\\';
-    $baseDir = CMS_VENDOR_PATH . 'psr' . DIRECTORY_SEPARATOR . 'Log' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── Symfony Mime ──────────────────────────────────────────────────────────
-// PSR-4: Symfony\Component\Mime\ → mime/
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Symfony\\Component\\Mime\\';
-    $baseDir = CMS_VENDOR_PATH . 'mime' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── Symfony Mailer ────────────────────────────────────────────────────────
-// PSR-4: Symfony\Component\Mailer\ → mailer/
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Symfony\\Component\\Mailer\\';
-    $baseDir = CMS_VENDOR_PATH . 'mailer' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── PSR Event Dispatcher (minimale Kompatibilität) ────────────────────────
-// PSR-4: Psr\EventDispatcher\ → psr/EventDispatcher/
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Psr\\EventDispatcher\\';
-    $baseDir = CMS_VENDOR_PATH . 'psr' . DIRECTORY_SEPARATOR . 'EventDispatcher' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── Symfony AI Platform ───────────────────────────────────────────────────
-// PSR-4: Symfony\AI\Platform\ → ai-platform/src/
-// Aktuell als Core-Basis für AI-Services-/Adapterpfade gebündelt.
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Symfony\\AI\\Platform\\';
-    $baseDir = CMS_VENDOR_PATH . 'ai-platform' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});

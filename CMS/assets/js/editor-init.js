@@ -431,7 +431,8 @@
 
                 var style = sanitizeEditableColorStyle(originalAttributes.style || '');
                 if (style !== '') {
-                    child.setAttribute('style', style);
+                    // CSSOM statt setAttribute('style'): Letzteres blockiert die CSP (style-src-attr).
+                    child.style.cssText = style;
                 }
             }
 

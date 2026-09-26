@@ -140,10 +140,10 @@ $statusBadges = ['pending' => 'bg-warning', 'processing' => 'bg-blue', 'complete
                                                     <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="complete"><input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>"><button class="dropdown-item text-success">Abschließen & Daten exportieren</button></form>
                                                 <?php endif; ?>
                                                 <?php if (in_array($r['status'], ['pending', 'processing'], true)): ?>
-                                                    <a href="#" class="dropdown-item text-warning" onclick="rejectRequest(<?php echo (int)$r['id']; ?>)">Ablehnen</a>
+                                                    <a href="#" class="dropdown-item text-warning" data-cms-call="rejectRequest" data-cms-call-args="[<?php echo (int)$r['id']; ?>]">Ablehnen</a>
                                                 <?php endif; ?>
                                                 <?php if (in_array($r['status'], ['completed', 'rejected'], true)): ?>
-                                                    <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>"><button class="dropdown-item text-danger" onclick="return confirm('Anfrage endgültig löschen?')">Löschen</button></form>
+                                                    <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>"><button class="dropdown-item text-danger" data-cms-confirm="Anfrage endgültig löschen?">Löschen</button></form>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
@@ -183,7 +183,7 @@ $statusBadges = ['pending' => 'bg-warning', 'processing' => 'bg-blue', 'complete
             </div>
         </div>
 
-        <script>
+        <script <?= \CMS\Security::instance()->nonceAttr() ?>>
         function rejectRequest(id) {
             document.getElementById('rejectId').value = id;
             new bootstrap.Modal(document.getElementById('rejectModal')).show();

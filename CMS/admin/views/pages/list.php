@@ -277,7 +277,7 @@ $pagesHasMultipleAuthors = count($pagesAuthorKeys) > 1;
                                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?= $pageId ?>">
-                                            <button type="button" class="btn btn-ghost-danger btn-sm btn-icon content-listing-delete-action js-row-action" aria-label="Seite löschen" title="Löschen" onclick="cmsConfirm({title:'Seite löschen?',message:'Diese Seite wird unwiderruflich gelöscht.',confirmText:'Löschen',confirmClass:'btn-danger',onConfirm:()=>cmsSubmitFormSafely(this.closest('form'))})">
+                                            <button type="button" class="btn btn-ghost-danger btn-sm btn-icon content-listing-delete-action js-row-action" aria-label="Seite löschen" title="Löschen" data-cms-confirm-modal data-cms-confirm-title="Seite löschen?" data-cms-confirm-message="Diese Seite wird unwiderruflich gelöscht." data-cms-confirm-text="Löschen" data-cms-confirm-class="btn-danger">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7l1 -3h4l1 3"/></svg>
                                             </button>
                                         </form>
@@ -313,7 +313,7 @@ $pagesHasMultipleAuthors = count($pagesAuthorKeys) > 1;
     </div><!-- /.container-xl -->
 </div><!-- /.page-body -->
 
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 document.addEventListener('DOMContentLoaded', function () {
     var selectAll = document.getElementById('pagesSelectAll');
     var bulkForm = document.getElementById('bulkFormPages');

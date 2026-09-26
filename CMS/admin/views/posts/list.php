@@ -73,7 +73,7 @@ $postsHasMultipleAuthors = count($postsAuthorKeys) > 1;
                 <form method="get" action="/admin/posts" id="postsFilterForm" class="content-listing-filters">
                     <div class="content-listing-filters__group">
                         <label for="statusFilter" class="form-label mb-0 small text-secondary">Status</label>
-                        <select class="form-select form-select-sm" id="statusFilter" name="status" onchange="applyFilters()">
+                        <select class="form-select form-select-sm" id="statusFilter" name="status" data-cms-call="applyFilters" data-cms-call-on="change">
                             <option value="">Alle Status</option>
                             <option value="published" <?php if ($filter === 'published') echo 'selected'; ?>>Veröffentlicht</option>
                             <option value="scheduled" <?php if ($filter === 'scheduled') echo 'selected'; ?>>Geplant</option>
@@ -83,7 +83,7 @@ $postsHasMultipleAuthors = count($postsAuthorKeys) > 1;
                     </div>
                     <div class="content-listing-filters__group">
                         <label for="categoryFilter" class="form-label mb-0 small text-secondary">Kategorie</label>
-                        <select class="form-select form-select-sm" id="categoryFilter" name="category" onchange="applyFilters()">
+                        <select class="form-select form-select-sm" id="categoryFilter" name="category" data-cms-call="applyFilters" data-cms-call-on="change">
                             <option value="0">Alle Kategorien</option>
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?php echo (int)$cat['id']; ?>" <?php if ($catFilter === (int)$cat['id']) echo 'selected'; ?>>
@@ -100,8 +100,8 @@ $postsHasMultipleAuthors = count($postsAuthorKeys) > 1;
                             </span>
                             <input type="text" class="form-control form-control-sm" id="searchInput" name="q" placeholder="Titel, Slug oder Autor suchen"
                                    value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>"
-                                   onkeydown="if(event.key==='Enter'){event.preventDefault();applyFilters();}">
-                            <button type="button" class="btn btn-outline-secondary" onclick="applyFilters()">Suchen</button>
+                                   data-cms-enter-call="applyFilters">
+                            <button type="button" class="btn btn-outline-secondary" data-cms-call="applyFilters">Suchen</button>
                         </div>
                     </div>
                     <div class="content-listing-filters__actions">
@@ -283,7 +283,7 @@ $postsHasMultipleAuthors = count($postsAuthorKeys) > 1;
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo $postId; ?>">
-                                            <button type="button" class="btn btn-ghost-danger btn-sm btn-icon content-listing-delete-action js-row-action" aria-label="Beitrag löschen" title="Löschen" onclick="cmsConfirm({title:'Beitrag löschen?',message:'Dieser Beitrag wird unwiderruflich gelöscht.',confirmText:'Löschen',confirmClass:'btn-danger',onConfirm:()=>cmsSubmitFormSafely(this.closest('form'))})">
+                                            <button type="button" class="btn btn-ghost-danger btn-sm btn-icon content-listing-delete-action js-row-action" aria-label="Beitrag löschen" title="Löschen" data-cms-confirm-modal data-cms-confirm-title="Beitrag löschen?" data-cms-confirm-message="Dieser Beitrag wird unwiderruflich gelöscht." data-cms-confirm-text="Löschen" data-cms-confirm-class="btn-danger">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7l1 -3h4l1 3"/></svg>
                                             </button>
                                         </form>
@@ -319,7 +319,7 @@ $postsHasMultipleAuthors = count($postsAuthorKeys) > 1;
     </div>
 </div>
 
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 
 function applyFilters() {
     var s = document.getElementById('statusFilter').value;

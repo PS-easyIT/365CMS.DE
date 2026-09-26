@@ -51,7 +51,7 @@ $pickerFilenamePrefix = (string)($pickerFilenamePrefix ?? 'ArtikelRahmen');
     </div>
 </div>
 
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 (function() {
     var modalEl = document.getElementById(<?= json_encode($pickerModalId) ?>);
     var openBtn = document.getElementById(<?= json_encode($pickerOpenButtonId) ?>);

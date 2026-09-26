@@ -94,7 +94,7 @@ final class CoreWebVitalsService
             'sampleRate' => $this->getSampleRate(),
         ];
 
-        echo '<script>window.CMS_WEB_VITALS_CONFIG = ' . json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ';</script>' . "\n";
+        echo '<script ' . \CMS\Security::instance()->nonceAttr() . '>window.CMS_WEB_VITALS_CONFIG = ' . json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ';</script>' . "\n";
         echo '<script src="' . htmlspecialchars(\cms_asset_url('js/web-vitals.js'), ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
     }
 

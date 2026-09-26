@@ -79,7 +79,6 @@ $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
 $logoutUrl  = rtrim((string) $siteUrl, '/') . '/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->generateToken('logout'));
 $siteName   = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
 $sidebarLogoUrl = cms_asset_url('images/LOGO_365CMS-75px.png', false);
-$sidebarLogoFallbackUrl = $sidebarLogoUrl;
 $defaultPluginIcon = '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h10v10h-10z"/><path d="M14 7v-3a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v3"/><path d="M7 14h-3a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1h3"/><path d="M17 14h3a1 1 0 0 0 1 -1v-2a1 1 0 0 0 -1 -1h-3"/><path d="M14 17v3a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1v-3"/></svg>';
 
 // Marketplace ein-/ausblenden (DB-Setting, Default: aktiviert)
@@ -811,8 +810,7 @@ $topbarUnreadNotifications = max(0, (int) ($_SESSION['admin_unread_notifications
             <a class="admin-sidebar__brand" href="<?= htmlspecialchars((string) $siteUrl) ?>/admin">
                 <img src="<?= htmlspecialchars((string) $sidebarLogoUrl) ?>"
                     alt="<?= htmlspecialchars((string) $siteName) ?>"
-                    class="admin-sidebar__brand-logo"
-                    onerror="this.onerror=null;this.src='<?= htmlspecialchars((string) $sidebarLogoFallbackUrl) ?>';">
+                    class="admin-sidebar__brand-logo">
             </a>
         </div>
         <div class="admin-sidebar__divider" aria-hidden="true"></div>
@@ -909,7 +907,7 @@ $topbarUnreadNotifications = max(0, (int) ($_SESSION['admin_unread_notifications
     </div>
 </aside>
 
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 (function () {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
         return;

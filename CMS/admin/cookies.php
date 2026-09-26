@@ -291,7 +291,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
     <?php renderAdminSidebarStyles(); ?>
-    <style>
+    <style <?= \CMS\Security::instance()->nonceAttr() ?>>
         .svc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
         .svc-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; display: flex; gap: 0.75rem; cursor: pointer; transition: all 0.2s; background: #fff; }
         .svc-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
@@ -670,7 +670,7 @@ window.CMS.Cookie.on('change', (consent) => {
 
     </div>
     <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
-    <script>
+    <script <?= \CMS\Security::instance()->nonceAttr() ?>>
         function switchTab(id, btn) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));

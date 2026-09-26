@@ -252,7 +252,7 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                                         <button
                                             type="button"
                                             class="badge bg-danger-lt text-danger border-0 backup-failed-badge"
-                                            onclick="cmsAdminBackupsShowErrorLog(<?php echo htmlspecialchars(json_encode((string) $name, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '\"Backup\"', ENT_QUOTES, 'UTF-8'); ?>, <?php echo htmlspecialchars(json_encode((string) $errorLog, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '\"Keine Fehlerdetails vorhanden.\"', ENT_QUOTES, 'UTF-8'); ?>)">
+                                            data-cms-call="cmsAdminBackupsShowErrorLog" data-cms-call-args="<?php echo htmlspecialchars((string) json_encode([(string) $name, (string) $errorLog], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>">
                                             Fehlgeschlagen
                                         </button>
                                     <?php endif; ?>
@@ -289,7 +289,7 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                                             <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($name); ?>">
                                             <input type="hidden" name="include_restore_dry_run" value="1">
                                                 <button type="button" class="btn btn-sm btn-outline-warning"
-                                                    onclick="cmsAdminBackupsConfirmSubmit(this, 'dry_run', <?php echo htmlspecialchars(json_encode((string) $name, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"Backup"', ENT_QUOTES, 'UTF-8'); ?>)">
+                                                    data-cms-call="cmsAdminBackupsConfirmSubmit" data-cms-call-context="element" data-cms-call-args="<?php echo htmlspecialchars((string) json_encode(['dry_run', (string) $name], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>">
                                                 Dry-Run
                                             </button>
                                         </form>
@@ -302,7 +302,7 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                                                     type="button"
                                                     class="btn btn-sm btn-warning <?php echo $canRestore ? '' : 'backup-restore-disabled'; ?>"
                                                     title="<?php echo $canRestore ? '' : 'Backup fehlerhaft — Wiederherstellung nicht möglich'; ?>"
-                                                    onclick="cmsAdminBackupsConfirmSubmit(this, 'restore', <?php echo htmlspecialchars(json_encode((string) $name, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"Backup"', ENT_QUOTES, 'UTF-8'); ?>, <?php echo htmlspecialchars(json_encode((string) $size, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"-"', ENT_QUOTES, 'UTF-8'); ?>, <?php echo htmlspecialchars(json_encode((string) $date, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"-"', ENT_QUOTES, 'UTF-8'); ?>)"
+                                                    data-cms-call="cmsAdminBackupsConfirmSubmit" data-cms-call-context="element" data-cms-call-args="<?php echo htmlspecialchars((string) json_encode(['restore', (string) $name, (string) $size, (string) $date], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>"
                                                     <?php echo $canRestore ? '' : 'aria-disabled="true"'; ?>>
                                                     Restore
                                                 </button>
@@ -313,7 +313,7 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($name); ?>">
                                                 <button type="button" class="btn btn-sm btn-outline-danger"
-                                                    onclick="cmsAdminBackupsConfirmSubmit(this, 'delete', <?php echo htmlspecialchars(json_encode((string) $name, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"Backup"', ENT_QUOTES, 'UTF-8'); ?>)">
+                                                    data-cms-call="cmsAdminBackupsConfirmSubmit" data-cms-call-context="element" data-cms-call-args="<?php echo htmlspecialchars((string) json_encode(['delete', (string) $name], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
                                             </button>
                                         </form>
@@ -407,7 +407,7 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
     </div>
 </div>
 
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 function cmsAdminBackupsSubmitForm(form) {
     if (window.cmsSubmitFormSafely) {
         window.cmsSubmitFormSafely(form);

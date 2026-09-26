@@ -15,7 +15,7 @@
 
 ## Abhängigkeiten
 
-- Benötigt: `mime/`, `psr/`
+- Benötigt: `mime/`, `egulias-email-validator/` + `doctrine-lexer/` (Pflicht für `Mime\Address`; ohne sie bricht jeder SMTP-Versand ab), `event-dispatcher/`, `symfony-contracts/`, `psr/`, `polyfill-intl-idn/` (IDN-Adressen ohne ext-intl)
 - Wird benötigt von: `MailService`, `MailQueueService`, Cron-Mailversand
 
 ## Pflegehinweise

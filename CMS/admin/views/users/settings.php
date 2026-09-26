@@ -339,7 +339,7 @@ $passwordPolicyTesterConfig = [
     </div>
 </div>
 
-<script>
+<script <?= \CMS\Security::instance()->nonceAttr() ?>>
 document.addEventListener('DOMContentLoaded', function () {
     var testerRoot = document.querySelector('[data-password-policy-tester]');
     if (!testerRoot) {
