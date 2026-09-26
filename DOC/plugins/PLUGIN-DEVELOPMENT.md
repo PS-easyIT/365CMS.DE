@@ -193,7 +193,7 @@ Halten Sie die Bootstrap-Datei klein. Laden Sie Klassen aus dem Plugin-Ordner, v
 
 #### Sichtbare Integration
 
-Über `/admin/plugins` wird das Plugin aktiviert oder deaktiviert. Eine Plugin-Adminseite liegt nach der Registrierung eines Hauptmenüs und optionaler Untermenüs unter `/admin/plugins/<plugin>/<page>`. Member-Funktionen werden über einen berechtigungsgeprüften Menüeintrag oder ein Dashboard-Widget angeboten und verlangen einen angemeldeten Member.
+Über `/admin/plugins` wird das Plugin aktiviert oder deaktiviert. Eine Plugin-Adminseite liegt nach der Registrierung eines Hauptmenüs und optionaler Untermenüs unter `/admin/plugins/<plugin>/<page>`. In der Admin-Sidebar erscheinen alle Plugin-Hauptmenüs alphabetisch sortiert im eigenen Abschnitt **„Plugin-Erweiterungen“** unterhalb sämtlicher 365CMS-Kernbereiche; eine Einsortierung zwischen Core-Menüpunkten ist nicht vorgesehen. Member-Funktionen werden über einen berechtigungsgeprüften Menüeintrag oder ein Dashboard-Widget angeboten und verlangen einen angemeldeten Member.
 
 Verwenden Sie Templates für HTML, die zentrale Admin-Shell für Adminseiten und Plugin-Präfixe wie `.my-plugin-card` für CSS. Generische Klassen wie `.card` für Plugin-Styles, Inline-Styles, Inline-Scripts und ungeescapte Request-Werte sind unzulässig.
 
