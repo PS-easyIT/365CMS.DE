@@ -167,9 +167,9 @@ $renderFooterMenuLinks = static function (array $items): void {
   </div>
 </footer>
 
-<script src="<?php echo SITE_URL; ?>/themes/cms-default/js/theme.js?v=<?php echo defined('MERIDIAN_THEME_VERSION') ? MERIDIAN_THEME_VERSION : '1.0.3'; ?>" defer></script>
 <?php
-// Scripts, Cookie-Banner und Custom Footer Code via Hook ausgeben
+// theme.js, Cookie-Banner und Custom Footer Code via Hook ausgeben
+// (MeridianCMSDefaultTheme::enqueueScripts – inkl. Versionierung/AssetOptimizer).
 if (class_exists('\\CMS\\Hooks')) {
     \CMS\Hooks::doAction('before_footer');
 }

@@ -1451,3 +1451,10 @@ body.admin-body :is(.card, .admin-card, .admin-section, .info-card, .stat-card, 
     background: var(--cms-admin-card-bg-soft);
     border-color: var(--cms-admin-border-strong) !important;
 }
+
+/* Sidebar-Icon in fester Größe (ersetzt Inline-Style, CSP style-src-attr) */
+.ti.admin-nav-icon--18 {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}

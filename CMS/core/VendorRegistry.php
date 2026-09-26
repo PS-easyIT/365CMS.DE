@@ -473,7 +473,7 @@ final class VendorRegistry
                 'label' => 'Dompdf PDF-Renderer',
                 'path' => ABSPATH . 'vendor' . DIRECTORY_SEPARATOR . 'dompdf' . DIRECTORY_SEPARATOR . 'autoload.php',
                 'path_type' => 'file',
-                'notes' => 'Sonderpfad für PDF-Rendering außerhalb des Assets-Autoloaders.',
+                'notes' => 'Sonderpfad für PDF-Rendering außerhalb des Assets-Autoloaders. Benötigt ext-mbstring; PNG/GIF/WebP-Bilder zusätzlich ext-gd. Eigene Bilder (uploads/, assets/) werden lokal eingebettet, externe Bilder bleiben gesperrt (isRemoteEnabled=false).',
             ],
             'melbahja-seo' => [
                 'label' => 'melbahja/seo',

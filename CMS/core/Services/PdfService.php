@@ -63,7 +63,7 @@ final class PdfService
             throw new \RuntimeException('Dompdf ist nicht verfügbar.');
         }
 
-        $html = $this->sanitizeHtml($html);
+        $html = $this->localizeSameOriginImages($this->sanitizeHtml($html));
 
         $dompdf = $this->createInstance();
         $dompdf->loadHtml($html);
@@ -86,7 +86,7 @@ final class PdfService
             throw new \RuntimeException('Dompdf ist nicht verfügbar.');
         }
 
-        $html = $this->sanitizeHtml($html);
+        $html = $this->localizeSameOriginImages($this->sanitizeHtml($html));
 
         $dompdf = $this->createInstance();
         $dompdf->loadHtml($html);
@@ -187,15 +187,113 @@ final class PdfService
         $options->setIsJavascriptEnabled(false);
         $options->setChroot(ABSPATH);
 
-        // Temporäres Verzeichnis für Font-Cache
-        $fontCache = ABSPATH . 'data/cache/dompdf';
+        // Font-Cache im per .htaccess gesperrten cache/-Verzeichnis (data/ ist öffentlich erreichbar)
+        $fontCache = ABSPATH . 'cache/dompdf';
         if (!is_dir($fontCache)) {
-            mkdir($fontCache, 0750, true);
+            @mkdir($fontCache, 0750, true);
         }
-        $options->setFontCache($fontCache);
+        if (is_dir($fontCache) && is_writable($fontCache)) {
+            $options->setFontCache($fontCache);
+        }
         $options->setTempDir(sys_get_temp_dir());
 
         return new \Dompdf\Dompdf($options);
+    }
+
+    /**
+     * Dompdf läuft mit isRemoteEnabled=false (kein SSRF). Bilder der eigenen
+     * Installation (SITE_URL/…, /uploads/…, /assets/…) werden deshalb auf lokale
+     * Dateipfade innerhalb von uploads/ bzw. assets/ umgeschrieben; alles andere
+     * bleibt unangetastet und erscheint wie bisher als Platzhalter.
+     */
+    private function localizeSameOriginImages(string $html): string
+    {
+        $root = realpath(ABSPATH);
+        if ($root === false) {
+            return $html;
+        }
+
+        $siteHost = strtolower((string) parse_url(defined('SITE_URL') ? (string) SITE_URL : '', PHP_URL_HOST));
+        $allowedDirs = [];
+        foreach (['uploads', 'assets'] as $dir) {
+            $real = realpath($root . DIRECTORY_SEPARATOR . $dir);
+            if ($real !== false) {
+                $allowedDirs[] = $real . DIRECTORY_SEPARATOR;
+            }
+        }
+
+        $html = preg_replace('/\ssrcset\s*=\s*(["\']).*?\1/is', '', $html) ?? $html;
+
+        return preg_replace_callback(
+            '/(<img\b[^>]*?\ssrc\s*=\s*)(["\'])(.*?)\2/is',
+            function (array $match) use ($siteHost, $allowedDirs): string {
+                $src = html_entity_decode($match[3], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $localPath = $this->resolveLocalImagePath($src, $siteHost, $allowedDirs);
+
+                return $localPath === null
+                    ? $match[0]
+                    : $match[1] . $match[2] . htmlspecialchars($localPath, ENT_QUOTES, 'UTF-8') . $match[2];
+            },
+            $html
+        ) ?? $html;
+    }
+
+    /**
+     * @param string[] $allowedDirs
+     */
+    private function resolveLocalImagePath(string $src, string $siteHost, array $allowedDirs): ?string
+    {
+        $src = trim($src);
+        if ($src === '' || str_starts_with($src, 'data:') || $allowedDirs === []) {
+            return null;
+        }
+
+        $parts = parse_url($src);
+        if ($parts === false) {
+            return null;
+        }
+
+        if (isset($parts['host'])) {
+            $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+            if ($siteHost === '' || strtolower((string) $parts['host']) !== $siteHost || !in_array($scheme, ['http', 'https', ''], true)) {
+                return null;
+            }
+        } elseif (isset($parts['scheme'])) {
+            return null;
+        }
+
+        $path = rawurldecode((string) ($parts['path'] ?? ''));
+        if ($path === '' || str_contains($path, "\0")) {
+            return null;
+        }
+
+        $sitePath = rtrim((string) parse_url(defined('SITE_URL') ? (string) SITE_URL : '', PHP_URL_PATH), '/');
+        if ($sitePath !== '' && str_starts_with($path, $sitePath . '/')) {
+            $path = substr($path, strlen($sitePath));
+        }
+
+        $candidate = realpath(ABSPATH . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR));
+        if ($candidate === false || !is_file($candidate)) {
+            return null;
+        }
+
+        if (!preg_match('/\.(?:png|jpe?g|gif|webp|svg|bmp)$/i', $candidate)) {
+            return null;
+        }
+
+        // Dompdf braucht ext-gd für PNG/GIF/WebP/BMP und bricht sonst das gesamte
+        // Rendering ab; ohne GD bleiben diese Bilder beim bisherigen Platzhalter.
+        if (!extension_loaded('gd') && !preg_match('/\.(?:jpe?g|svg)$/i', $candidate)) {
+            return null;
+        }
+
+        foreach ($allowedDirs as $dir) {
+            if (str_starts_with($candidate, $dir)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     /**

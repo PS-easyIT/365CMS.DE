@@ -69,8 +69,8 @@ if (!function_exists('sidebarTopLevelIcon')) {
         ];
 
         $icon = $iconMap[$key] ?? 'point';
-        $style = $key === 'logs-audit' ? ' style="font-size:18px;width:18px;height:18px;"' : '';
-        return '<i class="ti ti-' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" aria-hidden="true"' . $style . '></i>';
+        $sizeClass = $key === 'logs-audit' ? ' admin-nav-icon--18' : '';
+        return '<i class="ti ti-' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . $sizeClass . '" aria-hidden="true"></i>';
     }
 }
 
