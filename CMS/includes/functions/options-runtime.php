@@ -650,12 +650,22 @@ function cms_csp_runtime_tags(): string {
     }
     $rendered = true;
 
+    // Module (z. B. Analytics) können hier gezielt CSP-Quellen freigeben, bevor
+    // die Runtime ihre Trusted-Types-Script-Origins übernimmt.
+    if (class_exists(\CMS\Hooks::class)) {
+        \CMS\Hooks::doAction('cms_csp_prepare');
+    }
+
     $nonceAttr = class_exists(\CMS\Security::class) ? \CMS\Security::instance()->nonceAttr() : '';
+    $scriptOrigins = class_exists(\CMS\Security::class) ? \CMS\Security::instance()->getAllowedScriptOrigins() : [];
     $html = '';
 
     foreach (['dompurify/purify.min.js', 'js/cms-csp-runtime.js'] as $asset) {
+        $extra = $asset === 'js/cms-csp-runtime.js' && $scriptOrigins !== []
+            ? ' data-script-origins="' . htmlspecialchars(implode(' ', $scriptOrigins), ENT_QUOTES, 'UTF-8') . '"'
+            : '';
         $html .= '<script src="' . htmlspecialchars(cms_asset_url($asset), ENT_QUOTES, 'UTF-8') . '"'
-            . ($nonceAttr !== '' ? ' ' . $nonceAttr : '') . '></script>' . "\n";
+            . ($nonceAttr !== '' ? ' ' . $nonceAttr : '') . $extra . '></script>' . "\n";
     }
 
     return $html;

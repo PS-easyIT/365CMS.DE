@@ -257,6 +257,14 @@ class SEOService
     }
 
     /**
+     * @return array<string, list<string>>
+     */
+    public function getAnalyticsCspSources(): array
+    {
+        return $this->metaService->getAnalyticsCspSources();
+    }
+
+    /**
      * Get SEO homepage title.
      */
     public function getHomepageTitle(string $default = ''): string

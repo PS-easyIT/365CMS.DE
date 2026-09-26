@@ -697,6 +697,26 @@ class Bootstrap
                 Services\CookieConsentService::getInstance()->render();
             }, 20);
 
+            // Analytics: CSP nur für konfigurierte Anbieter öffnen, Loader lädt erst nach Einwilligung
+            $analyticsCspReady = false;
+            Hooks::addAction('cms_csp_prepare', static function () use (&$analyticsCspReady): void {
+                try {
+                    $sources = Services\SEOService::getInstance()->getAnalyticsCspSources();
+                    $analyticsCspReady = $sources !== [] && Security::instance()->allowCspSources($sources);
+                } catch (\Throwable) {
+                    $analyticsCspReady = false;
+                }
+            });
+            Hooks::addAction('head', static function () use (&$analyticsCspReady): void {
+                if (!$analyticsCspReady) {
+                    return;
+                }
+                try {
+                    echo Services\SEOService::getInstance()->getAnalyticsHeadCode();
+                } catch (\Throwable) {
+                }
+            }, 90);
+
             // PhotoSwipe V5 — Lightbox für Bilder in Content-Bereichen
             Hooks::addAction('head', static function () use ($shouldLoadPhotoSwipe): void {
                 if (!$shouldLoadPhotoSwipe()) {

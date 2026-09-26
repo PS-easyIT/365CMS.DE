@@ -85,6 +85,14 @@ final class SeoMetaService
         return $this->analyticsRenderer->getAnalyticsBodyCode();
     }
 
+    /**
+     * @return array<string, list<string>>
+     */
+    public function getAnalyticsCspSources(): array
+    {
+        return $this->analyticsRenderer->getCspSources();
+    }
+
     public function getHomepageTitle(string $default = ''): string
     {
         return $this->settings->getHomepageTitle($default);
