@@ -545,6 +545,14 @@ class Bootstrap
         }
 
         if ($this->mode === 'web') {
+            // Sicherheitsnetz: CSP-Runtime (DOMPurify + Trusted-Types-Policy) als erste head-Ausgabe,
+            // auch für Themes, die cms_csp_runtime_tags() nicht selbst aufrufen. Mehrfachaufrufe sind leer.
+            Hooks::addAction('head', static function (): void {
+                if (function_exists('cms_csp_runtime_tags')) {
+                    echo cms_csp_runtime_tags();
+                }
+            }, PHP_INT_MIN);
+
             Hooks::addAction('body_end', static function (): void {
                 Services\CoreWebVitalsService::getInstance()->renderTrackingScript();
             }, 15);

@@ -168,10 +168,12 @@ $renderFooterMenuLinks = static function (array $items): void {
 </footer>
 
 <?php
-// theme.js, Cookie-Banner und Custom Footer Code via Hook ausgeben
-// (MeridianCMSDefaultTheme::enqueueScripts – inkl. Versionierung/AssetOptimizer).
+// theme.js und Cookie-Banner (before_footer) gibt der Core bereits vor footer.php aus;
+// body_end (Core-Cookie-Consent, Web-Vitals, PhotoSwipe) wird hier vor </body> ausgelöst.
+// Beide Hooks laufen pro Request nur einmal.
 if (class_exists('\\CMS\\Hooks')) {
     \CMS\Hooks::doAction('before_footer');
+    \CMS\Hooks::doAction('body_end');
 }
 ?>
 

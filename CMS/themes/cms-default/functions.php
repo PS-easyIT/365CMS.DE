@@ -559,6 +559,12 @@ class MeridianCMSDefaultTheme
 
     public function outputCookieBanner(): void
     {
+        // Der Core-Consent-Manager (Kategorien, Analytics-Gating) ersetzt den Legacy-Banner.
+        if (class_exists('\\CMS\\Services\\CookieConsentService')
+            && \CMS\Services\CookieConsentService::getInstance()->isManagedExternally()) {
+            return;
+        }
+
         try {
             $db      = \CMS\Database::instance();
             $enabled = $db->execute("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'cookie_consent_enabled'")->fetch();
@@ -575,7 +581,8 @@ class MeridianCMSDefaultTheme
             $text    = htmlspecialchars($s['cookie_banner_text']    ?: 'Wir verwenden Cookies.', ENT_QUOTES, 'UTF-8');
             $accept  = htmlspecialchars($s['cookie_accept_text']    ?: 'Akzeptieren',             ENT_QUOTES, 'UTF-8');
             $essential = htmlspecialchars($s['cookie_essential_text'] ?: 'Nur Essenzielle',       ENT_QUOTES, 'UTF-8');
-            $policy  = htmlspecialchars($s['cookie_policy_url']     ?: '#',                       ENT_QUOTES, 'UTF-8');
+            $policyUrl = trim($s['cookie_policy_url']);
+            $policy  = htmlspecialchars(preg_match('#^(https?://|/(?!/))#i', $policyUrl) === 1 ? $policyUrl : '#', ENT_QUOTES, 'UTF-8');
         } catch (\Throwable $e) {
             return;
         }

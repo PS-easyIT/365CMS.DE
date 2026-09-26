@@ -19,6 +19,18 @@ class Hooks
 {
     private static array $actions = [];
     private static array $filters = [];
+
+    /** @var array<string, int> Anzahl der doAction()-Aufrufe je Tag im aktuellen Request */
+    private static array $firedActions = [];
+
+    /**
+     * Dokument-Abschluss-Hooks, die pro Request nur einmal ausgeführt werden.
+     *
+     * Der Core feuert sie in ThemeManager::getFooter() rund um footer.php; viele Themes
+     * rufen sie zusätzlich selbst im Footer auf. Ohne diese Sperre würden Scripts,
+     * Cookie-Banner und Tracking doppelt ausgegeben.
+     */
+    private const ONCE_PER_REQUEST_ACTIONS = ['before_footer', 'body_end'];
     
     /**
      * Add action hook
@@ -33,6 +45,11 @@ class Hooks
      */
     public static function doAction(string $tag, ...$args): void
     {
+        if (in_array($tag, self::ONCE_PER_REQUEST_ACTIONS, true) && isset(self::$firedActions[$tag])) {
+            return;
+        }
+        self::$firedActions[$tag] = (self::$firedActions[$tag] ?? 0) + 1;
+
         if (!isset(self::$actions[$tag])) {
             return;
         }
@@ -45,6 +62,14 @@ class Hooks
                 call_user_func_array($callback, $args);
             }
         }
+    }
+
+    /**
+     * Wie oft wurde ein Action-Tag im aktuellen Request bereits ausgelöst?
+     */
+    public static function didAction(string $tag): int
+    {
+        return self::$firedActions[$tag] ?? 0;
     }
 
     /**
