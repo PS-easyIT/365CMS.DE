@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="128" viewBox="0 0 200 128" role="img" aria-labelledby="t">
+  <title id="t">Bereich nicht gefunden</title>
+  <ellipse cx="100" cy="116" rx="70" ry="6" fill="#e2e8f0"/>
+  <rect x="46" y="18" width="108" height="84" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="3"/>
+  <path d="M46 36h108" stroke="#94a3b8" stroke-width="3"/>
+  <circle cx="58" cy="27" r="3" fill="#f87171"/>
+  <circle cx="68" cy="27" r="3" fill="#fbbf24"/>
+  <circle cx="78" cy="27" r="3" fill="#34d399"/>
+  <path d="M84 52h32a4 4 0 0 1 4 4v8a6 6 0 1 1 0 12v8a4 4 0 0 1-4 4H84a4 4 0 0 1-4-4V56a4 4 0 0 1 4-4z" fill="#dbeafe" stroke="#206bc4" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M92 64l16 16M108 64L92 80" stroke="#206bc4" stroke-width="3" stroke-linecap="round"/>
+</svg>

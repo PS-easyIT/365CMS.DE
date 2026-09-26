@@ -1,0 +1,130 @@
+/* 365CMS – Zwei-Faktor-Seiten (MFA-Challenge / MFA-Setup). Ersetzt Inline-Styles (CSP style-src-attr). */
+.cms-mfa-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 1rem;
+    box-sizing: border-box;
+    background: #f1f5f9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.cms-mfa-card {
+    width: 100%;
+    max-width: 400px;
+    padding: 2.5rem;
+    box-sizing: border-box;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .1);
+}
+
+.cms-mfa-card--wide {
+    max-width: 480px;
+}
+
+.cms-mfa-title {
+    margin: 0 0 .5rem;
+    font-size: 1.375rem;
+    color: #1e293b;
+}
+
+.cms-mfa-lead {
+    margin: 0 0 1.5rem;
+    color: #64748b;
+}
+
+.cms-mfa-alert {
+    margin-bottom: 1rem;
+    padding: .875rem 1rem;
+    border-radius: 8px;
+    border-left: 4px solid transparent;
+}
+
+.cms-mfa-alert--error {
+    background: #fee2e2;
+    color: #991b1b;
+    border-left-color: #ef4444;
+}
+
+.cms-mfa-alert--success {
+    background: #dcfce7;
+    color: #166534;
+    border-left-color: #22c55e;
+}
+
+.cms-mfa-qr {
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.cms-mfa-qr img {
+    border: 4px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.cms-mfa-secret {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    color: #1e293b;
+    font-family: monospace;
+    font-size: 1.1rem;
+    letter-spacing: .1em;
+    text-align: center;
+    word-break: break-all;
+}
+
+.cms-mfa-hint {
+    margin: 0 0 1.25rem;
+    color: #64748b;
+    font-size: .875rem;
+}
+
+.cms-mfa-field {
+    margin-bottom: 1.25rem;
+}
+
+.cms-mfa-label {
+    display: block;
+    margin-bottom: .5rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.cms-mfa-input {
+    width: 100%;
+    padding: .75rem 1rem;
+    box-sizing: border-box;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1.5rem;
+    letter-spacing: .3em;
+    text-align: center;
+}
+
+.cms-mfa-submit {
+    width: 100%;
+    padding: .875rem;
+    border: none;
+    border-radius: 8px;
+    background: #3b82f6;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cms-mfa-back {
+    margin-top: 1.25rem;
+    text-align: center;
+}
+
+.cms-mfa-back a {
+    color: #64748b;
+    font-size: .875rem;
+}
