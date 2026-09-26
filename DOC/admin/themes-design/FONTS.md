@@ -5,7 +5,7 @@
 Local font configuration is managed at `/admin/font-manager`.
 
 ### Implementation
-- Entry/view: `CMS/admin/fonts-local.php`, `CMS/admin/views/themes/fonts.php`
+- Entry/view: `CMS/admin/font-manager.php`, `CMS/admin/views/themes/fonts.php`
 - Services: `CMS/core/Services/AssetOptimizerService.php`, `CMS/core/Services/FileUploadService.php`
 
 ### Administration
@@ -16,7 +16,7 @@ Use supported font formats and the displayed size limits. Uploads require owners
 Lokale Font-Konfiguration wird unter `/admin/font-manager` verwaltet.
 
 ### Implementierung
-- Einstieg/View: `CMS/admin/fonts-local.php`, `CMS/admin/views/themes/fonts.php`
+- Einstieg/View: `CMS/admin/font-manager.php`, `CMS/admin/views/themes/fonts.php`
 - Services: `CMS/core/Services/AssetOptimizerService.php`, `CMS/core/Services/FileUploadService.php`
 
 ### Administration

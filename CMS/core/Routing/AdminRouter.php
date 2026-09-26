@@ -88,6 +88,8 @@ final class AdminRouter
             'seo' => 'seo-dashboard',
             'subscriptions' => 'subscription-settings',
             'data-deletion' => 'deletion-requests',
+            'data-access' => 'privacy-requests',
+            'fonts-local' => 'font-manager',
         ];
         if (isset($legacyTargets[$page]) && !is_file(ABSPATH . 'admin/' . $page . '.php')) {
             $this->router->redirect('/admin/' . $legacyTargets[$page]);
