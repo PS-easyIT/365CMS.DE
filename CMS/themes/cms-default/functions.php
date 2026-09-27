@@ -5,7 +5,7 @@ declare(strict_types=1);
  * Meridian CMS Default Theme – Functions
  *
  * @package CMSDefault
- * @version 1.0.5
+ * @version 1.0.6
  */
 
 if (!defined('ABSPATH')) {
@@ -18,7 +18,7 @@ if (defined('MERIDIAN_THEME_FUNCTIONS_LOADED')) {
 
 define('MERIDIAN_THEME_FUNCTIONS_LOADED', true);
 
-define('MERIDIAN_THEME_VERSION', '1.0.5');
+define('MERIDIAN_THEME_VERSION', '1.0.6');
 define('MERIDIAN_THEME_DIR',     THEME_PATH . 'cms-default/');
 define('MERIDIAN_THEME_URL',     \CMS\ThemeManager::instance()->getThemeUrl());
 

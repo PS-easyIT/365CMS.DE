@@ -3,11 +3,14 @@
  * Meridian CMS Default – Kategorie-Archiv Template
  *
  * Vom Router bereitgestellte Variablen:
- *   $posts        – array of stdObjects
- *   $total        – int, Gesamtanzahl
- *   $currentPage  – int, aktuelle Seite
- *   $totalPages   – int
- *   $category     – stdObject|array|null  (id, name, slug, description)
+ *   $posts         – array of stdObjects
+ *   $total         – int, Gesamtanzahl (Übersicht: Anzahl der Kategorien)
+ *   $currentPage   – int, aktuelle Seite
+ *   $totalPages    – int
+ *   $category      – stdObject|array|null  (id, name, slug, description)
+ *   $query         – string, optionaler Filter (?q=)
+ *   $isOverview    – bool, true für die Kategorie-Übersicht
+ *   $overviewItems – array, Einträge mit title, slug, description, count, url
  *
  * @package CMSv2\Themes\CmsDefault
  */
@@ -18,16 +21,28 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$posts       = $posts       ?? [];
-$total       = $total       ?? 0;
-$currentPage = $currentPage ?? 1;
-$totalPages  = $totalPages  ?? 1;
+$posts         = $posts ?? [];
+$total         = (int) ($total ?? 0);
+$currentPage   = (int) ($currentPage ?? 1);
+$totalPages    = (int) ($totalPages ?? 1);
+$query         = is_string($query ?? null) ? trim($query) : '';
+$isOverview    = !empty($isOverview);
+$overviewItems = is_array($overviewItems ?? null) ? $overviewItems : [];
 
 // Kategorie-Daten normalisieren
-$cat         = (array)($category ?? []);
-$catName     = htmlspecialchars($cat['name'] ?? ($_GET['category'] ?? 'Kategorie'), ENT_QUOTES, 'UTF-8');
-$catSlug     = $cat['slug'] ?? urlencode($_GET['category'] ?? '');
-$catDesc     = htmlspecialchars($cat['description'] ?? '', ENT_QUOTES, 'UTF-8');
+$cat         = is_array($category ?? null) || is_object($category ?? null) ? (array) $category : [];
+$catLegacy   = is_string($_GET['category'] ?? null) ? trim($_GET['category']) : '';
+$catName     = htmlspecialchars((string) ($cat['name'] ?? ($catLegacy !== '' ? $catLegacy : 'Kategorie')), ENT_QUOTES, 'UTF-8');
+$catSlug     = (string) ($cat['slug'] ?? $catLegacy);
+$catDesc     = htmlspecialchars((string) ($cat['description'] ?? ''), ENT_QUOTES, 'UTF-8');
+
+// Paginierung: Übersicht bleibt auf der Kategorie-Basis, Archive nutzen den Slug
+if ($isOverview) {
+    $baseUrl = cms_get_archive_url('category') . ($query !== '' ? '?q=' . urlencode($query) : '');
+} else {
+    $baseUrl = SITE_URL . '/blog?category=' . urlencode($catSlug);
+}
+$qSep = str_contains($baseUrl, '?') ? '&' : '?';
 
 $showSidebar   = (bool) meridian_setting('layout', 'show_sidebar', true);
 $recentSidebar = meridian_get_recent_posts(5);
@@ -50,14 +65,18 @@ foreach ($rawTagData as $t) {
             <span style="color:var(--ink);"><?php echo $catName; ?></span>
         </nav>
         <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem;">
-            <span style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);">Kategorie</span>
+            <span style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);"><?php echo $isOverview ? 'Übersicht' : 'Kategorie'; ?></span>
         </div>
         <h1 style="font-family:var(--font-serif);font-size:clamp(1.6rem,4vw,2.4rem);font-weight:700;margin:0 0 .5rem;color:var(--ink);"><?php echo $catName; ?></h1>
         <?php if ($catDesc): ?>
         <p style="font-size:.95rem;color:var(--ink-muted);margin:0 0 .75rem;max-width:580px;"><?php echo $catDesc; ?></p>
         <?php endif; ?>
         <p style="font-size:.82rem;color:var(--ink-ghost);">
+            <?php if ($isOverview): ?>
+            <?php echo number_format($total); ?> <?php echo $total === 1 ? 'Kategorie' : 'Kategorien'; ?> mit veröffentlichten Artikeln
+            <?php else: ?>
             <?php echo number_format($total); ?> <?php echo $total === 1 ? 'Artikel' : 'Artikel'; ?> gefunden
+            <?php endif; ?>
         </p>
     </div>
 </div>
@@ -67,26 +86,28 @@ foreach ($rawTagData as $t) {
     <div class="page-wrap<?php echo $showSidebar ? ' page-wrap--sidebar' : ''; ?>">
 
         <main id="main-content">
-            <?php if (!empty($posts)): ?>
+            <?php if ($isOverview || !empty($posts)): ?>
 
             <?php
-            $listPosts = array_slice($posts, 0, 4);
-            $gridPosts = array_slice($posts, 4);
-            require __DIR__ . '/partials/blog-list-cards.php';
-            if (!empty($gridPosts)) {
-                require __DIR__ . '/partials/blog-grid-cards.php';
+            if ($isOverview) {
+                $overviewType = 'category';
+                require __DIR__ . '/partials/archive-overview.php';
+            } else {
+                $listPosts = array_slice($posts, 0, 4);
+                $gridPosts = array_slice($posts, 4);
+                require __DIR__ . '/partials/blog-list-cards.php';
+                if (!empty($gridPosts)) {
+                    require __DIR__ . '/partials/blog-grid-cards.php';
+                }
             }
             ?>
 
             <!-- Paginierung -->
             <?php if ($totalPages > 1): ?>
             <nav class="pagination" aria-label="Seitennavigation">
-                <?php
-                $baseUrl = SITE_URL . '/blog?category=' . urlencode($catSlug);
-                $qSep    = '&';
-                if ($currentPage > 1): ?>
+                <?php if ($currentPage > 1): ?>
                 <a class="pagination-item pagination-item--prev"
-                   href="<?php echo $baseUrl . $qSep . 'page=' . ($currentPage - 1); ?>"
+                   href="<?php echo htmlspecialchars($baseUrl . $qSep . 'page=' . ($currentPage - 1), ENT_QUOTES, 'UTF-8'); ?>"
                    aria-label="Vorherige Seite">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
                 </a>
@@ -94,21 +115,21 @@ foreach ($rawTagData as $t) {
                 $start = max(1, $currentPage - 2);
                 $end   = min($totalPages, $currentPage + 2);
                 if ($start > 1): ?>
-                    <a class="pagination-item" href="<?php echo $baseUrl . $qSep . 'page=1'; ?>">1</a>
+                    <a class="pagination-item" href="<?php echo htmlspecialchars($baseUrl . $qSep . 'page=1', ENT_QUOTES, 'UTF-8'); ?>">1</a>
                     <?php if ($start > 2): ?><span class="pagination-gap">…</span><?php endif; ?>
                 <?php endif;
                 for ($p = $start; $p <= $end; $p++): ?>
                 <a class="pagination-item<?php echo $p === $currentPage ? ' pagination-item--active' : ''; ?>"
-                   href="<?php echo $baseUrl . $qSep . 'page=' . $p; ?>"
+                   href="<?php echo htmlspecialchars($baseUrl . $qSep . 'page=' . $p, ENT_QUOTES, 'UTF-8'); ?>"
                    <?php echo $p === $currentPage ? 'aria-current="page"' : ''; ?>><?php echo $p; ?></a>
                 <?php endfor;
                 if ($end < $totalPages): ?>
                     <?php if ($end < $totalPages - 1): ?><span class="pagination-gap">…</span><?php endif; ?>
-                    <a class="pagination-item" href="<?php echo $baseUrl . $qSep . 'page=' . $totalPages; ?>"><?php echo $totalPages; ?></a>
+                    <a class="pagination-item" href="<?php echo htmlspecialchars($baseUrl . $qSep . 'page=' . $totalPages, ENT_QUOTES, 'UTF-8'); ?>"><?php echo $totalPages; ?></a>
                 <?php endif;
                 if ($currentPage < $totalPages): ?>
                 <a class="pagination-item pagination-item--next"
-                   href="<?php echo $baseUrl . $qSep . 'page=' . ($currentPage + 1); ?>"
+                   href="<?php echo htmlspecialchars($baseUrl . $qSep . 'page=' . ($currentPage + 1), ENT_QUOTES, 'UTF-8'); ?>"
                    aria-label="Nächste Seite">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
                 </a>
