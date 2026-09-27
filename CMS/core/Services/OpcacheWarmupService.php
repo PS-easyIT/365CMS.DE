@@ -121,9 +121,24 @@ final class OpcacheWarmupService
         $compiled = 0;
         $failed = [];
 
+        // Bereits im aktuellen Request eingebundene Dateien liegen schon im OPcache.
+        // Ein erneutes opcache_compile_file() würde deren Klassen früh binden und mit
+        // „Cannot redeclare class“ abbrechen (z. B. bei aktiven Plugins).
+        $includedFiles = [];
+        foreach (get_included_files() as $includedFile) {
+            $includedReal = realpath($includedFile);
+            $includedFiles[$includedReal !== false ? $includedReal : $includedFile] = true;
+        }
+
         foreach ($files as $file) {
             $realPath = (string)($file['path'] ?? '');
             if ($realPath === '' || !is_file($realPath)) {
+                continue;
+            }
+
+            $resolvedPath = realpath($realPath);
+            if (isset($includedFiles[$realPath]) || ($resolvedPath !== false && isset($includedFiles[$resolvedPath]))) {
+                $compiled++;
                 continue;
             }
 
