@@ -27,6 +27,7 @@ $cmsFunctionFiles = [
     __DIR__ . '/functions/admin-menu.php',
     __DIR__ . '/functions/wordpress-compat.php',
     __DIR__ . '/functions/mail.php',
+    __DIR__ . '/functions/plugin-public-i18n.php',
 ];
 
 foreach ($cmsFunctionFiles as $cmsFunctionFile) {

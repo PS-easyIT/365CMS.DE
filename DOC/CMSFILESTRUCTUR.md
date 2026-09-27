@@ -191,6 +191,7 @@ Service subfolders: `AI/`, `EditorJs/`, `Landing/`, `Media/`, `SEO/`, `SiteTable
 - `includes/functions/escaping.php`
 - `includes/functions/mail.php`
 - `includes/functions/options-runtime.php`
+- `includes/functions/plugin-public-i18n.php`
 - `includes/functions/redirects-auth.php`
 - `includes/functions/roles.php`
 - `includes/functions/translation.php`
@@ -310,6 +311,7 @@ Das einzige installierte Runtime-Theme in diesem Baum ist `cms-default`.
 - `admin-dashboard.css`
 - `admin-hub-site-edit.css`
 - `admin-hub-template-editor.css`
+- `admin-plugins.css`
 - `admin-sidebar.css`
 - `admin-site-tables.css`
 - `admin-tabler.css`

@@ -1,5 +1,5 @@
 > **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-27
 > **Kurzbeschreibung:** Complete development reference for 365CMS plugins, covering lifecycle, hooks, admin and member integration, persistence, security, assets, routing, testing, and release quality.
 
 # 365CMS Plugin Development
@@ -89,6 +89,20 @@ Use `add_menu_page()` for a top-level menu and `add_submenu_page()` for child pa
 - the central shell when the callback does not provide a complete layout.
 
 Admin callbacks should render content only. They should use `renderAdminLayoutStart()` and `renderAdminLayoutEnd()` only when the compatibility path requires it, because the router already supplies the current shell for ordinary plugin callbacks.
+
+#### Unified admin design
+
+The admin router loads `assets/css/admin-plugins.css` after the plugin stylesheets on every plugin page. It styles the shared building blocks inside `.cms-plugin-admin-content` in the flat 365CMS core look: `.admin-page-header` (title, description, `.header-actions`), `.dashboard-grid` with `.stat-card` (`.stat-number`, `.stat-label`), `.admin-card` with `*-panel-header`, info/note/action cards (`*-info-card`, `*-note-card`, `*-action-card` with `__eyebrow`, `__value`, `__title`, `__text`), left sub-navigation, `.users-table` and empty states. Use these classes instead of plugin-specific card, hero or emoji styling; decorative icon tiles are hidden. Icon-only buttons use Tabler icons (`<i class="ti ti-pencil" aria-hidden="true"></i>`) plus a `title`. The top-level menu title is the plain feature name without a vendor prefix; the core sorts plugin menus in the **Plugin Extensions** section.
+
+For path routes (`/admin/plugins/:plugin/:page`) the router sets `$_GET['page']` to the requested page before calling the callback, so dispatchers and the active sidebar entry can rely on it. Pass the active page slug to `renderAdminLayoutStart()`.
+
+#### Content Security Policy
+
+In production the CSP is enforced with request nonces and Trusted Types. Inline `<script>` blocks without a nonce and inline event handlers (`onclick`, `onchange`, `onsubmit`) do not run. Put JavaScript in plugin files and wire it through `data-*` attributes; for simple confirmations use the core attribute `data-cms-confirm="…"`. Unavoidable inline `<style>`/`<script>` blocks must carry `\CMS\Security::instance()->nonceAttr()`.
+
+#### Localized public routes
+
+`includes/functions/plugin-public-i18n.php` provides `cms_plugin_public_language()`, `cms_plugin_public_path_without_lang()`, `cms_plugin_public_localized_path()` and related helpers for `/en/…` routes. Plugins must not depend on a shared folder outside their own directory.
 
 #### Example: protected settings page
 
@@ -249,6 +263,20 @@ Für ein Hauptmenü wird `add_menu_page()`, für Unterseiten `add_submenu_page()
 - zentrale Shell, wenn der Callback kein vollständiges Layout liefert.
 
 Admin-Callbacks rendern ausschließlich Inhalt. `renderAdminLayoutStart()` und `renderAdminLayoutEnd()` werden nur im Kompatibilitätspfad verwendet, weil der Router bei normalen Plugin-Callbacks bereits die aktuelle Shell bereitstellt.
+
+#### Einheitliches Admin-Design
+
+Der AdminRouter lädt auf jeder Plugin-Seite `assets/css/admin-plugins.css` nach den Plugin-Stylesheets. Die Datei gestaltet die gemeinsamen Bausteine innerhalb von `.cms-plugin-admin-content` im flachen Stil der 365CMS-Kernseiten: `.admin-page-header` (Titel, Beschreibung, `.header-actions`), `.dashboard-grid` mit `.stat-card` (`.stat-number`, `.stat-label`), `.admin-card` mit `*-panel-header`, Info-/Hinweis-/Schnellzugriffskarten (`*-info-card`, `*-note-card`, `*-action-card` mit `__eyebrow`, `__value`, `__title`, `__text`), linke Unternavigation, `.users-table` und Leerzustände. Plugins verwenden diese Klassen statt eigener Karten-, Hero- oder Emoji-Gestaltung; dekorative Icon-Kacheln werden ausgeblendet. Reine Icon-Buttons nutzen Tabler-Icons (`<i class="ti ti-pencil" aria-hidden="true"></i>`) plus `title`. Der Hauptmenütitel ist der schlichte Funktionsname ohne Anbieterpräfix; der Core sortiert Plugin-Menüs im Abschnitt **„Plugin-Erweiterungen“**.
+
+Bei Pfad-Routen (`/admin/plugins/:plugin/:page`) setzt der Router vor dem Callback `$_GET['page']` auf die angeforderte Seite, sodass Dispatcher und aktive Sidebar-Markierung sich darauf verlassen können. Den aktiven Seiten-Slug an `renderAdminLayoutStart()` übergeben.
+
+#### Content Security Policy
+
+Im Produktivbetrieb wird die CSP mit Request-Nonces und Trusted Types erzwungen. Inline-`<script>`-Blöcke ohne Nonce und Inline-Event-Handler (`onclick`, `onchange`, `onsubmit`) werden nicht ausgeführt. JavaScript gehört in Plugin-Dateien und wird über `data-*`-Attribute angebunden; für einfache Bestätigungen dient das Core-Attribut `data-cms-confirm="…"`. Unvermeidbare Inline-`<style>`/`<script>`-Blöcke erhalten `\CMS\Security::instance()->nonceAttr()`.
+
+#### Lokalisierte öffentliche Routen
+
+`includes/functions/plugin-public-i18n.php` stellt `cms_plugin_public_language()`, `cms_plugin_public_path_without_lang()`, `cms_plugin_public_localized_path()` und weitere Helfer für `/en/…`-Routen bereit. Plugins hängen nicht von einem gemeinsamen Ordner außerhalb ihres eigenen Verzeichnisses ab.
 
 #### Beispiel: geschützte Settings-Seite
 

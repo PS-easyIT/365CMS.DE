@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` and `v3.4.02` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02` and `v3.4.03` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01` und `v3.4.02` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02` und `v3.4.03` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -23,6 +23,17 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.4.03 — 27.09.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.03** | 🔴 fix | Performance / OPcache-Warmup | **Der Warmup-Request bricht Admin-Seiten nicht mehr ab.** `opcache_compile_file()` markiert Dateien als eingebunden; lief der Warmup mitten im Request, wurden spätere `require_once`-Aufrufe zu No-Ops (`Class "DashboardModule" not found`) und bereits geladene Plugin-Klassen lösten „Cannot redeclare class“ aus. `Bootstrap` führt den Warmup jetzt per `register_shutdown_function()` nach der Anfrage aus, `OpcacheWarmupService` überspringt im Request bereits eingebundene Dateien. |
+| **3.4.03** | 🔴 fix | Plugins / Admin-Routing | `AdminRouter::renderPluginPage()` setzt bei Pfad-Routen `/admin/plugins/:plugin/:page` vor dem Callback `$_GET['page']`. Nach dem Wegfall des früheren `shared/`-Plugin-Contracts zeigten Downloads, Forum, Newsletter und Projects auf jeder Unterseite nur ihr Dashboard. |
+| **3.4.03** | 🟢 feat | Plugins / Admin-Design | Neues `assets/css/admin-plugins.css`: einheitliches, schlichtes Design für alle Plugin-Adminseiten (Seitenkopf, Kennzahlen, Karten, Info-/Schnellzugriffskarten, Unternavigation, Tabellen, Leerzustände) im Stil der Kernseiten, gescoped auf `.cms-plugin-admin-content`. Der Router lädt es nach den Plugin-Stylesheets – auch bei Plugins, die ein vollständiges Layout selbst ausgeben. |
+| **3.4.03** | 🟢 feat | Plugins / i18n | `includes/functions/plugin-public-i18n.php` stellt die `cms_plugin_public_*`-Helfer für lokalisierte Plugin-Routen (`/en/…`) zentral bereit; einzeln verteilte Plugins benötigen keinen gemeinsamen `shared/`-Ordner mehr. |
+| **3.4.03** | 🔴 fix | Editor.js / Formulare | Formulare mit Editor.js-Feldern werden wieder abgeschickt, wenn der Editor sofort speichert (z. B. leere Felder): Das erneute `requestSubmit()` läuft nun per `setTimeout` nach dem aktuellen `submit`-Event, da der Browser es während der Event-Verteilung ignoriert. Betraf u. a. das Anlegen von Kontaktformularen. |
+| **3.4.03** | 🔵 docs | Plugin-Entwicklung | `DOC/plugins/PLUGIN-DEVELOPMENT.md` beschreibt das einheitliche Admin-Design, `$_GET['page']` bei Pfad-Routen, die CSP-Regeln (keine Inline-Skripte/-Handler, `data-cms-confirm`, `nonceAttr()`) und die i18n-Helfer; `DOC/CMSFILESTRUCTUR.md` ergänzt. |
 
 ### v3.4.02 — 26.09.2026
 

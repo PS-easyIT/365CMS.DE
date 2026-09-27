@@ -403,7 +403,11 @@ final class EditorJsAssetService
                                 return saveStates[key] === 'saved';
                             });
                             if (allEditorsSaved) {
-                                submitFormSafely(submitter);
+                                // Erst nach Abschluss des laufenden submit-Events erneut absenden:
+                                // requestSubmit() wird während der Event-Verteilung ignoriert.
+                                window.setTimeout(function() {
+                                    submitFormSafely(submitter);
+                                }, 0);
                             }
                         }).catch(function(err) {
                             console.error('Editor.js save error:', err);

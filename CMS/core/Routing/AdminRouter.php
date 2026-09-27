@@ -216,6 +216,12 @@ final class AdminRouter
             $this->logPluginAdminError($plugin, $page, $e, 'feature-tracking');
         }
 
+        // Plugin-Dispatcher lesen die aktive Unterseite aus $_GET['page'].
+        // Bei Pfad-Routen (/admin/plugins/:plugin/:page) wird sie hier bereitgestellt.
+        if (!isset($_GET['page']) || !is_string($_GET['page']) || trim($_GET['page']) === '') {
+            $_GET['page'] = $page;
+        }
+
         if ($isAjax) {
             try {
                 call_user_func($callback);
@@ -240,7 +246,7 @@ final class AdminRouter
         }
 
         if ($this->containsCompleteAdminLayout($content)) {
-            echo $this->relocateStylesheetsToHead($content);
+            echo $this->injectPluginDesignStylesheet($this->relocateStylesheetsToHead($content));
             return;
         }
 
@@ -404,8 +410,13 @@ final class AdminRouter
     {
         $pageTitle = $title !== '' ? $title : 'Plugin Page';
         $activePage = $activePage !== '' ? $activePage : 'plugins';
+        $stylesheets = array_values(array_unique(array_filter($stylesheetHrefs, static fn ($href): bool => is_string($href) && trim($href) !== '')));
+        // Einheitliches Plugin-Admin-Design zuletzt laden, damit es gemeinsame Bausteine vereinheitlicht.
+        if (function_exists('cms_asset_url') && is_file(ABSPATH . 'assets/css/admin-plugins.css')) {
+            $stylesheets[] = cms_asset_url('css/admin-plugins.css');
+        }
         $pageAssets = [
-            'css' => array_values(array_unique(array_filter($stylesheetHrefs, static fn ($href): bool => is_string($href) && trim($href) !== ''))),
+            'css' => $stylesheets,
         ];
 
         require ABSPATH . 'admin/partials/header.php';
@@ -499,6 +510,26 @@ final class AdminRouter
 
         $linkHtml = "    " . implode("\n    ", array_values($stylesheetLinks)) . "\n";
         $result = preg_replace('~</head>~i', $linkHtml . '</head>', $withoutLinks, 1);
+
+        return is_string($result) ? $result : $content;
+    }
+
+    /**
+     * Ergänzt das einheitliche Plugin-Admin-Design bei Plugins, die ein
+     * vollständiges Layout selbst ausgeben (nach allen Plugin-Stylesheets).
+     */
+    private function injectPluginDesignStylesheet(string $content): string
+    {
+        if (!function_exists('cms_asset_url') || !is_file(ABSPATH . 'assets/css/admin-plugins.css')) {
+            return $content;
+        }
+
+        if (stripos($content, 'css/admin-plugins.css') !== false || stripos($content, '</head>') === false) {
+            return $content;
+        }
+
+        $link = '    <link rel="stylesheet" href="' . htmlspecialchars(cms_asset_url('css/admin-plugins.css'), ENT_QUOTES, 'UTF-8') . '">' . "\n";
+        $result = preg_replace('~</head>~i', $link . '</head>', $content, 1);
 
         return is_string($result) ? $result : $content;
     }

@@ -1,0 +1,416 @@
+/**
+ * 365CMS – Einheitliches Design für Plugin-Adminseiten
+ *
+ * Wird vom AdminRouter nach den Plugin-Stylesheets geladen und gilt nur
+ * innerhalb von .cms-plugin-admin-content. Vereinheitlicht die gemeinsamen
+ * Bausteine aller Plugins (Seitenkopf, Kennzahlen, Karten, Info-Karten,
+ * Unternavigation, Tabellen, Leerzustände) auf den schlichten Stil der
+ * 365CMS-Kernseiten. Plugin-spezifische Layouts bleiben unberührt.
+ *
+ * @package 365CMS
+ */
+
+body.admin-body .cms-plugin-admin-content {
+    --cms-plugin-radius: var(--card-radius, 2px);
+    --cms-plugin-surface: var(--cms-admin-card-bg, #fbfcfe);
+    --cms-plugin-surface-soft: var(--cms-admin-card-bg-soft, #f6f9fc);
+    --cms-plugin-border: var(--cms-admin-border, #c2ceda);
+    --cms-plugin-border-soft: rgba(216, 225, 235, 0.9);
+    --cms-plugin-text: var(--cms-admin-text, #1f2a37);
+    --cms-plugin-muted: var(--cms-admin-text-muted, #64748b);
+    --cms-plugin-soft: var(--cms-admin-text-soft, #44556b);
+    --cms-plugin-primary: var(--tblr-primary, #3b82f6);
+    --cms-plugin-primary-soft: var(--cms-admin-selection-bg, #edf3ff);
+    --cms-plugin-primary-border: var(--cms-admin-selection-border, #c8d9ff);
+    --cms-plugin-shadow: var(--cms-admin-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
+    --cms-plugin-gap: 1rem;
+    color: var(--cms-plugin-text);
+}
+
+/* Abstand zum Topbar wie bei den Kernseiten */
+body.admin-body .page-body:has(> .cms-plugin-admin-content) {
+    margin-top: 0;
+}
+
+body.admin-body .cms-plugin-admin-content.container-xl {
+    padding-top: 1.5rem;
+}
+
+/* ── Äußere Plugin-Hüllen: keine zusätzlichen Rahmen/Abstände ─────────── */
+body.admin-body .cms-plugin-admin-content :is(
+    [class$="-admin-shell"], [class*="-admin-shell "],
+    [class$="-admin-shell-wrap"], [class$="-admin-content"],
+    .cms-plugin-admin-layout, .cms-plugin-admin-layout__content
+) {
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    max-width: none;
+}
+
+/* ── Seitenkopf ────────────────────────────────────────────────────────── */
+body.admin-body .cms-plugin-admin-content .admin-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.admin-body .cms-plugin-admin-content .admin-page-header > :first-child {
+    min-width: 0;
+    flex: 1 1 18rem;
+}
+
+body.admin-body .cms-plugin-admin-content .admin-page-header :is(h1, h2) {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.3;
+    font-weight: 700;
+    color: var(--cms-plugin-text);
+    letter-spacing: 0;
+}
+
+body.admin-body .cms-plugin-admin-content .admin-page-header p {
+    margin: 0.25rem 0 0;
+    font-size: 0.875rem;
+    color: var(--cms-plugin-muted);
+    max-width: 60rem;
+}
+
+body.admin-body .cms-plugin-admin-content :is(.header-actions, .admin-page-header__actions) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+/* ── Kennzahlen-Raster und -Karten ────────────────────────────────────── */
+body.admin-body .cms-plugin-admin-content .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+    gap: var(--cms-plugin-gap);
+    margin: 0 0 1.5rem;
+}
+
+body.admin-body .cms-plugin-admin-content .stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 0.25rem;
+    min-height: 0;
+    margin: 0;
+    padding: 1rem 1.125rem;
+    text-align: left;
+    background: var(--cms-plugin-surface);
+    border: 1px solid var(--cms-plugin-border);
+    border-radius: var(--cms-plugin-radius);
+    box-shadow: var(--cms-plugin-shadow);
+    transform: none;
+}
+
+body.admin-body .cms-plugin-admin-content .stat-card:hover {
+    transform: none;
+    box-shadow: var(--cms-plugin-shadow);
+}
+
+body.admin-body .cms-plugin-admin-content .stat-card .stat-icon {
+    display: none;
+}
+
+/* Label oben (wie Kernkennzahlen), Wert darunter */
+body.admin-body .cms-plugin-admin-content .stat-card:not(:has(h3, h4)) .stat-label {
+    order: -1;
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cms-plugin-muted);
+}
+
+body.admin-body .cms-plugin-admin-content .stat-card :is(h3, h4) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cms-plugin-muted);
+}
+
+body.admin-body .cms-plugin-admin-content .stat-card:has(h3, h4) .stat-label {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--cms-plugin-muted);
+}
+
+body.admin-body .cms-plugin-admin-content .stat-card .stat-number {
+    margin: 0;
+    font-size: 1.75rem;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--cms-plugin-text);
+    background: none;
+    -webkit-text-fill-color: currentColor;
+}
+
+/* ── Karten und Panel-Köpfe ───────────────────────────────────────────── */
+body.admin-body .cms-plugin-admin-content :is(.admin-card, .admin-section) {
+    margin: 0 0 1.5rem;
+    padding: 1.25rem;
+    background: var(--cms-plugin-surface);
+    border: 1px solid var(--cms-plugin-border);
+    border-radius: var(--cms-plugin-radius);
+    box-shadow: var(--cms-plugin-shadow);
+}
+
+body.admin-body .cms-plugin-admin-content :is(.admin-card, .admin-section) > h3,
+body.admin-body .cms-plugin-admin-content [class$="-panel-header"] :is(h2, h3) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--cms-plugin-text);
+}
+
+body.admin-body .cms-plugin-admin-content :is(.admin-card, .admin-section) > h3 {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--cms-plugin-border-soft);
+}
+
+body.admin-body .cms-plugin-admin-content [class$="-panel-header"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    margin: 0 0 1rem;
+    padding: 0 0 0.75rem;
+    border: 0;
+    border-bottom: 1px solid var(--cms-plugin-border-soft);
+    background: transparent;
+}
+
+body.admin-body .cms-plugin-admin-content [class$="-panel-header"] > :first-child {
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+
+body.admin-body .cms-plugin-admin-content [class$="-panel-header"] p {
+    margin: 0.25rem 0 0;
+    font-size: 0.875rem;
+    color: var(--cms-plugin-muted);
+}
+
+/* ── Info-, Hinweis- und Schnellzugriffskarten ────────────────────────── */
+body.admin-body .cms-plugin-admin-content :is(
+    [class*="-info-card"], [class*="-note-card"], [class*="-mini-card"],
+    [class*="-action-card"], [class*="-feature-card"], .cp-summary-card
+):not([class*="-card__"]):not([class*="-card-grid"]) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 1rem 1.125rem;
+    text-align: left;
+    color: var(--cms-plugin-text);
+    background: var(--cms-plugin-surface);
+    border: 1px solid var(--cms-plugin-border);
+    border-radius: var(--cms-plugin-radius);
+    box-shadow: var(--cms-plugin-shadow);
+    transform: none;
+    text-decoration: none;
+}
+
+/* Schnellzugriffe: Textblock füllt die Karte (ehemalige Icon-Spalte entfällt) */
+body.admin-body .cms-plugin-admin-content :is([class*="-action-card"], [class*="-feature-card"]):not([class*="-card__"]):not([class*="-card-grid"]) > :not([class*="__icon"]) {
+    min-width: 0;
+    width: 100%;
+}
+
+body.admin-body .cms-plugin-admin-content a:is([class*="-action-card"], [class*="-feature-card"]):not([class*="-card__"]):hover {
+    border-color: var(--cms-plugin-primary-border);
+    background: var(--cms-plugin-primary-soft);
+    transform: none;
+}
+
+/* Alle übrigen Plugin-Karten: gleiche flache Kantenrundung wie der Core */
+body.admin-body .cms-plugin-admin-content :is([class$="-card"], [class*="-card "], .card, [class$="-subcard"]):not([class*="-card__"]) {
+    border-radius: var(--cms-plugin-radius);
+}
+
+body.admin-body .cms-plugin-admin-content [class*="-card__eyebrow"],
+body.admin-body .cms-plugin-admin-content [class$="-mini-card__label"],
+body.admin-body .cms-plugin-admin-content .cp-kicker {
+    display: block;
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cms-plugin-muted);
+}
+
+body.admin-body .cms-plugin-admin-content :is([class*="-info-card__value"], [class$="-mini-card__value"], [class$="-note-card__title"]) {
+    margin: 0;
+    font-size: 1.25rem;
+    line-height: 1.3;
+    font-weight: 700;
+    color: var(--cms-plugin-text);
+}
+
+body.admin-body .cms-plugin-admin-content :is([class*="-card__title"]):not([class$="-note-card__title"]) {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--cms-plugin-text);
+}
+
+body.admin-body .cms-plugin-admin-content :is([class*="-card__text"], [class$="-mini-card__text"]) {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--cms-plugin-muted);
+}
+
+/* Dekorative Icon-Kacheln (früher Emojis/Kürzel) entfallen */
+body.admin-body .cms-plugin-admin-content :is(
+    [class$="-action-card__icon"], [class$="-feature-card__icon"],
+    [class$="-empty-icon"], [class$="-empty-state__icon"], [class$="-stat-icon"]
+) {
+    display: none;
+}
+
+/* ── Unternavigation (linke Plugin-Menüs) ─────────────────────────────── */
+body.admin-body .cms-plugin-admin-content :is(.feed-submenu, .forum-admin-submenu, .pr-admin-submenu, .kb-admin-submenu) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.75rem;
+    background: var(--cms-plugin-surface);
+    border: 1px solid var(--cms-plugin-border);
+    border-radius: var(--cms-plugin-radius);
+    box-shadow: var(--cms-plugin-shadow);
+}
+
+body.admin-body .cms-plugin-admin-content :is(.feed-submenu__title, .forum-admin-submenu__title, .pr-admin-submenu__title) {
+    display: block;
+    margin: 0 0 0.5rem;
+    padding: 0 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cms-plugin-muted);
+}
+
+body.admin-body .cms-plugin-admin-content :is(.feed-submenu, .forum-admin-submenu, .pr-admin-submenu, .kb-admin-submenu) a {
+    display: block;
+    padding: 0.5rem 0.625rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--cms-plugin-soft);
+    text-decoration: none;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--cms-plugin-radius);
+}
+
+body.admin-body .cms-plugin-admin-content :is(.feed-submenu, .forum-admin-submenu, .pr-admin-submenu, .kb-admin-submenu) a:hover {
+    color: var(--cms-plugin-text);
+    background: var(--cms-plugin-surface-soft);
+}
+
+body.admin-body .cms-plugin-admin-content :is(.feed-submenu, .forum-admin-submenu, .pr-admin-submenu, .kb-admin-submenu) a:is(.is-active, .active, [aria-current="page"]) {
+    color: var(--cms-plugin-primary);
+    font-weight: 600;
+    background: var(--cms-plugin-primary-soft);
+    border-color: var(--cms-plugin-primary-border);
+}
+
+/* ── Tabellen ─────────────────────────────────────────────────────────── */
+body.admin-body .cms-plugin-admin-content .users-table-container {
+    background: var(--cms-plugin-surface);
+    border: 1px solid var(--cms-plugin-border);
+    border-radius: var(--cms-plugin-radius);
+    box-shadow: none;
+    overflow-x: auto;
+}
+
+body.admin-body .cms-plugin-admin-content .users-table th {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cms-plugin-soft);
+    background: var(--cms-admin-table-head-bg, #f4f7fb);
+}
+
+body.admin-body .cms-plugin-admin-content .users-table td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+}
+
+body.admin-body .cms-plugin-admin-content .users-table tbody tr:hover td {
+    background: var(--cms-admin-table-row-hover, #f7faff);
+}
+
+/* ── Leerzustände ─────────────────────────────────────────────────────── */
+body.admin-body .cms-plugin-admin-content :is(.empty-state, [class$="-empty-state"]) {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--cms-plugin-muted);
+    background: transparent;
+    border: 1px dashed var(--cms-plugin-border);
+    border-radius: var(--cms-plugin-radius);
+    box-shadow: none;
+}
+
+body.admin-body .cms-plugin-admin-content :is(.empty-state, [class$="-empty-state"]) :is(h3, h4, strong) {
+    color: var(--cms-plugin-text);
+    font-size: 0.9375rem;
+}
+
+body.admin-body .cms-plugin-admin-content :is(.empty-state, [class$="-empty-state"]) p:empty {
+    display: none;
+}
+
+/* ── Status-Badges ────────────────────────────────────────────────────── */
+body.admin-body .cms-plugin-admin-content .status-badge {
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: var(--cms-plugin-radius);
+}
+
+/* ── Buttons mit Tabler-Icon ──────────────────────────────────────────── */
+body.admin-body .cms-plugin-admin-content .btn > .ti:only-child {
+    margin: 0;
+    font-size: 1rem;
+}
+
+@media (max-width: 767.98px) {
+    body.admin-body .cms-plugin-admin-content .admin-page-header {
+        flex-direction: column;
+    }
+
+    body.admin-body .cms-plugin-admin-content .dashboard-grid {
+        grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    }
+}
