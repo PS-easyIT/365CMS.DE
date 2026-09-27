@@ -867,14 +867,16 @@ class Bootstrap
             }
         }, 20);
 
-        // opcache_compile_file() markiert Dateien als eingebunden: Ein Warmup mitten im
-        // Request lässt spätere require_once-Aufrufe leerlaufen („Class not found“).
-        // Deshalb erst nach Abschluss der eigentlichen Anfrage ausführen.
+        // Warmup erst nach der Antwort: opcache_compile_file() darf weder bereits geladene noch im
+        // weiteren Request noch einzubindende Klassen-Dateien ein zweites Mal deklarieren.
         register_shutdown_function(static function (): void {
             try {
                 Services\OpcacheWarmupService::getInstance()->maybeWarmAfterDeploy(30);
-            } catch (\Throwable) {
-                // Warmup ist ein optionales Performance-Schutznetz.
+            } catch (\Throwable $e) {
+                Logger::instance()->warning('OPcache-Warmup nach Deploy fehlgeschlagen.', [
+                    'component' => 'opcache_warmup',
+                    'exception' => $e,
+                ]);
             }
         });
         Debug::checkpoint('bootstrap.opcache_checked');

@@ -119,15 +119,27 @@ final class OpcacheWarmupService
         }
 
         $compiled = 0;
+        $skipped = 0;
         $failed = [];
 
-        // Bereits im aktuellen Request eingebundene Dateien liegen schon im OPcache.
-        // Ein erneutes opcache_compile_file() würde deren Klassen früh binden und mit
-        // „Cannot redeclare class“ abbrechen (z. B. bei aktiven Plugins).
+        // Signatur vorab festschreiben: Bricht ein Compile den Request trotz aller Schutzmaßnahmen
+        // hart ab (E_COMPILE_ERROR ist nicht abfangbar), darf der Warmup nicht bei jedem weiteren
+        // Request erneut anlaufen und die Seite dauerhaft lahmlegen.
+        $this->writeState([
+            'signature' => $signature,
+            'limit' => $limit,
+            'generated_at' => date('c'),
+            'in_progress' => true,
+            'compiled' => 0,
+            'failed' => [],
+        ]);
+
+        // Bereits in diesem Request eingebundene Dateien liegen ohnehin im OPcache. Ein erneutes
+        // opcache_compile_file() auf sie deklariert ihre Klassen ein zweites Mal und endet in
+        // "Cannot redeclare class …" (z. B. bei bereits geladenen Plugin-Klassen).
         $includedFiles = [];
         foreach (get_included_files() as $includedFile) {
-            $includedReal = realpath($includedFile);
-            $includedFiles[$includedReal !== false ? $includedReal : $includedFile] = true;
+            $includedFiles[(string)(realpath($includedFile) ?: $includedFile)] = true;
         }
 
         foreach ($files as $file) {
@@ -136,9 +148,9 @@ final class OpcacheWarmupService
                 continue;
             }
 
-            $resolvedPath = realpath($realPath);
-            if (isset($includedFiles[$realPath]) || ($resolvedPath !== false && isset($includedFiles[$resolvedPath]))) {
-                $compiled++;
+            $realPath = (string)(realpath($realPath) ?: $realPath);
+            if (isset($includedFiles[$realPath])) {
+                $skipped++;
                 continue;
             }
 
@@ -176,6 +188,7 @@ final class OpcacheWarmupService
             'limit' => $limit,
             'generated_at' => date('c'),
             'compiled' => $compiled,
+            'skipped_already_loaded' => $skipped,
             'failed' => $failed,
             'files' => array_map(function (array $file): array {
                 return [
@@ -194,6 +207,10 @@ final class OpcacheWarmupService
             count($files)
         );
 
+        if ($skipped > 0) {
+            $message .= ' Bereits geladen: ' . $skipped . '.';
+        }
+
         if ($failed !== []) {
             $message .= ' Fehlgeschlagen: ' . count($failed) . '.';
         }
@@ -201,12 +218,13 @@ final class OpcacheWarmupService
         Logger::instance()->info($message, [
             'component' => 'opcache_warmup',
             'compiled' => $compiled,
+            'skipped_already_loaded' => $skipped,
             'failed' => $failed,
             'limit' => $limit,
         ]);
 
         return [
-            'success' => $compiled > 0,
+            'success' => $compiled > 0 || ($skipped > 0 && $failed === []),
             'compiled' => $compiled,
             'failed' => $failed,
             'message' => $message,

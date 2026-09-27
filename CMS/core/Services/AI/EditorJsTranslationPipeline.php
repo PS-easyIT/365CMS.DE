@@ -12,6 +12,7 @@ final class EditorJsTranslationPipeline
     private static ?self $instance = null;
     private const int MAX_TRANSLATION_BATCH_CHARACTERS = 2400;
     private const int MAX_TRANSLATION_BATCH_SEGMENTS = 12;
+    private const int MAX_SINGLE_SEGMENT_CHARACTERS = 8000;
 
     public static function getInstance(): self
     {
@@ -160,29 +161,21 @@ final class EditorJsTranslationPipeline
         $batchCharacterCount = 0;
         $batchCount = 0;
 
-        $translateBatch = static function (array $texts) use ($provider, $context, &$translatedTexts, &$batchCount): void {
+        $translateBatch = function (array $texts) use ($provider, $context, &$translatedTexts, &$batchCount): void {
             if ($texts === []) {
                 return;
             }
 
-            $translations = $provider->translateBatch($texts, $context);
-            if (count($translations) !== count($texts)) {
-                throw new \RuntimeException('AI-Provider lieferte keine vollständige Übersetzungsantwort für einen Teilauftrag.');
+            foreach ($this->translateTextsWithRecovery($texts, $provider, $context, $batchCount) as $translation) {
+                $translatedTexts[] = $translation;
             }
-
-            foreach ($translations as $index => $translation) {
-                $translatedTexts[] = is_string($translation) && trim($translation) !== ''
-                    ? $translation
-                    : $texts[$index];
-            }
-            $batchCount++;
         };
 
         foreach ($segments as $segment) {
             $text = (string) ($segment['text'] ?? '');
             $textCharacterCount = $this->countCharacters($text);
-            if ($textCharacterCount > self::MAX_TRANSLATION_BATCH_CHARACTERS) {
-                throw new \InvalidArgumentException('Ein einzelnes Editor.js-Textsegment überschreitet das sichere AI-Batch-Limit. Bitte den betreffenden Block in kleinere Absätze aufteilen.');
+            if ($textCharacterCount > self::MAX_SINGLE_SEGMENT_CHARACTERS) {
+                throw new \InvalidArgumentException('Ein einzelnes Editor.js-Textsegment überschreitet das sichere AI-Limit. Bitte den betreffenden Block in kleinere Absätze aufteilen.');
             }
             $wouldExceedCharacterLimit = $batch !== []
                 && $batchCharacterCount + $textCharacterCount > self::MAX_TRANSLATION_BATCH_CHARACTERS;
@@ -201,6 +194,83 @@ final class EditorJsTranslationPipeline
         $translateBatch($batch);
 
         return [$translatedTexts, $batchCount];
+    }
+
+    /**
+     * Translates a batch and recovers from partial model failures: an incomplete/invalid batch response is
+     * split into halves, and segments returned unchanged (still in source language) are retried one by one.
+     * This prevents long documents from ending up with mixed source/target language blocks.
+     *
+     * @param list<string> $texts
+     * @param array<string, mixed> $context
+     * @return list<string>
+     */
+    private function translateTextsWithRecovery(array $texts, AiProviderInterface $provider, array $context, int &$batchCount): array
+    {
+        try {
+            $translations = $provider->translateBatch($texts, $context);
+            $batchCount++;
+            if (count($translations) !== count($texts)) {
+                throw new \RuntimeException('AI-Provider lieferte keine vollständige Übersetzungsantwort für einen Teilauftrag.');
+            }
+        } catch (\RuntimeException $e) {
+            if (count($texts) <= 1 || !$this->isRecoverableBatchFailure($e)) {
+                throw $e;
+            }
+
+            $half = intdiv(count($texts), 2);
+
+            return [
+                ...$this->translateTextsWithRecovery(array_slice($texts, 0, $half), $provider, $context, $batchCount),
+                ...$this->translateTextsWithRecovery(array_slice($texts, $half), $provider, $context, $batchCount),
+            ];
+        }
+
+        $result = [];
+        foreach (array_values($translations) as $index => $translation) {
+            $source = $texts[$index];
+            $translation = is_string($translation) ? $translation : '';
+
+            if (count($texts) > 1 && $this->looksUntranslated($source, $translation)) {
+                try {
+                    $single = $provider->translateBatch([$source], $context);
+                    $batchCount++;
+                    $translation = is_string($single[0] ?? null) ? $single[0] : $translation;
+                } catch (\RuntimeException $e) {
+                    if (!$this->isRecoverableBatchFailure($e)) {
+                        throw $e;
+                    }
+                }
+            }
+
+            $result[] = trim($translation) !== '' ? $translation : $source;
+        }
+
+        return $result;
+    }
+
+    private function looksUntranslated(string $source, string $translation): bool
+    {
+        if (trim($translation) === '') {
+            return true;
+        }
+
+        $plain = trim(strip_tags($source));
+        if ($this->countCharacters($plain) < 20 || preg_match('/\p{L}{3,}/u', $plain) !== 1) {
+            return false;
+        }
+
+        return trim(strip_tags($translation)) === $plain;
+    }
+
+    private function isRecoverableBatchFailure(\RuntimeException $e): bool
+    {
+        $message = function_exists('mb_strtolower') ? mb_strtolower($e->getMessage(), 'UTF-8') : strtolower($e->getMessage());
+
+        return str_contains($message, 'übersetzungs-batch-vertrag')
+            || str_contains($message, 'übersetzungsnutzlast')
+            || str_contains($message, 'vollständige übersetzungsantwort')
+            || str_contains($message, 'keine verwertbare antwort');
     }
 
     /**
