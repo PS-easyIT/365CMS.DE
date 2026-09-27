@@ -867,7 +867,18 @@ class Bootstrap
             }
         }, 20);
 
-        Services\OpcacheWarmupService::getInstance()->maybeWarmAfterDeploy(30);
+        // Warmup erst nach der Antwort: opcache_compile_file() darf weder bereits geladene noch im
+        // weiteren Request noch einzubindende Klassen-Dateien ein zweites Mal deklarieren.
+        register_shutdown_function(static function (): void {
+            try {
+                Services\OpcacheWarmupService::getInstance()->maybeWarmAfterDeploy(30);
+            } catch (\Throwable $e) {
+                Logger::instance()->warning('OPcache-Warmup nach Deploy fehlgeschlagen.', [
+                    'component' => 'opcache_warmup',
+                    'exception' => $e,
+                ]);
+            }
+        });
         Debug::checkpoint('bootstrap.opcache_checked');
 
         Hooks::doAction('cms_init');
