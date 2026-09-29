@@ -739,7 +739,7 @@ final class EditorJsRenderer
             $html .= '<figcaption>' . $caption . '</figcaption>';
         }
         if ($sourceUrl !== '') {
-            $html .= '<a class="editorjs-image__source" href="' . htmlspecialchars($sourceUrl, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener noreferrer external nofollow" aria-label="Bildquelle in neuem Tab öffnen">';
+            $html .= '<a class="editorjs-image__source" href="' . htmlspecialchars($sourceUrl, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener noreferrer external" aria-label="Bildquelle in neuem Tab öffnen">';
             $html .= '<span class="editorjs-image__source-label">QUELLE</span>';
             $html .= '<span class="editorjs-image__source-icon" aria-hidden="true">↗</span>';
             $html .= '</a>';

@@ -76,8 +76,16 @@ The runtime emits `cms_init`, plugin-specific hooks, `cms_admin_menu`, `plugin_l
 | `plugins_loaded` | action | run work that requires all active plugins |
 | `member_menu_items` | filter | add a member navigation item |
 | `member_dashboard_widgets` | filter | register a member dashboard widget |
+| `cms_sitemap_entries` | filter | add public plugin URLs to `plugins.xml` of the sitemap bundle |
+| `search_results` | filter | add plugin hits to the site search (`/search`) and `SearchService::searchAll()` |
 
 The canonical hook names and signatures are maintained in the Core hook documentation. Do not invent a second hook bus.
+
+#### Sitemap, search and SEO metadata for public plugin pages
+
+- **Sitemap:** `cms_sitemap_entries` receives an array and returns it with additional entries `['url' => 'path/relative/to/SITE_URL', 'lastmod' => '2026-09-29 12:00:00', 'changefreq' => 'daily', 'priority' => 0.6]`. Absolute URLs are accepted for the site's own host only; foreign hosts and duplicates are dropped. The core writes the entries to `plugins.xml` (daily via `cms_cron_daily` or *SEO → Sitemap*). List only indexable pages (no filter, search or sort variants).
+- **Search:** `search_results($results, $query, $limit, $context = [])` appends hits with at least `title` and `url` (own host or path relative to `SITE_URL`) plus optional `excerpt`, `_type` (search scope, e.g. `messagecenter`) and `_type_label`. `$context` contains `type`, `locale` and `source`; the search page only asks plugins when no core scope (`pages`, `posts`, …) is selected, and `?type=<_type>` shows only that plugin's hits. Split the query into words and match all of them against the plugin tables with prepared statements.
+- **Meta tags:** set title, description, canonical and robots of plugin pages per request with `\CMS\Services\SEOService::getInstance()->setRequestMeta([...])` (keys `title`, `description`, `canonical_url`, `robots_index`, `robots_follow`, `og_type`, `schema_type`). `SeoAnalysisService::resolveMetaTitle()` applies the title format from the SEO settings.
 
 #### Admin menu and routing contract
 
@@ -250,8 +258,16 @@ Die Runtime löst `cms_init`, Plugin-Hooks, `cms_admin_menu`, `plugin_loaded` un
 | `plugins_loaded` | Action | von allen aktiven Plugins abhängige Logik ausführen |
 | `member_menu_items` | Filter | Member-Navigation erweitern |
 | `member_dashboard_widgets` | Filter | Member-Dashboard-Widget registrieren |
+| `cms_sitemap_entries` | Filter | öffentliche Plugin-URLs in `plugins.xml` des Sitemap-Bundles aufnehmen |
+| `search_results` | Filter | Plugin-Treffer in der Seitensuche (`/search`) und in `SearchService::searchAll()` ergänzen |
 
 Die kanonischen Hook-Namen und Signaturen stehen in der Core-Hook-Dokumentation. Es wird kein zweiter Hook-Bus eingeführt.
+
+#### Sitemap, Suche und SEO-Metadaten für öffentliche Plugin-Seiten
+
+- **Sitemap:** `cms_sitemap_entries` erhält ein Array und gibt es um Einträge `['url' => 'pfad/relativ/zu/SITE_URL', 'lastmod' => '2026-09-29 12:00:00', 'changefreq' => 'daily', 'priority' => 0.6]` ergänzt zurück. Absolute URLs sind nur für die eigene Domain erlaubt; fremde Hosts und Duplikate werden verworfen. Der Core schreibt die Einträge in `plugins.xml` (täglich über `cms_cron_daily` oder unter *SEO → Sitemap*). Nur indexierbare Seiten melden, keine Filter-, Such- oder Sortiervarianten.
+- **Suche:** `search_results($results, $query, $limit, $context = [])` hängt Treffer mit mindestens `title` und `url` (eigene Domain oder Pfad relativ zu `SITE_URL`) an, optional `excerpt`, `_type` (Such-Scope, z. B. `messagecenter`) und `_type_label`. `$context` enthält `type`, `locale` und `source`; die Suchseite fragt Plugins nur, wenn kein Core-Scope (`pages`, `posts`, …) gewählt ist, und `?type=<_type>` zeigt nur die Treffer dieses Plugins. Den Suchbegriff in Wörter zerlegen und alle Wörter per Prepared Statement gegen die Plugin-Tabellen prüfen.
+- **Meta-Tags:** Titel, Beschreibung, Canonical und Robots von Plugin-Seiten pro Request über `\CMS\Services\SEOService::getInstance()->setRequestMeta([...])` setzen (Schlüssel `title`, `description`, `canonical_url`, `robots_index`, `robots_follow`, `og_type`, `schema_type`). `SeoAnalysisService::resolveMetaTitle()` wendet das Titelformat der SEO-Einstellungen an.
 
 #### Admin-Menü und Routing
 

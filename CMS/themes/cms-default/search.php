@@ -3,9 +3,10 @@
  * Meridian CMS Default – Suche Template
  *
  * Vom Router bereitgestellte Variablen:
- *   $results      – array of objects
+ *   $results      – Treffer als Arrays mit `_type`/`_type_label` (Seite, Beitrag, Kategorie, Tag,
+ *                   Plugin-Treffer mit eigener `url`)
  *   $query        – string, Suchbegriff
- *   $total        – int
+ *   $total        – int (optional, sonst Anzahl der Treffer)
  *   $currentPage  – int
  *   $totalPages   – int
  *
@@ -18,11 +19,32 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$query       = htmlspecialchars($_GET['q'] ?? $query ?? '');
-$results     = $results     ?? [];
-$total       = $total       ?? 0;
+$query       = htmlspecialchars((string) ($_GET['q'] ?? $query ?? ''), ENT_QUOTES, 'UTF-8');
+$results     = is_array($results ?? null) ? $results : [];
+$total       = (int) ($total ?? count($results));
 $currentPage = $currentPage ?? 1;
 $totalPages  = $totalPages  ?? 1;
+
+$searchLocale = function_exists('cms_plugin_public_language') ? cms_plugin_public_language() : 'de';
+$searchResultUrl = static function (array $item) use ($searchLocale): string {
+    $url = trim((string) ($item['url'] ?? ''));
+    if ($url !== '') {
+        return $url;
+    }
+
+    $type = (string) ($item['_type'] ?? '');
+    if ($type === 'post') {
+        return \CMS\Services\PermalinkService::getInstance()->buildPostUrl($item, $searchLocale);
+    }
+
+    if ($type === 'page') {
+        $slug = \CMS\Services\ContentLocalizationService::getInstance()->resolveLocalizedSlug($item, $searchLocale);
+        return rtrim(SITE_URL, '/') . ($searchLocale === 'en' ? '/en/' : '/') . ltrim($slug, '/');
+    }
+
+    // Kategorien, Tags und Verzeichnis-Treffer liefern ihren Pfad im Feld `slug`.
+    return rtrim(SITE_URL, '/') . '/' . ltrim((string) ($item['slug'] ?? ''), '/');
+};
 ?>
 
 <div class="search-header">
@@ -60,37 +82,48 @@ $totalPages  = $totalPages  ?? 1;
 
     <?php if (!empty($results)): ?>
     <div class="article-list search-results" style="max-width:760px;margin:0 auto;">
-        <?php foreach ($results as $post): ?>
+        <?php foreach ($results as $result): ?>
+        <?php
+        $item = is_object($result) ? get_object_vars($result) : (array) $result;
+        $itemType = (string) ($item['_type'] ?? '');
+        $itemUrl = $searchResultUrl($item);
+        $itemTitle = trim((string) ($item['title'] ?? $item['name'] ?? ''));
+        $itemLabel = trim((string) ($item['_type_label'] ?? ''));
+        $itemImage = in_array($itemType, ['post', 'page'], true) ? trim((string) ($item['featured_image'] ?? '')) : '';
+        $itemDate = $itemType === 'post' ? (string) ($item['published_at'] ?? $item['created_at'] ?? '') : '';
+        $excerpt = trim((string) ($item['excerpt'] ?? ''));
+        if ($excerpt === '') {
+            $excerpt = trim((string) ($item['meta_description'] ?? ''));
+        }
+        if ($excerpt === '') {
+            $excerpt = meridian_excerpt((string) ($item['content'] ?? ''), 200);
+        }
+        ?>
         <article class="article-row">
-            <?php if (!empty($post->featured_image)): ?>
-            <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug ?? ''); ?>" class="art-thumb">
-                <img src="<?php echo htmlspecialchars($post->featured_image ?? ''); ?>"
-                     alt="<?php echo htmlspecialchars($post->title ?? ''); ?>"
+            <?php if ($itemImage !== ''): ?>
+            <a href="<?php echo htmlspecialchars($itemUrl, ENT_QUOTES, 'UTF-8'); ?>" class="art-thumb">
+                <img src="<?php echo htmlspecialchars($itemImage, ENT_QUOTES, 'UTF-8'); ?>"
+                     alt="<?php echo htmlspecialchars($itemTitle, ENT_QUOTES, 'UTF-8'); ?>"
                      loading="lazy">
             </a>
             <?php endif; ?>
             <div class="art-body">
-                <?php if (!empty($post->category_name)): ?>
-                <a class="cat-tag cat-tag--sm"
-                    href="<?php echo SITE_URL . '/blog?category=' . urlencode($post->category_slug ?? $post->category_name ?? ''); ?>">
-                    <?php echo htmlspecialchars($post->category_name ?? ''); ?>
-                </a>
+                <?php if ($itemLabel !== ''): ?>
+                <span class="cat-tag cat-tag--sm"><?php echo htmlspecialchars($itemLabel, ENT_QUOTES, 'UTF-8'); ?></span>
                 <?php endif; ?>
                 <h2 class="art-title">
-                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug ?? ''); ?>">
-                        <?php echo htmlspecialchars($post->title ?? ''); ?>
+                    <a href="<?php echo htmlspecialchars($itemUrl, ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php echo htmlspecialchars($itemTitle, ENT_QUOTES, 'UTF-8'); ?>
                     </a>
                 </h2>
-                <?php $excerpt = !empty($post->excerpt) ? $post->excerpt : meridian_excerpt($post->content ?? '', 200); ?>
-                <?php if ($excerpt): ?>
-                <p class="art-excerpt"><?php echo htmlspecialchars($excerpt ?? ''); ?></p>
+                <?php if ($excerpt !== ''): ?>
+                <p class="art-excerpt"><?php echo htmlspecialchars($excerpt, ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php endif; ?>
+                <?php if ($itemDate !== ''): ?>
                 <div class="art-meta">
-                    <?php if (!empty($post->author_name)): ?>
-                    <span class="art-author"><?php echo htmlspecialchars($post->author_name ?? ''); ?></span>
-                    <?php endif; ?>
-                    <span class="art-date"><?php echo meridian_format_date($post->published_at ?? $post->created_at ?? ''); ?></span>
+                    <span class="art-date"><?php echo meridian_format_date($itemDate); ?></span>
                 </div>
+                <?php endif; ?>
             </div>
         </article>
         <?php endforeach; ?>
@@ -132,7 +165,7 @@ $totalPages  = $totalPages  ?? 1;
     <div class="empty-state" style="text-align:center;padding:4rem 2rem;max-width:600px;margin:0 auto;">
         <p style="font-size:3rem;margin:0">🔍</p>
         <h2 style="margin:.75rem 0 .5rem;">Nichts gefunden</h2>
-        <p style="color:var(--ink-60)">Für „<?php echo $query; ?>" wurden keine Artikel gefunden.<br>Versuche andere Suchbegriffe oder durchstöbere den Blog.</p>
+        <p style="color:var(--ink-60)">Für „<?php echo $query; ?>" wurden keine Inhalte gefunden.<br>Versuche andere Suchbegriffe oder durchstöbere den Blog.</p>
         <a href="<?php echo SITE_URL; ?>/blog" class="btn-solid" style="display:inline-block;margin-top:1.25rem;">Blog durchsuchen</a>
     </div>
     <?php else: ?>

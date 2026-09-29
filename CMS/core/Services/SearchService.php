@@ -280,6 +280,27 @@ final class SearchService
                 'exception' => $e,
             ]);
             return false;
+        } finally {
+            $this->restoreBufferedQueries();
+        }
+    }
+
+    /**
+     * Der TNTSearch-Indexer schaltet die gemeinsam genutzte MySQL-Verbindung auf ungepufferte
+     * Abfragen um. Danach scheitern weitere CMS-Abfragen im selben Request („Cannot execute queries
+     * while other unbuffered queries are active“) – daher nach jeder Indexoperation zurückstellen.
+     */
+    private function restoreBufferedQueries(): void
+    {
+        try {
+            $pdo = $this->db->getPdo();
+            if ($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql') {
+                $pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+            }
+        } catch (\Throwable $e) {
+            $this->logger->warning('Search could not restore buffered MySQL queries.', [
+                'exception' => $e,
+            ]);
         }
     }
 
@@ -534,6 +555,8 @@ final class SearchService
                 'table' => $table,
                 'exception' => $e,
             ]);
+        } finally {
+            $this->restoreBufferedQueries();
         }
     }
 

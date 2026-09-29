@@ -5,6 +5,7 @@ namespace CMS\Services\SEO;
 
 use CMS\Contracts\DatabaseInterface;
 use CMS\Contracts\LoggerInterface;
+use CMS\Hooks;
 use CMS\Http\Client as HttpClient;
 use CMS\Services\PermalinkService;
 use CMS\Services\SitemapService;
@@ -15,6 +16,9 @@ if (!defined('ABSPATH')) {
 
 final class SeoSitemapService
 {
+    /** Obergrenze für Plugin-Einträge (eine Sitemap-Datei darf max. 50.000 URLs enthalten). */
+    private const MAX_PLUGIN_ENTRIES = 10000;
+
     private ?string $lastSitemapError = null;
 
     public function __construct(
@@ -183,6 +187,7 @@ final class SeoSitemapService
     {
         $service->generatePages($this->getPageSitemapEntries());
         $service->generatePosts($this->getPostSitemapEntries());
+        $service->generatePlugins($this->getPluginSitemapEntries());
 
         if ($this->metaService->getSetting('sitemap_image_enabled', '1') === '1') {
             $service->generateImages($this->getImageSitemapEntries());
@@ -270,6 +275,70 @@ final class SeoSitemapService
         }
 
         return $entries;
+    }
+
+    /**
+     * Öffentliche Plugin-Seiten (z. B. Message Center, Tools, Matrizen) für `plugins.xml`.
+     *
+     * Plugins liefern über den Filter `cms_sitemap_entries` Einträge der Form
+     * `['url' => 'pfad/relativ/zu/SITE_URL', 'lastmod' => '2026-09-29 12:00:00', 'changefreq' => 'daily', 'priority' => 0.6]`
+     * oder absolute URLs der eigenen Domain. Fremde Hosts, Duplikate und ungültige Einträge werden verworfen.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getPluginSitemapEntries(): array
+    {
+        try {
+            $entries = Hooks::applyFilters('cms_sitemap_entries', []);
+        } catch (\Throwable $e) {
+            $this->logger->warning('Plugin-Einträge für die Sitemap konnten nicht ermittelt werden.', [
+                'exception' => $e,
+            ]);
+            return [];
+        }
+
+        if (!is_array($entries)) {
+            return [];
+        }
+
+        $siteHost = strtolower((string) parse_url((string) SITE_URL, PHP_URL_HOST));
+        $result = [];
+        foreach ($entries as $entry) {
+            if (is_string($entry)) {
+                $entry = ['url' => $entry];
+            }
+            if (!is_array($entry) || count($result) >= self::MAX_PLUGIN_ENTRIES) {
+                continue;
+            }
+
+            $url = trim((string) ($entry['url'] ?? ''));
+            if ($url === '' || preg_match('/[\s<>"]/', $url) === 1) {
+                continue;
+            }
+
+            if (preg_match('#^https?://#i', $url) === 1) {
+                if (strtolower((string) parse_url($url, PHP_URL_HOST)) !== $siteHost) {
+                    continue;
+                }
+            } elseif (str_starts_with($url, '//') || preg_match('#^[a-z][a-z0-9+.-]*:#i', $url) === 1) {
+                continue;
+            } else {
+                $url = $this->buildPathUrl($url);
+            }
+
+            if (isset($result[$url])) {
+                continue;
+            }
+
+            $result[$url] = [
+                'url' => $url,
+                'lastmod' => $entry['lastmod'] ?? date(DATE_W3C),
+                'priority' => $entry['priority'] ?? 0.6,
+                'changefreq' => (string) ($entry['changefreq'] ?? 'weekly'),
+            ];
+        }
+
+        return array_values($result);
     }
 
     /**

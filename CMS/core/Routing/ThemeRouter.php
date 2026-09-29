@@ -46,6 +46,12 @@ final class ThemeRouter
         'expert' => 'experts',
     ];
 
+    /** Such-Scopes, die der Core selbst bedient; alle anderen (`?type=`) gehören Plugins. */
+    private const CORE_SEARCH_TYPES = ['pages', 'posts', 'categories', 'tags', 'experts', 'companies', 'speakers', 'events'];
+
+    /** Höchstzahl an Plugin-Treffern pro Suche. */
+    private const MAX_PLUGIN_SEARCH_RESULTS = 50;
+
     private ThemeArchiveRepository $archiveRepository;
 
     public function __construct(private readonly Router $router, ?ThemeArchiveRepository $archiveRepository = null)
@@ -448,6 +454,10 @@ final class ThemeRouter
             }
         }
 
+        if ($query !== '' && !in_array($type, self::CORE_SEARCH_TYPES, true)) {
+            $results = array_merge($results, $this->collectPluginSearchResults($query, $type, $contentLocale));
+        }
+
         $results = $this->sortSearchResultsByRelevance($results, $query);
 
         ThemeManager::instance()->render('search', [
@@ -457,6 +467,79 @@ final class ThemeRouter
             'location' => $location,
             'filter' => $filter,
         ]);
+    }
+
+    /**
+     * Treffer aus Plugins (z. B. Message Center, Tools) über den Filter `search_results`.
+     *
+     * Aufruf: `search_results($results, $query, $limit, $context)` mit `$context = ['type', 'locale', 'source']`.
+     * Jeder Treffer braucht `title` und `url` (absolute URL der eigenen Domain oder Pfad relativ zu
+     * SITE_URL); optional `excerpt`, `_type` (Such-Scope, z. B. `messagecenter`) und `_type_label`.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function collectPluginSearchResults(string $query, string $type, string $locale): array
+    {
+        try {
+            $rows = \CMS\Hooks::applyFilters('search_results', [], $query, 20, [
+                'type' => $type,
+                'locale' => $locale,
+                'source' => 'search_page',
+            ]);
+        } catch (\Throwable $e) {
+            \CMS\Logger::instance()->withChannel('search')->warning('Plugin-Suchergebnisse konnten nicht geladen werden.', [
+                'exception' => $e,
+            ]);
+            return [];
+        }
+
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        $siteUrl = rtrim((string) SITE_URL, '/');
+        $siteHost = strtolower((string) parse_url($siteUrl, PHP_URL_HOST));
+        $results = [];
+        foreach ($rows as $row) {
+            if (!is_array($row) || count($results) >= self::MAX_PLUGIN_SEARCH_RESULTS) {
+                continue;
+            }
+
+            $title = trim(strip_tags((string) ($row['title'] ?? '')));
+            $url = trim((string) ($row['url'] ?? ''));
+            if ($title === '' || $url === '' || preg_match('/[\s<>"]/', $url) === 1) {
+                continue;
+            }
+
+            if (preg_match('#^https?://#i', $url) === 1) {
+                if (strtolower((string) parse_url($url, PHP_URL_HOST)) !== $siteHost) {
+                    continue;
+                }
+            } elseif (str_starts_with($url, '//') || preg_match('#^[a-z][a-z0-9+.-]*:#i', $url) === 1) {
+                continue;
+            } else {
+                $url = $siteUrl . '/' . ltrim($url, '/');
+            }
+
+            $resultType = trim((string) ($row['_type'] ?? ''));
+            $resultType = $resultType !== '' ? $resultType : 'plugin';
+            if ($type !== '' && $resultType !== $type) {
+                continue;
+            }
+
+            $description = trim((string) ($row['meta_description'] ?? $row['excerpt'] ?? ''));
+            $row['title'] = $title;
+            $row['url'] = $url;
+            // Themes bauen Links teils aus `slug` (Pfad relativ zu SITE_URL) – beide Felder bereitstellen.
+            $row['slug'] = str_starts_with($url, $siteUrl . '/') ? substr($url, strlen($siteUrl) + 1) : ltrim((string) parse_url($url, PHP_URL_PATH), '/');
+            $row['excerpt'] = trim((string) ($row['excerpt'] ?? $description));
+            $row['meta_description'] = $description;
+            $row['_type'] = $resultType;
+            $row['_type_label'] = trim((string) ($row['_type_label'] ?? '')) ?: 'Inhalt';
+            $results[] = $row;
+        }
+
+        return $results;
     }
 
     /**

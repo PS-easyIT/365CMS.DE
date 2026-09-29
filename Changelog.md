@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02` and `v3.4.03` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03` and `v3.4.04` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02` und `v3.4.03` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03` und `v3.4.04` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -23,6 +23,20 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.4.04 — 29.09.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.04** | 🔴 fix | SEO / Externe Links | **Links auf fremde Websites werden nicht mehr pauschal als `nofollow` ausgegeben.** `PurifierService` setzte `HTML.Nofollow` für alle Profile, sodass jeder externe Link in bereinigtem HTML (u. a. Rechtstexte, Landing-Bereiche, Tabellen, Feeds und Plugin-Inhalte) `rel="nofollow"` erhielt. Redaktionelle Profile geben externe Links jetzt als normale Links („follow“) mit `target="_blank"` und `rel="noopener noreferrer"` aus. Nur die Profile für Nutzerinhalte (`strict`, `minimal`, z. B. Kommentare) kennzeichnen fremde Links weiterhin mit `rel="nofollow ugc"` (Spam-Schutz). Absolute Links auf die eigene Domain (Host aus `SITE_URL`, `URI.Host`) gelten als intern. Von Redakteuren gesetzte `rel`-Werte (`nofollow`, `sponsored`, `ugc`, `external` …) bleiben über `Attr.AllowedRel` erhalten. Der Quellen-Link unter Editor.js-Bildern ist ebenfalls nicht mehr `nofollow`; die Revision der HTML-Definition wurde erhöht, damit der Purifier-Cache neu aufgebaut wird. |
+| **3.4.04** | 🔴 fix | SEO / Schema.org | **Der gewählte Schema-Typ entspricht wieder dem ausgegebenen JSON-LD.** Beitrags- und Seiteneditor, SEO-Audit und der KI-Metadaten-Assistent boten `FAQPage`, `HowTo`, `Person` und `Event` an. Der Renderer kennt diese Typen nicht und machte daraus `WebPage`; ein Beitrag verlor dadurch sein `Article`-/`BlogPosting`-Markup. Die Auswahl ist jetzt auf ausgegebene Typen begrenzt: Beiträge `Article`, `BlogPosting`, `NewsArticle`; Seiten `WebPage`, `Article`, `Organization`. Gespeicherte Altwerte fallen auf den Standard des Inhaltstyps zurück (Beitrag → `Article`, Seite → `WebPage`). Neue Helfer `SeoSchemaRenderer::typeOptionsFor()`, `defaultTypeFor()`, `selectableTypeFor()` und `effectiveTypeFor()` werden in Editoren, Audit, `SeoSuiteModule`, `SeoMetaRepository`, `SeoHeadRenderer` und der KI-Pipeline genutzt. FAQPage und HowTo werden bewusst nicht angeboten: Ohne Frage- bzw. Schritt-Struktur wären sie ungültig, und Google zeigt HowTo-Rich-Results nicht mehr an. |
+| **3.4.04** | 🟢 feat | SEO / Sitemap | **Plugin-Seiten erscheinen in der Sitemap.** Neuer Filter `cms_sitemap_entries`: Plugins melden öffentliche URLs (Pfad relativ zu `SITE_URL` oder absolute URL der eigenen Domain; optional `lastmod`, `changefreq`, `priority`). `SeoSitemapService` verwirft fremde Hosts, andere Schemata, Duplikate und ungültige Einträge (max. 10.000). `SitemapService::generatePlugins()` schreibt sie als `plugins.xml` in das Sitemap-Bundle; der Index `sitemap.xml` verlinkt die Datei. *SEO → Sitemap* zeigt `plugins.xml` in Status und Bundle-Struktur („keine Einträge“, solange kein Plugin URLs meldet). Die Broken-Link-Prüfung liest die Datei mit. |
+| **3.4.04** | 🟢 feat | Suche / Plugins | **Die Seitensuche (`/search`) zeigt Treffer aus Plugins.** `ThemeRouter::renderSearch()` ruft den bestehenden Filter `search_results` jetzt auch für die Suchseite auf (`$results, $query, $limit, $context` mit `type`, `locale`, `source`). Treffer brauchen `title` und `url` (eigene Domain oder Pfad relativ zu `SITE_URL`) und werden mit `slug`, `excerpt`, `_type` und `_type_label` vereinheitlicht (max. 50). Bei einem Core-Scope (`?type=posts`, `pages` …) werden keine Plugin-Treffer ergänzt; `?type=<plugin-typ>` (z. B. `messagecenter`) zeigt nur die Treffer dieses Plugins. |
+| **3.4.04** | 🔴 fix | Suche / TNTSearch | **Nach einem Neuaufbau des Suchindex scheitern weitere Datenbankabfragen im selben Request nicht mehr.** Der TNTSearch-Indexer stellt die gemeinsam genutzte MySQL-Verbindung auf ungepufferte Abfragen um; danach brachen Folgeabfragen mit „Cannot execute queries while other unbuffered queries are active“ ab. `SearchService` stellt nach `buildIndex()` und `updateDocument()` (auch im Fehlerfall) gepufferte Abfragen wieder her. |
+| **3.4.04** | 🔴 fix | SEO / Canonical | Die Fallback-Canonical-URL enthält bei Installationen in einem Unterverzeichnis den Pfad nicht mehr doppelt (`SITE_URL` enthält ihn bereits). |
+| **3.4.04** | 🔴 fix | Theme cms-default / Suche | `search.php` liest die Treffer als Arrays (bisher Objekte, dadurch fehlten Titel und alle Links zeigten auf `/blog/`). Seiten, Beiträge (Permalink-Struktur, EN-Präfix), Kategorien, Tags und Plugin-Treffer werden mit korrektem Link, Typ-Label, Auszug und Datum angezeigt; die Trefferzahl wird ausgegeben. Theme-Version **cms-default 1.0.7**. |
+| **3.4.04** | ⬜ chore | Mitgelieferte Erweiterungen / Versionen | Plugin **cms-importer 3.0.2**: Importierte Schema-Typen werden auf `Article`/`WebPage` abgebildet; `FAQPage`, `AboutPage` & Co. aus Yoast oder Rank Math fallen auf den Standard des Inhaltstyps zurück. Theme **cms-default 1.0.7** (`theme.json`, `style.css`, `functions.php`, `update.json`). |
+| **3.4.04** | 🔵 docs | Plugin-Entwicklung | `DOC/plugins/PLUGIN-DEVELOPMENT.md` beschreibt die Filter `cms_sitemap_entries` und `search_results` (Parameter, Validierung, Such-Scopes) sowie das Setzen von Titel, Beschreibung, Canonical und Robots für Plugin-Seiten über `SEOService::setRequestMeta()`. |
 
 ### v3.4.03 — 27.09.2026
 

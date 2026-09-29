@@ -15,8 +15,50 @@ VendorRegistry::instance()->loadPackage('melbahja-seo');
 
 final class SeoSchemaRenderer
 {
+    /** Schema-Typen, die dieser Renderer tatsächlich ausgibt. */
+    public const SUPPORTED_TYPES = ['Article', 'BlogPosting', 'NewsArticle', 'WebPage', 'BreadcrumbList', 'Organization'];
+
+    /**
+     * Auswahl im Editor je Inhaltstyp; der erste Eintrag ist der Standard. FAQPage oder HowTo
+     * werden bewusst nicht angeboten: ohne Frage-/Schritt-Struktur wären sie ungültig.
+     */
+    private const TYPE_OPTIONS = [
+        'post' => ['Article', 'BlogPosting', 'NewsArticle'],
+        'page' => ['WebPage', 'Article', 'Organization'],
+    ];
+
     public function __construct(private readonly SeoSettingsStore $settings)
     {
+    }
+
+    /** @return list<string> */
+    public static function typeOptionsFor(string $contentType): array
+    {
+        return self::TYPE_OPTIONS[$contentType === 'post' ? 'post' : 'page'];
+    }
+
+    public static function defaultTypeFor(string $contentType): string
+    {
+        return self::typeOptionsFor($contentType)[0];
+    }
+
+    /** Für den Inhaltstyp wählbarer Schema-Typ, sonst der Standard (beim Speichern). */
+    public static function selectableTypeFor(string $schemaType, string $contentType): string
+    {
+        $schemaType = trim($schemaType);
+
+        return in_array($schemaType, self::typeOptionsFor($contentType), true) ? $schemaType : self::defaultTypeFor($contentType);
+    }
+
+    /**
+     * Tatsächlich ausgegebener Schema-Typ. Nicht unterstützte Altwerte (z. B. FAQPage oder HowTo
+     * aus älteren Versionen und Importen) fallen auf den Standard des Inhaltstyps zurück.
+     */
+    public static function effectiveTypeFor(string $schemaType, string $contentType): string
+    {
+        $schemaType = trim($schemaType);
+
+        return in_array($schemaType, self::SUPPORTED_TYPES, true) ? $schemaType : self::defaultTypeFor($contentType);
     }
 
     public function generateOrganizationSchema(): string
@@ -58,7 +100,7 @@ final class SeoSchemaRenderer
 
     public function renderSchemaForPayload(array $payload): string
     {
-        $schemaType = $this->normalizeSchemaType((string) ($payload['schema_type'] ?? 'WebPage'));
+        $schemaType = self::effectiveTypeFor((string) ($payload['schema_type'] ?? ''), (string) ($payload['content_type'] ?? ''));
         $things = [];
 
         if ($schemaType === 'BreadcrumbList') {
@@ -246,19 +288,6 @@ final class SeoSchemaRenderer
         }
 
         return (string) new Schema(...$things);
-    }
-
-    private function normalizeSchemaType(string $schemaType): string
-    {
-        $schemaType = trim($schemaType);
-        if ($schemaType === '') {
-            return 'WebPage';
-        }
-
-        return match ($schemaType) {
-            'BlogPosting', 'NewsArticle', 'Article', 'WebPage', 'BreadcrumbList', 'Organization' => $schemaType,
-            default => 'WebPage',
-        };
     }
 
     private function shouldIncludeBreadcrumbSchema(): bool

@@ -14,7 +14,6 @@ $audit = $data['audit'] ?? [];
 $content = $audit['rows'] ?? [];
 $scoreColors = ['good' => 'success', 'warning' => 'warning', 'bad' => 'danger'];
 $scoreLabels = ['good' => 'Gut', 'warning' => 'Warnung', 'bad' => 'Kritisch'];
-$schemaTypeOptions = ['Article', 'BlogPosting', 'NewsArticle', 'WebPage', 'FAQPage', 'HowTo', 'Person', 'Event', 'BreadcrumbList', 'Organization'];
 $twitterCardOptions = ['summary_large_image', 'summary'];
 ?>
 <div class="page-header d-print-none admin-redesign-header">
@@ -70,6 +69,9 @@ $twitterCardOptions = ['summary_large_image', 'summary'];
                             }
                             $itemScoreValue = (int)($item['seo_score_value'] ?? (($item['analysis']['score'] ?? 0)));
                             $itemIssues = array_values((array)($item['seo_issues'] ?? []));
+                            $itemContentType = (string)($item['type'] ?? '');
+                            $itemSchemaType = \CMS\Services\SEO\SeoSchemaRenderer::effectiveTypeFor((string)($item['schema_type'] ?? ''), $itemContentType);
+                            $itemSchemaSelected = \CMS\Services\SEO\SeoSchemaRenderer::selectableTypeFor($itemSchemaType, $itemContentType);
                             ?>
                             <tr>
                                 <td>
@@ -84,7 +86,7 @@ $twitterCardOptions = ['summary_large_image', 'summary'];
                                     <div class="small"><strong>Keyphrase:</strong> <?= htmlspecialchars((string)($item['focus_keyphrase'] ?? '—')) ?></div>
                                     <div class="small"><strong>Keywords:</strong> <?= htmlspecialchars((string)($item['keywords'] ?? '—')) ?></div>
                                     <div class="small"><strong>Canonical:</strong> <?= htmlspecialchars((string)($item['canonical_url'] ?? 'automatisch')) ?></div>
-                                    <div class="small"><strong>Schema:</strong> <?= htmlspecialchars((string)($item['schema_type'] ?? 'WebPage')) ?></div>
+                                    <div class="small"><strong>Schema:</strong> <?= htmlspecialchars($itemSchemaType) ?></div>
                                 </td>
                                 <td><span class="badge bg-<?= htmlspecialchars($scoreColors[$itemScore] ?? 'secondary') ?>"><?= $itemScoreValue ?> · <?= htmlspecialchars($scoreLabels[$itemScore] ?? '?') ?></span></td>
                                 <td>
@@ -110,8 +112,8 @@ $twitterCardOptions = ['summary_large_image', 'summary'];
                                                 <div class="col-6">
                                                     <label class="form-label small">Schema</label>
                                                     <select class="form-select form-select-sm" name="schema_type">
-                                                        <?php foreach ($schemaTypeOptions as $schemaTypeOption): ?>
-                                                            <option value="<?= htmlspecialchars($schemaTypeOption) ?>" <?= ((string)($item['schema_type'] ?? '') === $schemaTypeOption) ? 'selected' : '' ?>><?= htmlspecialchars($schemaTypeOption) ?></option>
+                                                        <?php foreach (\CMS\Services\SEO\SeoSchemaRenderer::typeOptionsFor($itemContentType) as $schemaTypeOption): ?>
+                                                            <option value="<?= htmlspecialchars($schemaTypeOption) ?>" <?= $itemSchemaSelected === $schemaTypeOption ? 'selected' : '' ?>><?= htmlspecialchars($schemaTypeOption) ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
                                                 </div>

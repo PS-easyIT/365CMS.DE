@@ -92,7 +92,6 @@ final class SeoSuiteModule
 	private const ALLOWED_SUBMISSION_TARGETS = ['indexnow', 'google'];
 	private const ALLOWED_OG_TYPES = ['website', 'article', 'profile'];
 	private const ALLOWED_TWITTER_CARDS = ['summary', 'summary_large_image'];
-	private const ALLOWED_SCHEMA_TYPES = ['Article', 'BlogPosting', 'NewsArticle', 'WebPage', 'FAQPage', 'HowTo', 'Person', 'Event', 'BreadcrumbList', 'Organization'];
 
 	private const ALLOWED_CHANGEFREQ = [
 		'always',
@@ -581,7 +580,7 @@ final class SeoSuiteModule
 			'twitter_description' => (string)($post['twitter_description'] ?? ''),
 			'twitter_image' => $this->normalizeOptionalUrl((string)($post['twitter_image'] ?? ''), true),
 			'twitter_card' => $this->normalizeAllowedValue((string)($post['twitter_card'] ?? ''), self::ALLOWED_TWITTER_CARDS, 'summary_large_image'),
-			'schema_type' => $this->normalizeAllowedValue((string)($post['schema_type'] ?? ''), self::ALLOWED_SCHEMA_TYPES, $contentType === 'post' ? 'Article' : 'WebPage'),
+			'schema_type' => \CMS\Services\SEO\SeoSchemaRenderer::selectableTypeFor((string)($post['schema_type'] ?? ''), $contentType),
 			'sitemap_priority' => $this->normalizeSitemapPriority((string)($post['sitemap_priority'] ?? ''), ''),
 			'sitemap_changefreq' => $this->normalizeSitemapChangefreq((string)($post['sitemap_changefreq'] ?? ''), ''),
 			'hreflang_group' => (string)($post['hreflang_group'] ?? ''),
@@ -1114,7 +1113,7 @@ final class SeoSuiteModule
 	private function getSitemapFilesStatus(): array
 	{
 		$result = [];
-		foreach (['sitemap.xml', 'pages.xml', 'posts.xml', 'images.xml', 'news.xml', 'robots.txt'] as $file) {
+		foreach (['sitemap.xml', 'pages.xml', 'posts.xml', 'plugins.xml', 'images.xml', 'news.xml', 'robots.txt'] as $file) {
 			$path = ABSPATH . $file;
 			$exists = file_exists($path);
 			$result[$file] = [
