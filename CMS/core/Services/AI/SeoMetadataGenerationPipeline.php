@@ -50,7 +50,8 @@ final class SeoMetadataGenerationPipeline
      */
     private function buildPrompt(string $sourceText, string $contentType, string $locale, array $promptTemplate): array
     {
-        $contract = '{"excerpt":"string","focus_keyphrase":"string","keywords":["string"],"meta_title":"string","meta_description":"string","og_title":"string","og_description":"string","twitter_title":"string","twitter_description":"string","twitter_card":"summary_large_image|summary","schema_type":"allowed schema type","sitemap_priority":"0.0-1.0","sitemap_changefreq":"always|daily|weekly|monthly|yearly","robots_index":true,"robots_follow":true}';
+        $schemaTypes = implode('|', \CMS\Services\SEO\SeoSchemaRenderer::typeOptionsFor($contentType === 'page' ? 'page' : 'post'));
+        $contract = '{"excerpt":"string","focus_keyphrase":"string","keywords":["string"],"meta_title":"string","meta_description":"string","og_title":"string","og_description":"string","twitter_title":"string","twitter_description":"string","twitter_card":"summary_large_image|summary","schema_type":"' . $schemaTypes . '","sitemap_priority":"0.0-1.0","sitemap_changefreq":"always|daily|weekly|monthly|yearly","robots_index":true,"robots_follow":true}';
         $systemPrompt = 'You are a strict CMS SEO metadata engine. Analyze only the supplied CMS primary content and create useful, factual SEO metadata for human review. '
             . 'Never invent facts, URLs, image URLs, people, quotes, certifications, statistics or claims. '
             . 'Return only a valid JSON object with exactly these keys: ' . $contract;
@@ -181,9 +182,7 @@ final class SeoMetadataGenerationPipeline
         $ogDescription = $this->sanitizeText($metadata['og_description'] ?? '', 200);
         $twitterTitle = $this->sanitizeText($metadata['twitter_title'] ?? '', 95);
         $twitterDescription = $this->sanitizeText($metadata['twitter_description'] ?? '', 200);
-        $schemaTypes = $contentType === 'page'
-            ? ['WebPage', 'FAQPage', 'HowTo', 'Person', 'Event', 'Article']
-            : ['Article', 'BlogPosting', 'FAQPage', 'HowTo', 'Person', 'Event'];
+        $schemaTypes = \CMS\Services\SEO\SeoSchemaRenderer::typeOptionsFor($contentType === 'page' ? 'page' : 'post');
         $schemaType = trim((string) ($metadata['schema_type'] ?? ''));
         if (!in_array($schemaType, $schemaTypes, true)) {
             $schemaType = (string) $fallback['schema_type'];

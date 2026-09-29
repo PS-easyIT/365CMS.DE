@@ -80,7 +80,9 @@ $newsSitemapEnabled = !empty($settings['seo_sitemap_news_enabled']);
                                     }
                                     $statusTooltip = '';
                                     if (empty($file['exists'])) {
-                                        if (!$isFileEnabled) {
+                                        if ($fileName === 'plugins.xml' && !$hasGenerationError) {
+                                            $statusTooltip = 'Wird erzeugt, sobald aktive Plugins öffentliche Seiten melden';
+                                        } elseif (!$isFileEnabled) {
                                             $statusTooltip = 'Deaktiviert — in Einstellungen aktivieren';
                                         } elseif ($hasGenerationError) {
                                             $statusTooltip = 'Generierungsfehler — Logs prüfen';
@@ -101,6 +103,8 @@ $newsSitemapEnabled = !empty($settings['seo_sitemap_news_enabled']);
                                         <td>
                                             <?php if (!empty($file['exists'])): ?>
                                                 <span class="badge bg-success">vorhanden</span>
+                                            <?php elseif ($fileName === 'plugins.xml' && !$hasGenerationError): ?>
+                                                <span class="badge bg-secondary" title="<?= htmlspecialchars($statusTooltip) ?>">keine Einträge</span>
                                             <?php else: ?>
                                                 <span class="badge bg-danger" title="<?= htmlspecialchars($statusTooltip) ?>">fehlt</span>
                                             <?php endif; ?>
@@ -390,6 +394,10 @@ $newsSitemapEnabled = !empty($settings['seo_sitemap_news_enabled']);
                             <div class="mb-3">
                                 <div class="fw-bold"><code>posts.xml</code></div>
                                 <div class="text-secondary small">Beiträge mit `lastMod`, Priority und Changefreq.</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="fw-bold"><code>plugins.xml</code></div>
+                                <div class="text-secondary small">Öffentliche Plugin-Seiten, die Plugins über den Filter `cms_sitemap_entries` melden (z. B. Message Center, Tools).</div>
                             </div>
                             <div class="mb-3">
                                 <div class="fw-bold"><code>images.xml</code></div>

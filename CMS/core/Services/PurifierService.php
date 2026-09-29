@@ -16,6 +16,9 @@
  *   - 'strict'   → Nur Text-Formatierung (Kommentare, User-Bio)
  *   - 'minimal'  → Nur Inline-Tags (Nachrichten)
  *
+ * Externe Links redaktioneller Profile bleiben „follow“; nur nutzergenerierte Inhalte
+ * ('strict', 'minimal') erhalten rel="nofollow ugc". Links auf die eigene Domain gelten als intern.
+ *
  * @package CMSv2\Core\Services
  */
 
@@ -30,7 +33,10 @@ if (!defined('ABSPATH')) {
 class PurifierService
 {
     private static ?self $instance = null;
-    private const HTML_DEFINITION_REVISION = 2026072801;
+    private const HTML_DEFINITION_REVISION = 2026092901;
+
+    /** Profile für nutzergenerierte Inhalte: externe Links erhalten rel="nofollow ugc". */
+    private const UGC_PROFILES = ['strict', 'minimal'];
 
     /** @var array<string, \HTMLPurifier> Gecachte Purifier-Instanzen pro Profil */
     private array $purifiers = [];
@@ -40,6 +46,8 @@ class PurifierService
 
     /** @var string Cache-Verzeichnis für HTMLPurifier-Serializer */
     private readonly string $cacheDir;
+
+    private ?string $siteHost = null;
 
     /**
      * Bekannte Sanitierungs-Profile mit erlaubten HTML-Elementen
@@ -99,11 +107,11 @@ class PurifierService
 
         // Fallback wenn HTMLPurifier nicht geladen ist
         if (!$this->available) {
-            return $this->hardenAnchorLinks($this->fallbackSanitize($dirty, $profile));
+            return $this->hardenAnchorLinks($this->fallbackSanitize($dirty, $profile), $profile);
         }
 
         $purifier = $this->getPurifier($profile);
-        return $this->hardenAnchorLinks($purifier->purify($dirty));
+        return $this->hardenAnchorLinks($purifier->purify($dirty), $profile);
     }
 
     /**
@@ -116,11 +124,11 @@ class PurifierService
     public function purifyArray(array $dirtyArray, string $profile = 'default'): array
     {
         if (!$this->available) {
-            return array_map(fn(string $s) => $this->hardenAnchorLinks($this->fallbackSanitize($s, $profile)), $dirtyArray);
+            return array_map(fn(string $s) => $this->hardenAnchorLinks($this->fallbackSanitize($s, $profile), $profile), $dirtyArray);
         }
 
         $purifier = $this->getPurifier($profile);
-        return array_map(fn(string $s) => $this->hardenAnchorLinks($s), $purifier->purifyArray($dirtyArray));
+        return array_map(fn(string $s) => $this->hardenAnchorLinks($s, $profile), $purifier->purifyArray($dirtyArray));
     }
 
     /**
@@ -157,9 +165,18 @@ class PurifierService
         // Erlaubte HTML-Elemente und -Attribute
         $config->set('HTML.Allowed', $this->buildAllowedString($profileConfig));
 
-        // Links: noopener/noreferrer für externe Links erzwingen
-        $config->set('HTML.Nofollow', true);
+        // Externe Links öffnen in neuem Tab (noopener/noreferrer). „nofollow“ nur für
+        // nutzergenerierte Inhalte – redaktionelle Links auf fremde Seiten bleiben „follow“.
+        $config->set('HTML.Nofollow', in_array($profile, self::UGC_PROFILES, true));
         $config->set('HTML.TargetBlank', true);
+        // Vom Autor gesetzte Link-Beziehungen (z. B. rel="sponsored" oder "nofollow") bleiben erhalten.
+        $config->set('Attr.AllowedRel', ['nofollow', 'sponsored', 'ugc', 'noopener', 'noreferrer', 'external', 'author', 'bookmark', 'license', 'tag']);
+
+        // Absolute Links auf die eigene Domain sind intern (kein neuer Tab, kein nofollow).
+        $siteHost = $this->resolveSiteHost();
+        if ($siteHost !== '') {
+            $config->set('URI.Host', $siteHost);
+        }
 
         // URI-Schema einschränken
         $config->set('URI.AllowedSchemes', [
@@ -351,14 +368,17 @@ class PurifierService
 
     /**
      * Erzwingt sichere Link-Ziele und schützt target="_blank" gegen Tabnabbing.
+     * Externe Links in nutzergenerierten Inhalten erhalten rel="nofollow ugc".
      */
-    private function hardenAnchorLinks(string $html): string
+    private function hardenAnchorLinks(string $html, string $profile = 'default'): string
     {
         if ($html === '' || stripos($html, '<a') === false || !class_exists('DOMDocument')) {
             return $html;
         }
 
-        return $this->transformHtmlFragment($html, function (\DOMDocument $document): void {
+        $isUgc = in_array($profile, self::UGC_PROFILES, true);
+
+        return $this->transformHtmlFragment($html, function (\DOMDocument $document) use ($isUgc): void {
             foreach ($document->getElementsByTagName('a') as $link) {
                 if (!$link instanceof \DOMElement) {
                     continue;
@@ -366,6 +386,10 @@ class PurifierService
 
                 if ($link->hasAttribute('href') && !$this->isSafeUri($link->getAttribute('href'))) {
                     $link->removeAttribute('href');
+                }
+
+                if ($isUgc && $link->hasAttribute('href') && $this->isForeignUrl($link->getAttribute('href'))) {
+                    $this->ensureRelTokens($link, ['nofollow', 'ugc']);
                 }
 
                 if ($link->hasAttribute('target')) {
@@ -404,6 +428,29 @@ class PurifierService
         }
 
         return array_map(static fn(array $attributes): array => array_values(array_unique($attributes)), $map);
+    }
+
+    /** Host der eigenen Website aus SITE_URL (klein geschrieben); leer, wenn unbekannt. */
+    private function resolveSiteHost(): string
+    {
+        if ($this->siteHost === null) {
+            $this->siteHost = defined('SITE_URL') ? strtolower((string) parse_url((string) SITE_URL, PHP_URL_HOST)) : '';
+        }
+
+        return $this->siteHost;
+    }
+
+    /** Absolute http(s)-URL auf eine fremde Domain? */
+    private function isForeignUrl(string $uri): bool
+    {
+        $uri = trim(html_entity_decode($uri, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if (!in_array(strtolower((string) parse_url($uri, PHP_URL_SCHEME)), ['http', 'https'], true)) {
+            return false;
+        }
+
+        $host = strtolower((string) parse_url($uri, PHP_URL_HOST));
+
+        return $host !== '' && $host !== $this->resolveSiteHost();
     }
 
     private function isSafeUri(string $uri): bool

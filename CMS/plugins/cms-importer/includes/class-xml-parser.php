@@ -1493,13 +1493,11 @@ class CMS_Importer_XML_Parser
 
         $normalized = strtolower(str_replace(['-', '_', ' '], '', $value));
 
+        // Nur Typen, die der Schema-Renderer ausgibt; FAQPage, AboutPage & Co. fallen auf den Standard zurück.
         return match ($normalized) {
             'article', 'blogposting', 'newsarticle', 'posting' => 'Article',
             'webpage', 'page', 'website' => 'WebPage',
-            'faqpage' => 'FAQPage',
-            'contactpage' => 'ContactPage',
-            'aboutpage' => 'AboutPage',
-            default => $value,
+            default => $this->default_schema_type_for_post_type($postType),
         };
     }
 

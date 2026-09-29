@@ -36,6 +36,9 @@ final class SitemapService
     /** @var array<int, array<string, mixed>> */
     private array $news = [];
 
+    /** @var array<int, array<string, mixed>> */
+    private array $plugins = [];
+
     private string $newsPublicationName = '365CMS';
     private string $newsLanguage = 'de';
     private OutputMode $outputMode;
@@ -102,6 +105,19 @@ final class SitemapService
     }
 
     /**
+     * Registriert öffentliche Plugin-Seiten für `plugins.xml`.
+     *
+     * @param array<int, string|array<string, mixed>> $urls
+     */
+    public function generatePlugins(array $urls): void
+    {
+        $this->plugins = $this->normalizeItems(
+            $urls,
+            fn(string|array $item): array => $this->normalizePageItem($item)
+        );
+    }
+
+    /**
      * Schreibt die registrierten Sitemap-Dateien und erzeugt automatisch `sitemap.xml`.
      *
      * @throws \RuntimeException
@@ -115,10 +131,11 @@ final class SitemapService
         $posts = $this->posts;
         $images = $this->images;
         $news = $this->news;
+        $plugins = $this->plugins;
         $publicationName = $this->newsPublicationName;
         $language = $this->newsLanguage;
 
-        if ($pages === [] && $posts === [] && $images === [] && $news === []) {
+        if ($pages === [] && $posts === [] && $images === [] && $news === [] && $plugins === []) {
             $pages = [$this->normalizePageItem('/')];
         }
 
@@ -143,6 +160,15 @@ final class SitemapService
                 foreach ($posts as $post) {
                     $map->loc($post['url']);
                     $this->applyCommonMapOptions($map, $post);
+                }
+            });
+        }
+
+        if ($plugins !== []) {
+            $sitemap->links('plugins.xml', function ($map) use ($plugins): void {
+                foreach ($plugins as $entry) {
+                    $map->loc($entry['url']);
+                    $this->applyCommonMapOptions($map, $entry);
                 }
             });
         }
@@ -187,7 +213,7 @@ final class SitemapService
             throw new \RuntimeException('Sitemap-Index konnte nicht geschrieben werden.');
         }
 
-        foreach ($this->expectedFiles($pages, $posts, $images, $news) as $file) {
+        foreach ($this->expectedFiles($pages, $posts, $images, $news, $plugins) as $file) {
             if (!is_file($this->saveDir . DIRECTORY_SEPARATOR . $file)) {
                 throw new \RuntimeException('Erwartete Sitemap-Datei fehlt: ' . $file);
             }
@@ -308,7 +334,7 @@ final class SitemapService
 
     private function deleteExistingTargets(): void
     {
-        foreach (['sitemap.xml', 'pages.xml', 'posts.xml', 'images.xml', 'news.xml'] as $file) {
+        foreach (['sitemap.xml', 'pages.xml', 'posts.xml', 'plugins.xml', 'images.xml', 'news.xml'] as $file) {
             $path = $this->saveDir . DIRECTORY_SEPARATOR . $file;
             if (is_file($path) && !unlink($path)) {
                 throw new \RuntimeException('Vorhandene Sitemap-Datei konnte nicht ersetzt werden: ' . $path);
@@ -321,9 +347,10 @@ final class SitemapService
      * @param array<int, array<string, mixed>> $posts
      * @param array<int, array<string, mixed>> $images
      * @param array<int, array<string, mixed>> $news
+     * @param array<int, array<string, mixed>> $plugins
      * @return array<int, string>
      */
-    private function expectedFiles(array $pages, array $posts, array $images, array $news): array
+    private function expectedFiles(array $pages, array $posts, array $images, array $news, array $plugins = []): array
     {
         $files = ['sitemap.xml'];
 
@@ -332,6 +359,9 @@ final class SitemapService
         }
         if ($posts !== []) {
             $files[] = 'posts.xml';
+        }
+        if ($plugins !== []) {
+            $files[] = 'plugins.xml';
         }
         if ($images !== []) {
             $files[] = 'images.xml';

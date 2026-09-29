@@ -495,7 +495,7 @@ final class SeoBrokenLinkService
     {
         $candidates = [];
 
-        foreach (['sitemap.xml', 'pages.xml', 'posts.xml', 'images.xml', 'news.xml'] as $fileName) {
+        foreach (['sitemap.xml', 'pages.xml', 'posts.xml', 'plugins.xml', 'images.xml', 'news.xml'] as $fileName) {
             $filePath = ABSPATH . $fileName;
             if (!is_file($filePath) || !is_readable($filePath)) {
                 continue;

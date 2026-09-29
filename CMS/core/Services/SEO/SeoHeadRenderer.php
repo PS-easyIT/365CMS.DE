@@ -119,6 +119,11 @@ final class SeoHeadRenderer
         $socialDefaults = $this->settings->getSocialDefaults();
         $uri = isset($_SERVER['REQUEST_URI']) ? strtok((string) $_SERVER['REQUEST_URI'], '?') : '/';
         $uri = $uri !== false ? $uri : '/';
+        // Bei Installation in einem Unterverzeichnis enthält SITE_URL den Pfad bereits.
+        $sitePath = rtrim((string) parse_url((string) SITE_URL, PHP_URL_PATH), '/');
+        if ($sitePath !== '' && ($uri === $sitePath || str_starts_with($uri, $sitePath . '/'))) {
+            $uri = substr($uri, strlen($sitePath)) ?: '/';
+        }
         $canonicalUrl = SITE_URL . ($uri === '/' ? '/' : $uri);
 
         if ($this->requestMeta !== []) {
@@ -194,7 +199,7 @@ final class SeoHeadRenderer
             'twitter_title' => $meta['twitter_title'] !== '' ? $meta['twitter_title'] : $title,
             'twitter_description' => $meta['twitter_description'] !== '' ? $meta['twitter_description'] : $description,
             'twitter_image' => $meta['twitter_image'] !== '' ? $meta['twitter_image'] : $resolvedOgImage,
-            'schema_type' => $meta['schema_type'] !== '' ? $meta['schema_type'] : ($contentType === 'post' ? 'Article' : 'WebPage'),
+            'schema_type' => SeoSchemaRenderer::effectiveTypeFor((string) $meta['schema_type'], $contentType),
             'url' => $canonicalUrl,
             'content_type' => $contentType,
             'updated_at' => $updatedAt,
@@ -280,7 +285,7 @@ final class SeoHeadRenderer
         }
 
         $schemaType = trim((string) ($payload['schema_type'] ?? ''));
-        if (in_array($schemaType, ['Article', 'BlogPosting', 'NewsArticle', 'WebPage', 'BreadcrumbList', 'Organization'], true)) {
+        if (in_array($schemaType, SeoSchemaRenderer::SUPPORTED_TYPES, true)) {
             $normalized['schema_type'] = $schemaType;
         }
 
