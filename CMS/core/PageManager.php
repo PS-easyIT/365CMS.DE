@@ -290,8 +290,14 @@ class PageManager
      */
     public function search(string $query): array
     {
-        $term = '%' . $query . '%';
-        $stmt = $this->db->prepare("SELECT * FROM {$this->prefix}pages WHERE (title LIKE ? OR content LIKE ? OR title_en LIKE ? OR content_en LIKE ?) AND status = 'published' ORDER BY created_at DESC LIMIT 20");
+        $query = trim($query);
+        if ($query === '') {
+            return [];
+        }
+
+        // Platzhalter im Suchbegriff wörtlich nehmen („%“ lieferte sonst alle Seiten).
+        $term = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $query) . '%';
+        $stmt = $this->db->prepare("SELECT * FROM {$this->prefix}pages WHERE (title LIKE ? ESCAPE '!' OR content LIKE ? ESCAPE '!' OR title_en LIKE ? ESCAPE '!' OR content_en LIKE ? ESCAPE '!') AND status = 'published' ORDER BY created_at DESC LIMIT 20");
         $stmt->execute([$term, $term, $term, $term]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }

@@ -21,6 +21,20 @@
     const $ = (sel, ctx = document) => ctx.querySelector(sel);
     const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
+    // ── Suche: Typ und Sortierung sofort anwenden ──────────────────────────
+
+    $$('[data-search-autosubmit]').forEach((select) => {
+        select.addEventListener('change', () => {
+            const form = select.form;
+            if (!form) return;
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                form.submit();
+            }
+        });
+    });
+
     // ── Mobile Navigation ──────────────────────────────────────────────────
 
     const navToggle       = $('#navToggle');

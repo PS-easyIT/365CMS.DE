@@ -44,6 +44,22 @@ final class ThemeRouter
         'event' => 'events',
         'speaker' => 'speakers',
         'expert' => 'experts',
+        // Deutsche Bezeichnungen aus Theme-Formularen bzw. Links
+        'beitraege' => 'posts',
+        'beiträge' => 'posts',
+        'beitrag' => 'posts',
+        'artikel' => 'posts',
+        'blog' => 'posts',
+        'seiten' => 'pages',
+        'seite' => 'pages',
+        'kategorien' => 'categories',
+        'kategorie' => 'categories',
+        'schlagwoerter' => 'tags',
+        'schlagwörter' => 'tags',
+        // „Alle Typen“
+        'all' => '',
+        'alle' => '',
+        'alles' => '',
     ];
 
     /** Such-Scopes, die der Core selbst bedient; alle anderen (`?type=`) gehören Plugins. */
@@ -124,193 +140,34 @@ final class ThemeRouter
 
     public function renderSearch(): void
     {
-        $query = trim((string)($_GET['q'] ?? ''));
-        $type = (string)($_GET['type'] ?? '');
-        $type = self::SEARCH_TYPE_ALIASES[$type] ?? $type;
+        $type = $this->normalizeSearchType($_GET['type'] ?? '');
+        $sort = Services\SiteSearchService::normalizeSort($_GET['sort'] ?? '');
         $location = trim((string)($_GET['location'] ?? ''));
         $filter = trim((string)($_GET['filter'] ?? ''));
         $contentLocale = $this->getResolvedContentLocale();
+
+        $siteSearch = Services\SiteSearchService::getInstance();
+        $parsed = Services\SiteSearchService::parseQuery(is_string($_GET['q'] ?? null) ? $_GET['q'] : '');
+        $query = $parsed['query'];
 
         $results = [];
         $pluginMgr = PluginManager::instance();
         $db = Database::instance();
         $prefix = $db->getPrefix();
-        $searchService = Services\SearchService::getInstance();
-        $useTNT = $searchService->isAvailable() && $query !== '';
 
-        if ($type === '' || $type === 'pages') {
-            if ($useTNT) {
-                $tntResult = $searchService->search($query, 'pages', 20, false);
-                if (!empty($tntResult['ids'])) {
-                    $ids = array_map('intval', $tntResult['ids']);
-                    $ph = implode(',', array_fill(0, count($ids), '?'));
-                    $stmt = $db->prepare("SELECT * FROM {$prefix}pages WHERE id IN ({$ph}) AND status = 'published'");
-                    $stmt->execute($ids);
-                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-                    $byId = [];
-                    foreach ($rows as $row) {
-                        $byId[(int)$row['id']] = $row;
-                    }
-                    foreach ($ids as $id) {
-                        if (!isset($byId[$id])) {
-                            continue;
-                        }
-
-                        $byId[$id]['_type'] = 'page';
-                        $byId[$id]['_type_label'] = 'Seite';
-                        $results[] = $byId[$id];
-                    }
-                } else {
-                    $pageManager = PageManager::instance();
-                    $pageResults = $pageManager->search($query);
-                    foreach ($pageResults as $row) {
-                        $item = (array)$row;
-                        $item['_type'] = 'page';
-                        $item['_type_label'] = 'Seite';
-                        $results[] = $item;
-                    }
-                }
-            } else {
-                $pageManager = PageManager::instance();
-                $pageResults = $pageManager->search($query);
-                foreach ($pageResults as $row) {
-                    $item = (array)$row;
-                    $item['_type'] = 'page';
-                    $item['_type_label'] = 'Seite';
-                    $results[] = $item;
-                }
+        // Ohne verwertbaren Suchbegriff keine Inhaltstreffer (bisher listete eine leere Suche alle Seiten).
+        if ($parsed['terms'] !== []) {
+            if ($type === '' || $type === 'pages') {
+                $results = array_merge($results, $this->searchPagesForQuery($siteSearch, $parsed, $contentLocale));
             }
-        }
-
-        if ($type === '' || $type === 'posts') {
-            if ($useTNT) {
-                $tntResult = $searchService->search($query, 'posts', 20, false);
-                if (!empty($tntResult['ids'])) {
-                    $ids = array_map('intval', $tntResult['ids']);
-                    $ph = implode(',', array_fill(0, count($ids), '?'));
-                    $stmt = $db->prepare("SELECT * FROM {$prefix}posts WHERE id IN ({$ph}) AND " . \cms_post_publication_where());
-                    $stmt->execute($ids);
-                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-                    $byId = [];
-                    foreach ($rows as $row) {
-                        if (!$this->postMatchesLocaleAvailability($row, $contentLocale)) {
-                            continue;
-                        }
-                        $byId[(int)$row['id']] = $row;
-                    }
-                    foreach ($ids as $id) {
-                        if (!isset($byId[$id])) {
-                            continue;
-                        }
-                        $byId[$id]['_type'] = 'post';
-                        $byId[$id]['_type_label'] = 'Beitrag';
-                        $results[] = $byId[$id];
-                    }
-                } elseif ($query !== '') {
-                    $like = '%' . $query . '%';
-                    $localeFilter = $this->buildPostLocaleAvailabilityExpression('p', $contentLocale);
-                    if ($contentLocale === 'en') {
-                        $stmt = $db->prepare(
-                            "SELECT * FROM {$prefix}posts p
-                                                 WHERE " . \cms_post_publication_where('p') . "
-                           AND {$localeFilter}
-                           AND (
-                               COALESCE(NULLIF(p.title_en, ''), p.title) LIKE ?
-                               OR COALESCE(NULLIF(p.content_en, ''), p.content) LIKE ?
-                               OR COALESCE(NULLIF(p.excerpt_en, ''), p.excerpt) LIKE ?
-                           )
-                         ORDER BY created_at DESC LIMIT 20"
-                        );
-                        $stmt->execute([$like, $like, $like]);
-                    } else {
-                        $stmt = $db->prepare(
-                            "SELECT * FROM {$prefix}posts p
-                                                 WHERE " . \cms_post_publication_where('p') . "
-                           AND {$localeFilter}
-                           AND (p.title LIKE ? OR p.content LIKE ? OR p.excerpt LIKE ?)
-                         ORDER BY created_at DESC LIMIT 20"
-                        );
-                        $stmt->execute([$like, $like, $like]);
-                    }
-                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-                    foreach ($rows as $row) {
-                        $row['_type'] = 'post';
-                        $row['_type_label'] = 'Beitrag';
-                        $results[] = $row;
-                    }
-                }
-            } elseif ($query !== '') {
-                $like = '%' . $query . '%';
-                $localeFilter = $this->buildPostLocaleAvailabilityExpression('p', $contentLocale);
-                if ($contentLocale === 'en') {
-                    $stmt = $db->prepare(
-                        "SELECT * FROM {$prefix}posts p
-                                                 WHERE " . \cms_post_publication_where('p') . "
-                           AND {$localeFilter}
-                           AND (
-                               COALESCE(NULLIF(p.title_en, ''), p.title) LIKE ?
-                               OR COALESCE(NULLIF(p.content_en, ''), p.content) LIKE ?
-                               OR COALESCE(NULLIF(p.excerpt_en, ''), p.excerpt) LIKE ?
-                           )
-                         ORDER BY created_at DESC LIMIT 20"
-                    );
-                    $stmt->execute([$like, $like, $like]);
-                } else {
-                    $stmt = $db->prepare(
-                        "SELECT * FROM {$prefix}posts p
-                                                 WHERE " . \cms_post_publication_where('p') . "
-                           AND {$localeFilter}
-                           AND (p.title LIKE ? OR p.content LIKE ? OR p.excerpt LIKE ?)
-                         ORDER BY created_at DESC LIMIT 20"
-                    );
-                    $stmt->execute([$like, $like, $like]);
-                }
-                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-                foreach ($rows as $row) {
-                    $row['_type'] = 'post';
-                    $row['_type_label'] = 'Beitrag';
-                    $results[] = $row;
-                }
+            if ($type === '' || $type === 'posts') {
+                $results = array_merge($results, $this->searchPostsForQuery($siteSearch, $parsed, $contentLocale));
             }
-        }
-
-        if ($type === '' || $type === 'categories') {
-            if ($query !== '') {
-                try {
-                    $like = '%' . $query . '%';
-                    $stmt = $db->prepare("SELECT * FROM {$prefix}post_categories WHERE (name LIKE ? OR description LIKE ?) ORDER BY name ASC LIMIT 20");
-                    $stmt->execute([$like, $like]);
-                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-                    foreach ($rows as $row) {
-                        $row['_type'] = 'category';
-                        $row['_type_label'] = 'Kategorie';
-                        $row['slug'] = 'category/' . rawurlencode((string) ($row['slug'] ?? ''));
-                        $row['title'] = $row['name'] ?? 'Kategorie';
-                        $row['meta_description'] = $row['description'] ?? '';
-                        $results[] = $row;
-                    }
-                } catch (\Throwable) {
-                }
+            if ($type === '' || $type === 'categories') {
+                $results = array_merge($results, $this->searchTaxonomyForQuery($siteSearch, $parsed, 'post_categories', 'category', 'Kategorie'));
             }
-        }
-
-        if ($type === '' || $type === 'tags') {
-            if ($query !== '') {
-                try {
-                    $like = '%' . $query . '%';
-                    $stmt = $db->prepare("SELECT * FROM {$prefix}post_tags WHERE (name LIKE ? OR description LIKE ?) ORDER BY name ASC LIMIT 20");
-                    $stmt->execute([$like, $like]);
-                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-                    foreach ($rows as $row) {
-                        $row['_type'] = 'tag';
-                        $row['_type_label'] = 'Tag';
-                        $row['slug'] = 'tag/' . rawurlencode((string) ($row['slug'] ?? ''));
-                        $row['title'] = $row['name'] ?? 'Tag';
-                        $row['meta_description'] = $row['description'] ?? '';
-                        $results[] = $row;
-                    }
-                } catch (\Throwable) {
-                }
+            if ($type === '' || $type === 'tags') {
+                $results = array_merge($results, $this->searchTaxonomyForQuery($siteSearch, $parsed, 'post_tags', 'tag', 'Tag'));
             }
         }
 
@@ -454,19 +311,118 @@ final class ThemeRouter
             }
         }
 
-        if ($query !== '' && !in_array($type, self::CORE_SEARCH_TYPES, true)) {
+        if ($parsed['terms'] !== [] && !in_array($type, self::CORE_SEARCH_TYPES, true)) {
             $results = array_merge($results, $this->collectPluginSearchResults($query, $type, $contentLocale));
         }
 
-        $results = $this->sortSearchResultsByRelevance($results, $query);
+        $results = $siteSearch->rank($results, $parsed['terms'], $sort);
 
         ThemeManager::instance()->render('search', [
             'results' => $results,
             'query' => $query,
             'type' => $type,
+            'sort' => $sort,
+            'total' => count($results),
             'location' => $location,
             'filter' => $filter,
         ]);
+    }
+
+    /** Such-Scope aus `?type=` (Plural-Werte, Aliase, Plugin-Scopes); ungültige Werte = alle Typen. */
+    private function normalizeSearchType(mixed $type): string
+    {
+        $type = is_string($type) ? mb_strtolower(trim($type), 'UTF-8') : '';
+        if ($type === '' || preg_match('/^[\p{Ll}\p{N}_-]{1,40}$/u', $type) !== 1) {
+            return '';
+        }
+
+        return self::SEARCH_TYPE_ALIASES[$type] ?? $type;
+    }
+
+    /**
+     * @param array{query:string, terms:list<string>, words:list<string>} $parsed
+     * @return list<array<string, mixed>>
+     */
+    private function searchPagesForQuery(Services\SiteSearchService $siteSearch, array $parsed, string $locale): array
+    {
+        $prefix = Database::instance()->getPrefix();
+        $english = $locale === 'en';
+        $rows = $siteSearch->searchTable($parsed, [
+            'table' => "{$prefix}pages",
+            'alias' => 'pg',
+            'where' => "pg.status = 'published'",
+            'title' => $english ? ['title_en', 'title'] : ['title'],
+            'excerpt' => ['excerpt'],
+            'content' => $english ? ['content_en', 'content'] : ['content'],
+            'date' => ['published_at', 'created_at'],
+        ]);
+
+        foreach ($rows as &$row) {
+            $row['_type'] = 'page';
+            $row['_type_label'] = 'Seite';
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
+     * @param array{query:string, terms:list<string>, words:list<string>} $parsed
+     * @return list<array<string, mixed>>
+     */
+    private function searchPostsForQuery(Services\SiteSearchService $siteSearch, array $parsed, string $locale): array
+    {
+        $prefix = Database::instance()->getPrefix();
+        $english = $locale === 'en';
+        $rows = $siteSearch->searchTable($parsed, [
+            'table' => "{$prefix}posts",
+            'alias' => 'p',
+            'where' => \cms_post_publication_where('p') . ' AND ' . $this->buildPostLocaleAvailabilityExpression('p', $locale),
+            'title' => $english ? ['title_en', 'title'] : ['title'],
+            'excerpt' => $english ? ['excerpt_en', 'excerpt'] : ['excerpt'],
+            'content' => $english ? ['content_en', 'content'] : ['content'],
+            'date' => ['published_at', 'created_at'],
+        ]);
+
+        foreach ($rows as &$row) {
+            $row['_type'] = 'post';
+            $row['_type_label'] = 'Beitrag';
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
+     * Kategorien bzw. Tags: alle Begriffe müssen in Name oder Beschreibung vorkommen.
+     *
+     * @param array{query:string, terms:list<string>, words:list<string>} $parsed
+     * @return list<array<string, mixed>>
+     */
+    private function searchTaxonomyForQuery(Services\SiteSearchService $siteSearch, array $parsed, string $table, string $type, string $label): array
+    {
+        $prefix = Database::instance()->getPrefix();
+        $rows = $siteSearch->searchTable($parsed, [
+            'table' => "{$prefix}{$table}",
+            'alias' => 't',
+            'where' => '1=1',
+            'title' => ['name'],
+            'excerpt' => ['description'],
+            'content' => [],
+            'date' => [],
+        ]);
+
+        foreach ($rows as &$row) {
+            $row['_type'] = $type;
+            $row['_type_label'] = $label;
+            $row['slug'] = $type . '/' . rawurlencode((string) ($row['slug'] ?? ''));
+            $row['title'] = $row['name'] ?? $label;
+            $row['meta_description'] = $row['description'] ?? '';
+            $row['_search_date'] = '';
+        }
+        unset($row);
+
+        return $rows;
     }
 
     /**
@@ -474,7 +430,9 @@ final class ThemeRouter
      *
      * Aufruf: `search_results($results, $query, $limit, $context)` mit `$context = ['type', 'locale', 'source']`.
      * Jeder Treffer braucht `title` und `url` (absolute URL der eigenen Domain oder Pfad relativ zu
-     * SITE_URL); optional `excerpt`, `_type` (Such-Scope, z. B. `messagecenter`) und `_type_label`.
+     * SITE_URL); optional `excerpt`, `_type` (Such-Scope, z. B. `messagecenter`), `_type_label` und
+     * `date` (Veröffentlichungs- oder Änderungsdatum für „Neueste zuerst“). Die Relevanz berechnet der
+     * Core aus Titel und Auszug; Plugins liefern nur Treffer, die alle Suchbegriffe enthalten.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -521,7 +479,7 @@ final class ThemeRouter
                 $url = $siteUrl . '/' . ltrim($url, '/');
             }
 
-            $resultType = trim((string) ($row['_type'] ?? ''));
+            $resultType = strtolower(trim((string) ($row['_type'] ?? '')));
             $resultType = $resultType !== '' ? $resultType : 'plugin';
             if ($type !== '' && $resultType !== $type) {
                 continue;
@@ -536,64 +494,13 @@ final class ThemeRouter
             $row['meta_description'] = $description;
             $row['_type'] = $resultType;
             $row['_type_label'] = trim((string) ($row['_type_label'] ?? '')) ?: 'Inhalt';
+            $date = trim((string) ($row['date'] ?? ''));
+            $row['_search_date'] = $date !== '' && strtotime($date) !== false ? $date : '';
+            unset($row['_search_score']);
             $results[] = $row;
         }
 
         return $results;
-    }
-
-    /**
-     * Suchergebnisse über alle Typen hinweg nach Relevanz zum Suchbegriff sortieren.
-     * Exakte/beginnende Titeltreffer stehen dabei immer vor reinen Volltextfunden,
-     * unabhängig davon aus welchem Typ-Block (Seite/Beitrag/Kategorie/Tag) sie stammen.
-     *
-     * @param array<int, array<string, mixed>> $results
-     * @return array<int, array<string, mixed>>
-     */
-    private function sortSearchResultsByRelevance(array $results, string $query): array
-    {
-        if (trim($query) === '' || count($results) < 2) {
-            return $results;
-        }
-
-        $scored = array_map(fn(array $result): array => [
-            'score' => $this->scoreSearchResultRelevance($result, $query),
-            'result' => $result,
-        ], $results);
-
-        usort($scored, static fn(array $a, array $b): int => $a['score'] <=> $b['score']);
-
-        return array_map(static fn(array $item): array => $item['result'], $scored);
-    }
-
-    /**
-     * @param array<string, mixed> $result
-     */
-    private function scoreSearchResultRelevance(array $result, string $query): int
-    {
-        $title = trim((string) ($result['title'] ?? $result['name'] ?? ''));
-        $needle = trim($query);
-        if ($title === '' || $needle === '') {
-            return 5;
-        }
-
-        $titleLower = mb_strtolower($title, 'UTF-8');
-        $needleLower = mb_strtolower($needle, 'UTF-8');
-
-        if ($titleLower === $needleLower) {
-            return 0;
-        }
-        if (str_starts_with($titleLower, $needleLower)) {
-            return 1;
-        }
-        if (preg_match('/\b' . preg_quote($needleLower, '/') . '\b/u', $titleLower) === 1) {
-            return 2;
-        }
-        if (str_contains($titleLower, $needleLower)) {
-            return 3;
-        }
-
-        return 4;
     }
 
     public function renderContact(): void
@@ -1920,56 +1827,6 @@ final class ThemeRouter
         $englishContent = $this->buildLocalizedPostContentExpression($alias, 'en');
 
         return "(CHAR_LENGTH(TRIM(COALESCE({$alias}.slug_en, ''))) > 0 AND NOT {$englishContent})";
-    }
-
-    /**
-     * @param array<string, mixed> $post
-     */
-    private function postMatchesLocaleAvailability(array $post, string $locale): bool
-    {
-        $locale = Services\ContentLocalizationService::getInstance()->normalizeLocale($locale);
-        $hasBaseContent = $this->postHasBaseContent($post);
-        $hasEnglishContent = $this->postHasLocalizedContent($post, 'en');
-        $hasEnglishSlug = trim((string) ($post['slug_en'] ?? '')) !== '';
-        $isLegacyEnglishOnly = $hasEnglishSlug && !$hasEnglishContent;
-
-        if ($locale === '' || $locale === 'de') {
-            return $hasBaseContent && !$isLegacyEnglishOnly;
-        }
-
-        if ($locale === 'en') {
-            return $hasEnglishContent || $isLegacyEnglishOnly;
-        }
-
-        return $this->postHasLocalizedContent($post, $locale);
-    }
-
-    /**
-     * @param array<string, mixed> $post
-     */
-    private function postHasBaseContent(array $post): bool
-    {
-        foreach (['title', 'excerpt', 'content'] as $field) {
-            if (trim((string) ($post[$field] ?? '')) !== '') {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param array<string, mixed> $post
-     */
-    private function postHasLocalizedContent(array $post, string $locale): bool
-    {
-        foreach (['title', 'excerpt', 'content'] as $field) {
-            if (trim((string) ($post[$field . '_' . $locale] ?? '')) !== '') {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
 }

@@ -5,7 +5,9 @@
  * Vom Router bereitgestellte Variablen:
  *   $results      – Treffer als Arrays mit `_type`/`_type_label` (Seite, Beitrag, Kategorie, Tag,
  *                   Plugin-Treffer mit eigener `url`)
- *   $query        – string, Suchbegriff
+ *   $query        – string, Suchbegriff (vom Router bereinigt)
+ *   $type         – string, Such-Scope (`posts`, `pages`, `categories`, `tags`, Plugin-Scope; leer = alle)
+ *   $sort         – string, `relevance` oder `date` (neueste zuerst)
  *   $total        – int (optional, sonst Anzahl der Treffer)
  *   $currentPage  – int
  *   $totalPages   – int
@@ -19,7 +21,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$query       = htmlspecialchars((string) ($_GET['q'] ?? $query ?? ''), ENT_QUOTES, 'UTF-8');
+$query       = htmlspecialchars((string) ($query ?? ''), ENT_QUOTES, 'UTF-8');
+$searchType  = (string) ($type ?? '');
+$searchSort  = (string) ($sort ?? 'relevance');
 $results     = is_array($results ?? null) ? $results : [];
 $total       = (int) ($total ?? count($results));
 $currentPage = $currentPage ?? 1;
@@ -45,6 +49,30 @@ $searchResultUrl = static function (array $item) use ($searchLocale): string {
     // Kategorien, Tags und Verzeichnis-Treffer liefern ihren Pfad im Feld `slug`.
     return rtrim(SITE_URL, '/') . '/' . ltrim((string) ($item['slug'] ?? ''), '/');
 };
+
+$searchTypeOptions = [
+    ''           => 'Alle Inhalte',
+    'posts'      => 'Beiträge',
+    'pages'      => 'Seiten',
+    'categories' => 'Kategorien',
+    'tags'       => 'Tags',
+];
+if ($searchType !== '' && !isset($searchTypeOptions[$searchType])) {
+    // Plugin-Scope (z. B. `messagecenter`) beim erneuten Suchen beibehalten.
+    $searchTypeLabel = ucfirst($searchType);
+    foreach ($results as $typedResult) {
+        $typedResult = (array) $typedResult;
+        if ((string) ($typedResult['_type'] ?? '') === $searchType && trim((string) ($typedResult['_type_label'] ?? '')) !== '') {
+            $searchTypeLabel = trim((string) $typedResult['_type_label']);
+            break;
+        }
+    }
+    $searchTypeOptions[$searchType] = $searchTypeLabel;
+}
+$searchSortOptions = [
+    'relevance' => 'Relevanz',
+    'date'      => 'Neueste zuerst',
+];
 ?>
 
 <div class="search-header">
@@ -73,6 +101,16 @@ $searchResultUrl = static function (array $item) use ($searchLocale): string {
                    placeholder="Erneut suchen …"
                    aria-label="Suche verfeinern"
                    autocomplete="off">
+            <select name="type" class="form-control search-select" aria-label="Inhaltstyp" data-search-autosubmit>
+                <?php foreach ($searchTypeOptions as $optionValue => $optionLabel): ?>
+                <option value="<?php echo htmlspecialchars((string) $optionValue, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $searchType === (string) $optionValue ? ' selected' : ''; ?>><?php echo htmlspecialchars($optionLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <select name="sort" class="form-control search-select" aria-label="Sortierung" data-search-autosubmit>
+                <?php foreach ($searchSortOptions as $optionValue => $optionLabel): ?>
+                <option value="<?php echo htmlspecialchars($optionValue, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $searchSort === $optionValue ? ' selected' : ''; ?>><?php echo htmlspecialchars($optionLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php endforeach; ?>
+            </select>
             <button type="submit" class="btn-solid">Suchen</button>
         </form>
     </div>
@@ -99,7 +137,7 @@ $searchResultUrl = static function (array $item) use ($searchLocale): string {
             $excerpt = meridian_excerpt((string) ($item['content'] ?? ''), 200);
         }
         ?>
-        <article class="article-row">
+        <article class="article-row<?php echo $itemImage === '' ? ' article-row--no-thumb' : ''; ?>">
             <?php if ($itemImage !== ''): ?>
             <a href="<?php echo htmlspecialchars($itemUrl, ENT_QUOTES, 'UTF-8'); ?>" class="art-thumb">
                 <img src="<?php echo htmlspecialchars($itemImage, ENT_QUOTES, 'UTF-8'); ?>"
@@ -133,7 +171,7 @@ $searchResultUrl = static function (array $item) use ($searchLocale): string {
     <?php if ($totalPages > 1): ?>
     <nav class="pagination" aria-label="Seitennavigation">
         <?php
-        $qBase = '?q=' . urlencode($query) . '&';
+        $qBase = '?' . http_build_query(array_filter(['q' => html_entity_decode($query, ENT_QUOTES, 'UTF-8'), 'type' => $searchType, 'sort' => $searchSort !== 'relevance' ? $searchSort : ''], static fn(string $value): bool => $value !== ''), '', '&amp;') . '&amp;';
         if ($currentPage > 1): ?>
         <a class="pagination-item pagination-item--prev"
            href="<?php echo SITE_URL . '/search' . $qBase . 'page=' . ($currentPage - 1); ?>"

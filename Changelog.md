@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04` and `v3.4.05` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05` and `v3.4.06` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04` und `v3.4.05` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05` und `v3.4.06` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -23,6 +23,17 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.4.06 — 30.09.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.06** | 🔴 fix | Suche / Trefferauswahl | **Die Seitensuche (`/search`) findet nur noch Inhalte, die alle Suchbegriffe enthalten.** Bisher verknüpfte TNTSearch mehrere Wörter mit ODER („Exchange Online“ fand jeden Beitrag mit „Online“), und der Index enthielt das Editor.js-JSON: „Version“, „Text“ oder „Typ“ lieferten praktisch alle Beiträge, „Header“ und „Liste“ alle Beiträge mit solchen Blöcken, Link-Adressen und CSS-Klassen („learn“, „btn“) zählten als Inhalt. Neu: `SiteSearchService` wählt Seiten, Beiträge, Kategorien und Tags per LIKE vor (jedes Wort in Titel, Auszug oder Inhalt; Platzhalter wie `%` und `_` werden wörtlich genommen) und prüft anschließend den **sichtbaren Text** – Editor.js-Blöcke ohne JSON-Schlüssel, Blocktypen, Bild-/Link-URLs und Layoutwerte, HTML ohne Tags, Skripte und Attribute. Groß-/Kleinschreibung und Akzente spielen keine Rolle (`Postfach` findet `Postfächer`), Bindestriche gelten als Leerzeichen (`Exchange-Online` = `Exchange Online`), Phrasen in Anführungszeichen bleiben zusammen, kurze Begriffe (≤ 3 Zeichen) müssen am Wortanfang stehen („EWS“ trifft nicht „News“). |
+| **3.4.06** | 🔴 fix | Suche / Leere Suche & Scopes | Ohne Suchbegriff liefert `/search` keine Inhaltstreffer mehr (bisher alle veröffentlichten Seiten, auch mit `?type=pages`). Der Typ-Filter (`?type=posts`, `pages`, `categories`, `tags` bzw. Plugin-Scope) zeigt ausschließlich Treffer dieses Typs; deutsche Werte (`beitraege`, `seiten`, `kategorien` …) und `all`/`alle` werden verstanden, ungültige Werte wie Arrays oder Sonderzeichen gelten als „alle Typen“. Geplante Beiträge (Veröffentlichung in der Zukunft) und Entwürfe erscheinen nicht. `PageManager::search()` liefert für leere Begriffe nichts und nimmt Platzhalter wörtlich. |
+| **3.4.06** | 🟢 feat | Suche / Sortierung | Neuer Parameter `?sort=relevance` (Standard) bzw. `?sort=date` (neueste zuerst; Aliase `relevanz`, `datum`). Die Relevanz gewichtet Treffer im Titel (exakt, am Anfang, als Phrase, ganzes Wort) vor Auszug und Häufigkeit im Text, bei Gleichstand gewinnt der neuere Inhalt. Bei „Neueste zuerst“ stehen datierte Treffer (Beiträge, Seiten, Plugin-Treffer mit `date`) vor undatierten (Kategorien, Tags). Themes erhalten `$sort` und `$total`; je Typ höchstens 60 Beiträge, 30 Seiten sowie 20 Kategorien bzw. Tags. |
+| **3.4.06** | 🟢 feat | Suche / Plugins | Plugin-Treffer aus `search_results` werden gemeinsam mit den Core-Treffern nach Relevanz bzw. Datum sortiert; das optionale Feld `date` ordnet sie bei „Neueste zuerst“ ein. Plugin-Scopes werden kleingeschrieben verglichen. |
+| **3.4.06** | 🔴 fix | Theme cms-default / Suche | Auswahl für Inhaltstyp und Sortierung im Suchformular, die sofort beim Ändern greift (`data-search-autosubmit` in `js/theme.js`, CSP-konform). Treffer ohne Bild (Seiten, Kategorien, Plugin-Treffer) nutzen die volle Breite statt der schmalen Bildspalte; der Suchbegriff kommt bereinigt vom Router (keine Warnung bei `?q[]=`). Theme-Version **cms-default 1.0.9**. |
+| **3.4.06** | 🔵 docs | Suche / Doku | `DOC/plugins/PLUGIN-DEVELOPMENT.md` (Feld `date`, Relevanz durch den Core), `DOC/theme/THEME-DEVELOPMENT.md` (`$type`, `$sort`, `$total`), `DOC/assets/tntsearch/README.md` (die Suchseite nutzt TNTSearch nicht mehr; `SearchService` bleibt für Plugins verfügbar) und `DOC/CMSFILESTRUCTUR.md` aktualisiert. |
 
 ### v3.4.05 — 30.09.2026
 
