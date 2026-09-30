@@ -180,6 +180,9 @@ final class SeoHeadRenderer
         $description = trim($analysis->resolveMetaDescription($resolvedContext));
         $featuredImage = trim((string) ($this->readField($content, 'featured_image') ?? ''));
         $meta = $this->repository->getContentMeta($contentType, $id);
+        foreach (['og_title', 'og_description', 'twitter_title', 'twitter_description'] as $templateField) {
+            $meta[$templateField] = $analysis->resolveTemplateVariables((string) ($meta[$templateField] ?? ''), $resolvedContext);
+        }
         $updatedAt = (string) ($this->readField($content, 'updated_at') ?? $this->readField($content, 'created_at') ?? date(DATE_W3C));
         $resolvedOgImage = $meta['og_image'] !== '' ? $meta['og_image'] : ($featuredImage !== '' ? $featuredImage : $socialDefaults['image']);
 

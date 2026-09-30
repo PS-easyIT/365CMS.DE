@@ -64,37 +64,83 @@ final class SeoAnalysisService
 
     public function resolveMetaTitle(array $context): string
     {
+        $settings = $this->getSettings();
+        $title = trim((string)($context['title'] ?? ''));
         $explicit = trim((string)($context['meta_title'] ?? ''));
-        if ($explicit !== '') {
-            return $explicit;
+
+        // Ein gepflegter Meta-Titel kann eine importierte Vorlage sein (Yoast/Rank Math: „%title% %sep% %sitename%“).
+        $template = $explicit !== '' ? $explicit : (string)$settings['site_title_format'];
+        $resolved = $this->resolveTemplateVariables($template, $context);
+
+        return $resolved !== '' ? $resolved : $title;
+    }
+
+    /**
+     * Ersetzt Titel-/Beschreibungs-Variablen in beiden Schreibweisen (%%var%% wie Yoast, %var% wie Rank Math)
+     * und entfernt unbekannte Variablen samt übrig gebliebener Trennzeichen, damit nie Rohplatzhalter
+     * im Dokumenttitel, in Open Graph oder in Suchergebnissen landen.
+     *
+     * @param array<string,mixed> $context
+     */
+    public function resolveTemplateVariables(string $template, array $context = []): string
+    {
+        if (!str_contains($template, '%')) {
+            return trim($template);
         }
 
-        $settings = $this->getSettings();
-        $template = (string)$settings['site_title_format'];
-        $separator = (string)$settings['title_separator'];
+        $separator = (string)$this->getSettings()['title_separator'];
         $title = trim((string)($context['title'] ?? ''));
-        $siteName = defined('SITE_NAME') ? (string)SITE_NAME : '365CMS';
-
-        $replacements = [
-            '%%title%%' => $title,
-            '%title%' => $title,
-            '%%sitename%%' => $siteName,
-            '%sitename%' => $siteName,
-            '%%sep%%' => $separator,
-            '%sep%' => $separator,
+        $excerpt = trim((string)($context['excerpt'] ?? ''));
+        $pageNumber = (int)($context['page_number'] ?? 0);
+        $values = [
+            'title' => $title,
+            'pagetitle' => $title,
+            'post_title' => $title,
+            'sitename' => defined('SITE_NAME') ? (string)SITE_NAME : '365CMS',
+            'sep' => $separator,
+            'separator' => $separator,
+            'excerpt' => $excerpt,
+            'excerpt_only' => $excerpt,
+            'seo_description' => $excerpt,
+            'slug' => trim((string)($context['slug'] ?? '')),
+            'category' => trim((string)($context['category_name'] ?? '')),
+            'primary_category' => trim((string)($context['category_name'] ?? '')),
+            'page' => $pageNumber > 1 ? 'Seite ' . $pageNumber : '',
+            'pagenumber' => $pageNumber > 1 ? (string)$pageNumber : '',
+            'currentyear' => date('Y'),
+            'currentmonth' => date('m'),
+            'currentday' => date('d'),
+            'currentdate' => date('d.m.Y'),
+            'sitedesc' => '',
+            'tagline' => '',
         ];
 
-        $resolved = trim(strtr($template, $replacements));
-        $resolved = preg_replace('/\s+/', ' ', $resolved) ?? $resolved;
+        $escapedSeparator = preg_quote($separator, '/');
+        $resolved = preg_replace_callback(
+            '/%%?([a-z][a-z0-9_]*)(?:\([^)%]*\))?%%?/i',
+            static fn(array $match): string => $values[strtolower($match[1])] ?? '',
+            $template
+        ) ?? $template;
 
-        return trim($resolved) !== '' ? trim($resolved) : $title;
+        $resolved = preg_replace('/\s+/u', ' ', $resolved) ?? $resolved;
+        if ($escapedSeparator !== '') {
+            // Trennzeichen ohne Inhalt dazwischen bzw. am Rand entfernen („ | | Name“, „Titel |“).
+            $resolved = preg_replace('/(?:\s*' . $escapedSeparator . ')+\s*$/u', '', $resolved) ?? $resolved;
+            $resolved = preg_replace('/^\s*(?:' . $escapedSeparator . '\s*)+/u', '', $resolved) ?? $resolved;
+            $resolved = preg_replace('/' . $escapedSeparator . '(?:\s*' . $escapedSeparator . ')+/u', $separator, $resolved) ?? $resolved;
+        }
+
+        return trim($resolved);
     }
 
     public function resolveMetaDescription(array $context): string
     {
         $explicit = trim((string)($context['meta_description'] ?? ''));
         if ($explicit !== '') {
-            return $explicit;
+            $explicit = $this->resolveTemplateVariables($explicit, $context);
+            if ($explicit !== '') {
+                return $explicit;
+            }
         }
 
         $excerpt = trim((string)($context['excerpt'] ?? ''));
