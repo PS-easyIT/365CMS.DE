@@ -36,6 +36,16 @@ $currentLocale = function_exists('meridian_current_request_locale') ? meridian_c
 $isLoggedIn  = meridian_is_logged_in();
 $flashMsg    = meridian_get_flash();
 $accountPath = function_exists('meridian_account_path') ? meridian_account_path() : '/member/profile';
+
+// Logout per POST mit eigenem `logout`-CSRF-Token: PublicRouter::handleLogout() meldet
+// eingeloggte Benutzer ohne gültiges Token nicht ab, sondern leitet nur auf / um.
+// Desktop- und Mobil-Formular teilen sich ein Token pro Seitenaufruf.
+$logoutAction = rtrim((string) SITE_URL, '/') . '/logout';
+$logoutToken  = '';
+if ($isLoggedIn && class_exists('\CMS\Security')) {
+    $logoutToken = \CMS\Security::instance()->generateToken('logout');
+}
+
 $logoImageUrl = $logoUrl !== '' && function_exists('meridian_normalize_public_media_url')
   ? meridian_normalize_public_media_url($logoUrl, false)
   : $logoUrl;
@@ -174,7 +184,10 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
 
       <?php if ($isLoggedIn): ?>
           <a href="<?php echo htmlspecialchars(rtrim((string) SITE_URL, '/') . $accountPath, ENT_QUOTES, 'UTF-8'); ?>" class="btn-ghost">Mein Bereich</a>
-          <a href="<?php echo SITE_URL; ?>/logout" class="btn-ghost">Logout</a>
+          <form method="POST" action="<?php echo htmlspecialchars($logoutAction, ENT_QUOTES, 'UTF-8'); ?>" class="logout-form">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($logoutToken, ENT_QUOTES, 'UTF-8'); ?>">
+            <button type="submit" class="btn-ghost btn-ghost--button">Logout</button>
+          </form>
       <?php else: ?>
           <?php if ($showLoginBtn): ?>
           <a href="<?php echo htmlspecialchars(meridian_auth_url('login'), ENT_QUOTES, 'UTF-8'); ?>" class="btn-ghost">Anmelden</a>
@@ -280,7 +293,10 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
 
     <?php if ($isLoggedIn): ?>
       <a href="<?php echo htmlspecialchars(rtrim((string) SITE_URL, '/') . $accountPath, ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link">👤 Mein Bereich</a>
-      <a href="<?php echo SITE_URL; ?>/logout" class="mobile-nav-link">⬡ Logout</a>
+      <form method="POST" action="<?php echo htmlspecialchars($logoutAction, ENT_QUOTES, 'UTF-8'); ?>" class="logout-form">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($logoutToken, ENT_QUOTES, 'UTF-8'); ?>">
+        <button type="submit" class="mobile-nav-link mobile-nav-link--button">⬡ Logout</button>
+      </form>
     <?php else: ?>
       <?php if ($showLoginBtn): ?>
       <a href="<?php echo htmlspecialchars(meridian_auth_url('login'), ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link">🔑 Anmelden</a>

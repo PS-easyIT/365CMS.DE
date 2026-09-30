@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03` and `v3.4.04` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04` and `v3.4.05` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03` und `v3.4.04` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04` und `v3.4.05` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -23,6 +23,13 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.4.05 — 30.09.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.05** | 🔴 fix | Theme cms-default / Logout | **Eingeloggte Benutzer können sich mit „Meridian CMS Default“ wieder abmelden.** Die Logout-Links in `header.php` (Desktop-Leiste und mobiles Menü) riefen `/logout` ohne CSRF-Token auf; `PublicRouter::handleLogout()` verlangt für eingeloggte Benutzer ein gültiges `logout`-Token und leitete deshalb nur auf `/` um, ohne abzumelden. Beide Einträge sind jetzt kleine POST-Formulare mit verstecktem `csrf_token` (`Security::generateToken('logout')`, ein Token pro Seitenaufruf); die Buttons sind wie die bisherigen Links gestaltet. Admin-Topbar, Admin-Sidebar und Member-Header übergeben das Token bereits. Theme-Version **cms-default 1.0.8** (`theme.json`, `style.css`, `functions.php`, `update.json`). |
+| **3.4.05** | 🔴 fix | Theme cms-default / Mobile Navigation | **Das mobile Menü lässt sich bis 720 px Breite wieder öffnen.** Der Menü-Button (`#navToggle`) liegt in `.header-actions`; die Media-Query blendete den ganzen Container aus, sodass auf Smartphones weder der Button noch das mobile Menü mit Anmelden, Registrieren, „Mein Bereich“ und Logout erreichbar war. Jetzt werden dort nur die übrigen Header-Aktionen ausgeblendet (sie stehen im mobilen Menü), der Button sitzt rechts. |
 
 ### v3.4.04 — 29.09.2026
 
