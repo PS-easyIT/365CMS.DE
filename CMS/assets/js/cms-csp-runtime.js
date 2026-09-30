@@ -1,8 +1,9 @@
 /*!
  * 365CMS CSP-Runtime
  *
- * Muss als erstes Script (nach DOMPurify) mit nonce-Attribut geladen werden:
- *   <script src="/assets/dompurify/purify.min.js" nonce="…"></script>
+ * Muss als erstes ausführendes Script mit nonce-Attribut geladen werden; DOMPurify davor
+ * (synchron) oder – im Frontend – per defer vor allen anderen defer-Scripts:
+ *   <script src="/assets/dompurify/purify.min.js" nonce="…" defer></script>
  *   <script src="/assets/js/cms-csp-runtime.js" nonce="…"></script>
  *
  * 1. Dynamisch per createElement('style') erzeugte <style>-Elemente (Editor.js,
@@ -77,8 +78,12 @@
         return;
     }
 
-    var purify = window.DOMPurify;
-    var purifyReady = !!(purify && typeof purify.sanitize === 'function' && purify.isSupported !== false);
+    // DOMPurify erst beim Aufruf auflösen: Im Frontend wird es per defer geladen (nicht render-blockierend)
+    // und steht vor allen weiteren defer-Scripts bereit. Fehlt es noch, bleibt die Zuweisung blockiert.
+    function getPurify() {
+        var purify = window.DOMPurify;
+        return purify && typeof purify.sanitize === 'function' && purify.isSupported !== false ? purify : null;
+    }
 
     var PURIFY_CONFIG = {
         ADD_TAGS: ['iframe'],
@@ -96,7 +101,8 @@
     ];
 
     function sanitizeHtml(input) {
-        if (!purifyReady) {
+        var purify = getPurify();
+        if (!purify) {
             return null;
         }
 

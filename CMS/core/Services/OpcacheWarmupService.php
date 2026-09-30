@@ -13,6 +13,9 @@ final class OpcacheWarmupService
 {
     private const DEFAULT_LIMIT = 30;
     private const STATE_FILE = ABSPATH . 'cache/opcache-warmup.json';
+    private const CHECK_MARKER_FILE = ABSPATH . 'cache/opcache-warmup.checked';
+    /** Mindestabstand der Deploy-Prüfung: Der Signatur-Scan läuft über den gesamten Code-Baum. */
+    private const CHECK_INTERVAL_SECONDS = 600;
     private const ALLOWED_TOP_LEVEL_DIRECTORIES = [
         'admin',
         'assets',
@@ -58,6 +61,24 @@ final class OpcacheWarmupService
      */
     public function maybeWarmAfterDeploy(int $limit = self::DEFAULT_LIMIT): array
     {
+        // Der Signatur-Scan durchläuft bei jedem Aufruf alle PHP-Dateien (auf Shared Hosting spürbar
+        // in der Antwortzeit). Deploys werden deshalb höchstens alle 10 Minuten erkannt.
+        $lastCheck = is_file(self::CHECK_MARKER_FILE) ? (int) @filemtime(self::CHECK_MARKER_FILE) : 0;
+        if ($lastCheck > 0 && (time() - $lastCheck) < self::CHECK_INTERVAL_SECONDS) {
+            return [
+                'success' => true,
+                'skipped' => true,
+                'message' => 'OPcache-Warmup-Prüfung kürzlich erfolgt.',
+                'compiled' => 0,
+                'failed' => [],
+            ];
+        }
+
+        $markerDir = dirname(self::CHECK_MARKER_FILE);
+        if (is_dir($markerDir) || @mkdir($markerDir, 0755, true)) {
+            @touch(self::CHECK_MARKER_FILE);
+        }
+
         $status = $this->getStatus($limit);
         if (!($status['available'] ?? false)) {
             return [

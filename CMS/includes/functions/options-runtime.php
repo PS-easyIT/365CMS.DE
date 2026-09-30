@@ -642,8 +642,10 @@ function cms_asset_url(string $relativePath, bool $withVersion = true, string|in
  * Muss als erstes Script im <head> jeder HTML-Seite ausgegeben werden, die unter
  * der nonce-basierten CSP mit `require-trusted-types-for 'script'` läuft.
  * Mehrfachaufrufe pro Request liefern nur beim ersten Mal Markup.
+ *
+ * @param bool $deferSanitizer Frontend: DOMPurify per defer, Runtime inline (nicht render-blockierend).
  */
-function cms_csp_runtime_tags(): string {
+function cms_csp_runtime_tags(bool $deferSanitizer = false): string {
     static $rendered = false;
     if ($rendered) {
         return '';
@@ -657,16 +659,27 @@ function cms_csp_runtime_tags(): string {
     }
 
     $nonceAttr = class_exists(\CMS\Security::class) ? \CMS\Security::instance()->nonceAttr() : '';
+    $nonceAttr = $nonceAttr !== '' ? ' ' . $nonceAttr : '';
     $scriptOrigins = class_exists(\CMS\Security::class) ? \CMS\Security::instance()->getAllowedScriptOrigins() : [];
-    $html = '';
+    $originsAttr = $scriptOrigins !== []
+        ? ' data-script-origins="' . htmlspecialchars(implode(' ', $scriptOrigins), ENT_QUOTES, 'UTF-8') . '"'
+        : '';
+    $purifyUrl = htmlspecialchars(cms_asset_url('dompurify/purify.min.js'), ENT_QUOTES, 'UTF-8');
 
-    foreach (['dompurify/purify.min.js', 'js/cms-csp-runtime.js'] as $asset) {
-        $extra = $asset === 'js/cms-csp-runtime.js' && $scriptOrigins !== []
-            ? ' data-script-origins="' . htmlspecialchars(implode(' ', $scriptOrigins), ENT_QUOTES, 'UTF-8') . '"'
-            : '';
-        $html .= '<script src="' . htmlspecialchars(cms_asset_url($asset), ENT_QUOTES, 'UTF-8') . '"'
-            . ($nonceAttr !== '' ? ' ' . $nonceAttr : '') . $extra . '></script>' . "\n";
+    if ($deferSanitizer) {
+        // Frontend (PageSpeed): DOMPurify (~29 KB) nicht render-blockierend per defer – es läuft vor allen
+        // späteren defer-Scripts; die kleine Runtime wird inline ausgegeben (kein blockierender Request).
+        // Nur für Seiten, deren Scripts HTML erst per defer/nach dem Laden zuweisen.
+        $runtimeFile = rtrim(defined('ASSETS_PATH') ? (string) ASSETS_PATH : ABSPATH . 'assets/', '/\\') . '/js/cms-csp-runtime.js';
+        $runtime = is_readable($runtimeFile) ? (string) file_get_contents($runtimeFile) : '';
+        // „</script“ (etwa im Doc-Kommentar) würde das Inline-Script vorzeitig beenden.
+        $runtime = str_ireplace('</script', '<\\/script', $runtime);
+        if ($runtime !== '') {
+            return '<script src="' . $purifyUrl . '"' . $nonceAttr . ' defer></script>' . "\n"
+                . '<script id="cms-csp-runtime"' . $nonceAttr . $originsAttr . '>' . $runtime . '</script>' . "\n";
+        }
     }
 
-    return $html;
+    return '<script src="' . $purifyUrl . '"' . $nonceAttr . '></script>' . "\n"
+        . '<script src="' . htmlspecialchars(cms_asset_url('js/cms-csp-runtime.js'), ENT_QUOTES, 'UTF-8') . '"' . $nonceAttr . $originsAttr . '></script>' . "\n";
 }
