@@ -126,6 +126,20 @@ if ($_marketplaceEnabled) {
     $pluginSidebarSlugs[] = 'plugin-marketplace';
 }
 
+/**
+ * Plugin-Menütitel nach dem Schema „Familie | Name“ (z. B. „M365 | Message Center“) aufteilen,
+ * damit die Seitenleiste das Präfix dezent darstellen kann.
+ *
+ * @return array{prefix:string, name:string}|null
+ */
+$splitPluginMenuTitle = static function (string $title): ?array {
+    if (preg_match('/^\s*([^|]{1,16}?)\s*\|\s*(\S.*)$/u', $title, $matches) !== 1) {
+        return null;
+    }
+
+    return ['prefix' => trim($matches[1]), 'name' => trim($matches[2])];
+};
+
 foreach ($registeredPluginMenus as $menu) {
     if (!is_array($menu) || !empty($menu['hidden']) || empty($menu['menu_slug'])) {
         continue;
@@ -172,6 +186,7 @@ foreach ($registeredPluginMenus as $menu) {
         $pluginMenuGroups[] = [
             'type'     => 'group',
             'label'    => $menuTitle,
+            'label_parts' => $splitPluginMenuTitle($menuTitle),
             'icon'     => sidebarTopLevelIcon('plugin-item'),
             'slugs'    => array_values(array_unique($groupSlugs)),
             'children' => $children,
@@ -182,6 +197,7 @@ foreach ($registeredPluginMenus as $menu) {
     $pluginMenuGroups[] = [
         'type'  => 'item',
         'label' => $menuTitle,
+        'label_parts' => $splitPluginMenuTitle($menuTitle),
         'slug'  => $menuSlug,
         'url'   => $menuUrl,
         'icon'  => sidebarTopLevelIcon('plugin-item'),
@@ -663,6 +679,23 @@ if (!function_exists('isGroupActive')) {
     }
 }
 
+if (!function_exists('sidebarNavTitleHtml')) {
+    /**
+     * Titel eines Menüpunkts; bei Plugin-Menüs „Familie | Name“ mit dezent abgesetztem Präfix.
+     *
+     * @param array<string, mixed> $item
+     */
+    function sidebarNavTitleHtml(array $item): string {
+        $parts = $item['label_parts'] ?? null;
+        if (!is_array($parts) || ($parts['prefix'] ?? '') === '' || ($parts['name'] ?? '') === '') {
+            return htmlspecialchars((string) ($item['label'] ?? ''));
+        }
+
+        return '<span class="nav-link-prefix">' . htmlspecialchars((string) $parts['prefix']) . ' |</span> '
+            . htmlspecialchars((string) $parts['name']);
+    }
+}
+
 if (!function_exists('sidebarChildIcon')) {
     function sidebarChildIcon(string $slug): string {
         $iconMap = [
@@ -841,9 +874,9 @@ $topbarUnreadNotifications = max(0, (int) ($_SESSION['admin_unread_notifications
                     <?php elseif ($item['type'] === 'item'): ?>
                         <!-- Einzelner Menüpunkt -->
                         <li class="nav-item<?= isSlugActive((string) ($item['slug'] ?? ''), $activePage) ? ' active' : '' ?><?= !empty($item['class']) ? ' ' . htmlspecialchars((string)$item['class']) : '' ?>">
-                            <a class="nav-link" href="<?= htmlspecialchars((string) ($item['url'] ?? '#')) ?>">
+                            <a class="nav-link" href="<?= htmlspecialchars((string) ($item['url'] ?? '#')) ?>"<?= isset($item['label_parts']) ? ' title="' . htmlspecialchars((string) ($item['label'] ?? '')) . '"' : '' ?>>
                                 <span class="nav-link-icon"><?= $item['icon'] ?></span>
-                                <span class="nav-link-title"><?= htmlspecialchars((string) ($item['label'] ?? '')) ?></span>
+                                <span class="nav-link-title"><?= sidebarNavTitleHtml($item) ?></span>
                                 <?php if (is_array($item['badge'] ?? null) && trim((string) ($item['badge']['label'] ?? '')) !== ''): ?>
                                     <span class="admin-nav-badge admin-nav-badge--<?= htmlspecialchars((string) ($item['badge']['tone'] ?? 'blue'), ENT_QUOTES, 'UTF-8') ?>">
                                         <?= htmlspecialchars((string) ($item['badge']['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
@@ -859,9 +892,9 @@ $topbarUnreadNotifications = max(0, (int) ($_SESSION['admin_unread_notifications
                             <a class="nav-link dropdown-toggle<?= $groupActive ? ' show' : '' ?>"
                                href="#sidebar-<?= htmlspecialchars((string) ($item['slugs'][0] ?? 'group')) ?>"
                                data-bs-toggle="dropdown" data-bs-auto-close="false"
-                               role="button" aria-expanded="<?= $groupActive ? 'true' : 'false' ?>">
+                               role="button" aria-expanded="<?= $groupActive ? 'true' : 'false' ?>"<?= isset($item['label_parts']) ? ' title="' . htmlspecialchars((string) ($item['label'] ?? '')) . '"' : '' ?>>
                                 <span class="nav-link-icon"><?= $item['icon'] ?></span>
-                                <span class="nav-link-title"><?= htmlspecialchars((string) ($item['label'] ?? '')) ?></span>
+                                <span class="nav-link-title"><?= sidebarNavTitleHtml($item) ?></span>
                                 <?php if (is_array($item['badge'] ?? null) && trim((string) ($item['badge']['label'] ?? '')) !== ''): ?>
                                     <span class="admin-nav-badge admin-nav-badge--<?= htmlspecialchars((string) ($item['badge']['tone'] ?? 'blue'), ENT_QUOTES, 'UTF-8') ?>">
                                         <?= htmlspecialchars((string) ($item['badge']['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?>

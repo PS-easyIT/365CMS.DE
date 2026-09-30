@@ -65,7 +65,7 @@ class CMS_Importer_Admin
         // Hauptmenü registrieren
         add_menu_page(
             'WordPress Importer',
-            'WP Importer',
+            '365CMS | WP Importer',
             'admin',
             'cms-importer',
             [$this, 'render_import_page'],
