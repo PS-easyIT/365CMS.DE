@@ -24,6 +24,12 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 
 ---
 
+### v3.4.08 — 30.09.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.08** | 🔴 fix | SEO / Meta-Titel | **Rohplatzhalter wie `%sitename% %page% %sep% %title%` im Browser-Tab behoben.** Aus WordPress importierte Meta-Titel sind oft Vorlagen (Yoast `%%title%%`, Rank Math `%title%`); ein gepflegter Meta-Titel wurde bisher unverändert ausgegeben. `SeoAnalysisService::resolveTemplateVariables()` löst Variablen jetzt in beiden Schreibweisen auf (`title`, `sitename`, `sep`, `page`, `excerpt`, `category`, `currentyear` u. a.), entfernt unbekannte Variablen samt verwaister Trennzeichen und gilt für Meta-Titel, Meta-Beschreibung sowie Open-Graph- und Twitter-Titel/-Beschreibungen. |
+
 ### v3.4.07 — 30.09.2026
 
 | Version | Typ | Bereich | Beschreibung |
