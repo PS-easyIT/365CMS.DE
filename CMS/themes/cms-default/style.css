@@ -1,7 +1,7 @@
 /*
 Theme Name: Meridian CMS Default
 Description: Das offizielle CMS-Default Theme – editorial, klar, charakterstark. Warm Off-White + Near-Black + Deep Amber. Ideal für Blogs, Magazine und Wissensportale.
-Version: 1.0.7
+Version: 1.0.8
 Author: PHINIT.DE / Andreas Hepp
 Author URI: https://phinit.de
 Tags: editorial, magazine, blog, responsive, cms, default
@@ -2183,6 +2183,11 @@ footer, .site-footer { background: var(--ink); color: rgba(255,255,255,.5); marg
 .mobile-nav-link:hover, .mobile-nav-link.active { color: var(--accent); border-left-color: var(--accent); background: var(--surface-tint); }
 .mobile-nav-search { padding: 1rem 1.25rem; border-top: 1px solid var(--rule); }
 
+/* === LOGOUT (POST-Formular mit CSRF-Token, Button im Stil der Links) === */
+.logout-form { display: flex; }
+.btn-ghost--button { -webkit-appearance: none; appearance: none; line-height: inherit; }
+.mobile-nav-link--button { -webkit-appearance: none; appearance: none; width: 100%; text-align: left; font-family: inherit; line-height: inherit; background: transparent; border: 0; border-left: 2px solid transparent; cursor: pointer; }
+
 /* === READING PROGRESS === */
 #readingProgress { position: fixed; top: 0; left: 0; height: 2px; width: 0; background: var(--accent); z-index: 1000; transition: width .1s; }
 
@@ -2207,7 +2212,10 @@ footer, .site-footer { background: var(--ink); color: rgba(255,255,255,.5); marg
   .form-2col { grid-template-columns: 1fr; }
   .sidebar { grid-template-columns: 1fr; }
   .nav-toggle { display: flex; }
-  .primary-nav, .header-actions { display: none; }
+  .primary-nav { display: none; }
+  /* Der Hamburger steckt in .header-actions: nur die übrigen Aktionen ausblenden (sie stehen im mobilen Menü). */
+  .header-actions { margin-left: auto; }
+  .header-actions > :not(.nav-toggle) { display: none; }
 }
 @media (max-width: 520px) {
   .footer-main { grid-template-columns: 1fr; }
