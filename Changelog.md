@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05` and `v3.4.06` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06` and `v3.4.07` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05` und `v3.4.06` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06` und `v3.4.07` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -23,6 +23,14 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.4.07 — 30.09.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.07** | 🟡 refactor | Admin / Plugin-Menüs | Plugin-Hauptmenüs tragen wieder ein Familienpräfix, damit zusammengehörige Plugins im alphabetisch sortierten Abschnitt „Plugin-Erweiterungen“ nebeneinander stehen: `365CMS \| …` für die öffentlichen Plugins, `M365 \| …` für die M365-Plugins von PhinIT, `PHINIT \| …` für die weiteren PhinIT-Plugins. Das mitgelieferte Plugin **cms-importer 3.0.3** erscheint als „365CMS \| WP Importer“. Untermenüs und Seitentitel bleiben unverändert. |
+| **3.4.07** | 🟢 feat | Admin / Seitenleiste | Plugin-Menüs nach dem Schema „Familie \| Name“ zeigen das Präfix kleiner und gedämpft (`.nav-link-prefix`), der Name bleibt hervorgehoben. Lange Namen brechen um, statt mit „…“ abgeschnitten zu werden; der volle Menütitel steht zusätzlich im `title`-Attribut (Tooltip, auch bei eingeklappter Seitenleiste). Sortierung und Menütitel ohne Präfix bleiben unverändert. |
+| **3.4.07** | 🔵 docs | Plugin-Entwicklung | `DOC/plugins/PLUGIN-DEVELOPMENT.md` beschreibt das Schema `<Familie> \| <Name>` für Hauptmenütitel (bisher: Funktionsname ohne Präfix). |
 
 ### v3.4.06 — 30.09.2026
 
