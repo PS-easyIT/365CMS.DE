@@ -1,4 +1,5 @@
 # 365CMS – Projektdokumentation | Abschnitt: INDEX
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.09) | **Status:** Stable | **Update:** 2026-10-02
 
 ## Table of contents | Inhaltsverzeichnis
 
@@ -16,11 +17,11 @@
 
 **English**
 
-Use this index to reach the canonical documents. Product version in code is `3.4.00`. Runtime lives in [`CMS/`](../CMS/). Documentation lives in [`DOC/`](./). Audit files live in [`AUDIT/audit/`](../AUDIT/audit/), not under `DOC/audit/`.
+Use this index to reach the canonical documents. Product version in code is `3.4.00`. Runtime lives in [`CMS/`](../CMS/). Documentation lives in [`DOC/`](./). Known code/doc gaps are listed in [core/STATUS.md](core/STATUS.md).
 
 **Deutsch**
 
-Dieser Index führt zu den kanonischen Dokumenten. Die Produktversion im Code ist `3.4.00`. Die Runtime liegt in [`CMS/`](../CMS/). Die Dokumentation liegt in [`DOC/`](./). Audit-Dateien liegen in [`AUDIT/audit/`](../AUDIT/audit/), nicht unter `DOC/audit/`.
+Dieser Index führt zu den kanonischen Dokumenten. Die Produktversion im Code ist `3.4.00`. Die Runtime liegt in [`CMS/`](../CMS/). Die Dokumentation liegt in [`DOC/`](./). Bekannte Lücken zwischen Code und Doku stehen in [core/STATUS.md](core/STATUS.md).
 
 | Goal / Ziel | Document / Dokument |
 |---|---|
@@ -32,7 +33,7 @@ Dieser Index führt zu den kanonischen Dokumenten. Die Produktversion im Code is
 | Installation | [INSTALLATION.md](INSTALLATION.md) |
 | Root README | [../README.md](../README.md) |
 | Changelog | [../Changelog.md](../Changelog.md) |
-| Audit status | [../AUDIT/audit/BEWERTUNG.md](../AUDIT/audit/BEWERTUNG.md) |
+| Status / known gaps | [core/STATUS.md](core/STATUS.md) |
 
 ---
 
@@ -58,7 +59,6 @@ Die Core-Dokumente beschreiben Bootstrap, Routing, Schema, Services, Hooks, APIs
 | [core/SECURITY.md](core/SECURITY.md) | Core security model |
 | [core/STATUS.md](core/STATUS.md) | Implementation and operations status |
 | [core/STRUCTURE.md](core/STRUCTURE.md) | Core structure notes |
-| [assets/VENDOR-NETWORK-PATHS.md](assets/VENDOR-NETWORK-PATHS.md) | Vendor / third-party network path logic |
 
 ---
 
@@ -99,6 +99,9 @@ Die Admin-Dokumente folgen `CMS/admin/` (PHP-Einstiege, `modules/`, `views/`, `p
 | Performance | [admin/performance/PERFORMANCE.md](admin/performance/PERFORMANCE.md) |
 | System & maintenance | [admin/system-settings/README.md](admin/system-settings/README.md) |
 | AI services (admin) | [admin/system-settings/AI-SERVICES.md](admin/system-settings/AI-SERVICES.md) |
+| Mail & mail queue | [admin/system-settings/MAIL.md](admin/system-settings/MAIL.md) |
+| Core modules | [admin/system-settings/MODULES.md](admin/system-settings/MODULES.md) |
+| Backups / updates / monitoring | [admin/system-settings/BACKUP.md](admin/system-settings/BACKUP.md) · [UPDATES.md](admin/system-settings/UPDATES.md) · [MONITORING.md](admin/system-settings/MONITORING.md) |
 | Diagnostics | [admin/diagnose/DIAGNOSE.md](admin/diagnose/DIAGNOSE.md) |
 | System info | [admin/info/INFO.md](admin/info/INFO.md) |
 | Landing pages | [admin/landing-page/LANDING-PAGE.md](admin/landing-page/LANDING-PAGE.md) |
@@ -166,16 +169,16 @@ Die Runtime lädt Themes aus `CMS/themes/` (`cms-default`) und Plugins aus `CMS/
 
 **English**
 
-Asset docs live under [`assets/`](assets/), not in the `DOC/` root. Audit docs live under [`../AUDIT/audit/`](../AUDIT/audit/). For technical facts, prefer `DEVLIST.md`, `FILELIST.md`, and the nearest core/admin/asset document.
+Asset docs live under [`assets/`](assets/), not in the `DOC/` root. For technical facts, prefer `DEVLIST.md`, `FILELIST.md`, and the nearest core/admin/asset document.
 
 **Deutsch**
 
-Asset-Dokumente liegen unter [`assets/`](assets/), nicht in der `DOC/`-Wurzel. Audit-Dokumente liegen unter [`../AUDIT/audit/`](../AUDIT/audit/). Für technische Aussagen haben `DEVLIST.md`, `FILELIST.md` und die jeweils bereichsnahen Core-/Admin-/Asset-Dokumente Vorrang.
+Asset-Dokumente liegen unter [`assets/`](assets/), nicht in der `DOC/`-Wurzel. Für technische Aussagen haben `DEVLIST.md`, `FILELIST.md` und die jeweils bereichsnahen Core-/Admin-/Asset-Dokumente Vorrang.
 
 | Area / Bereich | Documents / Dokumente |
 |---|---|
-| Assets | [assets/ASSET.md](assets/ASSET.md), [assets/README.md](assets/README.md), [assets/ASSETS_NEW.md](assets/ASSETS_NEW.md), [assets/ASSETS_OwnAssets.md](assets/ASSETS_OwnAssets.md), [assets/VENDOR-NETWORK-PATHS.md](assets/VENDOR-NETWORK-PATHS.md) |
-| Audits | [BEWERTUNG.md](../AUDIT/audit/BEWERTUNG.md), [ToDoPrüfung.md](../AUDIT/audit/ToDoPrüfung.md), [Audit-Backlog.md](../AUDIT/audit/Audit-Backlog.md), [Audit-Content-Platform.md](../AUDIT/audit/Audit-Content-Platform.md), [Audit-Users-Commerce.md](../AUDIT/audit/Audit-Users-Commerce.md), [Audit-Design-Media.md](../AUDIT/audit/Audit-Design-Media.md), [Audit-System-Security.md](../AUDIT/audit/Audit-System-Security.md), [Audit-Live-External.md](../AUDIT/audit/Audit-Live-External.md) |
+| Assets | [assets/ASSET.md](assets/ASSET.md), [assets/README.md](assets/README.md), [assets/ASSETS_NEW.md](assets/ASSETS_NEW.md), [assets/ASSETS_OwnAssets.md](assets/ASSETS_OwnAssets.md) |
+| Audits | No `AUDIT/` folder in this repository – use `/admin/security-audit` ([admin/security/SECURITY-AUDIT.md](admin/security/SECURITY-AUDIT.md)) and [core/STATUS.md](core/STATUS.md) |
 | Workflows | [workflow/](workflow/) |
 
 ### Workflows
@@ -186,9 +189,9 @@ Asset-Dokumente liegen unter [`assets/`](assets/), nicht in der `DOC/`-Wurzel. A
 | [MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md) | Native upload pipeline, member root, bulk / rename / move |
 | [UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) | CMS update, SHA-256 verification, deployment |
 | [MARKETPLACE-WORKFLOW.md](workflow/MARKETPLACE-WORKFLOW.md) | Install plugin / theme from marketplace |
-| [API-INTEGRATION-WORKFLOW.md](workflow/API-INTEGRATION-WORKFLOW.md) | REST API, webhooks, external integrations |
-| [NEWSLETTER-PLUGIN-WORKFLOW.md](workflow/NEWSLETTER-PLUGIN-WORKFLOW.md) | Double opt-in, campaigns, GDPR (plugin concept) |
-| [FORUM-PLUGIN-WORKFLOW.md](workflow/FORUM-PLUGIN-WORKFLOW.md) | Threads, moderation, full-text search (plugin concept) |
+| [API-INTEGRATION-WORKFLOW.md](workflow/API-INTEGRATION-WORKFLOW.md) | JSON endpoints, custom routes via `register_routes`, JWT note |
+| [NEWSLETTER-PLUGIN-WORKFLOW.md](workflow/NEWSLETTER-PLUGIN-WORKFLOW.md) | Double opt-in, campaigns, GDPR (integration roadmap, not shipped) |
+| [FORUM-PLUGIN-WORKFLOW.md](workflow/FORUM-PLUGIN-WORKFLOW.md) | Threads, moderation, full-text search (integration roadmap, not shipped) |
 
 ---
 
@@ -218,5 +221,9 @@ Häufige Aufgaben und das Dokument, das zuerst geöffnet werden sollte.
 | New asset candidates | [assets/ASSETS_NEW.md](assets/ASSETS_NEW.md) |
 | AI services concept | [ai/AI-SERVICES.md](ai/AI-SERVICES.md) |
 | Replace vendor assets | [assets/ASSETS_OwnAssets.md](assets/ASSETS_OwnAssets.md) |
-| Audit status | [../AUDIT/audit/BEWERTUNG.md](../AUDIT/audit/BEWERTUNG.md) |
+| Status / known gaps | [core/STATUS.md](core/STATUS.md) |
 | System status | [core/STATUS.md](core/STATUS.md) |
+| Mail / SMTP / Graph | [admin/system-settings/MAIL.md](admin/system-settings/MAIL.md) |
+| Enable / disable modules | [admin/system-settings/MODULES.md](admin/system-settings/MODULES.md) |
+| Plugin marketplace | [plugins/PLUGIN-MARKETPLACE.md](plugins/PLUGIN-MARKETPLACE.md) |
+| Update / deployment | [workflow/UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |

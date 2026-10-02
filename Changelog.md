@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06` and `v3.4.07` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06`, `v3.4.07`, `v3.4.08` and `v3.4.09` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06` und `v3.4.07` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06`, `v3.4.07`, `v3.4.08` und `v3.4.09` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -23,6 +23,17 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.4.09 — 02.10.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.09** | 🔵 docs | Gesamte Dokumentation | **Alle Dokumente unter `DOC/` gegen den 3.4-Code geprüft, aktualisiert und erweitert.** Einheitlicher Kopf (`Stand 2026-10-02`, `3.4.00 (Changelog bis 3.4.09)`), englische Kurzfassung plus ausführlicher deutscher Teil, Quellenangaben und „Verwandte Dokumente“. |
+| **3.4.09** | 🔵 docs | Admin | Sämtliche Dokumente unter `DOC/admin/**` neu geschrieben (Inhalte, Medien, Benutzer/Gruppen, Mitglieder, Abos, Design, Landing Page, SEO, Performance, Sicherheit, Recht, System, Diagnose, Info, Dashboard, Plugins, AI). Neu: `admin/system-settings/MAIL.md` (SMTP/Graph, Mail-Queue) und `admin/system-settings/MODULES.md` (Core-Module). |
+| **3.4.09** | 🔵 docs | Core / AI | `DOC/core/*` (Architektur, Sicherheit, Hooks, Datenbankschema, Klassen, Services, API, Struktur, Status) neu; `core/STATUS.md` enthält die Tabelle „Bekannte Lücken“ mit im Code gefundenen Abweichungen. `DOC/ai/*` aktualisiert. |
+| **3.4.09** | 🔵 docs | Member / Theme / Plugins | Member-Doku ergänzt (Routen, Dashboard-Registry, Upload-Token-Hinweis), Theme-Doku komplett neu, Plugin-Handbuch erweitert (Header-Felder, Lifecycle-Callbacks `<slug>_activate/_deactivate/_uninstall`, Sicherheits-Scan, WP-Kompatibilität, Abo-Gating, DSGVO-/Cron-Hooks), Marketplace-Doku mit Ladereihenfolge der Registry und Fehlercodes. |
+| **3.4.09** | 🔵 docs | Workflows | Alle sieben Workflows unter `DOC/workflow/` von Platzhaltern zu Schritt-für-Schritt-Anleitungen ausgebaut (API-Integration, Content, Medien-Upload, Marketplace, Update/Deployment; Integrationsfahrpläne für Forum- und Newsletter-Plugins). |
+| **3.4.09** | 🔵 docs | Übersichten | `README.md`, `DOC/README.md`, `DOC/INDEX.md`, `DOC/INSTALLATION.md`, `DOC/FILESTRUCTUR.md`, `DOC/FILELIST.md`, `DOC/DEVLIST.md`, `DOC/assets/README.md` aktualisiert; tote Verweise auf `AUDIT/`, `ASSETS/` und `assets/VENDOR-NETWORK-PATHS.md` entfernt. |
 
 ### v3.4.08 — 30.09.2026
 
