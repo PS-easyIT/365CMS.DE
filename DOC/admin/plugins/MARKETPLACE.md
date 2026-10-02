@@ -27,19 +27,25 @@ The plugin marketplace (`CMS/admin/plugin-marketplace.php` → `CMS/admin/module
 
 ### Eigene Registry betreiben
 
-Eine Registry ist eine JSON-Datei mit einer Liste von Plugin-Einträgen. Mindestfelder je Eintrag:
+Eine Registry ist eine JSON-Datei mit dem Schlüssel `plugins` (Liste). Beispiel (vgl. `CMS/marketplace/plugins/index.json`):
 
 ```json
 {
-  "slug": "mein-plugin",
-  "name": "Mein Plugin",
-  "version": "1.0.0",
-  "description": "Kurzbeschreibung",
-  "author": "Firma",
-  "download_url": "https://365cms.de/marketplace/plugins/mein-plugin-1.0.0.zip",
-  "sha256": "<64 Hex-Zeichen>",
-  "requires_cms": "3.4.00",
-  "requires_php": "8.4"
+  "plugins": [
+    {
+      "slug": "mein-plugin",
+      "name": "Mein Plugin",
+      "description": "Kurzbeschreibung",
+      "version": "1.0.0",
+      "author": "Firma",
+      "requires_cms": "3.4.00",
+      "requires_php": "8.4",
+      "is_paid": false,
+      "download_url": "https://365cms.de/marketplace/plugins/mein-plugin-1.0.0.zip",
+      "sha256": "<64 Hex-Zeichen>",
+      "update_url": "https://365cms.de/marketplace/plugins/mein-plugin/update.json"
+    }
+  ]
 }
 ```
 

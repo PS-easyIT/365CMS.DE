@@ -45,11 +45,17 @@ Standard-OG-Typ (`default_og_type`), Standard-Twitter-Card (`default_twitter_car
 
 ### Strukturierte Daten (`/admin/seo-schema`)
 
-Organisation (`organization_enabled`, `org_name`, `org_logo`), Person, Breadcrumb, FAQ, HowTo, Event, Review. Pro Inhalt wird der Schema-Typ im Editor gewählt (Standard `WebPage` bei Seiten); `SeoSchemaRenderer` gibt nur Typen aus, für die Daten vorliegen.
+`SeoSchemaRenderer` gibt JSON-LD aus:
+
+- **WebSite/Organization:** Organisation (`organization_enabled`, Name `org_name`, Logo `org_logo`) und Markenname,
+- **BreadcrumbList:** wenn `breadcrumb_enabled` aktiv ist,
+- **Inhaltstyp je Seite/Beitrag:** wählbar im Editor – Beiträge `Article` (Standard), `BlogPosting`, `NewsArticle`; Seiten `WebPage` (Standard), `Article`, `Organization`. Gespeicherte Altwerte (`FAQPage`, `HowTo`, `Person`, `Event` …) fallen seit 3.4.04 auf den Standard des Inhaltstyps zurück (`SeoSchemaRenderer::effectiveTypeFor()`).
+
+Die Schalter für FAQ, HowTo, Person, Event und Review (`faq_enabled`, `howto_enabled`, `person_enabled`, `event_enabled`, `review_enabled`) werden gespeichert, erzeugen aber ohne passende Inhaltsstruktur kein Markup – FAQ- und HowTo-Rich-Results werden bewusst nicht angeboten.
 
 ### Sitemap (`/admin/seo-sitemap`)
 
-- `/sitemap.xml` (`SeoSitemapService`, Bibliothek `melbahja/seo`): veröffentlichte Seiten, Beiträge (nur veröffentlicht und nicht in der Zukunft, `cms_post_publication_where()`) und von Plugins gemeldete Seiten (siehe [../../plugins/PLUGIN-DEVELOPMENT.md](../../plugins/PLUGIN-DEVELOPMENT.md)). Dazu optional eine Bild- und eine Google-News-Sitemap. Die Dateien werden als Bundle gespeichert und von `ThemeRouter::serveSitemap()` ausgeliefert; Suchmaschinen können nach dem Neuaufbau angepingt werden (`ping_google`, `ping_bing`).
+- `/sitemap.xml` (`SeoSitemapService`, Bibliothek `melbahja/seo`): veröffentlichte Seiten, Beiträge (nur veröffentlicht und nicht in der Zukunft, `cms_post_publication_where()`) und von Plugins gemeldete Seiten (siehe [../../plugins/PLUGIN-DEVELOPMENT.md](../../plugins/PLUGIN-DEVELOPMENT.md)). Plugins melden URLs über den Filter `cms_sitemap_entries` (Pfad oder absolute URL der eigenen Domain, optional `lastmod`, `changefreq`, `priority`; max. 10 000, fremde Hosts werden verworfen) – sie landen in `plugins.xml`, die der Index `sitemap.xml` verlinkt. Dazu optional eine Bild- und eine Google-News-Sitemap. Die Dateien werden als Bundle gespeichert und von `ThemeRouter::serveSitemap()` ausgeliefert; Suchmaschinen können nach dem Neuaufbau angepingt werden (`ping_google`, `ping_bing`).
 - Einstellungen: Priorität und Änderungsfrequenz für Seiten/Beiträge, Bild-Sitemap (`image_enabled`), Google-News-Sitemap (`news_enabled`, `news_publication_name`, `news_language`).
 - `regenerate_sitemap_bundle` erzeugt Sitemap und `robots.txt` neu; `save_robots` speichert den `robots.txt`-Inhalt.
 - **IndexNow:** Schlüssel `indexnow_key`; die Schlüsseldatei wird unter `/<key>.txt` ausgeliefert. `submit_indexing_urls` meldet einzelne URLs, `submit_recent_content_indexnow` die zuletzt geänderten Inhalte (Bing, Yandex u. a.).

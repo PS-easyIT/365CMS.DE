@@ -15,6 +15,7 @@ Erasure requests (`type = deletion` in `cms_privacy_requests`) are handled by `C
 2. **Prüfung (`process`):** Administrator übernimmt den Antrag (Status `processing`).
 3. **Frist:** Bis `execute_after` kann der Antrag noch abgelehnt oder geklärt werden. Die Übersicht warnt 7 Tage vor Fristablauf und markiert überfällige Anträge.
 4. **Ausführung (`execute`):** Erst nach Ablauf der Frist möglich („Die Löschfrist ist noch nicht abgelaufen. Früheste Ausführung ab …“). Dann:
+   - zuerst wird der Hook `dsgvo_delete_data` (`$userId`, `$email`) ausgelöst, damit Plugins ihre Daten entfernen,
    - Benutzerkonto wird endgültig gelöscht (`UserService::deleteUser(..., true)`), Metadaten per Fremdschlüssel,
    - Antrag erhält Status `completed` und `completed_at`,
    - Aktion wird im Audit-Log protokolliert.

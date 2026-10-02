@@ -29,6 +29,6 @@ KI-Einstellungen liegen in der Gruppe *KI-Dienste*: [AI-SERVICES.md](AI-SERVICES
 
 ### Wichtige Hinweise
 
-- **`config/app.php` wird beim Speichern der allgemeinen Einstellungen neu erzeugt.** Eigene LDAP-/JWT-/SMTP-/HTTPS-Konstanten in `CMS/config.php` definieren oder nach dem Speichern erneut setzen ([SYSTEM.md](SYSTEM.md#speichern-und-configappphp)).
+- **`config/app.php` wird beim Speichern der allgemeinen Einstellungen neu erzeugt.** Eigene LDAP-/JWT-/SMTP-/HTTPS-Konstanten vorher sichern und nach dem Speichern erneut setzen ([SYSTEM.md](SYSTEM.md#speichern-und-configappphp)).
 - Vor Updates, Restores und Site-URL-Migrationen immer ein Backup erstellen.
 - Geheimnisse (SMTP-Passwort, Azure-/Graph-Secrets, KI-API-Keys) werden über `SettingsService` AES-256-verschlüsselt in der Datenbank gespeichert und nie im Klartext angezeigt.

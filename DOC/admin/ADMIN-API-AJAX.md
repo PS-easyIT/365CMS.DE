@@ -18,7 +18,7 @@ Admin screens are classic server-rendered forms (Post/Redirect/Get). Asynchronou
 | `POST /api/v1/analytics/web-vitals` | gleiche Herkunft | Core-Web-Vitals-Messung (Größen- und Rate-Limit, Antwort 204) |
 | `GET /api/v1/admin/posts` | Admin + `edit_all_posts` | Beitragsliste: `page`, `limit` (5–100), `status` (`all`, `published`, `scheduled`, `draft`, `private`, `trash`), `sort` |
 | `GET /api/v1/admin/pages` | Admin + `manage_pages` | Seitenliste: `page`, `limit`, `status`, `sort` |
-| `GET /api/v1/admin/users` | Admin | Benutzerliste |
+| `GET /api/v1/admin/users` | Admin + `manage_users` | Benutzerliste: `page`, `limit`, `search`, `role`, `sort` |
 | `GET /api/v1/admin/mail/logs` | Admin + `manage_settings` | Mail-Log: `page`, `limit` (10–200), `search`, `status` |
 | `POST /api/v1/admin/mail/test` | Admin + CSRF `admin_mail_api` | Testmail |
 | `POST /api/v1/admin/graph/test` | Admin + CSRF `admin_mail_api` | Microsoft-Graph-Verbindungstest |

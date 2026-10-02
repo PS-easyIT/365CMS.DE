@@ -1,106 +1,123 @@
-# 365CMS – Projektdokumentation | Abschnitt: Architecture
+# 365CMS – Projektdokumentation | Abschnitt: Core – Architektur
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Schema:** v22 | **PHP:** ≥ 8.4
 
-# Core architecture
+## English (summary)
 
-This document reflects the current code in `CMS/core` and the route modules in `CMS/core/Routing`. It does not describe a hypothetical architecture; every statement is grounded in the active implementation.
-
-## Runtime bootstrap
-
-The bootstrap lifecycle is started in `CMS/core/Bootstrap.php`. The class is a singleton and resolves the effective runtime mode in `Bootstrap::detectMode()`. The mode is determined as follows:
-
-1. `PHP_SAPI === 'cli'` -> `cli`
-2. request path begins with `/api/` or equals `/api` -> `api`
-3. request path begins with `/admin/` or equals `/admin` -> `admin`
-4. otherwise -> `web`
-
-The constructor loads dependencies, validates bundled PHP platform requirements, initializes the core container, and sets `CMS_MODE` when available.
-
-## DI container and core services
-
-`CMS/core/Container.php` provides a small DI container with explicit binding, singleton resolution, and instance registration. The container keeps a binding map and a resolved cache, and exposes `bind()`, `singleton()`, `bindInstance()`, `make()`, `get()`, `has()`, `registered()`, `forget()`, and `flush()`.
-
-## Routing model
-
-`CMS/core/Router.php` is the dispatch hub. It resolves the request URI, registers the default route modules, and then calls `dispatch()`. The default registration logic is:
-
-| Request prefix | Route module |
-| --- | --- |
-| `/api` | `CMS\Routing\ApiRouter` |
-| `/admin` | `CMS\Routing\AdminRouter` |
-| `/member`, `/dashboard` | `CMS\Routing\MemberRouter` |
-| all other requests | `CMS\Routing\PublicRouter` and `CMS\Routing\ThemeRouter` |
-
-The `Router` class also applies request cache headers, optional redirects, and a CSRF guard for protected methods outside the API/admin/member request paths.
-
-## API layer
-
-The API route module is `CMS/core/Routing/ApiRouter.php`. It registers a concrete set of route handlers via `Router::addRoute()`. The active route set includes status, page lookup, analytics web-vitals capture, admin mail and graph checks, file upload, and media handling. The generic request logic is handled by `CMS/core/Api.php`, which validates rate limits, normalizes URL parameters, and delegates page/user endpoints to the relevant handlers.
-
-## Security and auth model
-
-`CMS/core/Security.php` is the current security layer. It builds a nonce-based CSP, sets security headers, and handles HTTPS/HSTS detection. It also provides token verification and no-store cache policy in admin/API mode.
-
-`CMS/core/Auth.php` is the current authentication model. It validates the current session, enforces session lifetime based on role, clears expired sessions without redirecting during constructor-time checks, and exposes capability checks such as `hasCapability()`.
-
-## Database layer
-
-`CMS/core/Database.php` is a PDO-based database abstraction layer. It establishes a MySQL/MariaDB connection, uses native prepared statements with `PDO::ATTR_EMULATE_PREPARES => false`, and binds integers explicitly for pagination-style SQL. Schema creation and repair are delegated to `SchemaManager` and `MigrationManager`.
-
-## Hooks and extension surface
-
-The extension API is implemented in `CMS/core/Hooks.php`. It exposes `addAction()`, `doAction()`, `hasAction()`, `addFilter()`, `applyFilters()`, `removeAction()`, and `removeFilter()`.
+365CMS is a framework-less PHP 8.4 application. Every web request enters through `CMS/index.php`, which loads `config/app.php`, configures the session cookie, includes `CMS/config.php` and the autoloader and starts `CMS\Bootstrap`. The bootstrap detects the runtime mode (`cli`, `api`, `admin`, `web`), validates bundled PHP requirements, connects to the database, runs pending migrations, sends security headers (CSP with nonce), starts the session, runs the application firewall, registers services in a small DI container, loads active plugins and – in web mode – the active theme, registers core cron hooks and finally fires `cms_init`. `Bootstrap::run()` lets plugins add routes (`register_routes`) and dispatches through `CMS\Router`, which loads exactly one route module group per request (API, admin, member or public+theme) and falls back to dynamic page/hub resolution and the theme's 404 page.
 
 ## Deutsch
 
-# Kernarchitektur
+### Schichten
 
-Dieses Dokument spiegelt den aktuellen Code in `CMS/core` und die Routemodule in `CMS/core/Routing` wider. Es beschreibt keine hypothetische Architektur; jede Aussage basiert auf der aktiven Implementierung.
+```text
+Browser / Cron / CLI
+        │
+        ▼
+CMS/index.php ──► CMS/config.php ──► config/app.php (Konstanten)
+        │                         └─► core/autoload.php + assets/autoload.php (Vendor)
+        ▼
+CMS\Bootstrap ─► Modus (cli | api | admin | web)
+        │       ├─ Database (PDO) ─► MigrationManager::run()
+        │       ├─ Security::init()  (Header, CSP-Nonce, Session)
+        │       ├─ Auth             (Session-Benutzer, Rollen, MFA)
+        │       ├─ SecurityRuntimeService::handleRequest()  (Firewall, Rate-Limit)
+        │       ├─ Container        (Services als Singletons)
+        │       ├─ PluginManager::loadPlugins()
+        │       ├─ ThemeManager     (Theme-Runtime nur im Modus web)
+        │       └─ Hooks: cms_init, cms_init_<modus>
+        ▼
+Bootstrap::run() ─► cms_before_route ─► register_routes ─► Router::dispatch() ─► cms_after_route
+        │
+        ▼
+Route-Module: ApiRouter | AdminRouter | MemberRouter | PublicRouter + ThemeRouter
+        │
+        ▼
+Admin-Module / Member-Controller / Theme-Templates ─► Services ─► Database
+```
 
-## Bootstrap der Laufzeit
+### Einstiegspunkte
 
-Der Startzyklus wird in `CMS/core/Bootstrap.php` initiiert. Die Klasse ist ein Singleton und bestimmt den wirksamen Laufzeitmodus in `Bootstrap::detectMode()`. Die Moduserkennung erfolgt wie folgt:
+| Datei | Zweck |
+|---|---|
+| `CMS/index.php` | Web-Einstieg für alle Routen (Rewrite auf `index.php`); HTTPS-Erkennung, Session-Cookie-Domain, Session-GC-Laufzeit aus `perf_session_timeout_*` |
+| `CMS/config.php` | prüft PHP ≥ 8.4 (`CMS_MIN_PHP_VERSION`), lädt `config/app.php` oder leitet zum Installer |
+| `CMS/config/app.php` | Konstanten: Datenbank, Schlüssel, `SITE_URL`, Pfade, Login-Limits, HTTPS/HSTS, LDAP, JWT, SMTP |
+| `CMS/install.php` + `CMS/install/` | Installer ([../INSTALLATION.md](../INSTALLATION.md)) |
+| `CMS/cron.php` | geplante Aufgaben (CLI oder Web-Cron mit Token) |
+| `CMS/orders.php` | öffentlicher Checkout der Aboverwaltung |
+| `CMS/update.php` | Datenbank-Updater: Web nur für Administratoren mit `manage_settings` + CSRF, CLI `php update.php [--status\|--dry-run]` |
 
-1. `PHP_SAPI === 'cli'` -> `cli`
-2. Request-Pfad beginnt mit `/api/` oder ist `/api` -> `api`
-3. Request-Pfad beginnt mit `/admin/` oder ist `/admin` -> `admin`
-4. ansonsten -> `web`
+### Laufzeitmodi (`Bootstrap::detectMode()`)
 
-Im Konstruktor werden Abhängigkeiten geladen, gebündelte PHP-Plattformanforderungen validiert, der Core-Container initialisiert und `CMS_MODE` gesetzt, sofern vorhanden.
+| Modus | Bedingung | Besonderheiten |
+|---|---|---|
+| `cli` | `PHP_SAPI === 'cli'` | keine Header/Session, kein Router; Plugins werden trotzdem geladen (Cron-Hooks) |
+| `api` | Pfad `/api` oder `/api/…` | `Cache-Control: no-store`, nur `ApiRouter` |
+| `admin` | Pfad `/admin` oder `/admin/…` | `no-store`, `X-Robots-Tag: noindex`, nur `AdminRouter`; Theme-Runtime nicht gebootet |
+| `web` | alles andere | Theme wird geladen, Frontend-Assets (Cookie-Consent, Analytics, PhotoSwipe, Hub-Styles) über `head`/`body_end` |
 
-## Dependency Injection und Core-Services
+Der Modus steht als `CMS_MODE` zur Verfügung; zusätzlich wird `cms_init_<modus>` ausgelöst.
 
-`CMS/core/Container.php` stellt einen kleinen DI-Container mit expliziter Bindung, Singleton-Auflösung und Instanzregistrierung bereit. Der Container verwaltet eine Binding-Map und einen Cache aufgelöster Instanzen und bietet `bind()`, `singleton()`, `bindInstance()`, `make()`, `get()`, `has()`, `registered()`, `forget()` und `flush()`.
+### Bootstrap im Detail (`Bootstrap::initializeCore()`)
 
-## Routing-Modell
+1. **Konstanten** sicherstellen (`ensureConstants()`), Plattformprüfung der gebündelten Bibliotheken (`validateBundledPhpPlatform()` liest Mindest-PHP-Versionen aus den Vendor-Manifests).
+2. **Datenbank** (`Database::instance()`), danach `MigrationManager::run()` – läuft nur, bis `SCHEMA_VERSION = v22` erreicht ist (Flag-Datei `cache/db_schema_v22.flag`).
+3. **Security** (`Security::init()`): CSP-Nonce, Sicherheitsheader, Session-Start.
+4. **Auth** (`Auth::instance()`): Session-Benutzer laden, Rollen-Lebensdauer prüfen.
+5. **Firewall** (`SecurityRuntimeService::handleRequest()`), nicht im CLI.
+6. **Container**: Logger, Cache und Services (siehe [SERVICES.md](SERVICES.md)) als Singletons, jeweils unter Klassenname und Kurzname (`'mail'`, `'seo'`, `'search'` …).
+7. **Router** (außer CLI), **PluginManager::loadPlugins()** (`plugin_loaded`, `plugins_loaded`), **ThemeManager** (Theme-Runtime nur `web`).
+8. **Frontend-Hooks** (nur `web`): Cookie-Consent, Analytics (consent-gesteuert, CSP-Quellen über `cms_csp_prepare`), Core-Web-Vitals-Skript, PhotoSwipe für Galerien/Hub-Seiten, Hub-Styles.
+9. **Cron-Hooks**: `cms_cron_mail_queue`, `cms_cron_hourly` (Broken-Links, SEO-Trend, Monitoring-Trend, Sicherheitsalarme), `cms_cron_daily` (Sitemap).
+10. **OPcache-Warmup** nach Deployments als Shutdown-Funktion.
+11. `cms_init`, `cms_init_<modus>`.
 
-`CMS/core/Router.php` ist das Dispatch-Frontend. Es löst die Request-URI auf, registriert die Standard-Routemodule und ruft anschließend `dispatch()` auf. Die Default-Registrierung ist:
+### Routing (`CMS\Router`)
 
-| Request-Präfix | Routemodul |
-| --- | --- |
-| `/api` | `CMS\Routing\ApiRouter` |
-| `/admin` | `CMS\Routing\AdminRouter` |
-| `/member`, `/dashboard` | `CMS\Routing\MemberRouter` |
-| alle übrigen Anfragen | `CMS\Routing\PublicRouter` und `CMS\Routing\ThemeRouter` |
+**Registrierung:** Pro Request wird nur die passende Modulgruppe geladen:
 
-Die `Router`-Klasse setzt außerdem Request-Cache-Header, optionale Redirects und einen CSRF-Schutz für geschützte Methoden außerhalb der API-/Admin-/Member-Pfade.
+| Pfadpräfix | Module |
+|---|---|
+| `/api` | `Routing\ApiRouter` |
+| `/admin` | `Routing\AdminRouter` |
+| `/member`, `/dashboard` | `Routing\MemberRouter` |
+| sonst | `Routing\PublicRouter` + `Routing\ThemeRouter` |
 
-## API-Schicht
+Plugins ergänzen Routen im Hook `register_routes` (`$router->addRoute('GET', '/mein-pfad', $callback)`; Platzhalter `:name`).
 
-Das API-Routemodul ist `CMS/core/Routing/ApiRouter.php`. Es registriert einen konkreten Satz an Route-Handlern über `Router::addRoute()`. Das aktive Route-Set umfasst Status, Seitenabfragen, Web-Vitals-Erfassung, Admin-Mail-/Graph-Prüfung, Datei-Upload und Media-Handling. Die generische Request-Logik wird über `CMS/core/Api.php` ausgeführt, das Rate-Limits prüft, URL-Parameter normalisiert und Seiten-/Benutzer-Endpunkte an die jeweiligen Handler delegiert.
+**Dispatch-Ablauf (`Router::dispatch()`):**
 
-## Sicherheits- und Authentifizierungsmodell
+1. Sprachkontext auflösen (`ContentLocalizationService::resolveRequestContext()`): `/en/…` → `locale = en`, `base_uri` ohne Präfix.
+2. Cache-Header setzen (öffentlich/privat, siehe [../admin/performance/PERFORMANCE.md](../admin/performance/PERFORMANCE.md)).
+3. Hub-Alias-Domains umleiten.
+4. Weiterleitungsregeln prüfen (`RedirectService::findRedirect()`).
+5. **Globaler CSRF-Schutz** für `POST/PUT/PATCH/DELETE` außerhalb von `/api`, `/admin`, `/member`: Token `csrf_token` der Aktion `form_guard` erforderlich (Ausnahmen: Login/Registrierung/Passwort, Logout, Kontakt, Kommentare, MFA, Theme-Favoriten mit eigenem Token). Fehlender Token → 404, ungültiger → 403.
+6. Exakter Routentreffer → Muster-Treffer (`/pfad/:param`).
+7. Landing-Alias, dann **dynamische Auflösung**: zuerst Hub-Site per Slug, dann Seite per Slug (DE/EN) – beide werden über das Theme-Template `page` gerendert. Beiträge laufen über die vom `ThemeRouter` registrierte Permalink-Route (`PermalinkService`).
+8. Sonst `render404()` (404-Protokoll, Theme-Template `404.php`).
 
-`CMS/core/Security.php` ist die aktuelle Sicherheits-Schicht. Sie baut eine nonce-basierte CSP, setzt Sicherheitsheader und verarbeitet HTTPS/HSTS-Erkennung. Zudem stellt sie Token-Validierung und `no-store`-Cache-Politik im Admin-/API-Modus bereit.
+`HEAD` wird wie `GET` behandelt. `Router::redirect()` erlaubt nur interne bzw. zulässige Ziele.
 
-`CMS/core/Auth.php` ist das aktuelle Authentifizierungsmodell. Es validiert die aktuelle Session, erzwingt Session-Lebenszeiten je nach Rolle, räumt abgelaufene Sessions ohne Redirect bei Konstruktor-Prüfungen auf und stellt Capability-Prüfungen wie `hasCapability()` bereit.
+### Inhalte rendern
 
-## Datenbankschicht
+`Router::prepareRenderableContent()` wandelt gespeicherte Inhalte in HTML: Editor.js-JSON → `EditorJsRenderer`, Shortcodes (`[site-table]`, `[hub-site]`), Inhaltsverzeichnis (`TableOfContents`), Bild-Lazy-Loading. Themes erhalten fertiges HTML und Metadaten.
 
-`CMS/core/Database.php` ist eine PDO-basierte Datenbank-Abstraktion. Sie baut eine MySQL/MariaDB-Verbindung auf, verwendet native Prepared Statements mit `PDO::ATTR_EMULATE_PREPARES => false` und bindet Integer explizit für paginationsartige SQL-Anweisungen. Schema-Erstellung und Reparatur werden an `SchemaManager` und `MigrationManager` delegiert.
+### Mehrsprachigkeit
 
-## Hooks und Erweiterungsoberfläche
+Zwei Inhaltssprachen (DE als Standard, EN unter `/en/…`): Inhalte führen `*_en`-Spalten, Slugs je Sprache, Archiv-Basen je Sprache. `ContentLocalizationService::buildLocalizedPath()` erzeugt Links, Hreflang-Gruppen verbinden Übersetzungen ([../admin/seo/SEO.md](../admin/seo/SEO.md)). Die Admin-Oberfläche ist deutsch; Übersetzungsdateien liegen unter `CMS/lang/`.
 
-Die Erweiterungs-API ist in `CMS/core/Hooks.php` implementiert. Sie bietet `addAction()`, `doAction()`, `hasAction()`, `addFilter()`, `applyFilters()`, `removeAction()` und `removeFilter()`.
+### Erweiterbarkeit
 
+- **Hooks** (Actions/Filter): [HOOKS-REFERENCE.md](HOOKS-REFERENCE.md)
+- **Plugins**: `CMS/plugins/<slug>/<slug>.php` ([../plugins/PLUGIN-DEVELOPMENT.md](../plugins/PLUGIN-DEVELOPMENT.md))
+- **Themes**: `CMS/themes/<slug>/` ([../theme/THEME-DEVELOPMENT.md](../theme/THEME-DEVELOPMENT.md))
+- **WordPress-Kompatibilität**: Hilfsfunktionen in `CMS/includes/functions/` (`add_menu_page`, `current_user_can`, `get_option`, `WP_Error` …) erleichtern die Portierung.
+
+### Fehlertoleranz
+
+Fehler in optionalen Teilen (Plugin-Callback, Admin-View, Firewall, Hub-Auflösung) werden abgefangen und protokolliert; die Seite bleibt erreichbar. Mit `CMS_DEBUG = true` liefert `CMS\Debug` Checkpoints (`bootstrap.*`, `router.*`) und Details.
+
+### Verwandte Dokumente
+
+[CORE-CLASSES.md](CORE-CLASSES.md) · [SERVICES.md](SERVICES.md) · [SECURITY.md](SECURITY.md) · [DATABASE-SCHEMA.md](DATABASE-SCHEMA.md) · [STRUCTURE.md](STRUCTURE.md)

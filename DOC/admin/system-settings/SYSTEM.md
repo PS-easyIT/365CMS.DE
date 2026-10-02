@@ -7,7 +7,7 @@
 
 `/admin/settings` (`CMS/admin/settings.php` → `CMS/admin/modules/settings/SettingsModule.php` → `CMS/admin/views/settings/general.php`) holds the site-wide configuration. Tab `general` covers website identity, localisation, mail hints, member/registration hints, marketplace and update endpoints, maintenance mode and advanced options; tab `content` is described in [../pages-posts/SETTINGS.md](../pages-posts/SETTINGS.md). Actions: `save`, `run_site_url_migration`, `repair_imported_slugs`.
 
-**Important:** `save` writes most values to `cms_settings` **and regenerates `CMS/config/app.php`** (site name, URL, admin e-mail, DB credentials and keys are carried over). Custom constants such as `LDAP_*`, `JWT_*`, `SMTP_*` or `CMS_HTTPS_REDIRECT_STRATEGY` that were edited directly in `config/app.php` are reset to their defaults. Define such values in `CMS/config.php` *before* `config/app.php` is loaded, or re-apply them after saving.
+**Important:** `save` writes most values to `cms_settings` **and regenerates `CMS/config/app.php`** (site name, URL, admin e-mail, DB credentials and keys are carried over). Custom constants such as `LDAP_*`, `JWT_*`, `SMTP_*` or `CMS_HTTPS_REDIRECT_STRATEGY` that were edited directly in `config/app.php` are reset to their defaults. Back up `config/app.php` before saving and re-apply such values afterwards (`CMS/index.php` loads `config/app.php` first, so they cannot be moved to `config.php`).
 
 ## Deutsch
 
@@ -37,7 +37,7 @@ Die angezeigte „aktive Runtime-URL“ ist der tatsächlich verwendete Wert aus
 2. speichert Optionen in `cms_settings` (`SETTINGS_KEYS`),
 3. erzeugt `CMS/config/app.php` aus der Vorlage neu, übernimmt dabei DB-Zugang, `AUTH_KEY`/`SECURE_AUTH_KEY`/`NONCE_KEY`, `CMS_DEBUG`, `SITE_NAME`, `SITE_URL`, `ADMIN_EMAIL` und prüft die Datei vor dem Schreiben auf gültige PHP-Syntax.
 
-> **Achtung:** Die Vorlage setzt `LDAP_*`, `JWT_*`, `SMTP_*`, HTTPS-/HSTS-Konstanten und die Zeitzone (`Europe/Berlin`) auf Standardwerte zurück. Eigene Werte daher in `CMS/config.php` vor dem Einbinden von `config/app.php` definieren (die Vorlage nutzt `defined(...) || define(...)`) oder nach dem Speichern erneut eintragen. Mail-Zugangsdaten gehören ohnehin in `/admin/mail-settings` (verschlüsselt in der Datenbank).
+> **Achtung:** Die Vorlage setzt `LDAP_*`, `JWT_*`, `SMTP_*`, HTTPS-/HSTS-Konstanten (`CMS_HTTPS_REDIRECT_STRATEGY`, `CMS_HSTS_*`) und die Zeitzone (`Europe/Berlin`) auf Standardwerte zurück. Vor dem Speichern `config/app.php` sichern und eigene Werte danach erneut eintragen. Ein Auslagern nach `CMS/config.php` hilft nicht, weil `CMS/index.php` `config/app.php` zuerst lädt. Mail-Zugangsdaten gehören ohnehin in `/admin/mail-settings` (verschlüsselt in der Datenbank).
 
 ### Weitere Systemseiten
 

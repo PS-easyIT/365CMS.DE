@@ -1,51 +1,104 @@
-# 365CMS – Projektdokumentation | Abschnitt: Security
+# 365CMS – Projektdokumentation | Abschnitt: Core – Sicherheitsmodell
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-### Security implementation in the current core
-The active security layer is in [CMS/core/Security.php](../../CMS/core/Security.php). It provides per-request hardening, nonce generation, token verification, and request-rate controls.
+## English (summary)
 
-### Confirmed controls
-| Control | Evidence | Notes |
-| --- | --- | --- |
-| CSP nonce | `Security::getNonce()`, `Security::nonceAttr()` | A nonce is generated once per request and reused in templates |
-| Basic headers | `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-*` | Set via `setSecurityHeaders()` |
-| API/admin caching | `Cache-Control: no-store, max-age=0`, `Pragma: no-cache` | Applied when `CMS_MODE` is `admin` or `api` |
-| HSTS | `getHstsValue()` and `Strict-Transport-Security` | Enabled only when HTTPS is detected and not disabled in debug mode |
-| Token validation | `verifyToken()` / `verifyPersistentToken()` | Used for form and API checks |
-| DB rate limiting | `checkDbRateLimit()` and `recordDbRateLimitAttempt()` | Used for login and API abuse prevention |
-| Sanitization | `sanitizeDiagnosticText()` | Removes sensitive tokens from diagnostic output |
-
-### Auth and session security
-[CMS/core/Auth.php](../../CMS/core/Auth.php) enforces session lifetime checks by role, clears expired sessions, and reloads the current user object. The code explicitly avoids redirect-based invalidation in the constructor path and instead invalidates the session in place.
-
-### Route-level validation
-The runtime also validates request security in route handlers, notably in [CMS/core/Routing/ApiRouter.php](../../CMS/core/Routing/ApiRouter.php):
-- `captureWebVitals()` rejects requests that are not same-origin.
-- `testAdminMail()` and `testAdminGraph()` require admin access and verify a CSRF token.
-- `Router::dispatch()` includes CSRF checks for protected methods outside specific allowlists.
+Security is layered: transport (HTTPS redirect strategy, HSTS), response headers and a nonce-based CSP with Trusted Types (`CMS\Security`), hardened sessions (HttpOnly, Secure, SameSite=Strict, strict mode, ID regeneration, role-based lifetimes, device binding), authentication with rate limiting, MFA (TOTP, backup codes), passkeys and LDAP (`CMS\Auth`, `CMS\Auth\AuthManager`), per-action one-time CSRF tokens (1 h TTL, 20 per action), a global CSRF guard for public POST requests, an application firewall (`SecurityRuntimeService`), anti-spam, prepared statements, HTML sanitising (HTMLPurifier, Editor.js sanitizer), upload validation, encrypted secrets (`SettingsService`, AES-256-CBC) and audit logging.
 
 ## Deutsch
 
-### Sicherheitsimplementierung im aktuellen Core
-Die aktive Sicherheitslogik liegt in [CMS/core/Security.php](../../CMS/core/Security.php). Sie stellt per-Request-Hardening, CSP-Nonces, Token-Validierung und Request-Rate-Limits bereit.
+### 1. Transport
 
-### Bestätigte Controls
-| Control | Nachweis | Hinweise |
-| --- | --- | --- |
-| CSP-Nonce | `Security::getNonce()`, `Security::nonceAttr()` | Ein Nonce wird pro Request erzeugt und in Templates wiederverwendet |
-| Basis-Header | `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-*` | Werden über `setSecurityHeaders()` gesetzt |
-| API-/Admin-Cache | `Cache-Control: no-store, max-age=0`, `Pragma: no-cache` | Aktiv bei `CMS_MODE = admin` oder `api` |
-| HSTS | `getHstsValue()` und `Strict-Transport-Security` | Nur bei HTTPS und nicht im deaktivierten Debug-Fall |
-| Token-Validierung | `verifyToken()` / `verifyPersistentToken()` | Für Form- und API-Prüfungen |
-| DB-Rate-Limit | `checkDbRateLimit()` und `recordDbRateLimitAttempt()` | Gegen Login- und API-Missbrauch |
-| Sanitization | `sanitizeDiagnosticText()` | Entfernt sensible Token aus Diagnose-Ausgaben |
+| Konstante (`config/app.php`) | Standard | Wirkung |
+|---|---|---|
+| `CMS_HTTPS_REDIRECT_STRATEGY` | `upstream` | wer HTTP→HTTPS umleitet: vorgelagerter Proxy/Webserver (`upstream`), Apache-`.htaccess` oder Core-PHP; `disabled` möglich |
+| `CMS_HSTS_MODE` | `https-only` | HSTS nur bei HTTPS-Anfragen |
+| `CMS_HSTS_MAX_AGE` | 31536000 | Gültigkeit in Sekunden |
 
-### Authentifizierung und Sitzungssicherheit
-[CMS/core/Auth.php](../../CMS/core/Auth.php) erzwingt Sitzungs-Lifetime-Prüfungen je Rolle, räumt abgelaufene Sessions auf und lädt das aktuelle Benutzerobjekt neu. Der Code vermeidet bewusst Redirect-basierte Invalidierung im Konstruktorpfad und invalidiert die Session direkt.
+HTTPS wird auch hinter Proxys erkannt (`X-Forwarded-Proto`, `X-Forwarded-SSL`, `Front-End-Https`, Port 443).
 
-### Validierung auf Route-Ebene
-Die Laufzeit validiert Sicherheit auch in Route-Handlern, vor allem in [CMS/core/Routing/ApiRouter.php](../../CMS/core/Routing/ApiRouter.php):
-- `captureWebVitals()` lehnt nicht-same-origin-Anfragen ab.
-- `testAdminMail()` und `testAdminGraph()` erfordern Admin-Zugriff und validieren ein CSRF-Token.
-- `Router::dispatch()` enthält CSRF-Prüfungen für geschützte Methoden außerhalb definierter Allowlists.
+### 2. Sicherheitsheader (`Security::setSecurityHeaders()`)
+
+`X-Content-Type-Options: nosniff`, `X-Frame-Options` (Standard `DENY`), `X-XSS-Protection: 0`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: geolocation=(), microphone=(), camera=()`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-site`, `Strict-Transport-Security` (bei HTTPS). Admin und API zusätzlich `Cache-Control: no-store`, `Pragma: no-cache`, `X-Robots-Tag: noindex, nofollow`.
+
+### 3. Content-Security-Policy
+
+Pro Request wird ein Nonce erzeugt (`Security::getNonce()`, im Template `Security::nonceAttr()`).
+
+```text
+default-src 'self';
+script-src 'self' 'nonce-…' [+ freigegebene Quellen];
+style-src 'self' 'nonce-…' https://fonts.googleapis.com;
+img-src 'self' data: blob: […]; font-src 'self' data: https://fonts.gstatic.com;
+connect-src 'self' […]; media-src 'self' data: blob:;
+object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self';
+upgrade-insecure-requests;
+trusted-types cms365 default sanitize-html dompurify; require-trusted-types-for 'script'
+```
+
+- Mit `CMS_DEBUG = true` wird die Richtlinie nur als `Content-Security-Policy-Report-Only` gesendet.
+- Zusätzliche HTTPS-Hosts für `script-src`, `connect-src`, `img-src` (z. B. Matomo) gibt Code über `Security::allowCspSources()` frei – typischerweise im Hook `cms_csp_prepare`.
+- **Inline-Styles** in vollständigen HTML-Antworten schreibt `Http\InlineStyleRewriter` in nonce-geschützte Klassen um (`style-src-attr`).
+- Konsequenz für Entwickler: keine Inline-Skripte, keine `on*=`-Attribute, kein `eval`; JavaScript als Datei, DOM-Zuweisungen über Trusted-Types-Policies.
+
+### 4. Sessions
+
+- `session.cookie_httponly = 1`, `cookie_secure` bei HTTPS, `cookie_samesite = Strict`, `use_only_cookies`, `use_strict_mode`; neue Session-ID beim ersten Start und beim Login.
+- Laufzeiten je Rolle: Admin 8 h (`perf_session_timeout_admin`), Mitglied 30 Tage (`perf_session_timeout_member`); abgelaufene Sessions werden beim Laden verworfen.
+- Session-Bindung an ein HMAC-signiertes Geräte-Cookie (`cms_device`, 2 h, enthält Benutzer-ID, Zeitstempel und Hash der Session-ID) erschwert Session-Diebstahl.
+- Cookie-Domain wird bei Alias-/Hub-Domains bewusst host-only gesetzt (`CMS/index.php`).
+
+### 5. Authentifizierung
+
+| Baustein | Umsetzung |
+|---|---|
+| Passwort-Hash | `password_hash(…, PASSWORD_BCRYPT, cost 12)` |
+| Passwortrichtlinie | ≥ 12 Zeichen, Groß-/Kleinbuchstabe, Ziffer, Sonderzeichen (`Auth::getPasswordPolicyDefinition()`) |
+| Login-Sperre | `MAX_LOGIN_ATTEMPTS` (5) in `LOGIN_TIMEOUT` (300 s) je IP über `Security::checkDbRateLimit()` |
+| Generische Fehlermeldung | „Ungültige Anmeldedaten.“ – kein Hinweis, ob Benutzer existiert |
+| Kontostatus | nur `active` darf sich anmelden |
+| MFA | TOTP (`Totp`, `TotpAdapter`) + Backup-Codes; Login liefert `MFA_REQUIRED` → `/mfa-challenge` |
+| Passkeys | WebAuthn (`WebAuthnAdapter`, `cms_passkey_credentials`) |
+| LDAP | `LdapAuthProvider` (LdapRecord) |
+| Passwort-Reset | Token in `cms_password_resets`, einmalig, Ablauf 60 min, Rate-Limits, konstante Antwortzeit |
+| Abmeldung | nur mit CSRF-Token `logout` |
+| Audit | `loginSuccess`, `loginFailed`, Rollenwechsel, Sperren |
+
+Rollen- und Rechtemodell: [../admin/users-groups/RBAC.md](../admin/users-groups/RBAC.md).
+
+### 6. CSRF
+
+- `Security::generateToken($aktion)` erzeugt 64 Hex-Zeichen; je Aktion werden bis zu **20** Tokens für **1 Stunde** in der Session gehalten (mehrere Tabs möglich).
+- `verifyToken()` prüft zeitkonstant (`hash_equals`) und **entwertet** das Token (Einmalverwendung).
+- `verifyPersistentToken()` prüft ohne Entwertung (Editor-Uploads `editorjs_media`, KI-Endpunkte, Favoriten).
+- Jede Admin-Seite hat eine eigene Aktion (z. B. `admin_pages`); öffentliche Formulare nutzen `form_guard` (globale Prüfung im Router), Kommentare `comment_<postId>`, Checkout `checkout_process`.
+
+### 7. Anfrageschutz
+
+- **Firewall** mit IP-/CIDR-/User-Agent-/Länderregeln, Simulationsmodus und Rate-Limit ([../admin/security/FIREWALL.md](../admin/security/FIREWALL.md)).
+- **API-Rate-Limit** 60 Anfragen/60 s je IP (`CMS\Api`), Web-Vitals mit eigenem Limit und Same-Origin-Prüfung.
+- **Anti-Spam** für Formulare ([../admin/security/ANTISPAM.md](../admin/security/ANTISPAM.md)).
+- **Sichere Weiterleitungen**: `Router::redirect()` und Login-Redirects lassen nur interne/erlaubte Ziele zu.
+- **Ausgehende Requests** (`Http\Client`): Host-Allowlists für Updates/Marketplace/KI, HTTPS-Pflicht für Cloud-Ziele, keine privaten Netze außer explizit freigegebenen (Ollama).
+
+### 8. Daten
+
+- Datenbank nur über PDO mit nativen Prepared Statements (`ATTR_EMULATE_PREPARES = false`).
+- Rich-Text über `PurifierService` (HTMLPurifier), Editor.js über `EditorJsSanitizer`/`EditorJsHtmlSanitizer`, Frontend zusätzlich DOMPurify.
+- Ausgabe-Escaping über `htmlspecialchars` bzw. Helfer in `includes/functions/escaping.php`.
+- Uploads: Endungs-Allowlist, gefährliche Endungen gesperrt, MIME- und Bildinhaltsprüfung, Dateinamen-Bereinigung, `.htaccess` im Upload-Ordner ([../admin/media/MEDIA.md](../admin/media/MEDIA.md)).
+- Geheimnisse in der Datenbank: `SettingsService` verschlüsselt mit AES-256-CBC (Präfix `enc:`). Der Schlüssel wird aus `AUTH_KEY` und `SECURE_AUTH_KEY` abgeleitet – werden diese Konstanten geändert, sind gespeicherte Secrets (SMTP, Azure, Graph, KI-Provider) nicht mehr lesbar und müssen neu eingegeben werden.
+- ZIP-Verarbeitung (Updates, Marketplace, Backups): Grenzen für Einträge/Größe, Pfadprüfung, SHA-256-Pflicht.
+
+### 9. Protokollierung
+
+`AuditLogger` (Tabelle `cms_audit_log`), `Logger` (Dateien je Kanal), `cms_security_log` (Firewall/Anti-Spam), `SecurityAlertService` (E-Mail-Alarme). Diagnoseausgaben werden bereinigt (`Bearer`-Tokens, Passwörter → `***`).
+
+### 10. Prüfen
+
+Sicherheits-Audit unter `/admin/security-audit` ([../admin/security/SECURITY-AUDIT.md](../admin/security/SECURITY-AUDIT.md)), Checkliste [../admin/PRUEF-CHECKLISTE.md](../admin/PRUEF-CHECKLISTE.md).
+
+### Verwandte Dokumente
+
+[ARCHITECTURE.md](ARCHITECTURE.md) · [../admin/security/README.md](../admin/security/README.md) · [../member/MEMBER-SECURITY.md](../member/MEMBER-SECURITY.md)
