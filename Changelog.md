@@ -24,6 +24,14 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 
 ---
 
+### v3.4.10 — 02.10.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.10** | 🔴 fix | Purifier / Editor.js-Zitate | **`CMS/core/Services/PurifierService.php` erlaubt `cite` (inkl. `cite.class`) in den Profilen `default` und `hub`, `hub` erhält zusätzlich `blockquote.class`.** `renderQuote()` gibt die Quellenangabe als `<cite>` aus; nach dem Purifier blieb davon nur ein nackter Textknoten im `<blockquote>` übrig, das Styling über `.editorjs-quote cite` griff nicht mehr. `HTML_DEFINITION_REVISION` wurde angehoben, damit der Serializer-Cache neu aufgebaut wird. |
+| **3.4.10** | 🔴 fix | Editor.js / Media-Text | **`CMS/core/Bootstrap.php` und `CMS/assets/css/editorjs-content.css` heben die Selektoren für `.editorjs-media-text--valign-*` und `--image-width-*` auf `.editorjs-block.editorjs-media-text.editorjs-media-text--…` an.** Das kritische CSS setzt die Ausrichtungsvariable über `.editorjs-block.editorjs-media-text` (Spezifität 0,2,0); die Valign-Klassen (0,1,0) verloren dagegen. Sobald der Purifier die Inline-Styles entfernt, war die vertikale Ausrichtung in jedem Theme kaputt. Neu: `--image-fit-*`-Klassen, das Bild trägt `editorjs-media-text__image`, Eckenradius und Seitenverhältnis (`14px`, `4/3`) kommen jetzt aus dem CSS, und die Kopfzeile nutzt `box-sizing: border-box`. |
+| **3.4.10** | 🟡 refactor | Editor.js / Renderer | **`CMS/core/Services/EditorJsRenderer.php` verlagert Inline-Styles, die keine CSS-Entsprechung hatten, in klassenbasiertes CSS in `editorjs-content.css`.** Betroffen sind Alert-Ausrichtung (`editorjs-alert--align-*`), Galerie-Bilder und -Beschriftungen, Embed-Rahmen (inline bleibt nur das Seitenverhältnis), Terminal, Code-Tabs (Umschaltung jetzt über `hidden` und `aria-pressed`), Mermaid, API-Endpoint, Changelog und Pro/Contra mit neuen BEM-Klassen. Die Spoiler-Hervorhebung nutzt nur noch `.tg-spoiler`; das bisherige Inline-`color:transparent` hatte das Aufdecken per `:hover` blockiert. Innere `<header>` in Terminal und Changelog sind jetzt `<div>`-Elemente, damit sie auch das `default`-Profil überstehen. |
+
 ### v3.4.09 — 02.10.2026
 
 | Version | Typ | Bereich | Beschreibung |
