@@ -1,8 +1,7 @@
-> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+# 365CMS – Projektdokumentation | Abschnitt: Plugins – Marketplace
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable | **Update:** 2026-10-02
 > **Kurzbeschreibung:** User and technical reference for the 365CMS plugin marketplace, registry sources, catalog validation, automatic installation, integrity checks, and manual-install fallbacks.
-
-# 365CMS Plugin Marketplace
+> **Quellen:** `CMS/admin/plugin-marketplace.php`, `CMS/admin/modules/plugins/PluginMarketplaceModule.php`, `CMS/admin/views/plugins/marketplace.php`, `CMS/core/Services/UpdateService.php`, `CMS/marketplace/plugins/index.json`
 
 ## English
 
@@ -35,7 +34,17 @@ The installed-plugin page is `/admin/plugins`. Its accepted actions are `activat
 
 #### Registry sources and cache
 
-`PluginMarketplaceModule` reads the configured `plugin_registry_url`; when it is empty, the default is `https://365cms.de/marketplace/plugins/index.json`. A local `index.json` one directory above the runtime `plugins` directory is supported as a local source. Registry data is cached in settings for 900 seconds and is limited to 1 MiB.
+`PluginMarketplaceModule` reads the configured `plugin_registry_url` (editable under **Settings → Marketplace**, `SettingsModule::MARKETPLACE_DEFAULTS`); when it is empty, the default is `https://365cms.de/marketplace/plugins/index.json`. The registry is JSON shaped as `{"plugins":[…]}` (a bare array is also accepted) and is limited to 1 MiB.
+
+Load order in `loadRegistry()`:
+
+1. **Fresh cache** – settings options `plugin_marketplace_registry_cache` / `plugin_marketplace_registry_cache_meta`, valid for 900 seconds (source type `cache`, status `info`).
+2. **Remote registry** – fetched via `HttpClient` with the host allowlist; a non-empty result is persisted to the cache (source type `remote`).
+3. **Stale cache** – if the remote fetch fails, the last cache is used regardless of age (status `warning`, including the remote error).
+4. **Local index** – `index.json` in the parent directory of `PLUGIN_PATH`, i.e. `CMS/index.json` in a default installation (symlinked roots are refused). This file is **not** shipped; the repository file `CMS/marketplace/plugins/index.json` is the *published* registry served at `365cms.de/marketplace/plugins/index.json` and is not read as the local fallback.
+5. Otherwise the source status is `none` with a warning and the catalog is empty.
+
+Per-entry manifests (`manifest` key) are loaded relative to the registry base, limited to 512 KiB and filtered through `MANIFEST_ALLOWED_KEYS`.
 
 Only these marketplace hosts are allowed by the current implementation:
 
@@ -106,7 +115,17 @@ Die Seite für installierte Plugins liegt unter `/admin/plugins`. Ihre Actions s
 
 #### Registry-Quellen und Cache
 
-`PluginMarketplaceModule` liest `plugin_registry_url`; bei leerem Wert gilt `https://365cms.de/marketplace/plugins/index.json`. Ein lokales `index.json` eine Ebene oberhalb des Runtime-Ordners `plugins` wird als lokale Quelle unterstützt. Registry-Daten werden 900 Sekunden in Settings gecacht und auf 1 MiB begrenzt.
+`PluginMarketplaceModule` liest `plugin_registry_url` (pflegbar unter **Einstellungen → Marketplace**, Defaults in `SettingsModule::MARKETPLACE_DEFAULTS`); bei leerem Wert gilt `https://365cms.de/marketplace/plugins/index.json`. Die Registry ist JSON im Format `{"plugins":[…]}` (ein reines Array wird ebenfalls akzeptiert) und auf 1 MiB begrenzt.
+
+Ladereihenfolge in `loadRegistry()`:
+
+1. **Frischer Cache** – Settings-Optionen `plugin_marketplace_registry_cache` / `plugin_marketplace_registry_cache_meta`, gültig 900 Sekunden (Quelle `cache`, Status `info`).
+2. **Remote-Registry** – Abruf über `HttpClient` mit Host-Allowlist; ein nicht leeres Ergebnis wird in den Cache geschrieben (Quelle `remote`).
+3. **Veralteter Cache** – schlägt der Remote-Abruf fehl, wird der letzte Cache unabhängig vom Alter genutzt (Status `warning`, inklusive Remote-Fehler).
+4. **Lokaler Index** – `index.json` im Elternverzeichnis von `PLUGIN_PATH`, also in einer Standardinstallation `CMS/index.json` (Symlink-Wurzeln werden abgelehnt). Diese Datei wird **nicht** mitgeliefert; `CMS/marketplace/plugins/index.json` im Repository ist die *veröffentlichte* Registry, die unter `365cms.de/marketplace/plugins/index.json` ausgeliefert wird, und wird nicht als lokaler Fallback gelesen.
+5. Sonst ist die Quelle `none` mit Warnung, der Katalog bleibt leer.
+
+Manifeste pro Eintrag (Schlüssel `manifest`) werden relativ zur Registry-Basis geladen, auf 512 KiB begrenzt und über `MANIFEST_ALLOWED_KEYS` gefiltert.
 
 Die aktuelle Implementierung erlaubt nur diese Marketplace-Hosts:
 
@@ -145,3 +164,60 @@ Fehler liefern ein strukturiertes Ergebnis mit stabilem Fehlercode, Routenkontex
 #### Entwickler-Checkliste
 
 Registry- und Manifestfelder bleiben innerhalb der aktuellen Allowlists, SHA-256 und Paketgröße werden passend veröffentlicht, Download-Hosts verwenden HTTPS und die Allowlist, die Paketwurzel enthält genau ein sicheres Plugin und aktuelle CMS-/PHP-Anforderungen. Zu testen sind ungültige Slugs, veraltete Katalogeinträge, fehlende Prüfsummen, nicht erlaubte Hosts, Nicht-ZIP-Dateien, Archive-Traversal, übergroße Archive, inkompatible Anforderungen, doppelte Installation und fehlgeschlagene Downloads.
+
+## Ergänzung (Stand 2026-10-02)
+
+### Registry-Eintrag – Beispiel
+
+```json
+{
+  "plugins": [
+    {
+      "slug": "hello-world",
+      "name": "Hello World",
+      "description": "Beispielplugin",
+      "version": "1.0.0",
+      "author": "Example GmbH",
+      "category": "Tools",
+      "requires_cms": "3.4.00",
+      "requires_php": "8.4",
+      "download_url": "https://github.com/example/hello-world/releases/download/v1.0.0/hello-world.zip",
+      "sha256": "<64 Hex-Zeichen>",
+      "package_size": 48213,
+      "is_paid": false,
+      "docs_url": "https://365cms.de/docs/hello-world"
+    }
+  ]
+}
+```
+
+- `sha256` oder `checksum_sha256` muss exakt 64 Hex-Zeichen enthalten, sonst bleibt der Eintrag „manuell“.
+- `is_paid: true` + `purchase_url` → Hinweis „Kostenpflichtiges Plugin – bitte zuerst über den Marketplace erwerben oder anfragen.“
+- Katalog-Strings werden auf 500 Zeichen gekürzt (`MAX_CATALOG_STRING_LENGTH`).
+
+### Fehlercodes von `installPlugin()`
+
+| Code | Bedeutung |
+|---|---|
+| `plugin_marketplace_invalid_slug` | Slug nach Normalisierung leer/ungültig |
+| `plugin_marketplace_missing_catalog_entry` | Slug nicht im aktuellen Katalog |
+| `plugin_marketplace_already_installed` / `plugin_marketplace_target_exists` | Plugin-Ordner existiert bereits |
+| `plugin_marketplace_manual_install_required` | Prüfsumme, Kompatibilität, Preis oder Download-URL verhindern Auto-Install |
+| `plugin_marketplace_package_too_large` | `package_size` > 100 MiB |
+| `plugin_marketplace_disallowed_download_host` | Host nicht in `ALLOWED_MARKETPLACE_HOSTS` |
+| `plugin_marketplace_disallowed_archive_extension` | keine `.zip`-Endung |
+| `plugin_marketplace_plugins_dir_missing` / `plugin_marketplace_invalid_target_dir` | Zielverzeichnis fehlt bzw. liegt außerhalb von `PLUGIN_PATH` |
+| `plugin_marketplace_install_failed` | `UpdateService::downloadAndInstallUpdate()` meldet Fehler (Download, Hash, Archiv) |
+
+Bei Erfolg lautet die Meldung „Plugin "<slug>" installiert. Aktiviere es unter Plugin-Verwaltung.“ inklusive Zielpfad und „SHA-256 verifiziert: ja/nein“.
+
+### Hinweise
+
+- Der mitgelieferte Katalog `CMS/marketplace/plugins/index.json` listet derzeit nur `cms-importer` mit veralteten Anforderungen (`requires_cms` 0.26.0, `requires_php` 8.1) und `install_supported: false` – siehe [core/STATUS.md](../core/STATUS.md).
+- Plugin-Updates bereits installierter Plugins laufen über `/admin/updates` (`UpdateService`, ebenfalls über `plugin_registry_url`), nicht über den Marketplace.
+
+## Verwandte Dokumente
+
+- [GUIDE.md](GUIDE.md) · [PLUGIN-DEVELOPMENT.md](PLUGIN-DEVELOPMENT.md)
+- [admin/plugins/MARKETPLACE.md](../admin/plugins/MARKETPLACE.md) · [admin/system-settings/UPDATES.md](../admin/system-settings/UPDATES.md)
+- [workflow/MARKETPLACE-WORKFLOW.md](../workflow/MARKETPLACE-WORKFLOW.md)

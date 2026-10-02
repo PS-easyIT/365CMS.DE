@@ -1,8 +1,6 @@
-> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+# 365CMS – Projektdokumentation | Abschnitt: Plugins – Quick Start
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable | **Update:** 2026-10-02
 > **Kurzbeschreibung:** Beginner-friendly and technical quick start for creating, loading, activating, and maintaining a 365CMS plugin in the current runtime.
-
-# 365CMS Plugin Development – Quick Start
 
 ## English
 
@@ -325,3 +323,27 @@ Verwenden Sie den dynamischen Datenbankpräfix nur für vertrauenswürdige Tabel
 #### Prüfung vor dem Release
 
 Prüfen Sie die PHP-Syntax jeder geänderten PHP-Datei, aktivieren Sie das Plugin in einer Entwicklungsumgebung, testen Sie Admin- und Member-Pfade, prüfen Sie CSRF-Ablehnungen und Capability-Fehler, kontrollieren Sie Ladefehler in den Logs und legen Sie die Plugin-Dokumentation unter `DOC/<Bereich>/` ab. Core-Dateien werden nicht geändert, damit ein Plugin funktioniert.
+
+## Ergänzung (Stand 2026-10-02)
+
+### Checkliste „Plugin in 10 Minuten“
+
+1. Ordner `CMS/plugins/<slug>/` und Bootstrap `CMS/plugins/<slug>/<slug>.php` anlegen (Dateiname = Ordnername; sonst wird das Plugin beim Laden entfernt).
+2. Header mit `Plugin Name`, `Version`, `Description`, `Author`, optional `Requires CMS` / `Requires PHP` ergänzen.
+3. Direktaufruf-Schutz `if (!defined('ABSPATH')) { exit; }` an den Anfang setzen.
+4. Hooks registrieren (`add_action`, `add_filter`, `CMS\Hooks::addAction`) – keine Ausgabe beim Laden.
+5. Optional Lifecycle-Callbacks `<slug_mit_unterstrichen>_activate()`, `_deactivate()`, `_uninstall()` definieren (z. B. `hello_world_activate`).
+6. Unter `/admin/plugins` aktivieren; vorher prüft der Sicherheits-Scan den Code auf `eval`, `exec`, `shell_exec`, `system`, `passthru`, `popen`, `proc_open`, `pcntl_exec`.
+7. Fehler beim Laden (fehlende Datei, Exception) werden geloggt, auditiert und das Plugin aus der aktiven Liste entfernt – im Audit-Log unter `/admin/cms-logs` nachsehen.
+
+### Was der Quick Start nicht abdeckt
+
+- Admin-Menüs, eigene Routen, Member-Dashboard-Widgets, Abo-Gating und DSGVO-Hooks: siehe [PLUGIN-DEVELOPMENT.md](PLUGIN-DEVELOPMENT.md).
+- Verteilung über den Marketplace (Registry-Eintrag, SHA-256, erlaubte Hosts): siehe [PLUGIN-MARKETPLACE.md](PLUGIN-MARKETPLACE.md).
+
+## Verwandte Dokumente
+
+- [PLUGIN-DEVELOPMENT.md](PLUGIN-DEVELOPMENT.md)
+- [PLUGIN-MARKETPLACE.md](PLUGIN-MARKETPLACE.md)
+- [core/HOOKS-REFERENCE.md](../core/HOOKS-REFERENCE.md)
+- [admin/plugins/PLUGINS.md](../admin/plugins/PLUGINS.md)
