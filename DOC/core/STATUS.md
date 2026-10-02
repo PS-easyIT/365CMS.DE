@@ -67,6 +67,7 @@ Snapshot of the runtime state verified against the source code on 2026-10-02: ve
 | 9 | Health-Endpunkt `/health` ist konfigurierbar, der Core registriert aber keine Route | Prüfung schlägt ohne externen Endpunkt fehl | `SystemInfoModule` |
 | 10 | `JwtService` ist nicht in API-Routen verdrahtet | API nur mit Session nutzbar | `ApiRouter`, `Api` |
 | 11 | Beispiel-Manifeste unter `CMS/marketplace/` nennen veraltete Versionen (`cms-importer` 1.6.0, `cms-default` 1.0.3) | Anzeige im lokalen Marketplace-Spiegel veraltet | `CMS/marketplace/*/index.json` |
+| 12 | Member-Upload unter `/member/media` sendet ein Token der Aktion `member_media_action`, `/api/upload` prüft `media_action` | erster Upload je Seitenaufruf scheitert (403), Wiederholung gelingt mit dem zurückgegebenen Token | `CMS/member/media.php`, `FileUploadService` |
 
 ### Grundsatz dieser Dokumentation
 
