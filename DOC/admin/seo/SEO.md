@@ -1,17 +1,78 @@
-# 365CMS – Projektdokumentation | Abschnitt: Admin – SEO
+# 365CMS – Projektdokumentation | Abschnitt: Admin – SEO-Suite
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
+> **Routen:** `/admin/seo-dashboard`, `/admin/seo-audit`, `/admin/seo-meta`, `/admin/seo-social`, `/admin/seo-schema`, `/admin/seo-sitemap`, `/admin/seo-technical` | **Capability:** `manage_settings` | **CSRF-Aktion:** `admin_seo_suite` | **Core-Modul:** `seo`
 
-The SEO administration is implemented by `SeoDashboardModule.php` and `SeoSuiteModule.php` in `CMS/admin/modules/seo/`. Supporting entry points include `CMS/admin/seo-dashboard.php`, `CMS/admin/seo-audit.php`, `CMS/admin/seo-meta.php`, `CMS/admin/ai-seo-creator.php`, and `CMS/admin/ai-generate-seo-metadata.php`.
+## English (summary)
 
-The SEO views cover dashboard, metadata, schema, social defaults, technical settings, sitemap, audit, analytics, redirects, and not-found monitoring. Supported writes include metadata templates/defaults, sitemap and robots settings, analytics settings, audit items, and indexing submissions. AI-generated SEO values are review drafts and must not be assumed to be published automatically.
+All SEO screens share one controller, `CMS/admin/seo-page.php`, which maps each route to a section of `CMS/admin/modules/seo/SeoSuiteModule.php` and a view in `CMS/admin/views/seo/`. Frontend output is produced by `CMS\Services\SEOService` and the classes in `CMS/core/Services/SEO/` (`SeoHeadRenderer`, `SeoSchemaRenderer`, `SeoSitemapService`, `SeoAnalyticsRenderer`, `SeoMetaService`, `SeoMetaRepository`, `SeoSettingsStore`, `SeoAuditService`). Per-content SEO data lives in `cms_seo_meta`. Public endpoints: `/sitemap.xml`, `/robots.txt`, `/sitemap` (HTML), `/feed`, `/<indexnow-key>.txt`.
 
-The sitemap bundle consists of `sitemap.xml` (index), `pages.xml`, `posts.xml`, `plugins.xml`, `images.xml` and `news.xml`. `plugins.xml` contains public plugin pages that active plugins report through the `cms_sitemap_entries` filter; it is only written when at least one entry exists. The schema type selection offers only types the JSON-LD renderer outputs (posts: `Article`, `BlogPosting`, `NewsArticle`; pages: `WebPage`, `Article`, `Organization`); stored legacy values fall back to the content type default.
+Since 3.4.08 template variables in stored meta fields (`%title%`, `%%sitename%%`, …) are resolved by `SeoAnalysisService::resolveTemplateVariables()`.
 
 ## Deutsch
 
-Die SEO-Administration wird durch `SeoDashboardModule.php` und `SeoSuiteModule.php` unter `CMS/admin/modules/seo/` implementiert. Zugehörige Einstiege sind `CMS/admin/seo-dashboard.php`, `CMS/admin/seo-audit.php`, `CMS/admin/seo-meta.php`, `CMS/admin/ai-seo-creator.php` und `CMS/admin/ai-generate-seo-metadata.php`.
+### Seiten und Aktionen
 
-Die SEO-Views behandeln Dashboard, Metadaten, Schema, Social Defaults, technische Einstellungen, Sitemap, Audit, Analytics, Redirects und Not-Found-Monitoring. Unterstützte Schreibvorgänge umfassen Metadaten-Templates/-Defaults, Sitemap- und Robots-Einstellungen, Analytics-Einstellungen, Audit-Einträge und Indexierungsübermittlungen. AI-generierte SEO-Werte sind Review-Entwürfe und werden nicht automatisch als veröffentlicht vorausgesetzt.
+| Route | Bereich | Aktionen (zusätzlich überall `regenerate_sitemap_bundle`, `save_robots`) |
+|---|---|---|
+| `/admin/seo-dashboard` | Übersicht: SEO-Score, Problemzähler, Sitemap-Status | – |
+| `/admin/seo-audit` | Inhalte mit SEO-Problemen, Einzelkorrektur | `save_audit_item` |
+| `/admin/seo-meta` | Titel-Format, Trenner, Startseite, Standard-Robots, Lesbarkeitsgrenzen | `save_meta_defaults`, `save_templates` |
+| `/admin/seo-social` | Open Graph / Twitter-Standards, Profile | `save_social_defaults` |
+| `/admin/seo-schema` | Strukturierte Daten (JSON-LD) | `save_schema_defaults` |
+| `/admin/seo-sitemap` | Sitemap-Einstellungen, IndexNow, Google Indexing API | `save_sitemap_settings`, `submit_indexing_urls`, `submit_recent_content_indexnow`, `delete_google_url`, `save_google_access_token`, `clear_google_access_token` |
+| `/admin/seo-technical` | Technisches SEO, Broken-Link-Scan | `save_technical_settings`, `run_broken_link_scan`, `ignore_broken_link_target`, `unignore_broken_link_target` |
 
-Das Sitemap-Bundle besteht aus `sitemap.xml` (Index), `pages.xml`, `posts.xml`, `plugins.xml`, `images.xml` und `news.xml`. `plugins.xml` enthält öffentliche Plugin-Seiten, die aktive Plugins über den Filter `cms_sitemap_entries` melden, und wird nur geschrieben, wenn mindestens ein Eintrag vorliegt. Die Schema-Auswahl bietet nur Typen an, die der JSON-LD-Renderer ausgibt (Beiträge: `Article`, `BlogPosting`, `NewsArticle`; Seiten: `WebPage`, `Article`, `Organization`); gespeicherte Altwerte fallen auf den Standard des Inhaltstyps zurück.
+Analysen (`/admin/analytics`), Weiterleitungen und 404-Monitor: siehe [ANALYTICS.md](ANALYTICS.md) und [REDIRECTS.md](REDIRECTS.md).
+
+### Meta-Daten (`/admin/seo-meta`)
+
+| Feld | Hinweis |
+|---|---|
+| Titel-Format (`site_title_format`) | Standard `%%title%% %%sep%% %%sitename%%` |
+| Trenner (`title_separator`) | z. B. `\|`, `–`, `·` |
+| Startseiten-Titel / -Beschreibung | `homepage_title`, `homepage_description` |
+| Standard-Meta-Beschreibung | Fallback für Inhalte ohne eigene Beschreibung |
+| Standard-Robots | `default_robots_index`, `default_robots_follow` |
+| Selbstreferenzierender Canonical | `self_referencing_canonical` |
+| Lesbarkeitsanalyse | Mindestwörter (`analysis_min_words`), max. Wörter je Satz/Absatz |
+
+**Template-Variablen** (Yoast `%%var%%` und Rank Math `%var%`): `title`, `sitename`, `sep`, `page`, `excerpt`, `category`, `currentyear` u. a. Unbekannte Variablen werden samt verwaister Trenner entfernt. Gilt für Meta-Titel, Meta-Beschreibung sowie OG-/Twitter-Titel und -Beschreibung – wichtig nach WordPress-Importen.
+
+### Social (`/admin/seo-social`)
+
+Standard-OG-Typ (`default_og_type`), Standard-Twitter-Card (`default_twitter_card`), Standardbild (`default_image`), Facebook-Seite, Twitter-/X-Profil, Pinterest Rich Pins.
+
+### Strukturierte Daten (`/admin/seo-schema`)
+
+`SeoSchemaRenderer` gibt JSON-LD aus:
+
+- **WebSite/Organization:** Organisation (`organization_enabled`, Name `org_name`, Logo `org_logo`) und Markenname,
+- **BreadcrumbList:** wenn `breadcrumb_enabled` aktiv ist,
+- **Inhaltstyp je Seite/Beitrag:** wählbar im Editor – Beiträge `Article` (Standard), `BlogPosting`, `NewsArticle`; Seiten `WebPage` (Standard), `Article`, `Organization`. Gespeicherte Altwerte (`FAQPage`, `HowTo`, `Person`, `Event` …) fallen seit 3.4.04 auf den Standard des Inhaltstyps zurück (`SeoSchemaRenderer::effectiveTypeFor()`).
+
+Die Schalter für FAQ, HowTo, Person, Event und Review (`faq_enabled`, `howto_enabled`, `person_enabled`, `event_enabled`, `review_enabled`) werden gespeichert, erzeugen aber ohne passende Inhaltsstruktur kein Markup – FAQ- und HowTo-Rich-Results werden bewusst nicht angeboten.
+
+### Sitemap (`/admin/seo-sitemap`)
+
+- `/sitemap.xml` (`SeoSitemapService`, Bibliothek `melbahja/seo`): veröffentlichte Seiten, Beiträge (nur veröffentlicht und nicht in der Zukunft, `cms_post_publication_where()`) und von Plugins gemeldete Seiten (siehe [../../plugins/PLUGIN-DEVELOPMENT.md](../../plugins/PLUGIN-DEVELOPMENT.md)). Plugins melden URLs über den Filter `cms_sitemap_entries` (Pfad oder absolute URL der eigenen Domain, optional `lastmod`, `changefreq`, `priority`; max. 10 000, fremde Hosts werden verworfen) – sie landen in `plugins.xml`, die der Index `sitemap.xml` verlinkt. Dazu optional eine Bild- und eine Google-News-Sitemap. Die Dateien werden als Bundle gespeichert und von `ThemeRouter::serveSitemap()` ausgeliefert; Suchmaschinen können nach dem Neuaufbau angepingt werden (`ping_google`, `ping_bing`).
+- Einstellungen: Priorität und Änderungsfrequenz für Seiten/Beiträge, Bild-Sitemap (`image_enabled`), Google-News-Sitemap (`news_enabled`, `news_publication_name`, `news_language`).
+- `regenerate_sitemap_bundle` erzeugt Sitemap und `robots.txt` neu; `save_robots` speichert den `robots.txt`-Inhalt.
+- **IndexNow:** Schlüssel `indexnow_key`; die Schlüsseldatei wird unter `/<key>.txt` ausgeliefert. `submit_indexing_urls` meldet einzelne URLs, `submit_recent_content_indexnow` die zuletzt geänderten Inhalte (Bing, Yandex u. a.).
+- **Google Indexing API:** optionales Access-Token (`save_google_access_token` / `clear_google_access_token`), `delete_google_url` meldet entfernte URLs.
+
+### Technisches SEO (`/admin/seo-technical`)
+
+`noindex` für Archive und Tag-Seiten, `rel="prev/next"` für Paginierung, Breadcrumbs, Hreflang (DE/EN), Pflicht-Alt-Texte für Bilder, automatische Weiterleitung bei Slug-Änderung (`auto_redirect_slug`), Broken-Link-Scan (`SeoBrokenLinkService`) mit Ignorierliste.
+
+### SEO-Felder im Editor
+
+Seiten- und Beitragseditor zeigen SEO-Score, Lesbarkeitsanalyse und erweiterte Felder (`admin-seo-editor.js`). Gespeichert in `cms_seo_meta`:
+
+`content_type` (`page`/`post`), `content_id`, `canonical_url`, `robots_index`, `robots_follow`, `og_title`, `og_description`, `og_image`, `og_type`, `twitter_card`, `twitter_title`, `twitter_description`, `twitter_image`, `focus_keyphrase`, `keywords`, `schema_type`, `sitemap_priority`, `sitemap_changefreq`, `hreflang_group`.
+
+Optional erzeugt der KI-Assistent Meta-Titel/-Beschreibung (`/admin/ai-generate-seo-metadata`, siehe [../ai/AI-SERVICES.md](../ai/AI-SERVICES.md)).
+
+### Verwandte Dokumente
+
+[README.md](README.md) · [ANALYTICS.md](ANALYTICS.md) · [REDIRECTS.md](REDIRECTS.md) · [../../assets/melbahja-seo/README.md](../../assets/melbahja-seo/README.md)

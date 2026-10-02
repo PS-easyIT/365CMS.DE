@@ -1,5 +1,5 @@
-> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00 (Changelog bis 3.4.08)
+> **Datum:** 2026-09-06 | **Status:** Stable – **Zuletzt aktualisiert am:** 2026-10-02 (Quellcode-Abgleich: Provider-Klassen, Quota-Tabelle, Editor-Einbindung)
 > **Kurzbeschreibung:** Complete user and technical documentation for the protected 365CMS AI Services, including administration, translation, content drafts, SEO metadata, provider policies, quotas, security, and integration assets.
 
 # 365CMS AI Services
@@ -336,9 +336,15 @@ The central executor applies policy and quota checks before a provider operation
 - `CMS/core/Services/AI/EditorJsTranslationPipeline.php`
 - `CMS/core/Services/AI/ContentDraftGenerationPipeline.php`
 - `CMS/core/Services/AI/SeoMetadataGenerationPipeline.php`
-- `CMS/core/Services/AI/Providers/MockAiProvider.php`
-- `CMS/core/Services/AI/Providers/OllamaAiProvider.php`
-- `CMS/core/Services/AI/Providers/AzureOpenAiProvider.php`
+- `CMS/core/Services/AI/AiService.php` — façade used by admin modules
+- `CMS/core/Services/AI/AiProviderInterface.php` — provider contract
+- `CMS/core/Services/AI/Providers/AbstractPromptingAiProvider.php` — shared prompt/JSON handling
+- `CMS/core/Services/AI/Providers/MockAiProvider.php` — deterministic local provider (default `active_provider_id = mock`)
+- `CMS/core/Services/AI/Providers/OllamaAiProvider.php` — self-hosted Ollama
+- `CMS/core/Services/AI/Providers/AzureOpenAiProvider.php` — Azure OpenAI deployments
+- `CMS/core/Services/AI/Providers/OpenAiCompatibleProvider.php` — OpenAI, Mistral and OpenRouter (provider types `openai`, `mistral`, `openrouter`)
+
+Known provider types (`AiSettingsService::PROVIDER_SLUGS`): `mock`, `openai`, `mistral`, `azure_openai`, `ollama`, `openrouter`.
 
 #### Browser assets and permissions
 
@@ -390,7 +396,7 @@ The translation endpoint uses the token action `admin_ai_editorjs_translation`. 
 
 ### 17. Settings persistence
 
-Settings are stored through the existing `SettingsService` as logical groups, not as separate AI-specific tables:
+Settings are stored through the existing `SettingsService` as logical groups (secrets AES-256 encrypted). The only AI-specific table is `cms_ai_quota_usage` (counters per scope, period, user and provider) used by `AiQuotaService`:
 
 | Group | Responsibility |
 |---|---|
@@ -915,9 +921,15 @@ Der zentrale Executor prüft Policies und Quotas vor dem Provider-Aufruf. Transi
 - `CMS/core/Services/AI/EditorJsTranslationPipeline.php`
 - `CMS/core/Services/AI/ContentDraftGenerationPipeline.php`
 - `CMS/core/Services/AI/SeoMetadataGenerationPipeline.php`
-- `CMS/core/Services/AI/Providers/MockAiProvider.php`
-- `CMS/core/Services/AI/Providers/OllamaAiProvider.php`
-- `CMS/core/Services/AI/Providers/AzureOpenAiProvider.php`
+- `CMS/core/Services/AI/AiService.php` — Fassade für die Admin-Module
+- `CMS/core/Services/AI/AiProviderInterface.php` — Provider-Vertrag
+- `CMS/core/Services/AI/Providers/AbstractPromptingAiProvider.php` — gemeinsame Prompt-/JSON-Logik
+- `CMS/core/Services/AI/Providers/MockAiProvider.php` — deterministischer lokaler Provider (Standard `active_provider_id = mock`)
+- `CMS/core/Services/AI/Providers/OllamaAiProvider.php` — selbst gehostetes Ollama
+- `CMS/core/Services/AI/Providers/AzureOpenAiProvider.php` — Azure-OpenAI-Deployments
+- `CMS/core/Services/AI/Providers/OpenAiCompatibleProvider.php` — OpenAI, Mistral und OpenRouter (Typen `openai`, `mistral`, `openrouter`)
+
+Bekannte Provider-Typen (`AiSettingsService::PROVIDER_SLUGS`): `mock`, `openai`, `mistral`, `azure_openai`, `ollama`, `openrouter`.
 
 #### Assets und Rollen
 
@@ -960,7 +972,7 @@ Token-Actions:
 
 ### 17. Persistenz der Einstellungen
 
-Über `SettingsService` werden logische Gruppen gespeichert:
+Über `SettingsService` werden logische Gruppen gespeichert (Secrets AES-256-verschlüsselt). Einzige KI-spezifische Tabelle ist `cms_ai_quota_usage` (Zähler je Scope, Zeitraum, Benutzer und Provider) für `AiQuotaService`:
 
 | Gruppe | Aufgabe |
 |---|---|

@@ -1,91 +1,74 @@
-# 365CMS – Projektdokumentation | Abschnitt: API reference
+# 365CMS – Projektdokumentation | Abschnitt: Core – API-Referenz
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-# API reference
+## English (summary)
 
-This document reflects the API surface currently registered in `CMS/core/Routing/ApiRouter.php` and the request flow in `CMS/core/Api.php`. No route or behavior is listed unless it is present in the shipped runtime.
-
-## Active route set
-
-| Method | Route | Notes |
-| --- | --- | --- |
-| `GET` | `/api/v1/status` | Public status endpoint |
-| `GET` | `/api/v1/pages` | List pages |
-| `GET` | `/api/v1/pages/:slug` | Fetch a page by slug |
-| `POST` | `/api/v1/analytics/web-vitals` | Captures core web vitals payload |
-| `GET` | `/api/v1/admin/posts` | Requires admin capability |
-| `GET` | `/api/v1/admin/pages` | Requires admin capability |
-| `GET` | `/api/v1/admin/users` | Requires admin capability |
-| `GET` | `/api/v1/admin/mail/logs` | Requires admin capability |
-| `POST` | `/api/v1/admin/mail/test` | Requires admin capability and CSRF verification |
-| `POST` | `/api/v1/admin/graph/test` | Requires admin capability and CSRF verification |
-| `POST` | `/api/upload` | Upload endpoint |
-| `GET` | `/api/media` | Media listing |
-| `POST` | `/api/media` | Media create/upload |
-
-## Request flow
-
-The runtime resolves request handling through the router and API wrapper:
-
-```php
-$router = new Router();
-$router->registerDefaultRoutes();
-$router->dispatch();
-```
-
-The active router behavior is delegated by prefix:
-
-- `/api` -> `CMS\Routing\ApiRouter`
-- `/admin` -> `CMS\Routing\AdminRouter`
-- `/member` and `/dashboard` -> `CMS\Routing\MemberRouter`
-- other requests -> `CMS\Routing\PublicRouter` and `CMS\Routing\ThemeRouter`
-
-## Security assumptions
-
-API calls are subject to the security layer in `CMS/core/Security.php` and the session checks in `CMS/core/Auth.php`. This includes CSRF validation for protected admin routes, same-origin enforcement for `web-vitals`, and rate-limit enforcement for request abuse.
+The JSON API is registered by `CMS\Routing\ApiRouter` (`CMS/core/Routing/ApiRouter.php`) and – for the generic `pages` endpoint – handled by `CMS\Api`. Requests below `/api` run in runtime mode `api` (`Cache-Control: no-store`). Authentication is the regular CMS session cookie; admin endpoints additionally require role `admin` and a capability, state-changing admin endpoints a CSRF token. There is no public write API, no CORS configuration and – in 3.4.00 – no Bearer/JWT authentication on these routes.
 
 ## Deutsch
 
-# API-Referenz
+### Übersicht
 
-Dieses Dokument spiegelt die API-Oberfläche wider, die aktuell in `CMS/core/Routing/ApiRouter.php` registriert ist, sowie den Anfragefluss in `CMS/core/Api.php`. Keine Route oder Funktion wird aufgeführt, wenn sie nicht in der ausgelieferten Laufzeit vorhanden ist.
+| Methode | Route | Zugriff | Antwort |
+|---|---|---|---|
+| GET | `/api/v1/status` | öffentlich | `{"status":"ok","version":"3.4.00"}` |
+| GET | `/api/v1/pages?q=<suche>` | angemeldet | `{"data":[…]}` – Seitensuche (`PageManager::search()`, leere Suche → leere Liste) |
+| GET | `/api/v1/pages/:slug` | angemeldet | `{"data":{…}}` oder `404 {"error":"Page not found"}` |
+| POST | `/api/v1/analytics/web-vitals` | gleiche Herkunft | `204` |
+| GET | `/api/v1/admin/posts` | Admin + `edit_all_posts` | `{"data":[…],"total":n,"page":p,"limit":l}` |
+| GET | `/api/v1/admin/pages` | Admin + `manage_pages` | wie oben |
+| GET | `/api/v1/admin/users` | Admin + `manage_users` | wie oben |
+| GET | `/api/v1/admin/mail/logs` | Admin + `manage_settings` | Mail-Log-Seite |
+| POST | `/api/v1/admin/mail/test` | Admin + CSRF `admin_mail_api` | Ergebnis des Testversands |
+| POST | `/api/v1/admin/graph/test` | Admin + CSRF `admin_mail_api` | Ergebnis des Graph-Tests |
+| POST | `/api/upload` | angemeldet + CSRF `media_action` | Upload-Ergebnis (`FileUploadService`) |
+| GET/POST | `/api/media` | Editor-Token `editorjs_media` | Editor.js-Medien (Upload, Bibliothek, Remote-Bild) |
 
-## Aktives Routenset
+### Allgemeines
 
-| Methode | Route | Hinweise |
-| --- | --- | --- |
-| `GET` | `/api/v1/status` | Öffentlicher Status-Endpunkt |
-| `GET` | `/api/v1/pages` | Seitenliste |
-| `GET` | `/api/v1/pages/:slug` | Seite nach Slug |
-| `POST` | `/api/v1/analytics/web-vitals` | Erfasst Core-Web-Vitals-Payload |
-| `GET` | `/api/v1/admin/posts` | Erfordert Admin-Rechte |
-| `GET` | `/api/v1/admin/pages` | Erfordert Admin-Rechte |
-| `GET` | `/api/v1/admin/users` | Erfordert Admin-Rechte |
-| `GET` | `/api/v1/admin/mail/logs` | Erfordert Admin-Rechte |
-| `POST` | `/api/v1/admin/mail/test` | Erfordert Admin-Rechte und CSRF-Validierung |
-| `POST` | `/api/v1/admin/graph/test` | Erfordert Admin-Rechte und CSRF-Validierung |
-| `POST` | `/api/upload` | Upload-Endpunkt |
-| `GET` | `/api/media` | Medienliste |
-| `POST` | `/api/media` | Medien-Erstellung/Upload |
+- **Format:** `Content-Type: application/json`; Fehler immer als `{"error":"…"}`.
+- **Statuscodes:** 200, 204, 400 (ungültige Eingabe), 401 (nicht angemeldet), 403 (Rechte/CSRF/Herkunft), 404, 413 (zu groß), 422 (ungültiges JSON), 429 (Rate-Limit, Header `Retry-After: 60`), 500 (generische Meldung, Details nur im Log).
+- **Rate-Limit `CMS\Api`:** 60 Anfragen je 60 Sekunden je IP (Tabelle `cms_login_attempts`, Aktion `api`).
+- **Web Vitals:** Body max. 8 KB, max. 40 Meldungen je Minute (Cache-basiert), nur Same-Origin.
 
-## Anfragefluss
+### Parameter der Admin-Listen
 
-Die Laufzeit löst die Anfrage über Router und API-Wrapper:
+| Endpunkt | Parameter |
+|---|---|
+| `/api/v1/admin/posts` | `page` (≥1), `limit` (5–100, Standard 20), `status` (`all`, `published`, `scheduled`, `draft`, `private`, `trash`), `search`, `sort` (`title`, `status`, `published_at`, `views`, `updated_at`, `created_at`), `order` |
+| `/api/v1/admin/pages` | `page`, `limit`, `status` (`published`, `draft`, `private`), `search`, `sort` (`title`, `slug`, `status`, `updated_at`, `created_at`), `order` |
+| `/api/v1/admin/users` | `page`, `limit`, `search`, `role` (Rolle, `all` oder `banned`), `sort` (`username`, `email`, `display_name`, `role`, `status`, `created_at`), `order` |
+| `/api/v1/admin/mail/logs` | `page`, `limit` (10–200), `search`, `status` |
 
-```php
-$router = new Router();
-$router->registerDefaultRoutes();
-$router->dispatch();
+Beiträge enthalten zusätzlich `effective_status` (`scheduled`, wenn `published_at` in der Zukunft liegt).
+
+### Beispiele
+
+```bash
+# Status (öffentlich)
+curl -s https://example.com/api/v1/status
+
+# Beitragsliste als angemeldeter Administrator (Session-Cookie aus dem Browser)
+curl -s -b "PHPSESSID=<session>" "https://example.com/api/v1/admin/posts?status=scheduled&limit=50"
 ```
 
-Das aktive Router-Verhalten wird nach Präfixen aufgeteilt:
+```js
+// Upload aus einer Admin-Seite (Token im Template erzeugt: Security::generateToken('media_action'))
+const body = new FormData();
+body.append('file', fileInput.files[0]);
+body.append('csrf_token', document.querySelector('[name="csrf_token"]').value);
+const res = await fetch('/api/upload', { method: 'POST', body, credentials: 'same-origin' });
+```
 
-- `/api` -> `CMS\Routing\ApiRouter`
-- `/admin` -> `CMS\Routing\AdminRouter`
-- `/member` und `/dashboard` -> `CMS\Routing\MemberRouter`
-- andere Anfragen -> `CMS\Routing\PublicRouter` und `CMS\Routing\ThemeRouter`
+### Eigene Endpunkte
 
-## Sicherheitsannahmen
+Plugins registrieren Routen im Hook `register_routes`. Für JSON-Endpunkte unter `/api/…` gilt: Modus `api` (no-store), eigene Authentifizierung/Capability-Prüfung, CSRF für schreibende Browser-Requests, Antwort mit `json_encode(…, JSON_UNESCAPED_UNICODE)`. Siehe [../admin/ADMIN-API-AJAX.md](../admin/ADMIN-API-AJAX.md) und [../workflow/API-INTEGRATION-WORKFLOW.md](../workflow/API-INTEGRATION-WORKFLOW.md).
 
-API-Aufrufe unterliegen der Sicherheits-Schicht in `CMS/core/Security.php` und den Session-Prüfungen in `CMS/core/Auth.php`. Dazu gehören CSRF-Validierung für geschützte Admin-Routen, Same-Origin-Prüfung für `web-vitals` und Rate-Limit-Prüfung gegen Missbrauch.
+### Hinweis JWT
+
+`CMS\Services\JwtService` (HMAC mit `JWT_SECRET`, Fallback `AUTH_KEY`; Laufzeit `JWT_TTL`; Refresh-Tokens) ist vorhanden, wird aber von keiner Route zur Anmeldung ausgewertet. Für Maschine-zu-Maschine-Zugriffe muss ein Plugin den `Authorization: Bearer`-Header selbst prüfen (`JwtService::validateToken()`).
+
+### Verwandte Dokumente
+
+[ARCHITECTURE.md](ARCHITECTURE.md) · [SECURITY.md](SECURITY.md) · [../admin/ADMIN-API-AJAX.md](../admin/ADMIN-API-AJAX.md)

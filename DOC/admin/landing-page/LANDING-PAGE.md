@@ -1,61 +1,61 @@
-# 365CMS – Projektdokumentation | Abschnitt: Admin – LANDING PAGE
+# 365CMS – Projektdokumentation | Abschnitt: Admin – Landingpage
 
-## 365CMS Admin – Landing Page
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
+> **Route:** `/admin/landing-page` | **Capability:** `manage_settings` | **CSRF-Aktion:** `admin_landing_page`
 
-## English
+## English (summary)
 
-### Administrator guide
+The landing page editor (`CMS/admin/landing-page.php` → `CMS/admin/modules/landing/LandingPageModule.php` → `CMS/admin/views/landing/page.php`) configures a start page made of hero, feature cards, content area and footer. Data is stored in `cms_landing_sections` and served by `CMS\Services\LandingPageService` (sub-services in `CMS/core/Services/Landing/`). The theme decides whether to show it: in **cms-default** the customizer option *Homepage → Mode = Landing* renders `partials/home-landing.php`; otherwise the blog home page is shown.
 
-This document covers themes, design, and navigation. Open `/admin/landing-page` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
-
-Use the page in this order:
-
-1. Review the current status, filters, and warnings before changing data.
-2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
-3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
-4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
-
-Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
-
-### Technical reference
-
-**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/landing-page.php`, `CMS/admin/views/landing/page.php`.
-
-**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
-
-**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
-
-**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
-
-**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
-
-**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
+Tabs: `header`, `content`, `footer`, `design`, `plugins`. Actions: `save_header`, `save_content`, `save_feature`, `delete_feature`, `save_footer`, `save_design`, `save_plugin`.
 
 ## Deutsch
 
-### Anwenderleitfaden
+### Aktivierung im Theme
 
-Dieses Dokument beschreibt Themes, Design und Navigation. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/landing-page`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
+Die Landingpage wird nicht automatisch angezeigt. Im Theme **cms-default**:
 
-Empfohlener Ablauf:
+1. `/admin/theme-editor?tab=homepage` öffnen,
+2. Startseiten-Modus `landing` wählen (Standard `posts` = Blog-Startseite),
+3. speichern – die Startseite rendert nun `CMS/themes/cms-default/partials/home-landing.php`, das `LandingPageService` ausliest.
 
-1. Status, Filter und Warnungen vor Änderungen prüfen.
-2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
-3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
-4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
+Eigene Themes können den Service ebenso nutzen (`LandingPageService::getInstance()->getHeader()`, `getFeatures()`, `getFooter()`, `getDesign()`, `getContentSettings()`).
 
-Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
+### Tabs und Felder
 
-### Technische Referenz
+| Tab | Felder |
+|---|---|
+| **Header** (`save_header`) | Badge-Text, Titel, Untertitel, Beschreibung, Hero-Text, Hintergrundbild, CTA-Text und -URL, primärer Button |
+| **Inhalt** (`save_content`) | Inhaltstyp `content_type`: `features` (Feature-Karten, Standard), `text` (Freitext `content_text`) oder `posts` (neueste Beiträge, Anzahl `posts_count`) |
+| **Features** (`save_feature`, `delete_feature`) | Karten mit Icon, Titel, Beschreibung und Sortierung (`sort_order` 0–999) |
+| **Footer** (`save_footer`) | Footer anzeigen, Inhalt, Copyright, Button-Text und -URL, Hintergrund- und Textfarbe |
+| **Design** (`save_design`) | Hero-Verlauf (Start/Ende), Hero-Rahmen und -Abstand, Hintergründe für Features und Inhaltsbereich, Karten (Hintergrund, Hover, Rahmenfarbe/-breite/-radius, Schatten, Icon-Layout), Spaltenanzahl, Innenabstand, Button-Radius |
+| **Plugins** (`save_plugin`) | Plugin-Bereiche auf der Landingpage (siehe unten) |
 
-**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/landing-page.php`, `CMS/admin/views/landing/page.php`.
+Alle Eingaben laufen durch `LandingSanitizer` (Klartext-/Längenbegrenzung, Farben, URLs, Allowlists).
 
-**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
+### Plugin-Integration
 
-**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
+Plugins melden Landingpage-Bausteine über den Filter `landing_page_plugins` an:
 
-**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
+```php
+\CMS\Hooks::addFilter('landing_page_plugins', static function (array $plugins): array {
+    $plugins['my-events'] = [
+        'name'        => 'Event-Teaser',
+        'description' => 'Nächste Veranstaltungen',
+        'version'     => '1.0.0',
+        'targets'     => ['content'],          // erlaubt: header, content, footer
+    ];
+    return $plugins;
+});
+```
 
-**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
+Im Tab *Plugins* legt der Administrator fest, in welchem Bereich (`areas[]`) ein Plugin den Standardinhalt ersetzt (Override). Das Theme ruft `LandingPageService::renderPluginOverride($area, $context)` auf.
 
-**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.
+### Datenmodell
+
+`cms_landing_sections` (`id`, `type`, `data` JSON, `sort_order`). Der `type` unterscheidet Header, Feature, Footer, Design, Content-Einstellungen und Plugin-Overrides. Fehlende Standarddatensätze legt `ensureDefaults()` beim ersten Aufruf an.
+
+### Verwandte Dokumente
+
+[README.md](README.md) · [../themes-design/CUSTOMIZER.md](../themes-design/CUSTOMIZER.md) · [../../plugins/PLUGIN-DEVELOPMENT.md](../../plugins/PLUGIN-DEVELOPMENT.md)

@@ -1,37 +1,31 @@
-# 365CMS – Projektdokumentation | Abschnitt: Subscription
+# 365CMS – Projektdokumentation | Abschnitt: Admin – Aboverwaltung
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-### Scope
-This section documents the administrator screens for packages, orders, and subscription settings. Use the links exposed by the capability-aware admin sidebar; do not construct request URLs manually.
+## English (summary)
 
-### Supported screens
-| Area | Admin route | Current implementation |
-|---|---|---|
-| Packages | `/admin/packages` | `CMS/admin/modules/subscriptions/PackagesModule.php`, `CMS/admin/packages.php` |
-| Orders | `/admin/orders` | `CMS/admin/modules/subscriptions/OrdersModule.php`, `CMS/admin/orders.php` |
-| Settings | `/admin/subscription-settings` | `CMS/admin/views/subscriptions/settings.php` |
-
-### Safe workflow
-Review status and filters, change only the required record, submit through the page, and verify the redirected result. Destructive or bulk operations require a recent backup and an audit-log review. Authentication, capability, CSRF/nonce, allowlisted fields, server-side validation, prepared queries, and escaped output are mandatory.
-
-### Shared implementation
-Admin routing is handled by `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php`. Shared layout and navigation are in `CMS/admin/partials/`; settings persistence uses `CMS/core/Services/SettingsService.php`; audit and operational events use `CMS/core/AuditLogger.php` and `CMS/core/Logger.php`.
+This folder documents the sidebar group **Subscriptions** (*Aboverwaltung*): packages, orders/assignments and global subscription settings. All pages require `manage_settings` and the corresponding core modules (see [SUBSCRIPTION-SYSTEM.md](SUBSCRIPTION-SYSTEM.md)).
 
 ## Deutsch
 
-### Umfang
-Dieser Abschnitt beschreibt die Admin-Seiten für Pakete, Bestellungen und Abonnement-Einstellungen. Verwenden Sie die capability-gesteuerte Admin-Navigation und bauen Sie keine Request-URLs selbst.
+| Menüpunkt | Route | Core-Modul | Dokument |
+|---|---|---|---|
+| Pakete & Abo-Einstellungen | `/admin/packages` | `subscription_admin_packages` | [PACKAGES.md](PACKAGES.md) |
+| Bestellungen & Zuweisung | `/admin/orders` | `subscription_admin_orders` | [ORDERS.md](ORDERS.md) |
+| Einstellungen | `/admin/subscription-settings` | `subscription_admin_settings` | [SUBSCRIPTION-SYSTEM.md](SUBSCRIPTION-SYSTEM.md) |
 
-### Unterstützte Seiten
-| Bereich | Admin-Route | Aktuelle Implementierung |
-|---|---|---|
-| Pakete | `/admin/packages` | `CMS/admin/modules/subscriptions/PackagesModule.php`, `CMS/admin/packages.php` |
-| Bestellungen | `/admin/orders` | `CMS/admin/modules/subscriptions/OrdersModule.php`, `CMS/admin/orders.php` |
-| Einstellungen | `/admin/subscription-settings` | `CMS/admin/views/subscriptions/settings.php` |
+Die Gruppe erscheint nur, wenn das Core-Modul `subscriptions` aktiv ist (`/admin/modules`).
 
-### Sicherer Ablauf
-Status und Filter prüfen, nur den benötigten Datensatz ändern, über die Seite speichern und das Ergebnis nach der Weiterleitung prüfen. Lösch- und Sammelaktionen erfordern ein aktuelles Backup und eine Audit-Prüfung. Authentifizierung, Capability, CSRF/Nonce, Allowlists, serverseitige Validierung, vorbereitete Abfragen und kontextgerechtes Escaping sind Pflicht.
+### Typischer Ablauf
 
-### Gemeinsame Implementierung
-Das Routing übernehmen `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php`. Layout und Navigation liegen in `CMS/admin/partials/`; Einstellungen werden über `CMS/core/Services/SettingsService.php` persistiert; Audit- und Betriebsereignisse verwenden `CMS/core/AuditLogger.php` und `CMS/core/Logger.php`.
+1. **Pakete anlegen** – `seed_defaults` oder eigene Pakete mit Preisen, Limits und Plugin-Freigaben.
+2. **Abrechnung konfigurieren** – Steuer, Rechnungsnummern, Testphase, AGB-/Widerrufsseite (ebenfalls auf `/admin/packages`).
+3. **Schalter setzen** – Limits, Member-Bereich, Bestellungen, öffentliche Preise, Standardpaket (`/admin/subscription-settings`).
+4. **Bestellungen bearbeiten** – Checkout erzeugt `pending`-Bestellungen; nach Zahlungseingang Status `paid` setzen und Abo zuweisen (`/admin/orders`).
+5. **Gruppen nutzen** – Paket einer Gruppe zuordnen, um mehreren Benutzern gemeinsam Rechte zu geben ([../users-groups/GROUPS.md](../users-groups/GROUPS.md)).
+
+### Verwandte Dokumente
+
+- Mitgliedersicht: [../../member/MEMBER-ROUTES.md](../../member/MEMBER-ROUTES.md)
+- Plugin-Integration: [../../plugins/PLUGIN-DEVELOPMENT.md](../../plugins/PLUGIN-DEVELOPMENT.md)
+- Datenbank: [../../core/DATABASE-SCHEMA.md](../../core/DATABASE-SCHEMA.md)

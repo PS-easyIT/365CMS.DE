@@ -1,31 +1,37 @@
-# 365CMS – Projektdokumentation | Abschnitt: Users and groups
+# 365CMS – Projektdokumentation | Abschnitt: Admin – Benutzer & Gruppen
 
-## English
-### Scope
-This section covers users, groups, RBAC, and authentication settings. All screens are capability-aware and fail closed when access or an optional provider is unavailable.
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-### Screens
-| Area | Route | Source |
-|---|---|---|
-| Users | `/admin/users` | `CMS/admin/users.php`, `CMS/admin/modules/users/UsersModule.php` |
-| Groups | `/admin/groups` | `CMS/admin/groups.php`, `CMS/admin/modules/users/GroupsModule.php` |
-| RBAC | `/admin/roles` | `CMS/admin/roles.php` |
-| Authentication | `/admin/user-settings` | `CMS/admin/modules/users/UserSettingsModule.php`, `CMS/admin/views/users/settings.php` |
+## English (summary)
 
-### Security baseline
-Use the current form controls, not handcrafted requests. Every change requires authenticated capability checks, CSRF/nonce validation, normalized input, allowlisted fields, and audit logging. Passwords, MFA secrets, recovery codes, and tokens must never appear in UI or logs.
+This folder documents the sidebar group **Users & Groups** (*Benutzer & Gruppen*): user accounts, groups, roles/capabilities and authentication settings. All pages require capability `manage_users` (and, like the whole admin area, role `admin`).
 
 ## Deutsch
-### Umfang
-Dieser Abschnitt behandelt Benutzer, Gruppen, RBAC und Authentifizierungs-Einstellungen. Alle Seiten sind capability-gesteuert und bleiben bei fehlendem Zugriff oder Provider geschlossen.
 
-### Seiten
-| Bereich | Route | Quelle |
+| Menüpunkt | Route | Dokument |
 |---|---|---|
-| Benutzer | `/admin/users` | `CMS/admin/users.php`, `CMS/admin/modules/users/UsersModule.php` |
-| Gruppen | `/admin/groups` | `CMS/admin/groups.php`, `CMS/admin/modules/users/GroupsModule.php` |
-| RBAC | `/admin/roles` | `CMS/admin/roles.php` |
-| Authentifizierung | `/admin/user-settings` | `CMS/admin/modules/users/UserSettingsModule.php`, `CMS/admin/views/users/settings.php` |
+| Benutzer | `/admin/users` | [USERS.md](USERS.md) |
+| Gruppen | `/admin/groups` | [GROUPS.md](GROUPS.md) |
+| Rollen & Rechte | `/admin/roles` | [RBAC.md](RBAC.md) |
+| Einstellungen | `/admin/user-settings` | [AUTH-SETTINGS.md](AUTH-SETTINGS.md) |
 
-### Sicherheitsstandard
-Aktuelle Formulare statt eigener Requests verwenden. Jede Änderung benötigt authentifizierte Capability-Prüfung, CSRF/Nonce, normalisierte Eingaben, Feld-Allowlist und Audit-Protokollierung. Passwörter, MFA-Geheimnisse, Wiederherstellungscodes und Tokens niemals in UI oder Logs ausgeben.
+### Zusammenhänge
+
+```text
+Benutzer ──(role)──► Rolle ──► Capabilities (Standard + cms_role_permissions)
+    │
+    └──(cms_user_group_members)──► Gruppe ──(plan_id)──► Abo-Paket
+    │
+    └──(cms_user_subscriptions)──► direktes Abo
+```
+
+- **Rollen** bestimmen, *was* jemand darf (Capabilities).
+- **Gruppen** und **Abos** bestimmen, *welche Pakete/Limits* gelten.
+- **Auth-Einstellungen** bestimmen, *wie* sich jemand anmeldet und registriert.
+
+### Verwandte Bereiche
+
+- Mitglieder-Dashboard konfigurieren: [../member/README.md](../member/README.md)
+- Abo-Pakete und Bestellungen: [../subscription/README.md](../subscription/README.md)
+- DSGVO-Auskunft und Löschung: [../legal/README.md](../legal/README.md)
+- Member-Bereich aus Sicht des Mitglieds: [../../member/README.md](../../member/README.md)

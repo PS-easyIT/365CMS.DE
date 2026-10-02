@@ -1,5 +1,5 @@
-> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00 (Changelog bis 3.4.08)
+> **Datum:** 2026-09-06 | **Status:** Stable – **Zuletzt aktualisiert am:** 2026-10-02 (Abgleich mit `MemberRouter`, `MemberController`, `PluginDashboardRegistry`)
 > **Kurzbeschreibung:** Routenreferenz für authentifizierte Member-Seiten, Theme-Overrides, Plugin-Dispatch, Weiterleitungen, Nutzungs-Tracking und 404-Fallbacks. Sie entspricht dem Stand von `MemberRouter.php` in Version 3.4.00.
 
 # 365CMS Member Routes
@@ -53,3 +53,18 @@ Der zentrale Einstieg ist `/member/dashboard`; `/member` leitet dorthin weiter. 
 `renderMemberPluginSection()` initialisiert `CMS\Member\PluginDashboardRegistry`, protokolliert `member.plugin.{slug}[.{action}]` über `FeatureUsageService` und ruft `handleRoute()` auf. Die Registry bevorzugt `member/plugin-section.php` des Themes vor dem generischen `CMS/member/plugin-section.php`. Unbekannte Slugs und fehlende Berechtigungen rendern `CMS/member/partials/plugin-not-found.php`.
 
 Jede normale Seite wird als `member.{page}` mit Kategorie `member`, Route, verfügbarer Benutzer-ID, Label und Route-Gruppe erfasst. Nicht authentifizierte Aufrufe verwenden `CmsAuthPageService::getPublicPath('login', locale)` und kodieren `REQUEST_URI` als `redirect`.
+
+---
+
+## Ergänzung (Stand 2026-10-02): Routen im Überblick
+
+| Aufruf | Ergebnis |
+|---|---|
+| `/member` | Weiterleitung auf `/member/dashboard` |
+| `/member/dashboard` | Dashboard; bei `member_dashboard_enabled = 0` Weiterleitung auf `/member/profile` |
+| `/dashboard` | nur wenn das aktive Theme `member/dashboard.php` mitbringt, sonst Weiterleitung auf `/member/dashboard` |
+| `/member/<seite>` | `profile`, `security`, `notifications`, `messages`, `media`, `favorites`, `privacy`, `subscription` (Theme-Datei vor Core-Datei) |
+| `/member/plugin/<slug>[/<aktion>[/<id>]]` | Plugin-Bereich aus der `PluginDashboardRegistry` |
+| nicht angemeldet | Weiterleitung auf die Loginseite (`/cms-login?redirect=…`, Pfad je nach CMS-Loginseite) |
+
+Alle Antworten sind privat (`Cache-Control: private`), POST-Anfragen unter `/member` sind vom globalen `form_guard`-CSRF-Schutz ausgenommen, weil jede Seite eigene Tokens prüft. Alte Pfade wie `/media-proxy.php` leiten auf `/member/media` um.

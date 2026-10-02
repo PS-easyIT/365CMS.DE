@@ -1,93 +1,142 @@
-# 365CMS – Projektdokumentation | Abschnitt: Database schema
+# 365CMS – Projektdokumentation | Abschnitt: Core – Datenbank & Schema
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Schema:** `v22` | **Status:** Stable
 
-# Database layer reference
+## English (summary)
 
-This document describes the current database contract implemented in `CMS/core/Database.php`. It does not assume a legacy schema beyond what is visible in the code.
-
-## Active database abstraction
-
-`CMS/core/Database.php` is a PDO-based wrapper and the effective database abstraction layer. It opens the configured MySQL/MariaDB connection and uses native prepared statements. The primary implementation points are:
-
-- `Database::connect()`
-- `Database::prepare()`
-- `Database::query()`
-- `Database::execute()`
-- `Database::repairTables()`
-
-## Implementation characteristics
-
-| Area | Current behavior |
-| --- | --- |
-| Connection | MySQL/MariaDB DSN built from `DB_HOST`, `DB_NAME`, and `DB_CHARSET` |
-| Prepared statements | Native PDO with `PDO::ATTR_EMULATE_PREPARES => false` |
-| Parameter binding | Explicit types for integers, booleans, nulls, and strings |
-| Query execution | `Database::execute()` binds arguments and logs telemetry in debug mode |
-| Schema management | Delegated to `SchemaManager` |
-| Repair/migration | Delegated to `MigrationManager` |
-| Table prefix | `DB_PREFIX` is applied at connection time |
-
-## Schema-management facts
-
-The code explicitly states that schema creation is no longer owned by the database object itself. The active pattern is:
-
-```php
-(new SchemaManager($this))->createTables();
-(new MigrationManager($this))->repairTables();
-```
-
-This indicates that the authoritative schema logic is externalized. The runtime documentation should therefore describe the schema layer as an externalized manager layer rather than a monolithic database class.
-
-## Operational notes
-
-- `Database::prepare()` throws when the PDO connection is unavailable.
-- `Database::query()` executes unparameterized SQL only for trusted statements.
-- `Database::execute()` is the parameterized path.
-- Debug mode can emit query telemetry via `Debug::query()`.
+365CMS uses MySQL ≥ 5.7 or a current MariaDB (InnoDB, `utf8mb4`; the update preflight checks the server version ≥ 5.7) through the PDO wrapper `CMS\Database` (native prepared statements, `ATTR_EMULATE_PREPARES = false`). All tables carry the prefix `DB_PREFIX` (default `cms_`). The base schema (45 tables) is defined in `CMS\SchemaManager::getSchemaQueries()`; `CMS\MigrationManager::run()` applies idempotent `CREATE`/`ALTER` migrations once per schema version (`SCHEMA_VERSION = 'v22'`, flag file `CMS/cache/db_schema_v22.flag`). Further tables are created on demand by the services and admin modules that own them. Settings use the key/value table `cms_settings`.
 
 ## Deutsch
 
-# Referenz zur Datenbank-Schicht
+### Datenbankschicht (`CMS\Database`)
 
-Dieses Dokument beschreibt das aktuelle Datenbank-Contract, das in `CMS/core/Database.php` implementiert ist. Es geht nicht von einem veralteten Schema aus, sondern nur von dem, was im Code sichtbar ist.
+| Methode | Zweck |
+|---|---|
+| `Database::instance()` | Singleton, Verbindung aus `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_CHARSET` |
+| `prepare($sql)`, `execute($sql, $params)` | parametrisierte Abfragen (Typen werden explizit gebunden) |
+| `query($sql)` | nur für vertrauenswürdige SQL ohne Parameter |
+| `get_row()`, `get_var()`, `get_results()`, `get_col()` | WordPress-ähnliche Lesehelfer (Objekte) |
+| `insert($table, $data)`, `update($table, $data, $where)`, `delete($table, $where)` | Schreibhelfer ohne Präfix im Tabellennamen; Bezeichner werden validiert |
+| `insert_id()`, `affected_rows()` | Ergebnisse |
+| `getPrefix()` / `prefix($table)` | Präfix bzw. vollständiger Tabellenname |
+| `tableExists()`, `columnExists()` | Schema-Prüfungen |
+| `repairTables()` | Schema-Flag löschen, Tabellen anlegen, Spalten migrieren |
+| `getPdo()` | direkter PDO-Zugriff für Sonderfälle |
 
-## Aktive Datenbank-Abstraktion
+Fehler werden ohne Zugangsdaten protokolliert; im Debug-Modus erfasst `Debug::query()` Telemetrie.
 
-`CMS/core/Database.php` ist ein PDO-basierter Wrapper und die wirksame Datenbank-Abstraktionsschicht. Er öffnet die konfigurierte MySQL/MariaDB-Verbindung und verwendet native Prepared Statements. Die wichtigsten Implementierungspunkte sind:
+### Schema-Verwaltung
 
-- `Database::connect()`
-- `Database::prepare()`
-- `Database::query()`
-- `Database::execute()`
-- `Database::repairTables()`
+| Klasse | Aufgabe |
+|---|---|
+| `SchemaManager` | Basisschema (`createTables()`), Standard-Admin bei Erstinstallation, Laufzeit-Ergänzungen (`password_resets`, `site_tables`, `ai_quota_usage`, `orders`, Spalte `audit_log.severity`) |
+| `MigrationManager` | Versionsprüfung gegen `db_schema_version`, `ALTER`-Migrationen (u. a. EN-Spalten für Seiten/Beiträge), einmal je Version |
+| `DatabaseUpdateRunner` | manueller Lauf aus `/admin/updates` bzw. `update.php`, setzt `installed_cms_version`, `installed_cms_schema_version`, `db_schema_version` |
 
-## Implementierungsmerkmale
+### Basistabellen (`SchemaManager`)
 
-| Bereich | Aktuelles Verhalten |
-| --- | --- |
-| Verbindung | MySQL/MariaDB-DSN aus `DB_HOST`, `DB_NAME` und `DB_CHARSET` |
-| Prepared Statements | Native PDO mit `PDO::ATTR_EMULATE_PREPARES => false` |
-| Parameterbindung | Explizite Typen für Integer, Boolean, Null und String |
-| Abfrageausführung | `Database::execute()` bindet Argumente und protokolliert Telemetrie im Debug-Modus |
-| Schema-Management | Delegiert an `SchemaManager` |
-| Repair/Migration | Delegiert an `MigrationManager` |
-| Tabellenpräfix | `DB_PREFIX` wird zur Verbindungszeit angewendet |
+**Benutzer & Zugang**
 
-## Fakten zum Schema-Management
+| Tabelle | Spalten |
+|---|---|
+| `users` | id, username, email, password, display_name, role, status, created_at, updated_at, last_login |
+| `user_meta` | id, user_id → users (CASCADE), meta_key, meta_value |
+| `roles` | id, name, display_name, description, capabilities, member_dashboard_access, sort_order, … |
+| `sessions` | id, user_id, ip_address, user_agent, payload, last_activity, expires_at |
+| `passkey_credentials` | id, user_id, credential_id, public_key, sign_count, aaguid, attestation_fmt, name, created_at, last_used_at |
+| `password_resets` | id, email, token, expires_at, created_at |
+| `login_attempts`, `failed_logins` | Anmeldeversuche (Rate-Limit, Sicherheitsalarme) |
+| `blocked_ips` | id, ip_address, reason, expires_at, permanent, … |
+| `user_groups` | id, name, slug, description, role_id, plan_id, is_active, … |
+| `user_group_members` | id, user_id, group_id, joined_at |
 
-Der Code stellt ausdrücklich klar, dass die Schema-Erstellung nicht mehr in der Datenbankklasse selbst liegt. Das aktive Muster ist:
+**Inhalte**
 
-```php
-(new SchemaManager($this))->createTables();
-(new MigrationManager($this))->repairTables();
-```
+| Tabelle | Spalten |
+|---|---|
+| `pages` | id, slug, slug_en, title (+ title_en), content (+ content_en), excerpt, status, hide_title, show_title_toc, featured_image, meta_title, meta_description, author_id, category_id, created_at, updated_at, published_at, content_updated_at |
+| `page_revisions` | id, page_id, title, title_en, slug, slug_en, content, content_en, excerpt, status, author_id, content_updated_at, created_at |
+| `posts` | id, title (+ title_en), slug, slug_en, content (+ content_en), excerpt (+ excerpt_en), featured_image, status, author_id, author_display_name, author_display_url, post_template, post_meta_json, category_id, tags, views, allow_comments, meta_title, meta_description, created_at, updated_at, published_at, content_updated_at |
+| `post_revisions` | Snapshot je Speichern (Titel, Slugs, Inhalte DE/EN, Status, Kategorie, Tags, Autor-Anzeige, Datumswerte) |
+| `post_categories` | id, name, slug, slug_en, description, parent_id, sort_order, replacement_category_id, created_at |
+| `post_tags` | id, name, slug, slug_en, description, post_count, created_at |
+| `post_tag_rel`, `post_category_rel` | Zuordnungen (CASCADE auf `posts`) |
+| `comments` | id, post_id, user_id, author, author_email, author_ip, content, status (`pending/approved/spam/trash`), post_date, modified_at |
+| `landing_sections` | id, type, data (JSON), sort_order |
+| `site_tables` | id, table_name, table_slug, description, columns_json, rows_json, settings_json (auch Hub-Sites) |
+| `media` | id, filename, filepath, filetype, filesize, title, alt_text, caption, uploaded_by, uploaded_at |
+| `custom_fonts` | id, name, slug, format, file_path, css_path, source (`upload`/`google-fonts-local`) |
 
-Das zeigt, dass die maßgebliche Schema-Logik in einer externen Manager-Schicht liegt. Die Laufzeit-Dokumentation sollte daher die Schema-Schicht als Manager-Layer beschreiben und nicht als monolithische Datenbankklasse.
+**Mitglieder & Kommunikation**
 
-## Betriebshinweise
+| Tabelle | Spalten |
+|---|---|
+| `messages` | id, sender_id, recipient_id, subject, body, is_read, read_at, parent_id, deleted_by_sender, deleted_by_recipient, created_at |
+| `notifications` | id, user_id, type, title, message, url, is_read, read_at, created_at |
+| `favorites` | id, user_id, post_id, created_at |
 
-- `Database::prepare()` wirft eine Exception, wenn die PDO-Verbindung nicht verfügbar ist.
-- `Database::query()` führt nur unparametrisierte SQL-Anweisungen für vertrauenswürdige Statements aus.
-- `Database::execute()` ist der parametrisierte Pfad.
-- Im Debug-Modus kann Abfrage-Telemetrie über `Debug::query()` ausgegeben werden.
+**Abos & Bestellungen**
+
+| Tabelle | Spalten |
+|---|---|
+| `subscription_plans` | Preise, Limits (`limit_*`), Plugin-Freigaben (`plugin_*`), Features (`feature_*`), is_active, sort_order |
+| `user_subscriptions` | user_id, plan_id, status, billing_cycle, start_date, end_date, next_billing_date, cancelled_at |
+| `subscription_usage` | user_id, resource_type, current_count, last_updated |
+| `orders` | order_number, user_id, plan_id, Beträge, currency, status, payment_method, billing_cycle, Adressdaten, contact_data |
+
+**System, Plugins, Themes**
+
+| Tabelle | Spalten |
+|---|---|
+| `settings` | id, option_name (eindeutig), option_value, autoload |
+| `plugins`, `plugin_meta` | Plugin-Registry und Metadaten (aktive Plugins zusätzlich in Option `active_plugins`) |
+| `theme_customizations` | theme_slug, setting_category, setting_key, setting_value, user_id |
+| `cache` | cache_key, cache_value, expires_at |
+| `activity_log` | user_id, action, entity_type, entity_id, description, ip_address, user_agent, metadata |
+| `audit_log` | user_id, category, action, entity_type, entity_id, description, ip_address, user_agent, metadata, severity |
+| `security_log` | action, ip_address, request_uri, user_agent, rule_matched, user_id, extra |
+| `page_views` | page_id, page_slug, page_title, user_id, session_id, ip_address (anonymisiert), user_agent, referrer, visited_at |
+| `core_web_vitals` | page_path, device_type, connection, viewport, ttfb_ms, lcp_ms, inp_ms, cls, recorded_at |
+| `mail_log` | recipient, subject, status, transport, provider, message_id, error_message, meta, source |
+| `mail_queue` | recipient, subject, body, headers, status, attempts, max_attempts, available_at, sent_at, locked_at, attachment_*, error_category, last_error |
+| `ai_quota_usage` | scope_name, period_key, user_id, provider_id, request_count, character_count |
+
+### Bedarfsweise angelegte Tabellen
+
+| Tabelle | Angelegt von | Zweck |
+|---|---|---|
+| `seo_meta` | `SEO\SeoMetaRepository` | SEO-Felder je Seite/Beitrag |
+| `seo_dashboard_trends` | `SeoTrendService` | SEO-Kennzahlen-Verlauf |
+| `redirect_rules`, `not_found_logs` | `RedirectService` | Weiterleitungen, 404-Protokoll |
+| `firewall_rules` | `SecurityRuntimeService` | Firewall-Regeln |
+| `spam_blacklist` | `AntispamModule` | Anti-Spam-Blacklist |
+| `cookie_categories`, `cookie_services` | `CookieManagerModule` | Consent-Kategorien und Dienste |
+| `privacy_requests` | `MemberService`, `PrivacyRequestsModule`, `DeletionRequestsModule` | DSGVO-Anfragen |
+| `role_permissions` | `RolesModule`, `includes/functions/roles.php` | Capability-Overrides je Rolle |
+| `menus`, `menu_items` | `MenuEditorModule` | Navigationsmenüs |
+| `error_reports` | `ErrorReportService` | Fehlerberichte aus dem Admin |
+| `feature_usage` | `FeatureUsageService` | Nutzung von Admin-Funktionen |
+| `monitoring_trends` | `MonitoringTrendService` | Antwortzeit-, Speicher-, Cron-Verlauf |
+| `import_log`, `import_meta`, `import_items` | Plugin `cms-importer` | WordPress-Import |
+
+### Wichtige Optionen in `cms_settings`
+
+| Option | Inhalt |
+|---|---|
+| `db_schema_version`, `installed_cms_version`, `installed_cms_schema_version` | Versionsstände |
+| `active_plugins` | JSON-Liste aktiver Plugin-Slugs |
+| `active_theme` | aktives Theme |
+| `site_name`, `site_url`, `language`, … | allgemeine Einstellungen ([../admin/system-settings/SYSTEM.md](../admin/system-settings/SYSTEM.md)) |
+| `seo_*`, `perf_*`, `firewall_*`, `antispam_*`, `cookie_*`, `member_*`, `legal_*`, `cms_loginpage_*` | Einstellungen der jeweiligen Bereiche |
+| Gruppen über `SettingsService` (`mail`, `core_modules`, `ai.*`, `cron`, …) | gruppierte, teils verschlüsselte Werte (`enc:`/`json:`) |
+
+### Hinweise für Entwickler
+
+- Tabellennamen immer über `getPrefix()` bilden, nie hart codieren.
+- Eigene Plugin-Tabellen idempotent mit `CREATE TABLE IF NOT EXISTS` beim Aktivieren anlegen und bei `dsgvo_delete_data` personenbezogene Daten löschen.
+- Für Spaltenergänzungen `columnExists()` prüfen und `ALTER TABLE … ADD COLUMN` nur bei Bedarf ausführen.
+- Keine Werte in SQL interpolieren – Platzhalter `?` verwenden.
+
+### Verwandte Dokumente
+
+[ARCHITECTURE.md](ARCHITECTURE.md) · [CORE-CLASSES.md](CORE-CLASSES.md) · [../admin/system-settings/UPDATES.md](../admin/system-settings/UPDATES.md)

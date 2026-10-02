@@ -1,4 +1,5 @@
 # 365CMS – Projektdokumentation | Abschnitt: FILESTRUCTUR
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.09) | **Status:** Stable | **Update:** 2026-10-02
 
 ## Table of contents | Inhaltsverzeichnis
 
@@ -46,18 +47,14 @@ Verified top-level entries of this repository:
 |---|---|---|
 | `CMS/` | directory | **productive runtime** (web root in typical deployments) |
 | `DOC/` | directory | public project documentation |
-| `ASSETS/` | directory | source / vendor asset context **outside** the runtime |
-| `AUDIT/` | directory | audit reports (`AUDIT/audit/`, `AUDIT/changelogs/`) |
 | `RELEASE/` | directory | release packages and checksums (including `365CMS-3.4.0-*`) |
 | `SCREENSHOTS/` | directory | screenshots |
-| `TESTS/` | directory | tests (including `TESTS/release-3.4.0/`) |
-| `tools/` | directory | helper tools |
 | `README.md` | file | public project README |
 | `Changelog.md` | file | project changelog |
 | `CODE_OF_CONDUCT.md` | file | code of conduct |
 | `.gitignore` | file | git ignore rules |
 
-There is **no** `DOC/audit/` folder. Audit Markdown lives in [`AUDIT/audit/`](../AUDIT/audit/).
+`ASSETS/` (asset staging), `AUDIT/`, `TESTS/` and `tools/` are referenced in older notes and in `VendorRegistry` (staging paths) but are **not** part of this repository (state 2026-10-02); they exist only in local maintainer workspaces.
 
 There is **no** `var/` directory in this repository. Application logs are configured as `CMS/logs/` (`LOG_PATH` in `config/app.php`).
 
@@ -69,18 +66,14 @@ Verifizierte Top-Level-Einträge dieses Repositories:
 |---|---|---|
 | `CMS/` | Verzeichnis | **produktive Runtime** (in typischen Deployments das Webroot) |
 | `DOC/` | Verzeichnis | öffentliche Projektdokumentation |
-| `ASSETS/` | Verzeichnis | Quell-/Vendor-Asset-Kontext **außerhalb** der Runtime |
-| `AUDIT/` | Verzeichnis | Audit-Berichte (`AUDIT/audit/`, `AUDIT/changelogs/`) |
 | `RELEASE/` | Verzeichnis | Release-Pakete und Prüfsummen (einschließlich `365CMS-3.4.0-*`) |
 | `SCREENSHOTS/` | Verzeichnis | Screenshots |
-| `TESTS/` | Verzeichnis | Tests (einschließlich `TESTS/release-3.4.0/`) |
-| `tools/` | Verzeichnis | Hilfswerkzeuge |
 | `README.md` | Datei | öffentliches Projekt-README |
 | `Changelog.md` | Datei | Projekt-Changelog |
 | `CODE_OF_CONDUCT.md` | Datei | Verhaltenskodex |
 | `.gitignore` | Datei | Git-Ignore-Regeln |
 
-Es gibt **keinen** Ordner `DOC/audit/`. Audit-Markdown liegt in [`AUDIT/audit/`](../AUDIT/audit/).
+`ASSETS/` (Asset-Staging), `AUDIT/`, `TESTS/` und `tools/` werden in älteren Notizen und in `VendorRegistry` (Staging-Pfade) erwähnt, sind aber **nicht** Teil dieses Repositories (Stand 2026-10-02); sie existieren nur in lokalen Maintainer-Arbeitsständen.
 
 Es gibt **kein** Verzeichnis `var/` in diesem Repository. Anwendungslogs sind als `CMS/logs/` konfiguriert (`LOG_PATH` in `config/app.php`).
 
@@ -120,7 +113,7 @@ Broken historical links (do **not** use):
 - `DOC/ASSET.md` — actual path is `DOC/assets/ASSET.md`
 - `DOC/ASSETS_NEW.md` — actual path is `DOC/assets/ASSETS_NEW.md`
 - `DOC/ASSETS_OwnAssets.md` — actual path is `DOC/assets/ASSETS_OwnAssets.md`
-- `DOC/audit/` — actual path is `AUDIT/audit/`
+- `DOC/audit/` / `AUDIT/` — not present in this repository
 - `DOC/_cms_inventory_current.txt` — file does not exist
 
 **Deutsch**
@@ -155,7 +148,7 @@ Historisch kaputte Links (nicht verwenden):
 - `DOC/ASSET.md` — tatsächlicher Pfad: `DOC/assets/ASSET.md`
 - `DOC/ASSETS_NEW.md` — tatsächlicher Pfad: `DOC/assets/ASSETS_NEW.md`
 - `DOC/ASSETS_OwnAssets.md` — tatsächlicher Pfad: `DOC/assets/ASSETS_OwnAssets.md`
-- `DOC/audit/` — tatsächlicher Pfad: `AUDIT/audit/`
+- `DOC/audit/` / `AUDIT/` — in diesem Repository nicht vorhanden
 - `DOC/_cms_inventory_current.txt` — Datei existiert nicht
 
 ---

@@ -1,45 +1,52 @@
-> **Stand:** 2026-09-26 | **Version:** 3.4.02 | **Status:** Stable
+# 365CMS
+
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.09) | **Status:** Stable | **Website:** [365cms.de](https://365cms.de/)
 
 ## English
 
 ### What is 365CMS?
 
-365CMS is a self-hosted PHP CMS and portal platform for content, members, themes, plugins, SEO, privacy and day-to-day operations. The runtime is located in [`CMS/`](CMS/); the public documentation is maintained in [`DOC/`](DOC/).
+365CMS is a self-hosted, framework-less PHP CMS and portal platform for content, members, themes, plugins, SEO, privacy and day-to-day operations. The runtime is located in [`CMS/`](CMS/); the public documentation is maintained in [`DOC/`](DOC/).
 
-The current product version is defined by [`CMS/core/Version.php`](CMS/core/Version.php). Release `3.4.00` requires PHP `8.4+` and uses schema version `v22`.
+| Key fact | Value |
+|---|---|
+| Core version | `3.4.00` ([`CMS/core/Version.php`](CMS/core/Version.php), released 2026-09-05, status `stable`) |
+| Latest changelog entry | `3.4.09` (documentation refresh, 2026-10-02) – entries after 3.4.00 do not change the version constant |
+| PHP | `8.4+` (`CMS_MIN_PHP_VERSION`) |
+| Database | MySQL / MariaDB via PDO, table prefix `cms_`, schema version `v22` |
+| Shipped theme / plugin | `cms-default` (Meridian CMS Default) / `cms-importer` (WordPress importer) |
 
 ### Core capabilities
 
 | Area | Current runtime capability |
 |---|---|
-| Content | Pages, posts, EditorJS blocks, revisions, categories and tags |
-| Administration | Dashboard, users, roles, settings, media, SEO, updates and diagnostics |
-| Members | Member area, profiles, notifications and protected features |
-| Security | CSRF protection, capability checks, secure sessions, audit logging and hardened uploads |
-| Extensions | Runtime plugins in `CMS/plugins/` and themes in `CMS/themes/` |
-| Operations | Cache, logs, backups, cron, schema updates and update packages |
+| Content | Pages, posts, Editor.js blocks (SunEditor as legacy option), revisions, categories, tags, scheduled publishing, DE/EN content, hub sites, site tables, TOC |
+| Administration | Dashboard, users, groups, roles/capabilities, settings, media library, menus, themes, customizer, fonts, module manager |
+| Members | Member area under `/member`: dashboard, profile, security (MFA, passkeys, sessions), media, messages, notifications, favorites, privacy, subscriptions, plugin sections |
+| SEO & legal | Meta/OG/schema, sitemaps, redirects/404 monitor, analytics with consent, legal-text generator, cookie manager, GDPR export/deletion requests |
+| Security | CSRF tokens per action, capability checks, CSP with nonces and Trusted Types, rate limits, MFA/TOTP, WebAuthn, LDAP, audit log, hardened uploads |
+| AI (optional) | Admin-only AI services: translation of Editor.js content and SEO metadata with provider policy and quotas – no public AI routes |
+| Extensions | Plugins in `CMS/plugins/`, themes in `CMS/themes/`, marketplace with SHA-256-verified installs |
+| Operations | Cache/performance, logs, backups/restore, cron (`cron.php`), mail queue (SMTP or Microsoft Graph), monitoring, schema and core updates |
 
 ### Requirements
 
-- PHP `8.4+`
-- PDO with `pdo_mysql`
-- A MySQL- or MariaDB-compatible database
-- A web server configured to serve the `CMS/` directory
-- Writable runtime directories required by the installer, including configuration, logs, cache, uploads and backups
-
-The installer performs the authoritative environment checks. See [`DOC/INSTALLATION.md`](DOC/INSTALLATION.md) for the complete procedure.
+- PHP `8.4+` with `pdo`, `pdo_mysql`, `mbstring`, `json`, `curl`, `gd`, `zip`
+- MySQL- or MariaDB-compatible database
+- Web server (Apache with `.htaccess` or nginx with equivalent rules) serving `CMS/`
+- Writable `config/`, `uploads/`, `cache/`, `logs/`, `backups/`
 
 ### Quick start
 
 ```text
-1. Deploy the contents of CMS/ to the web root or configure the web root to CMS/.
-2. Open install.php in the browser.
-3. Enter database, site and administrator values.
-4. Complete the schema installation or update.
-5. Remove or protect the installer after completion.
+1. Deploy the contents of CMS/ to the web root (or point the web root to CMS/).
+2. Open /install.php in the browser and follow the steps (environment, database, site, administrator).
+3. The installer writes CMS/config/app.php and locks itself afterwards.
+4. Log in at /cms-login, open /admin and review settings, mail and backups.
+5. Set up the cron job (php CMS/cron.php --task=all).
 ```
 
-The runtime entry points are [`CMS/index.php`](CMS/index.php) and [`CMS/install.php`](CMS/install.php). Do not copy installation-specific configuration, logs, uploads or backups into a release archive.
+Never ship installation-specific `config/`, `uploads/`, `cache/`, `logs/` or `backups/` in a release archive.
 
 ### Documentation
 
@@ -48,41 +55,67 @@ The runtime entry points are [`CMS/index.php`](CMS/index.php) and [`CMS/install.
 | Documentation hub | [`DOC/README.md`](DOC/README.md) |
 | Documentation index | [`DOC/INDEX.md`](DOC/INDEX.md) |
 | Installation | [`DOC/INSTALLATION.md`](DOC/INSTALLATION.md) |
-| Runtime structure | [`DOC/FILESTRUCTUR.md`](DOC/FILESTRUCTUR.md) |
-| Core developer reference | [`DOC/DEVLIST.md`](DOC/DEVLIST.md) |
-| Security and audits | [`AUDIT/audit/`](AUDIT/audit/) |
+| Architecture / core status | [`DOC/core/ARCHITECTURE.md`](DOC/core/ARCHITECTURE.md) · [`DOC/core/STATUS.md`](DOC/core/STATUS.md) |
+| Admin panel | [`DOC/admin/README.md`](DOC/admin/README.md) |
+| Plugin / theme development | [`DOC/plugins/PLUGIN-DEVELOPMENT.md`](DOC/plugins/PLUGIN-DEVELOPMENT.md) · [`DOC/theme/THEME-DEVELOPMENT.md`](DOC/theme/THEME-DEVELOPMENT.md) |
+| Workflows | [`DOC/workflow/`](DOC/workflow/) |
 | Release history | [`Changelog.md`](Changelog.md) |
 | Community rules | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) |
 
 ### Contributing and security
 
-Please keep changes focused, document behavior changes and validate PHP syntax before opening a pull request. Follow the project [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) and report security issues privately to the maintainers rather than publishing exploit details in a public issue.
+Keep changes focused, document behavior changes in `DOC/` and [`Changelog.md`](Changelog.md), and validate PHP syntax (`php -l`) before opening a pull request. Report security issues privately to the maintainers instead of publishing exploit details in a public issue.
 
 ## Deutsch
 
 ### Was ist 365CMS?
 
-365CMS ist ein selbst gehostetes PHP-CMS und Portal-System für Inhalte, Mitglieder, Themes, Plugins, SEO, Datenschutz und den laufenden Betrieb. Die Runtime liegt unter [`CMS/`](CMS/); die öffentliche Projektdokumentation liegt unter [`DOC/`](DOC/).
+365CMS ist ein selbst gehostetes, frameworkfreies PHP-CMS und Portal-System für Inhalte, Mitglieder, Themes, Plugins, SEO, Datenschutz und den laufenden Betrieb. Die Runtime liegt unter [`CMS/`](CMS/), die öffentliche Projektdokumentation unter [`DOC/`](DOC/).
 
-Die aktuelle Produktversion wird in [`CMS/core/Version.php`](CMS/core/Version.php) definiert. Release `3.4.00` benötigt PHP `8.4+` und verwendet die Schema-Version `v22`.
+| Eckdaten | Wert |
+|---|---|
+| Core-Version | `3.4.00` ([`CMS/core/Version.php`](CMS/core/Version.php), veröffentlicht 2026-09-05, Status `stable`) |
+| Letzter Changelog-Eintrag | `3.4.09` (Dokumentations-Aktualisierung, 2026-10-02) – Einträge nach 3.4.00 ändern die Versionskonstante nicht |
+| PHP | `8.4+` (`CMS_MIN_PHP_VERSION`) |
+| Datenbank | MySQL / MariaDB über PDO, Tabellenpräfix `cms_`, Schema-Version `v22` |
+| Mitgeliefertes Theme / Plugin | `cms-default` (Meridian CMS Default) / `cms-importer` (WordPress-Import) |
 
 ### Zentrale Funktionen
 
 | Bereich | Aktuelle Runtime-Funktion |
 |---|---|
-| Inhalte | Seiten, Beiträge, EditorJS-Blöcke, Revisionen, Kategorien und Tags |
-| Administration | Dashboard, Benutzer, Rollen, Einstellungen, Medien, SEO, Updates und Diagnose |
-| Mitglieder | Mitgliederbereich, Profile, Benachrichtigungen und geschützte Funktionen |
-| Sicherheit | CSRF-Schutz, Capability-Prüfungen, sichere Sessions, Audit-Logging und gehärtete Uploads |
-| Erweiterungen | Runtime-Plugins unter `CMS/plugins/` und Themes unter `CMS/themes/` |
-| Betrieb | Cache, Logs, Backups, Cron, Schema-Updates und Update-Pakete |
+| Inhalte | Seiten, Beiträge, Editor.js-Blöcke (SunEditor als Legacy-Option), Revisionen, Kategorien, Tags, geplante Veröffentlichung, DE/EN-Inhalte, Hub-Sites, Site-Tabellen, Inhaltsverzeichnis |
+| Administration | Dashboard, Benutzer, Gruppen, Rollen/Capabilities, Einstellungen, Medienbibliothek, Menüs, Themes, Customizer, Schriften, Modul-Manager |
+| Mitglieder | Mitgliederbereich unter `/member`: Dashboard, Profil, Sicherheit (MFA, Passkeys, Sitzungen), Medien, Nachrichten, Benachrichtigungen, Favoriten, Datenschutz, Abos, Plugin-Bereiche |
+| SEO & Recht | Meta/OG/Schema, Sitemaps, Weiterleitungen/404-Monitor, Analytics mit Einwilligung, Rechtstexte-Generator, Cookie-Manager, DSGVO-Auskunft/-Löschung |
+| Sicherheit | CSRF-Token je Aktion, Capability-Prüfungen, CSP mit Nonces und Trusted Types, Rate-Limits, MFA/TOTP, WebAuthn, LDAP, Audit-Log, gehärtete Uploads |
+| KI (optional) | AI Services nur im Admin: Übersetzung von Editor.js-Inhalten und SEO-Metadaten mit Provider-Policy und Quotas – keine öffentlichen AI-Routen |
+| Erweiterungen | Plugins in `CMS/plugins/`, Themes in `CMS/themes/`, Marketplace mit SHA-256-geprüfter Installation |
+| Betrieb | Cache/Performance, Logs, Backups/Wiederherstellung, Cron (`cron.php`), Mail-Queue (SMTP oder Microsoft Graph), Monitoring, Schema- und Core-Updates |
 
-### Voraussetzungen und Schnellstart
+### Voraussetzungen
 
-Benötigt werden PHP `8.4+`, PDO mit `pdo_mysql`, eine MySQL- oder MariaDB-kompatible Datenbank sowie ein Webserver, der das Verzeichnis `CMS/` ausliefert. Der Installer prüft die verbindlichen Voraussetzungen und benötigt Schreibrechte für die vorgesehenen Runtime-Verzeichnisse.
+- PHP `8.4+` mit `pdo`, `pdo_mysql`, `mbstring`, `json`, `curl`, `gd`, `zip`
+- MySQL- oder MariaDB-kompatible Datenbank
+- Webserver (Apache mit `.htaccess` oder nginx mit gleichwertigen Regeln), der `CMS/` ausliefert
+- Schreibrechte für `config/`, `uploads/`, `cache/`, `logs/`, `backups/`
 
-Die vollständige Installationsanleitung steht unter [`DOC/INSTALLATION.md`](DOC/INSTALLATION.md). Nach der Installation muss [`CMS/install.php`](CMS/install.php) entfernt oder geschützt werden.
+### Schnellstart
 
-### Mitwirken
+```text
+1. Inhalt von CMS/ in den Webroot kopieren (oder Webroot auf CMS/ zeigen lassen).
+2. /install.php im Browser öffnen und den Schritten folgen (Umgebung, Datenbank, Website, Administrator).
+3. Der Installer schreibt CMS/config/app.php und sperrt sich danach selbst.
+4. Unter /cms-login anmelden, /admin öffnen, Einstellungen, Mailversand und Backups prüfen.
+5. Cronjob einrichten (php CMS/cron.php --task=all).
+```
 
-Bitte Änderungen fokussiert halten, Verhaltensänderungen dokumentieren und die PHP-Syntax vor einem Pull Request prüfen. Für das Projekt gelten [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) und die privaten Meldewege für Sicherheitsprobleme.
+Installationsspezifische Verzeichnisse (`config/`, `uploads/`, `cache/`, `logs/`, `backups/`) gehören nie in ein Release-Archiv. Details: [`DOC/INSTALLATION.md`](DOC/INSTALLATION.md) und [`DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md`](DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md).
+
+### Dokumentation
+
+Einstieg ist [`DOC/README.md`](DOC/README.md), die vollständige Liste steht in [`DOC/INDEX.md`](DOC/INDEX.md). Bekannte Abweichungen zwischen Code und erwartetem Verhalten sind in [`DOC/core/STATUS.md`](DOC/core/STATUS.md) („Bekannte Lücken“) gesammelt.
+
+### Mitwirken und Sicherheit
+
+Bitte Änderungen fokussiert halten, Verhaltensänderungen in `DOC/` und [`Changelog.md`](Changelog.md) dokumentieren und die PHP-Syntax (`php -l`) vor einem Pull Request prüfen. Es gilt der [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md); Sicherheitsprobleme bitte privat an die Maintainer melden.

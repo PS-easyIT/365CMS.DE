@@ -1,13 +1,51 @@
-# 365CMS – Projektdokumentation | Abschnitt: Admin – Security Audit
+# 365CMS – Projektdokumentation | Abschnitt: Admin – Sicherheits-Audit
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
+> **Route:** `/admin/security-audit` | **Capability:** `manage_settings` | **Core-Modul:** `security`
 
-Security-audit information is available at `/admin/security-audit`. The related entries are `CMS/admin/security-audit.php` and `CMS/admin/logs-security-audit.php`; the current module is `CMS/admin/modules/security/SecurityAuditModule.php`. Audit views are under `CMS/admin/views/security/` and `CMS/admin/views/logs/`.
+## English (summary)
 
-The module reads bounded audit data, sanitizes displayed details, and reports operational failures without exposing secrets. Use the audit view for review; it is not a substitute for access control or a complete external security assessment.
+`/admin/security-audit` (`CMS/admin/security-audit.php` → `CMS/admin/modules/security/SecurityAuditModule.php` → `CMS/admin/views/security/audit.php`) runs an on-demand configuration check of the installation (`run_audit`) and lists the latest 50 audit-log entries. `clear_log` deletes security audit entries older than 30 days. Each check reports `ok`, `warning` or `critical`.
 
 ## Deutsch
 
-Sicherheits-Audit-Informationen sind unter `/admin/security-audit` verfügbar. Zugehörige Einstiege sind `CMS/admin/security-audit.php` und `CMS/admin/logs-security-audit.php`; das aktuelle Modul ist `CMS/admin/modules/security/SecurityAuditModule.php`. Audit-Ansichten liegen unter `CMS/admin/views/security/` und `CMS/admin/views/logs/`.
+### Prüfpunkte (`run_audit`)
 
-Das Modul liest begrenzte Audit-Daten, bereinigt angezeigte Details und meldet Betriebsfehler ohne Geheimnisse offenzulegen. Die Audit-Ansicht dient der Prüfung; sie ersetzt weder Zugriffskontrolle noch eine vollständige externe Sicherheitsbewertung.
+| Prüfpunkt | Was geprüft wird |
+|---|---|
+| HTTPS aktiv | `SITE_URL` bzw. aktuelle Anfrage über HTTPS |
+| PHP-Version | `ok` ab 8.2, `warning` bei 8.1, sonst `critical`. Hinweis: Die Prüfschwelle ist älter als die Systemvoraussetzung – 365CMS 3.4 benötigt PHP **8.4** (`min_php` in `CMS/update.json`). |
+| `install.php` entfernt | Installer nach der Einrichtung nicht mehr erreichbar |
+| Debug-Modus | `CMS_DEBUG` in Produktion aus |
+| Uploads-Schutz (.htaccess) | `CMS/uploads/.htaccess` vorhanden (siehe [../media/MEDIA.md](../media/MEDIA.md)) |
+| Passwort-Policy | Mindestlänge und Zeichenklassen aktiv |
+| CSRF-Token-System | Token-Erzeugung und -Prüfung funktionsfähig |
+| Content-Security-Policy | CSP-Header gesetzt |
+| Trusted Types | CSP-Direktive für Trusted Types |
+| Strict-Transport-Security | HSTS gemäß `CMS_HSTS_MODE` / `CMS_HSTS_MAX_AGE` |
+| `.htaccess`-Sicherheits-Fallback | Schutzregeln im Webroot (max. 128 KB gelesen) |
+| Letztes Backup | Alter der jüngsten Sicherung |
+| Admin-Passwort-Hashes | Administratoren mit aktuellem Hash-Verfahren |
+| Firewall Runtime aktiv | `firewall_enabled` |
+| AntiSpam Runtime aktiv | `antispam_enabled`, Formular-Anbindung aktiver Kontakt-Plugins |
+| Unerwartete Runtime-Fremdassets | Keine unbekannten externen Skripte/Styles |
+| Editor.js Alt-Embeds gehärtet | Alte Embed-Blöcke ohne unsichere iframes |
+| Dateien vorhanden / Berechtigungen | `config.php`, `config/app.php` und weitere kritische Dateien mit restriktiven Rechten |
+
+Das Ergebnis zeigt Zähler (bestanden / Warnung / kritisch) und je Prüfpunkt einen Hinweis zur Behebung. Der Lauf selbst wird im Audit-Log festgehalten.
+
+### Audit-Log
+
+- Anzeige der letzten **50** Einträge aus dem Sicherheits-Audit-Log (`cms_audit_log`, Kategorie Sicherheit).
+- `clear_log` löscht Einträge älter als **30 Tage**.
+- Vollständige Auswertung mit Filtern: `/admin/logs/security-audit`.
+
+### Empfehlungen
+
+1. Audit nach jeder Installation, jedem Update und jeder Server-Änderung ausführen.
+2. Kritische Punkte sofort beheben (z. B. `install.php` löschen, Debug aus, HTTPS erzwingen).
+3. Warnungen bewerten und dokumentieren, falls bewusst akzeptiert.
+
+### Verwandte Dokumente
+
+[FIREWALL.md](FIREWALL.md) · [ANTISPAM.md](ANTISPAM.md) · [../../core/SECURITY.md](../../core/SECURITY.md) · [../PRUEF-CHECKLISTE.md](../PRUEF-CHECKLISTE.md)

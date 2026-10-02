@@ -1,5 +1,5 @@
-> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00 (Changelog bis 3.4.08)
+> **Datum:** 2026-09-06 | **Status:** Stable – **Zuletzt aktualisiert am:** 2026-10-02 (Abgleich mit `MemberRouter`, `MemberController`, `PluginDashboardRegistry`)
 > **Kurzbeschreibung:** Vollständige Referenz des privaten Member-Bereichs mit Seiten, Routing, Einstellungen, Erweiterungspunkten, Sicherheit und Fallbacks. Die Angaben entsprechen dem Code-Stand von Version 3.4.00.
 
 # 365CMS Member Area
@@ -73,3 +73,38 @@ Die Steuerung liest `MemberDashboardModule::getRuntimeSettings()` und ergänzt s
 Alle Mitgliedsdaten sind auf den authentifizierten Benutzer begrenzt. Medien liegen unter `member/user-{id}`; normalisierte Pfade verhindern Traversal. Das Abonnement erscheint nur bei aktivem `subscription_visible` und aktiviertem Modul `subscription_member_area`. Ein Admin-Portal-Link erscheint nur bei erfolgreichem `canAccessAdminPortal()`.
 
 Details stehen in [MEMBER-ROUTES.md](MEMBER-ROUTES.md), [MEMBER-DASHBOARD.md](MEMBER-DASHBOARD.md) und [MEMBER-SECURITY.md](MEMBER-SECURITY.md).
+
+---
+
+## Ergänzung (Stand 2026-10-02): Formularaktionen je Seite
+
+Alle Formulare senden `POST` an die eigene Seite mit Feld `action` und `csrf_token` (Kontext `member_<aktion>`, siehe [MEMBER-SECURITY.md](MEMBER-SECURITY.md)). Nach der Verarbeitung leitet der Controller mit Flash-Meldung zurück (PRG).
+
+| Seite | `action` | Wirkung |
+|---|---|---|
+| `/member/profile` | `profile_save` | Stammdaten und aktivierte Profilfelder (inkl. eigener Felder) speichern; Pflichtfelder laut Admin-Konfiguration |
+| `/member/security` | `password_change` | Passwort ändern (aktuelles Passwort, Richtlinie: 12 Zeichen + Zeichenklassen), setzt `password_changed_at` |
+| | `totp_start` / `totp_confirm` / `totp_disable` | Authenticator-App einrichten (QR-Code), mit Code bestätigen → Backup-Codes werden einmalig angezeigt; deaktivieren |
+| | `backup_generate` | neue Backup-Codes erzeugen (alte werden ungültig) |
+| | `passkey_register` / `passkey_delete` | Passkey (WebAuthn) hinzufügen bzw. entfernen |
+| `/member/notifications` | `notifications_save` | E-Mail-Benachrichtigungen (Sicherheit, Updates, Marketing), Browser-/Desktop-/Mobil-Hinweise, Häufigkeit, neue Funktionen/Aktionen |
+| `/member/messages` | `message_send` | Nachricht an Benutzer-ID oder Benutzername senden, Antwort über `parent_id` (Thread) |
+| `/member/media` | `media_folder_create`, `media_folder_delete`, `media_delete`, `media_rename`, `media_move` | eigene Dateien unter `uploads/member/user-<id>/` verwalten; Löschen nur bei `member_delete_own` |
+| | Upload | per JavaScript an `POST /api/upload` (nur wenn `member_uploads_enabled`), Größe/Typen laut Medien-Einstellungen (`member_max_upload_size`, `member_allowed_types`) |
+| `/member/privacy` | `privacy_save` | Profil-Sichtbarkeit, öffentliche Felder, E-Mail anzeigen, Aktivitäten anzeigen |
+| | `privacy_export` | sofortiger JSON-Download aller eigenen Daten (`member-export-<id>.json`) |
+| | `privacy_delete_request` | Löschantrag: Status `pending_deletion`, Ausführung frühestens nach 30 Tagen durch Administratoren ([../admin/legal/DELETION-REQUESTS.md](../admin/legal/DELETION-REQUESTS.md)) |
+| `/member/favorites` | – | Liste gemerkter Beiträge/Seiten (Merken über das Theme) |
+| `/member/subscription` | – | aktuelles Paket, Limits/Nutzung, Verlängerungshinweise, eigene Bestellungen |
+
+### Menü
+
+Reihenfolge: Dashboard (falls aktiv) · Profil · Sicherheit · Benachrichtigungen · Nachrichten · Dateien · Favoriten · Datenschutz · Abo & Bestellungen (falls sichtbar) · Plugin-Bereiche · „Adminmenü“ (nur Administratoren). Plugins erweitern das Menü über `PluginDashboardRegistry` bzw. den Filter `member_menu_items`.
+
+### Theme-Overrides
+
+Ein Theme kann jede Seite ersetzen, indem es `CMS/themes/<theme>/member/<seite>.php` mitliefert (z. B. `member/dashboard.php`). Das mitgelieferte Theme `cms-default` nutzt die Core-Seiten unter `CMS/member/`.
+
+### Konfiguration
+
+Alle Einstellungen des Mitgliederbereichs werden im Admin unter *Mitglieder-Dashboard* gepflegt: [../admin/member/README.md](../admin/member/README.md). Registrierung und Anmeldeverfahren: [../admin/users-groups/AUTH-SETTINGS.md](../admin/users-groups/AUTH-SETTINGS.md).
