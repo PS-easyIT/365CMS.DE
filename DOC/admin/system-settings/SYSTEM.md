@@ -1,25 +1,58 @@
-# 365CMS – Projektdokumentation | Abschnitt: System
+# 365CMS – Projektdokumentation | Abschnitt: Admin – Allgemeine Einstellungen
 
-## English
-### Purpose
-System maintenance and system information are administered at `/admin/settings`.
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
+> **Route:** `/admin/settings` (Tabs `general`, `content`) | **Capability:** `manage_settings` | **CSRF-Aktion:** `admin_settings`
 
-### Implementation
-- Entries: `CMS/admin/info.php`, `CMS/admin/system-info.php`
-- Modules: `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/modules/system/DocumentationSyncFilesystem.php`
-- Core: `CMS/core/Services/SystemService.php`, `CMS/core/MigrationManager.php`, `CMS/core/Routing/AdminRouter.php`
+## English (summary)
 
-### Rules
-Read the current status before maintenance. Repair or migration actions require explicit capability and CSRF/nonce validation, normalized inputs, and audit logging. Keep the admin shell usable when optional diagnostics fail.
+`/admin/settings` (`CMS/admin/settings.php` → `CMS/admin/modules/settings/SettingsModule.php` → `CMS/admin/views/settings/general.php`) holds the site-wide configuration. Tab `general` covers website identity, localisation, mail hints, member/registration hints, marketplace and update endpoints, maintenance mode and advanced options; tab `content` is described in [../pages-posts/SETTINGS.md](../pages-posts/SETTINGS.md). Actions: `save`, `run_site_url_migration`, `repair_imported_slugs`.
+
+**Important:** `save` writes most values to `cms_settings` **and regenerates `CMS/config/app.php`** (site name, URL, admin e-mail, DB credentials and keys are carried over). Custom constants such as `LDAP_*`, `JWT_*`, `SMTP_*` or `CMS_HTTPS_REDIRECT_STRATEGY` that were edited directly in `config/app.php` are reset to their defaults. Define such values in `CMS/config.php` *before* `config/app.php` is loaded, or re-apply them after saving.
 
 ## Deutsch
-### Zweck
-Systemwartung und Systeminformationen werden unter `/admin/settings` verwaltet.
 
-### Implementierung
-- Einstiege: `CMS/admin/info.php`, `CMS/admin/system-info.php`
-- Module: `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/modules/system/DocumentationSyncFilesystem.php`
-- Core: `CMS/core/Services/SystemService.php`, `CMS/core/MigrationManager.php`, `CMS/core/Routing/AdminRouter.php`
+### Tab „Allgemein“
 
-### Regeln
-Vor Wartungen den aktuellen Status lesen. Reparatur- und Migrationsaktionen benötigen Capability, CSRF/Nonce, normalisierte Eingaben und Audit-Protokollierung. Bei optionalen Diagnosefehlern bleibt die Admin-Shell nutzbar.
+| Bereich | Felder (Option) | Hinweise |
+|---|---|---|
+| Website | Name (`site_name`), Beschreibung (`site_description`), URL (`site_url`), Logo (`site_logo`), Favicon (`site_favicon`), Admin-E-Mail (`admin_email`) | URL muss gültig sein; Logo/Favicon als Medienreferenz |
+| Lokalisierung | Sprache (`language`: de, en, fr, es, it, nl, pl, pt), Zeitzone (`timezone`, z. B. Europe/Berlin, Europe/Vienna, Europe/Zurich, UTC …), Datums-/Zeitformat (`date_format`, `time_format`) | |
+| Mail-System | Hinweis und Link auf `/admin/mail-settings` | eigentliche Konfiguration siehe [MAIL.md](MAIL.md) |
+| Inhalte | Beiträge pro Seite (`posts_per_page`, 1–100), Kommentare aktiv (`comments_enabled`) | Benutzer-/Auth-Optionen liegen unter `/admin/user-settings` |
+| Marketplace & Updates | Marketplace aktiv (`marketplace_enabled`), Plugin-Registry (`plugin_registry_url`), Theme-Marktplatz (`theme_marketplace_url`), Core-Update-Quelle (`core_update_url`) | Standard: `https://365cms.de/marketplace/plugins/index.json`, `…/marketplace/themes`, `…/marketplace/core/365cms/update.json` |
+| Wartungsmodus | `maintenance_mode`, `maintenance_message` | Wird gespeichert, in 3.4.00 aber von keinem Core-Router ausgewertet – das Frontend bleibt erreichbar. Themes/Plugins können die Option lesen; für echte Wartungsfenster den Webserver (z. B. 503-Seite) nutzen |
+| Erweitert | Google-Analytics-Altfeld (`google_analytics`), `robots_txt` | Tracking besser über [../seo/ANALYTICS.md](../seo/ANALYTICS.md) |
+
+### Site-URL-Migration (`run_site_url_migration`)
+
+Nach einem Domainumzug ersetzt die Aktion die alte Domain (`migrate_from_site_url`) durch die neue in allen relevanten Tabellen und Spalten, u. a. `settings`, `user_meta`, Inhalte/Auszüge/Beitragsbilder von `pages` und `posts`, `landing_sections`, `plugins`, `plugin_meta`, `theme_customizations`, `site_tables`, `redirect_rules`, `messages`, `comments`, Logs sowie `mail_queue`. Vorher **unbedingt ein Backup** anlegen ([BACKUP.md](BACKUP.md)).
+
+Die angezeigte „aktive Runtime-URL“ ist der tatsächlich verwendete Wert aus `SITE_URL`.
+
+### Speichern und `config/app.php`
+
+`SettingsModule::saveSettings()`:
+
+1. validiert alle Felder (Allowlists für Sprache, Zeitzone, Editor, Status; URL-Prüfungen für Marketplace-Endpunkte),
+2. speichert Optionen in `cms_settings` (`SETTINGS_KEYS`),
+3. erzeugt `CMS/config/app.php` aus der Vorlage neu, übernimmt dabei DB-Zugang, `AUTH_KEY`/`SECURE_AUTH_KEY`/`NONCE_KEY`, `CMS_DEBUG`, `SITE_NAME`, `SITE_URL`, `ADMIN_EMAIL` und prüft die Datei vor dem Schreiben auf gültige PHP-Syntax.
+
+> **Achtung:** Die Vorlage setzt `LDAP_*`, `JWT_*`, `SMTP_*`, HTTPS-/HSTS-Konstanten und die Zeitzone (`Europe/Berlin`) auf Standardwerte zurück. Eigene Werte daher in `CMS/config.php` vor dem Einbinden von `config/app.php` definieren (die Vorlage nutzt `defined(...) || define(...)`) oder nach dem Speichern erneut eintragen. Mail-Zugangsdaten gehören ohnehin in `/admin/mail-settings` (verschlüsselt in der Datenbank).
+
+### Weitere Systemseiten
+
+| Seite | Dokument |
+|---|---|
+| Mail & Azure OAuth2 | [MAIL.md](MAIL.md) |
+| Module | [MODULES.md](MODULES.md) |
+| Backup & Restore | [BACKUP.md](BACKUP.md) |
+| Updates | [UPDATES.md](UPDATES.md) |
+| Dokumentation | siehe unten |
+
+### Dokumentation (`/admin/documentation`)
+
+`CMS/admin/documentation.php` → `DocumentationModule` zeigt die Markdown- und CSV-Dateien aus dem Ordner `DOC/` neben dem `CMS/`-Verzeichnis als navigierbaren Katalog an (`?doc=<pfad>`; nur `.md`/`.csv`, keine Pfad-Traversal, max. 256 KB je Datei). Relative Links zwischen Dokumenten werden umgeschrieben. Lesend, Capability `manage_settings` oder `manage_system`. Die Klassen `DocumentationSyncService`, `DocumentationGitSync` und `DocumentationGithubZipSync` (Abgleich aus GitHub) sind vorhanden, auf der Seite aber derzeit nicht als Aktion verdrahtet. `/admin/support` leitet auf diese Seite um.
+
+### Verwandte Dokumente
+
+[README.md](README.md) · [../pages-posts/SETTINGS.md](../pages-posts/SETTINGS.md) · [../../INSTALLATION.md](../../INSTALLATION.md)

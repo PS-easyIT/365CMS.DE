@@ -1,39 +1,59 @@
-# 365CMS – Projektdokumentation | Abschnitt: Admin – AI SERVICES
+# 365CMS – Projektdokumentation | Abschnitt: Admin – KI-Dienste (AI Services)
 
-## 365CMS Admin – AI Services
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
+> **Routen:** `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings` | **Core-Modul:** `ai_services` | **CSRF-Aktion:** `admin_ai_services`
 
-## English
+## English (summary)
 
-### Administrator guide
+The sidebar group **AI Services** (*KI-Dienste*) bundles five admin screens sharing one controller, `CMS/admin/ai-page.php` (sections `overview`, `translation`, `content_creator`, `seo_creator`, `settings`), with `CMS/admin/modules/system/AiServicesModule.php` and the view `CMS/admin/views/system/ai-services.php`. Read access: administrator plus `manage_settings`, `manage_system` or `manage_ai_services`; write access: `manage_settings`. Two protected JSON endpoints serve the page/post editor: `POST /admin/ai-translate-editorjs` and `POST /admin/ai-generate-seo-metadata`. There are no public AI routes and AI output is never published automatically.
 
-Use `/admin/ai-services` for the overview, `/admin/ai-settings` for provider and policy settings, `/admin/ai-translation` for Editor.js translation, `/admin/ai-content-creator` for content drafts, and `/admin/ai-seo-creator` for SEO metadata drafts. Review generated text before copying it into publishable content; generation never replaces editorial approval.
-
-Configure only approved providers and quotas. A failed readiness check, quota limit, or disabled feature gate is a safe stop. Do not paste credentials or confidential personal data into prompts.
-
-### Technical reference
-
-The five AI screens share `CMS/admin/ai-page.php`: `overview`, `translation`, `content_creator`, `seo_creator`, and `settings`. The entry shims `CMS/admin/ai-services.php`, `ai-translation.php`, `ai-content-creator.php`, `ai-seo-creator.php`, and `ai-settings.php` select the section and render `CMS/admin/views/system/ai-services.php` through the shared shell. The routes are `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, and `/admin/ai-settings`.
-
-Read access requires an administrator plus one of `manage_settings`, `manage_system`, or `manage_ai_services`; write access additionally requires `manage_settings`. Actions are section-scoped: translation saves translation settings and prompt templates, content creator saves content prompts or runs `generate_content_draft`, SEO creator saves SEO prompts, and settings manages providers, features, logging, quotas, and provider health. Unknown actions and actions sent to the wrong section are rejected.
-
-AI admin screens use the system module under `CMS/admin/modules/system/AiServicesModule.php` and services under `CMS/core/Services/AI/`. `AiProviderPolicyService` controls provider eligibility, `AiQuotaService` enforces limits, and `AiExecutionService` coordinates execution, retries, and bounded fallback. Content drafts receive task, brief, context, tone, and locale inputs, are returned inline as unsaved suggestions, and are never published automatically. Translation and SEO generation use their dedicated pipeline classes.
-
-All write requests use the admin authentication and CSRF contract. Provider credentials are stored through settings services and are excluded from logs. Monitoring records bounded metadata, not raw prompts or generated full text. External data transfer requires the configured policy gate.
+The complete user and technical documentation (providers, policies, quotas, contracts, prompts, security) is in **[../../ai/AI-SERVICES.md](../../ai/AI-SERVICES.md)**.
 
 ## Deutsch
 
-### Anwenderleitfaden
+### Seiten
 
-Die Übersicht liegt unter `/admin/ai-services`; Provider und Richtlinien werden unter `/admin/ai-settings` gepflegt. Übersetzungen öffnen `/admin/ai-translation`, Content-Entwürfe `/admin/ai-content-creator` und SEO-Entwürfe `/admin/ai-seo-creator`. Generierte Texte müssen vor Veröffentlichung fachlich geprüft werden.
+| Menüpunkt | Route | Bereich | Aktionen |
+|---|---|---|---|
+| KI-Dashboard | `/admin/ai-services` | `overview` | – (Status, Nutzung, Quotas, letzte Läufe) |
+| Übersetzung | `/admin/ai-translation` | `translation` | `save_translation`, `save_translation_prompts` |
+| Inhaltsassistent | `/admin/ai-content-creator` | `content_creator` | `save_content_prompts`, `generate_content_draft` |
+| SEO-Assistent | `/admin/ai-seo-creator` | `seo_creator` | `save_seo_prompts` |
+| Einstellungen | `/admin/ai-settings` | `settings` | `save_providers`, `delete_provider`, `save_features`, `save_logging`, `save_quotas`, `check_provider_health` |
 
-Nur freigegebene Provider und Quotas verwenden. Readiness-, Quota- oder Feature-Gate-Fehler stoppen den Vorgang sicher. Zugangsdaten und vertrauliche personenbezogene Daten gehören nicht in Prompts.
+Aktionen werden nur im passenden Bereich akzeptiert; unbekannte Aktionen werden abgelehnt.
 
-### Technische Referenz
+### Berechtigungen
 
-Die fünf AI-Seiten verwenden gemeinsam `CMS/admin/ai-page.php` mit den Bereichen `overview`, `translation`, `content_creator`, `seo_creator` und `settings`. Die Einstiegsshims `CMS/admin/ai-services.php`, `ai-translation.php`, `ai-content-creator.php`, `ai-seo-creator.php` und `ai-settings.php` wählen den Bereich; die Darstellung läuft über `CMS/admin/views/system/ai-services.php` und die gemeinsame Shell. Die Routen sind `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator` und `/admin/ai-settings`.
+| Zweck | Capability |
+|---|---|
+| Seiten ansehen | `manage_settings`, `manage_system` oder `manage_ai_services` |
+| Einstellungen ändern | `manage_settings` |
+| Editor-Übersetzung | `manage_ai_services`, `manage_settings`, `use_ai_translation` oder Bearbeitungsrecht (`manage_pages` / `edit_all_posts`) |
+| SEO-Metadaten im Editor | `manage_ai_services`, `manage_settings`, `use_ai_seo_meta` oder Bearbeitungsrecht |
 
-Für den Lesezugriff ist ein Administrator mit mindestens einer Capability aus `manage_settings`, `manage_system` oder `manage_ai_services` erforderlich; Schreibzugriffe benötigen zusätzlich `manage_settings`. Aktionen sind bereichsgebunden: Übersetzung speichert Übersetzungssettings und Promptvorlagen, der Inhaltsassistent speichert Content-Prompts oder führt `generate_content_draft` aus, der SEO-Assistent speichert SEO-Prompts und die Einstellungen verwalten Provider, Features, Logging, Quotas und Provider-Health. Unbekannte oder falsch zugeordnete Aktionen werden abgewiesen.
+Wie der gesamte Adminbereich setzen alle Seiten die Rolle `admin` voraus ([../users-groups/RBAC.md](../users-groups/RBAC.md)).
 
-Die AI-Seiten verwenden das Systemmodul unter `CMS/admin/modules/system/AiServicesModule.php` und Services unter `CMS/core/Services/AI/`. `AiProviderPolicyService` prüft Provider, `AiQuotaService` begrenzt Nutzung und `AiExecutionService` steuert Ausführung, Retries und begrenzte Fallbacks. Content-Entwürfe verarbeiten Aufgabe, Briefing, Kontext, Tonalität und Sprache, werden inline als ungespeicherte Vorschläge zurückgegeben und niemals automatisch veröffentlicht. Übersetzung und SEO-Erzeugung verwenden eigene Pipeline-Klassen.
+### Provider
 
-Schreibende Requests verwenden den Authentifizierungs- und CSRF-Vertrag des Admins. Provider-Zugangsdaten laufen über Settings-Services und werden nicht geloggt. Monitoring enthält nur begrenzte Metadaten, keine Rohprompts oder vollständigen generierten Texte. Externe Datenweitergabe erfordert das konfigurierte Policy-Gate.
+Unterstützte Typen: `mock` (lokal, Standard), `openai`, `mistral`, `openrouter` (OpenAI-kompatibel), `azure_openai`, `ollama` (selbst gehostet). Pro Provider: Endpunkt, Modell bzw. Deployment, API-Version, Secret (verschlüsselt), freigegebene Funktionen (Übersetzung, Umschreiben, Zusammenfassung, SEO, Editor.js), erlaubte Sprachen, Profil/Beta, erlaubte interne Hosts (Ollama). Ein Fallback-Provider springt nur bei vorübergehenden Fehlern ein.
+
+**Schutzmechanismen:** Cloud-Endpunkte nur über HTTPS, Ollama nur auf exakt freigegebenen internen Hosts, Datenweitergabe an externe Provider muss ausdrücklich aktiviert sein (`ai_external_provider_data_sharing_enabled`), atomare Quotas (Tabelle `cms_ai_quota_usage`), Retry max. 2, keine Speicherung von Rohprompts oder Volltexten im Log.
+
+### Einbindung im Editor
+
+- **Übersetzen:** Button „Mit AI nach EN übersetzen“ im Seiten-/Beitragseditor; blockweise Requests, Vorschau/Diff vor Übernahme.
+- **SEO-Metadaten:** erzeugt Meta-Titel, -Beschreibung, Fokus-Keyphrase, Social-Texte u. a. aus dem Inhalt; nur sichtbar, wenn `ai_services_enabled`, `ai_seo_meta_enabled` und `ai_editorjs_enabled` aktiv sind und der Provider die Editor-Sprache erlaubt.
+- Ergebnisse sind immer Vorschläge; gespeichert wird erst mit dem normalen Speichern.
+
+### Typische Einrichtung
+
+1. `/admin/modules`: Modul `ai_services` aktiv.
+2. `/admin/ai-settings`: Provider anlegen, Secret hinterlegen, Funktionen und Sprachen freigeben, `check_provider_health`.
+3. Globale Feature-Schalter setzen, Quotas festlegen, Logging-Modus wählen.
+4. Prompt-Vorlagen unter Übersetzung / Inhaltsassistent / SEO-Assistent anpassen (optional).
+5. Im Editor testen und Ergebnisse redaktionell prüfen.
+
+### Verwandte Dokumente
+
+[../../ai/AI-SERVICES.md](../../ai/AI-SERVICES.md) (vollständige Referenz) · [../../ai/AI-ASSETS.md](../../ai/AI-ASSETS.md) · [../system-settings/MODULES.md](../system-settings/MODULES.md) · [../pages-posts/PAGES.md](../pages-posts/PAGES.md)

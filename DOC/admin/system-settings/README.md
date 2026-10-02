@@ -1,33 +1,34 @@
-# 365CMS – Projektdokumentation | Abschnitt: System settings
+# 365CMS – Projektdokumentation | Abschnitt: Admin – System & Dokumentation
 
-## English
-### Scope
-This section covers AI, backups, monitoring, system information, and updates. Pages are capability-aware and may be hidden when a module is disabled.
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-### Screens
-| Area | Route | Source |
-|---|---|---|
-| AI services | `/admin/ai-services` | `CMS/admin/ai-services.php`, `CMS/admin/views/system/ai-services.php` |
-| Backups | `/admin/backups` | `CMS/admin/backups.php`, `CMS/admin/modules/system/BackupsModule.php` |
-| Monitoring | `/admin/diagnose` | `CMS/admin/system-monitor-page.php`, `CMS/core/Services/MonitoringTrendService.php` |
-| System | `/admin/settings` | `CMS/admin/info.php`, `CMS/admin/system-info.php` |
-| Updates | `/admin/updates` | `CMS/admin/updates.php`, `CMS/admin/modules/system/UpdatesModule.php` |
+## English (summary)
 
-### Common controls
-Read status and warnings first. State-changing requests require authentication, capability, CSRF/nonce validation, normalized input, and server-side allowlists. Use `CMS/core/AuditLogger.php` for security events and `CMS/core/Logger.php` for operational diagnostics. GET is read-only; verify the post-redirect result.
+This folder documents the sidebar group **System & Documentation** (settings, mail, core modules, backups, updates, documentation viewer) plus the monitoring/cron pages of the *Diagnose* group. Most pages require `manage_settings`; backups, mail and documentation also accept `manage_system` for reading.
 
 ## Deutsch
-### Umfang
-Dieser Abschnitt behandelt KI, Backups, Monitoring, Systeminformationen und Updates. Seiten sind capability-gesteuert und können bei deaktiviertem Modul fehlen.
 
-### Seiten
-| Bereich | Route | Quelle |
+### Menüpunkte
+
+| Menüpunkt | Route | Dokument |
 |---|---|---|
-| KI-Dienste | `/admin/ai-services` | `CMS/admin/ai-services.php`, `CMS/admin/views/system/ai-services.php` |
-| Backups | `/admin/backups` | `CMS/admin/backups.php`, `CMS/admin/modules/system/BackupsModule.php` |
-| Monitoring | `/admin/diagnose` | `CMS/admin/system-monitor-page.php`, `CMS/core/Services/MonitoringTrendService.php` |
-| System | `/admin/settings` | `CMS/admin/info.php`, `CMS/admin/system-info.php` |
-| Updates | `/admin/updates` | `CMS/admin/updates.php`, `CMS/admin/modules/system/UpdatesModule.php` |
+| Einstellungen | `/admin/settings` | [SYSTEM.md](SYSTEM.md) (Tab *Inhalte*: [../pages-posts/SETTINGS.md](../pages-posts/SETTINGS.md)) |
+| Mail & Azure OAuth2 | `/admin/mail-settings` | [MAIL.md](MAIL.md) |
+| Module | `/admin/modules` | [MODULES.md](MODULES.md) |
+| Backup & Restore | `/admin/backups` | [BACKUP.md](BACKUP.md) |
+| Updates | `/admin/updates` | [UPDATES.md](UPDATES.md) |
+| Dokumentation | `/admin/documentation` | [SYSTEM.md](SYSTEM.md#dokumentation-admindocumentation) |
 
-### Gemeinsame Regeln
-Status und Warnungen zuerst lesen. Zustandsändernde Anfragen benötigen Authentifizierung, Capability, CSRF/Nonce, normalisierte Eingaben und serverseitige Allowlists. `CMS/core/AuditLogger.php` protokolliert Sicherheitsereignisse, `CMS/core/Logger.php` Betriebsdiagnosen. GET bleibt lesend; das Ergebnis nach der Weiterleitung prüfen.
+### Monitoring und Cron (Gruppe *Diagnose*)
+
+Antwortzeit, Cron-Status, Speichernutzung, geplante Aufgaben, Systemprüfung, E-Mail-Alarme und Warnzentrale: [MONITORING.md](MONITORING.md). Datenbank- und Asset-Diagnose, Logs: [../diagnose/DIAGNOSE.md](../diagnose/DIAGNOSE.md).
+
+### KI
+
+KI-Einstellungen liegen in der Gruppe *KI-Dienste*: [AI-SERVICES.md](AI-SERVICES.md) → [../ai/AI-SERVICES.md](../ai/AI-SERVICES.md).
+
+### Wichtige Hinweise
+
+- **`config/app.php` wird beim Speichern der allgemeinen Einstellungen neu erzeugt.** Eigene LDAP-/JWT-/SMTP-/HTTPS-Konstanten in `CMS/config.php` definieren oder nach dem Speichern erneut setzen ([SYSTEM.md](SYSTEM.md#speichern-und-configappphp)).
+- Vor Updates, Restores und Site-URL-Migrationen immer ein Backup erstellen.
+- Geheimnisse (SMTP-Passwort, Azure-/Graph-Secrets, KI-API-Keys) werden über `SettingsService` AES-256-verschlüsselt in der Datenbank gespeichert und nie im Klartext angezeigt.

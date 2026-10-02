@@ -1,27 +1,53 @@
-# 365CMS – Projektdokumentation | Abschnitt: Orders
+# 365CMS – Projektdokumentation | Abschnitt: Admin – Bestellungen & Zuweisung
 
-## English
-### Purpose
-The orders screen lists and manages subscription orders. Open it through the capability-aware admin navigation at `/admin/orders`.
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
+> **Route:** `/admin/orders` | **Capability:** `manage_settings` | **CSRF-Aktion:** `admin_orders`
 
-### Implementation
-- Entry point: `CMS/admin/orders.php`
-- Module: `CMS/admin/modules/subscriptions/OrdersModule.php`
-- View: `CMS/admin/views/subscriptions/orders.php`
-- Shared routing/layout: `CMS/core/Routing/AdminRouter.php`, `CMS/core/Router.php`, `CMS/admin/partials/`
+## English (summary)
 
-### Operating rules
-Use the supplied filters and actions, confirm the target before a state change, and verify the post-redirect result. Handlers must authenticate the administrator, check capability and CSRF/nonce, validate allowlisted values, use prepared database operations, and escape output. Audit significant changes with `CMS/core/AuditLogger.php`.
+Orders and manual subscription assignment are handled at `/admin/orders` (`CMS/admin/orders.php` → `CMS/admin/modules/subscriptions/OrdersModule.php` → `CMS/admin/views/subscriptions/orders.php`). Orders are stored in `cms_orders`, assignments in `cms_user_subscriptions`.
+
+- Status filter: `pending`, `paid`, `cancelled`, `refunded`, `failed` (aliases `confirmed`/`completed` → `paid`).
+- Actions: `assign_subscription` (user, plan, cycle `monthly|yearly|lifetime`), `update_status`, `delete`.
+- CSV export: `?export=orders` or `?export=usage` (respects the status filter).
 
 ## Deutsch
-### Zweck
-Die Bestellseite listet und verwaltet Abonnement-Bestellungen. Öffnen Sie sie über die capability-gesteuerte Admin-Navigation unter `/admin/orders`.
 
-### Implementierung
-- Einstieg: `CMS/admin/orders.php`
-- Modul: `CMS/admin/modules/subscriptions/OrdersModule.php`
-- View: `CMS/admin/views/subscriptions/orders.php`
-- Gemeinsames Routing/Layout: `CMS/core/Routing/AdminRouter.php`, `CMS/core/Router.php`, `CMS/admin/partials/`
+### Herkunft der Bestellungen
 
-### Betriebsregeln
-Verwenden Sie Filter und Aktionen der Seite, bestätigen Sie das Ziel vor Änderungen und prüfen Sie das Ergebnis nach der Weiterleitung. Handler müssen Authentifizierung, Capability und CSRF/Nonce prüfen, Allowlists validieren, vorbereitete Datenbankoperationen nutzen und Ausgaben escapen. Wichtige Änderungen werden über `CMS/core/AuditLogger.php` protokolliert.
+Bestellungen entstehen im öffentlichen Checkout `CMS/orders.php` (Aufruf `/orders.php?plan=<id>&billing=monthly|yearly|lifetime`). Der Checkout
+
+1. ist nur erreichbar, wenn die Core-Module `subscriptions` und `subscription_ordering` aktiv sind (sonst Weiterleitung auf `/`),
+2. lädt ausschließlich aktive Pakete,
+3. berechnet Netto/Steuer/Brutto aus `tax_rate` und `tax_included`,
+4. verlinkt AGB- und Widerrufsseite aus den Paketeinstellungen,
+5. prüft das CSRF-Token `checkout_process` und legt die Bestellung mit Status `pending` und einer eindeutigen `order_number` an.
+
+> Die Router-Route `GET|POST /order` (`PublicRouter::renderOrder()`) erwartet die Datei `CMS/member/order_public.php`, die in 3.4.00 nicht ausgeliefert wird; sie liefert daher 404. Verlinkt wird der Checkout über `/orders.php`.
+
+### Oberfläche
+
+- **Kennzahlen:** Umsätze, offene/bezahlte Bestellungen, aktive Abos, Ressourcen-Nutzung (Experten, Unternehmen, Events, Speaker, Speicher).
+- **Filter:** `?status=pending|paid|cancelled|refunded|failed`.
+- **Bestellliste:** Bestellnummer, Kunde, Paket, Zyklus, Betrag, Status, Datum.
+- **Manuelle Zuweisung:** Benutzer + Paket + Abrechnungszyklus → aktives Abo ohne Bestellung (z. B. für Partner, Tests, Kulanz).
+
+### Aktionen
+
+| `action` | Parameter | Wirkung |
+|---|---|---|
+| `assign_subscription` | `user_id`, `plan_id`, `billing_cycle` (`monthly`, `yearly`, `lifetime`) | `SubscriptionManager::assignSubscription()` – setzt ein bestehendes aktives Abo auf `cancelled` und legt ein neues aktives Abo an |
+| `update_status` | `id`, `status` | Bestellstatus ändern |
+| `delete` | `id` | Bestellung löschen |
+
+### Export
+
+`GET /admin/orders?export=orders[&status=…]` bzw. `?export=usage` streamt eine CSV-Datei (Bestellungen bzw. Ressourcen-Nutzung je Benutzer). Fehler beim Export werden protokolliert (`orders.export_failed`).
+
+### Datenmodell `cms_orders`
+
+`order_number`, `user_id`, `plan_id`, `customer_name`, `customer_email`, `amount`, `tax_amount`, `total_amount`, `currency` (Standard `EUR`), `status`, `payment_method`, `billing_cycle`, `payment_ref`, `notes`, `contact_data` (JSON), Adressfelder (`forename`, `lastname`, `company`, `email`, `phone`, `street`, `zip`, `city`, `country`), Zeitstempel.
+
+### Verwandte Dokumente
+
+[PACKAGES.md](PACKAGES.md) · [SUBSCRIPTION-SYSTEM.md](SUBSCRIPTION-SYSTEM.md) · [../../member/MEMBER-ROUTES.md](../../member/MEMBER-ROUTES.md)

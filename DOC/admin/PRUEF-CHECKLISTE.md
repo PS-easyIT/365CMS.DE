@@ -1,25 +1,53 @@
 # 365CMS – Projektdokumentation | Abschnitt: Admin – Prüf-Checkliste
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-Use this checklist when reviewing an admin change:
+## English (summary)
 
-- [ ] The documented route resolves through `CMS/core/Routing/AdminRouter.php`.
-- [ ] The entry file, module, and view referenced by the documentation exist.
-- [ ] Read operations remain read-only.
-- [ ] State changes validate authentication, capability, CSRF token, action, and input.
-- [ ] Database writes use the existing service/repository boundary and prepared statements.
-- [ ] Errors are visible and bounded; no silent success fallback is introduced.
-- [ ] Secrets and unnecessary personal data are excluded from output and logs.
+Checklist for reviewing a change to the administration (core page, module, view or plugin admin page) and for the post-deployment smoke test. Each item maps to a concrete mechanism in the code base.
 
 ## Deutsch
 
-Diese Checkliste dient zur Prüfung einer Admin-Änderung:
+### A. Code-Review einer Admin-Änderung
 
-- [ ] Die dokumentierte Route wird über `CMS/core/Routing/AdminRouter.php` aufgelöst.
-- [ ] Verlinkter Einstieg, Modul und View existieren.
-- [ ] Leseoperationen bleiben schreibgeschützt.
-- [ ] Änderungen prüfen Authentifizierung, Capability, CSRF-Token, Aktion und Eingaben.
-- [ ] Datenbankschreibvorgänge bleiben an der vorhandenen Service-/Repository-Grenze und nutzen vorbereitete Statements.
-- [ ] Fehler werden sichtbar und begrenzt behandelt; kein stiller Erfolgs-Fallback.
-- [ ] Secrets und unnötige personenbezogene Daten fehlen in Ausgabe und Logs.
+**Routing & Struktur**
+- [ ] Route `/admin/<seite>` löst über `AdminRouter` auf die vorgesehene Datei auf; Slug nur `[a-zA-Z0-9_-]`.
+- [ ] Einstieg, Modul und View existieren und folgen der Schichtentrennung ([FILESTRUCTURE.md](FILESTRUCTURE.md)).
+- [ ] Neue Seite ist in `sidebar.php` eingetragen und – falls Teil eines Feature-Bereichs – in `CoreModuleService::MODULES[...]['admin_pages']`.
+- [ ] Alt-Routen leiten weiter statt 404.
+
+**Zugriff & Eingaben**
+- [ ] `Auth::isAdmin()` **und** passende Capability werden serverseitig geprüft.
+- [ ] Aktionen, Ansichten, Status, Sammelaktionen werden gegen Allowlists normalisiert; IDs als positive Integer; Sammelaktionen mit Obergrenze.
+- [ ] Jede zustandsändernde Anfrage ist POST mit `csrf_token` der Seitenaktion.
+- [ ] GET-Anfragen ändern keine Daten.
+
+**Daten & Ausgabe**
+- [ ] SQL ausschließlich mit Prepared Statements bzw. `Database::insert/update/delete`.
+- [ ] Ausgaben kontextgerecht escaped (`htmlspecialchars(..., ENT_QUOTES, 'UTF-8')`, JSON-Flags `JSON_HEX_*`).
+- [ ] Rich-Text über `PurifierService`/Editor.js-Sanitizer, Uploads über `MediaService`/`FileUploadService`.
+- [ ] Keine Inline-Skripte/-Styles (CSP); JS/CSS als Datei unter `CMS/assets/`.
+
+**Fehler & Protokoll**
+- [ ] Fehler erscheinen als Flash-Meldung mit Details, nicht als weiße Seite; Ausnahmen werden über `Logger` protokolliert.
+- [ ] Sicherheitsrelevante Aktionen schreiben ins Audit-Log (`AuditLogger`).
+- [ ] Keine Secrets, Tokens, Passwörter oder unnötigen personenbezogenen Daten in UI, Logs oder Fehlermeldungen.
+
+**Dokumentation**
+- [ ] Zugehöriges Dokument unter `DOC/admin/` aktualisiert, Eintrag in `Changelog.md`.
+
+### B. Smoke-Test nach Deployment / Update
+
+- [ ] `/admin` lädt, Sidebar vollständig, keine PHP-Warnungen im `/admin/logs/php-errors`.
+- [ ] `/admin/updates`: installierte = erwartete Core- und Schema-Version (`3.4.00`, `v22`); ggf. `run_database_update`.
+- [ ] `/admin/monitor-health-check` ohne kritische Befunde.
+- [ ] `/admin/security-audit` ausgeführt; `install.php` nicht erreichbar, Debug aus, HTTPS aktiv.
+- [ ] Seite und Beitrag speichern, Medien-Upload, Vorschau im Frontend.
+- [ ] Login/Logout, MFA-Abfrage, Passwort-vergessen-Mail.
+- [ ] Cron läuft (`/admin/monitor-cron-status`), Mail-Queue leer bzw. abgearbeitet.
+- [ ] Sitemap `/sitemap.xml` und `/robots.txt` erreichbar.
+- [ ] Backup erstellt und validiert.
+
+### Verwandte Dokumente
+
+[README.md](README.md) · [GUIDE.md](GUIDE.md) · [security/SECURITY-AUDIT.md](security/SECURITY-AUDIT.md) · [../workflow/UPDATE-DEPLOYMENT-WORKFLOW.md](../workflow/UPDATE-DEPLOYMENT-WORKFLOW.md)

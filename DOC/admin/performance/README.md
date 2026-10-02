@@ -1,9 +1,22 @@
 # 365CMS – Projektdokumentation | Abschnitt: Admin – Performance
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-Start with [PERFORMANCE.md](PERFORMANCE.md). It documents the `/admin/performance` entry point, the section-specific PHP files, and the current performance module.
+## English (summary)
+
+This folder documents the sidebar group **Performance** (core module `performance`). See [PERFORMANCE.md](PERFORMANCE.md).
 
 ## Deutsch
 
-Beginnen Sie mit [PERFORMANCE.md](PERFORMANCE.md). Dort sind der Einstieg `/admin/performance`, die bereichsspezifischen PHP-Dateien und das aktuelle Performance-Modul dokumentiert.
+| Menüpunkt | Route |
+|---|---|
+| Übersicht | `/admin/performance` |
+| Cache-Verwaltung | `/admin/performance-cache` |
+| Medien-Optimierung | `/admin/performance-media` |
+| Datenbank-Wartung | `/admin/performance-database` |
+| Performance-Einstellungen | `/admin/performance-settings` |
+| Session-Verwaltung | `/admin/performance-sessions` |
+
+Alle Seiten: [PERFORMANCE.md](PERFORMANCE.md). Messung im Frontend (Core Web Vitals): [../seo/ANALYTICS.md](../seo/ANALYTICS.md). Antwortzeiten und Systemlast: [../diagnose/DIAGNOSE.md](../diagnose/DIAGNOSE.md).
+
+**Sicherheitsnetz:** Cache-Bereinigung, Datenbankwartung und WebP-Konvertierung lassen sich innerhalb einer Stunde zurückrollen (Snapshots unter `CMS/backups/performance-rollbacks/`).

@@ -1,25 +1,24 @@
-# 365CMS – Projektdokumentation | Abschnitt: AI services
+# 365CMS – Projektdokumentation | Abschnitt: Admin – KI-Einstellungen (Verweis)
 
-## English
-### Purpose
-AI provider configuration and service status are exposed at `/admin/ai-services`.
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-### Implementation
-- Entry: `CMS/admin/ai-services.php`
-- View: `CMS/admin/views/system/ai-services.php`
-- Services: `CMS/core/Services/AI/AiService.php`, `CMS/core/Services/AI/AiSettingsService.php`, `CMS/core/Services/AI/AiProviderFactory.php`
+## English (summary)
 
-### Administration
-Configure only supported providers and review quota or health warnings before saving. Protect changes with the shared admin capability and CSRF/nonce checks. Never expose API keys, tokens, raw prompts, or provider responses in UI or logs; use `CMS/core/Logger.php` and `CMS/core/AuditLogger.php` for bounded diagnostics.
+AI configuration is not part of *System & Documentation*; it has its own sidebar group **AI Services** with the settings page `/admin/ai-settings`. See [../ai/AI-SERVICES.md](../ai/AI-SERVICES.md) for the admin overview and [../../ai/AI-SERVICES.md](../../ai/AI-SERVICES.md) for the full reference.
 
 ## Deutsch
-### Zweck
-KI-Provider-Konfiguration und Dienststatus stehen unter `/admin/ai-services` bereit.
 
-### Implementierung
-- Einstieg: `CMS/admin/ai-services.php`
-- View: `CMS/admin/views/system/ai-services.php`
-- Services: `CMS/core/Services/AI/AiService.php`, `CMS/core/Services/AI/AiSettingsService.php`, `CMS/core/Services/AI/AiProviderFactory.php`
+Die KI-Konfiguration liegt in der eigenen Sidebar-Gruppe **KI-Dienste**:
 
-### Administration
-Nur unterstützte Provider konfigurieren und Quota- oder Gesundheitswarnungen vor dem Speichern prüfen. Änderungen verwenden Capability- und CSRF-/Nonce-Prüfungen. API-Schlüssel, Tokens, Rohprompts und Providerantworten niemals in UI oder Logs ausgeben; Diagnosen über `CMS/core/Logger.php` und `CMS/core/AuditLogger.php` begrenzen.
+| Aufgabe | Ort |
+|---|---|
+| Provider, Secrets, Feature-Schalter, Logging, Quotas, Healthcheck | `/admin/ai-settings` |
+| Übersicht, Nutzung, letzte Läufe | `/admin/ai-services` |
+| Modul ein-/ausschalten | `/admin/modules` → `ai_services` ([MODULES.md](MODULES.md)) |
+| Einstellungen-Speicher | `SettingsService`-Gruppen `ai.providers`, `ai.features`, `ai.translation`, `ai.logging`, `ai.quotas`, `ai.prompts`; Quota-Zähler in `cms_ai_quota_usage` |
+
+Weiterführend:
+
+- Admin-Überblick: [../ai/AI-SERVICES.md](../ai/AI-SERVICES.md)
+- Vollständige Anwender- und Technikreferenz: [../../ai/AI-SERVICES.md](../../ai/AI-SERVICES.md)
+- Assets und Symfony-AI-Platform: [../../ai/AI-ASSETS.md](../../ai/AI-ASSETS.md)

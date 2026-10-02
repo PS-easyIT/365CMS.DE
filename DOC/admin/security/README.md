@@ -1,13 +1,29 @@
 # 365CMS – Projektdokumentation | Abschnitt: Admin – Sicherheit
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-This directory documents the security administration. See [ANTISPAM.md](ANTISPAM.md), [FIREWALL.md](FIREWALL.md), and [SECURITY-AUDIT.md](SECURITY-AUDIT.md).
+## English (summary)
 
-Security settings are high-impact operations. Use authenticated admin routes, preserve the CSRF and capability checks, and review audit or security-log output after changes.
+This folder documents the sidebar group **Security** (core module `security`): anti-spam, application firewall and security audit. All pages require `manage_settings`.
 
 ## Deutsch
 
-Dieses Verzeichnis dokumentiert die Sicherheitsverwaltung. Siehe [ANTISPAM.md](ANTISPAM.md), [FIREWALL.md](FIREWALL.md) und [SECURITY-AUDIT.md](SECURITY-AUDIT.md).
+| Menüpunkt | Route | Dokument |
+|---|---|---|
+| Anti-Spam | `/admin/antispam` | [ANTISPAM.md](ANTISPAM.md) |
+| Firewall | `/admin/firewall` | [FIREWALL.md](FIREWALL.md) |
+| Audit | `/admin/security-audit` | [SECURITY-AUDIT.md](SECURITY-AUDIT.md) |
 
-Sicherheitseinstellungen sind wirkungsstarke Operationen. Authentifizierte Admin-Routen verwenden, CSRF- und Capability-Prüfungen erhalten und nach Änderungen Audit- oder Sicherheitslogs kontrollieren.
+### Schutzschichten im Überblick
+
+| Schicht | Komponente |
+|---|---|
+| Transport | HTTPS-Erzwingung (`CMS_HTTPS_REDIRECT_STRATEGY`), HSTS |
+| Header | CSP mit Nonces, Trusted Types, `X-Content-Type-Options`, Referrer-Policy (`CMS\Security`) |
+| Anfrage | Firewall-Regeln und Rate-Limit (`SecurityRuntimeService`) |
+| Anmeldung | Login-Sperre nach Fehlversuchen, MFA, Passkeys, Passwortrichtlinie ([../users-groups/AUTH-SETTINGS.md](../users-groups/AUTH-SETTINGS.md)) |
+| Formulare | CSRF-Token je Aktion, Anti-Spam |
+| Daten | Prepared Statements, HTMLPurifier für Rich-Text, Upload-Prüfung |
+| Nachweis | Audit-Log, Sicherheits-Log, Sicherheits-Audit |
+
+Weitere Details zum Sicherheitsmodell: [../../core/SECURITY.md](../../core/SECURITY.md).

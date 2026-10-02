@@ -1,13 +1,18 @@
-# 365CMS – Projektdokumentation | Abschnitt: Admin – Erweiterungen
+# 365CMS – Projektdokumentation | Abschnitt: Admin – Plugins
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-This directory documents installed plugins, marketplace operations, and update handling. See [PLUGINS.md](PLUGINS.md), [MARKETPLACE.md](MARKETPLACE.md), and [UPDATES.md](UPDATES.md).
+## English (summary)
 
-The canonical runtime location is `CMS/plugins/`. `CMS/admin/modules/plugins/` contains the administrative modules; it is not a replacement for the plugin runtime.
+This folder documents the sidebar group **Plugins**: plugin management, marketplace and plugin updates. Admin pages registered by plugins appear in the separate sidebar section **Plugin Extensions** under `/admin/plugins/<plugin>/<page>`.
 
 ## Deutsch
 
-Dieses Verzeichnis dokumentiert installierte Plugins, Marketplace-Aktionen und Updates. Siehe [PLUGINS.md](PLUGINS.md), [MARKETPLACE.md](MARKETPLACE.md) und [UPDATES.md](UPDATES.md).
+| Menüpunkt | Route | Dokument |
+|---|---|---|
+| Plugins verwalten | `/admin/plugins` | [PLUGINS.md](PLUGINS.md) |
+| Marketplace | `/admin/plugin-marketplace` (nur wenn `marketplace_enabled`) | [MARKETPLACE.md](MARKETPLACE.md) |
+| Plugin-Updates | `/admin/updates` | [UPDATES.md](UPDATES.md) |
+| Plugin-Adminseiten | `/admin/plugins/<plugin>/<seite>` | [PLUGINS.md](PLUGINS.md#plugin-adminseiten) |
 
-Der kanonische Runtime-Pfad ist `CMS/plugins/`. Die Administrationsmodule liegen unter `CMS/admin/modules/plugins/` und ersetzen nicht die Plugin-Runtime.
+Entwicklung eigener Plugins: [../../plugins/PLUGIN-DEVELOPMENT.md](../../plugins/PLUGIN-DEVELOPMENT.md) · Leitfaden: [../../plugins/GUIDE.md](../../plugins/GUIDE.md) · Marketplace-Paketformat: [../../plugins/PLUGIN-MARKETPLACE.md](../../plugins/PLUGIN-MARKETPLACE.md).
