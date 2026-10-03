@@ -1,6 +1,6 @@
 # 365CMS – Projektdokumentation | Abschnitt: Core – API-Referenz
 
-> **Stand:** 2026-10-03 | **Version:** 3.4.00 (Changelog bis 3.4.13) | **Status:** Stable
+> **Stand:** 2026-10-03 | **Version:** 3.4.00 (Changelog bis 3.4.14) | **Status:** Stable
 
 ## English (summary)
 

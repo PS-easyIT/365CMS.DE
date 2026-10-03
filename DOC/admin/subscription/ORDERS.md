@@ -1,6 +1,6 @@
 # 365CMS – Projektdokumentation | Abschnitt: Admin – Bestellungen & Zuweisung
 
-> **Stand:** 2026-10-03 | **Version:** 3.4.00 (Changelog bis 3.4.13) | **Status:** Stable
+> **Stand:** 2026-10-03 | **Version:** 3.4.00 (Changelog bis 3.4.14) | **Status:** Stable
 > **Route:** `/admin/orders` | **Capability:** `manage_settings` | **CSRF-Aktion:** `admin_orders`
 
 ## English (summary)
