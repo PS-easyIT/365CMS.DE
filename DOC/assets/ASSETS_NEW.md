@@ -196,7 +196,7 @@ AI Services sollen in 365CMS **keine unkontrollierte Freitext-Blackbox** sein. J
 - strukturierte Fehlermeldungen liefern
 - keine Secrets oder Roh-Prompts unkontrolliert loggen
 
-Für die ausführlichere Fach- und Architekturbeschreibung ist die kanonische Dokumentation unter [ai/AI-SERVICES.md](ai/AI-SERVICES.md) vorgesehen. Der Admin-Kontext bleibt zusätzlich unter [admin/system-settings/AI-SERVICES.md](admin/system-settings/AI-SERVICES.md) verlinkt.
+Für die ausführlichere Fach- und Architekturbeschreibung ist die kanonische Dokumentation unter [ai/AI-SERVICES.md](../ai/AI-SERVICES.md) vorgesehen. Der Admin-Kontext bleibt zusätzlich unter [admin/system-settings/AI-SERVICES.md](../admin/system-settings/AI-SERVICES.md) verlinkt.
 
 ---
 

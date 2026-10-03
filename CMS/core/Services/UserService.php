@@ -445,7 +445,7 @@ class UserService {
             $result = match($action) {
                 'activate' => $this->db->update('users', ['status' => 'active'], ['id' => $user_id]),
                 'deactivate' => $this->db->update('users', ['status' => 'inactive'], ['id' => $user_id]),
-                'delete' => $this->deleteUser($user_id, true),
+                'delete' => $this->deleteUser($user_id, false),
                 'hard_delete' => $this->deleteUser($user_id, true),
                 'change_role' => !empty($data['role']) && $this->normalizeRole((string)$data['role']) !== ''
                     ? $this->db->update('users', ['role' => $this->normalizeRole((string)$data['role'])], ['id' => $user_id])

@@ -113,7 +113,7 @@ Broken historical links (do **not** use):
 - `DOC/ASSET.md` — actual path is `DOC/assets/ASSET.md`
 - `DOC/ASSETS_NEW.md` — actual path is `DOC/assets/ASSETS_NEW.md`
 - `DOC/ASSETS_OwnAssets.md` — actual path is `DOC/assets/ASSETS_OwnAssets.md`
-- `DOC/audit/` / `AUDIT/` — not present in this repository
+- `DOC/audit/` — code audit 2026-10-03 (`README.md`, `SECURITY.md`, `PERFORMANCE.md`, `FUNKTIONEN.md`, `VERWEISE.md`); `AUDIT/` — not present in this repository
 - `DOC/_cms_inventory_current.txt` — file does not exist
 
 **Deutsch**
@@ -148,7 +148,7 @@ Historisch kaputte Links (nicht verwenden):
 - `DOC/ASSET.md` — tatsächlicher Pfad: `DOC/assets/ASSET.md`
 - `DOC/ASSETS_NEW.md` — tatsächlicher Pfad: `DOC/assets/ASSETS_NEW.md`
 - `DOC/ASSETS_OwnAssets.md` — tatsächlicher Pfad: `DOC/assets/ASSETS_OwnAssets.md`
-- `DOC/audit/` / `AUDIT/` — in diesem Repository nicht vorhanden
+- `DOC/audit/` — Code-Audit 2026-10-03 (`README.md`, `SECURITY.md`, `PERFORMANCE.md`, `FUNKTIONEN.md`, `VERWEISE.md`); `AUDIT/` — in diesem Repository nicht vorhanden
 - `DOC/_cms_inventory_current.txt` — Datei existiert nicht
 
 ---

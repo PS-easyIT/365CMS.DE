@@ -223,10 +223,13 @@ if ($contactSuccess === '') {
             $contactKeys = ['contact_address', 'contact_phone', 'contact_email_display', 'contact_hours'];
             try {
                 $db = \CMS\Database::instance();
-                foreach ($contactKeys as $key) {
-                    $row = $db->execute("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ? LIMIT 1", [$key])->fetch();
-                    if ($row && $row->option_value) {
-                        $contactInfo[$key] = $row->option_value;
+                $rows = $db->execute(
+                    "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN (?, ?, ?, ?)",
+                    $contactKeys
+                )->fetchAll();
+                foreach ($rows as $row) {
+                    if ($row->option_value) {
+                        $contactInfo[(string)$row->option_name] = $row->option_value;
                     }
                 }
             } catch (\Throwable $e) {}

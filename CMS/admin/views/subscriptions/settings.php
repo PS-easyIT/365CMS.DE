@@ -39,7 +39,7 @@ $isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId 
             <div class="cms-admin-info-box__head">
                 <h3 class="cms-admin-info-box__title">Abo-Steuerung und Standardzuweisung</h3>
                 <div class="cms-admin-info-box__actions">
-                    <a href="/admin/subscriptions/packages" class="btn btn-sm btn-outline-secondary">Pakete</a>
+                    <a href="/admin/packages" class="btn btn-sm btn-outline-secondary">Pakete</a>
                     <a href="/admin/orders" class="btn btn-sm btn-outline-secondary">Bestellungen</a>
                 </div>
             </div>

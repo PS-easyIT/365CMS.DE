@@ -73,16 +73,23 @@ class MeridianCMSDefaultTheme
     /**
      * Prüft ob Local Fonts (DSGVO) im CMS aktiviert sind
      */
+    private ?bool $localFontsEnabled = null;
+
     private function isLocalFontsEnabled(): bool
     {
+        // Wird pro Request mehrfach abgefragt (outputLocalFonts + shouldLoadExternalFonts).
+        if ($this->localFontsEnabled !== null) {
+            return $this->localFontsEnabled;
+        }
+
         try {
             $db  = \CMS\Database::instance();
             $row = $db->execute(
                 "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'privacy_use_local_fonts'"
             )->fetch();
-            return ($row && $row->option_value === '1');
+            return $this->localFontsEnabled = ($row && $row->option_value === '1');
         } catch (\Throwable $e) {
-            return false;
+            return $this->localFontsEnabled = false;
         }
     }
 
@@ -573,10 +580,14 @@ class MeridianCMSDefaultTheme
             }
 
             $keys = ['cookie_banner_text', 'cookie_accept_text', 'cookie_essential_text', 'cookie_policy_url'];
-            $s = [];
-            foreach ($keys as $k) {
-                $row  = $db->execute("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ?", [$k])->fetch();
-                $s[$k] = $row ? (string)$row->option_value : '';
+            $s = array_fill_keys($keys, '');
+            // Eine Abfrage statt vier (vorher N+1 pro Seitenaufruf).
+            $rows = $db->execute(
+                "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN (?, ?, ?, ?)",
+                $keys
+            )->fetchAll();
+            foreach ($rows as $row) {
+                $s[(string)$row->option_name] = (string)$row->option_value;
             }
             $text    = htmlspecialchars($s['cookie_banner_text']    ?: 'Wir verwenden Cookies.', ENT_QUOTES, 'UTF-8');
             $accept  = htmlspecialchars($s['cookie_accept_text']    ?: 'Akzeptieren',             ENT_QUOTES, 'UTF-8');

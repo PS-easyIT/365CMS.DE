@@ -368,7 +368,8 @@ class MediaService {
 
     private function getDangerousExtensions(): array {
         return [
-            'php', 'php3', 'php4', 'php5', 'phtml', 'phar', 'exe', 'com', 'bat', 'cmd', 'ps1', 'sh', 'pl', 'cgi', 'jar', 'msi', 'vbs', 'scr', 'dll', 'asp', 'aspx', 'jspx'
+            'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'pht', 'phps', 'phpt', 'phtml', 'phar', 'shtml', 'htaccess', 'htpasswd',
+            'exe', 'com', 'bat', 'cmd', 'ps1', 'sh', 'pl', 'py', 'cgi', 'jar', 'msi', 'vbs', 'scr', 'dll', 'asp', 'aspx', 'jsp', 'jspx'
         ];
     }
 
@@ -501,6 +502,17 @@ class MediaService {
 
         if (($settings['block_dangerous_types'] ?? false) && in_array($ext, $this->getDangerousExtensions(), true)) {
             return new WP_Error('dangerous_type', 'Gefährlicher Dateityp wurde blockiert: ' . $ext);
+        }
+
+        // Doppelendungen wie „shell.php.jpg“ blockieren: Apache-Setups mit AddHandler führen
+        // solche Dateien sonst trotz harmloser Endung als PHP aus.
+        if ($settings['block_dangerous_types'] ?? false) {
+            $innerParts = array_slice(explode('.', strtolower(basename($fileName))), 1, -1);
+            foreach ($innerParts as $innerPart) {
+                if (in_array($innerPart, $this->getDangerousExtensions(), true)) {
+                    return new WP_Error('dangerous_type', 'Gefährliche Doppelendung wurde blockiert: ' . $innerPart);
+                }
+            }
         }
 
         $isAllowed = in_array($ext, $allowedGroups, true);

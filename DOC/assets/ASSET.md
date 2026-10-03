@@ -39,7 +39,7 @@ Führende Quelle für **aktive Laufzeitpfade** ist `CMS/assets/` sowie der dokum
 | `melbahja-seo` | gebündelter Snapshot | SEO-Helfer | `CMS/assets/melbahja-seo/` | `ASSETS/melbahja-seo/` | mittelfristig in Core-Services zerlegbar |
 | `psr` | Log 3.0.2, EventDispatcher 1.0.0, Container 2.0.2, Clock 1.0.0 | PSR-Interfaces | `CMS/assets/psr/` | Packagist `psr/*` | vollständige Originalpakete statt Minimal-Shim |
 | `dompdf` | `3.1.5` | PDF-Erzeugung | `CMS/vendor/dompdf/` | `ASSETS/dompdf-3.1.5/dompdf/vendor/` | **kein** `CMS/assets`-Bundle, sondern Vendor-Sonderfall |
-| `css/js/images` | intern | 365CMS-eigene Runtime-Assets | `CMS/assets/css/`, `CMS/assets/js/`, `CMS/assets/images/` | `ASSETS/css/`, `ASSETS/js/`, `ASSETS/images/` | kein Third-Party-Bundle; Bildinventar siehe [`DOC/assets/images/README.md`](assets/images/README.md) |
+| `css/js/images` | intern | 365CMS-eigene Runtime-Assets | `CMS/assets/css/`, `CMS/assets/js/`, `CMS/assets/images/` | `ASSETS/css/`, `ASSETS/js/`, `ASSETS/images/` | kein Third-Party-Bundle; Bildinventar siehe [`DOC/assets/images/README.md`](images/README.md) |
 | `msgraph` | Referenzbestand | SDK-Ablage | `CMS/assets/msgraph/` | `ASSETS/msgraph-sdk-php-2.56.0/` | aktuell nicht als aktive Runtime-Integration dokumentiert |
 
 Zusätzlich produktiv relevant:
@@ -114,8 +114,8 @@ aktuelle Bestand umfasst 13 PNG-Dateien:
 - drei Markenzeichen ohne Schriftzug
 
 Die verbindliche Einzelauflistung mit Abmessungen und Verwendungszweck steht in
-[`DOC/assets/images/README.md`](assets/images/README.md). Neue Bilddateien sind
-dort und in [`DOC/FILELIST.md`](FILELIST.md) gemeinsam zu ergänzen.
+[`DOC/assets/images/README.md`](images/README.md). Neue Bilddateien sind
+dort und in [`DOC/FILELIST.md`](../FILELIST.md) gemeinsam zu ergänzen.
 
 ---
 
@@ -145,7 +145,7 @@ Ausnahme im aktuellen Stand:
 Zusätzlich wichtig im aktuellen Stand:
 
 - Das zuvor mitgeführte Paket `stichoza/google-translate-php` wurde **bewusst aus `/ASSETS` entfernt** und wird nicht weiter als aktiver Integrationskandidat geführt.
-- Für Übersetzungs- und Rewrite-Funktionen ist stattdessen ein **providerbasierter AI-Services-Ansatz** vorgesehen; Details siehe [ASSETS_NEW.md](ASSETS_NEW.md), [ai/AI-SERVICES.md](ai/AI-SERVICES.md) und den Admin-Kontext unter [admin/system-settings/AI-SERVICES.md](admin/system-settings/AI-SERVICES.md).
+- Für Übersetzungs- und Rewrite-Funktionen ist stattdessen ein **providerbasierter AI-Services-Ansatz** vorgesehen; Details siehe [ASSETS_NEW.md](ASSETS_NEW.md), [ai/AI-SERVICES.md](../ai/AI-SERVICES.md) und den Admin-Kontext unter [admin/system-settings/AI-SERVICES.md](../admin/system-settings/AI-SERVICES.md).
 
 Die ausführliche Bewertungs- und Integrationsdoku dazu liegt in [ASSETS_NEW.md](ASSETS_NEW.md).
 

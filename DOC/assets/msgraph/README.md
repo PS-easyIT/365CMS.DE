@@ -20,9 +20,8 @@
 
 - Authentifizierung, Token-Refresh und Scope-Handling müssen zuerst in einen dedizierten Service wandern
 - Externe HTTP-/Graph-Aufrufe gehören in Monitoring, Rate-Limit- und Error-Handling-Pfade
-- Vor Aktivierung zusätzlich `DOC/assets/VENDOR-NETWORK-PATHS.md` prüfen/ergänzen
+- Vor Aktivierung die ausgehenden Netzwerkziele (Graph/Entra-Endpunkte) in [../ASSETS_OwnAssets.md](../ASSETS_OwnAssets.md) bzw. der Firewall-Freigabe dokumentieren
 
 ## Verwandte Doku
 
-- [../../ASSETS_OwnAssets.md](../../ASSETS_OwnAssets.md)
-- [../VENDOR-NETWORK-PATHS.md](../VENDOR-NETWORK-PATHS.md)
+- [../ASSETS_OwnAssets.md](../ASSETS_OwnAssets.md)

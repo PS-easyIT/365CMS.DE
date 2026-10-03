@@ -423,7 +423,7 @@ final class InstallerService
         file_put_contents($htaccessPath, $htaccessContent);
 
         if (file_exists($configPath)) {
-            $backupPath = $configDir . '/app.php.backup.' . date('Y-m-d_H-i-s');
+            $backupPath = $configDir . '/app.backup-' . date('Y-m-d_H-i-s') . '.php';
             copy($configPath, $backupPath);
         }
 

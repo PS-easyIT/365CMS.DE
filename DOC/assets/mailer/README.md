@@ -22,7 +22,7 @@
 
 - Wegen RFC-/Provider-Kompatibilität nicht als Eigenbau nachbauen, sondern hinter den bestehenden Mail-Services kapseln
 - Falls langfristig abstrahiert werden soll, zuerst Transport-Konfiguration, Queue und Fehlerobjekte im Service-Layer stabilisieren
-- Siehe Roadmap: [../../ASSETS_OwnAssets.md](../../ASSETS_OwnAssets.md)
+- Siehe Roadmap: [../ASSETS_OwnAssets.md](../ASSETS_OwnAssets.md)
 
 ## Website / GitHub
 

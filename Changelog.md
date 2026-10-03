@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06`, `v3.4.07`, `v3.4.08` and `v3.4.09` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.12` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06`, `v3.4.07`, `v3.4.08` und `v3.4.09` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.12` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -23,6 +23,28 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.4.12 — 03.10.2026
+
+Vollständiges Code-Audit (Sicherheit, Geschwindigkeit, Funktionen, Verweise). Ausführlich dokumentiert unter [`DOC/audit/`](DOC/audit/README.md): 32 Befunde, 19 behoben, 13 offen mit Empfehlung.
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.12** | 🛡️ security | Konfiguration / Backups | **Backups von `config/app.php` heißen jetzt `config/app.backup-<Datum>.php` statt `app.php.backup.<Datum>`** (`SettingsModule`, `InstallerService`). Ohne `.htaccess`-Schutz (z. B. nginx) wurden die alten Dateien als Klartext mit DB-Passwort und Schlüsseln ausgeliefert; mit `.php`-Endung werden sie ausgeführt und geben nichts aus. Vorhandene `app.php.backup.*` bitte manuell löschen. (Audit SEC-01) |
+| **3.4.12** | 🛡️ security | Uploads | `MediaService::validateUploadFile()` blockiert gefährliche **Doppelendungen** (`datei.php.jpg`) und kennt zusätzlich `php7`, `php8`, `pht`, `phps`, `phpt`, `shtml`, `htaccess`, `htpasswd`, `py`, `jsp`. (SEC-02) |
+| **3.4.12** | 🛡️ security | Registrierung | `PublicRouter::handleRegister()` begrenzt Registrierungen auf 5 Versuche je IP in 15 Minuten (`checkDbRateLimit`/`recordDbRateLimitAttempt`). (SEC-03) |
+| **3.4.12** | 🛡️ security | Client-IP / Reverse Proxy | Neue opt-in-Konstante **`CMS_TRUSTED_PROXIES`** (IPs/CIDR, IPv4/IPv6). Liegt `REMOTE_ADDR` darin, nimmt `Security::getClientIp()` die erste nicht vertrauenswürdige Adresse aus `X-Forwarded-For`. Vorher sahen Rate-Limits, Firewall und Audit-Log hinter einem Proxy nur dessen IP – fünf Fehlversuche sperrten den Login für alle. (SEC-04) |
+| **3.4.12** | 🔴 fix | Sicherheits-Audit | Die PHP-Prüfung unter `/admin/security-audit` nutzt `CMS_MIN_PHP_VERSION` (8.4) statt fest 8.2. (SEC-05) |
+| **3.4.12** | 🔴 fix | Einstellungen / `config/app.php` | **Speichern unter `/admin/settings` ersetzt nur noch `SITE_NAME`, `SITE_URL`, `ADMIN_EMAIL` und `CMS_DEBUG` in der bestehenden Datei** (`patchConfigContent()`), statt sie aus einer Vorlage neu zu erzeugen. Manuell gesetzte `LDAP_*`, `JWT_*`, `SMTP_*`, HTTPS/HSTS-Konstanten und Zeitzone bleiben erhalten. Der Parser liest Werte escape-bewusst; Passwörter mit `'` oder `\` wurden vorher beim Speichern beschädigt. (FUN-02, SEC-06) |
+| **3.4.12** | 🟢 feat | Wartungsmodus | Die Option `maintenance_mode` wird jetzt in `Router::dispatch()` ausgewertet: Besucher erhalten HTTP 503 (`Retry-After`, `noindex`) mit der gespeicherten Nachricht, API-Aufrufe JSON. Admins, `/admin/*`, Login-/Passwort-/MFA-Routen (auch umbenannte) und `/health` bleiben erreichbar. (FUN-01) |
+| **3.4.12** | 🟢 feat | Health-Endpunkt | Neue Route `GET /health` (`PublicRouter::renderHealth()`): bei aktivierter Option `monitor_health_endpoint_enabled` JSON `{"status":"ok","database":"ok"}`, bei DB-Fehler 503, sonst 404. (FUN-04) |
+| **3.4.12** | 🔴 fix | Bestellung `/order` | `/order` leitet auf den Checkout `/orders.php` weiter (GET 302, POST 307, Query bleibt), solange keine eigene `member/order_public.php` existiert. Vorher 404. (FUN-03) |
+| **3.4.12** | 🔴 fix | Abo-Limits | `SubscriptionManager::checkLimit('storage')` liest `limit_storage_mb` (vorher immer 0 → verweigert), Limits werden als `int` verglichen; der Free-Fallback wählt den aktiven Plan `free` bzw. den günstigsten aktiven Plan statt eines beliebigen Datensatzes. (FUN-05) |
+| **3.4.12** | 🔴 fix | Member-Medien | Das Upload-Formular unter `/member/media` sendet ein Token der Aktion `media_action`; vorher scheiterte der erste Upload je Seitenaufruf mit 403. (FUN-06) |
+| **3.4.12** | 🔴 fix | Benutzer-Sammelaktionen | `UserService::bulkAction('delete')` ist ein Soft-Delete (Status inaktiv); endgültig löscht nur `hard_delete`. (FUN-07) |
+| **3.4.12** | 🟠 perf | Standard-Theme | Cookie-Banner (`functions.php`) und Kontaktblock (`contact.php`) laden ihre Optionen mit einer `IN (…)`-Abfrage statt vier Einzelabfragen; `isLocalFontsEnabled()` wird pro Request nur einmal abgefragt. (PERF-01, PERF-02) |
+| **3.4.12** | 🔴 fix | Verweise | Admin-Link „Pakete“ in den Abo-Einstellungen zeigt auf `/admin/packages` (vorher 404). Lokale Marketplace-Manifeste nennen die tatsächlichen Versionen (`cms-importer` 3.0.3, `cms-default` 1.0.9). (REF-01, REF-02) |
+| **3.4.12** | 🔵 docs | Audit / Dokumentation | Neuer Ordner **`DOC/audit/`** (`README.md`, `SECURITY.md`, `PERFORMANCE.md`, `FUNKTIONEN.md`, `VERWEISE.md`). 15 tote Markdown-Links korrigiert, `DOC/core/STATUS.md` (Status je Lücke), `DOC/core/SECURITY.md`, `INDEX.md`, `FILELIST.md`, `FILESTRUCTUR.md`, `INSTALLATION.md`, `README.md` und die Bereichsdokumente zu Wartungsmodus, Health, Bestellungen, Benutzer-Sammelaktionen und Member-Uploads aktualisiert. (REF-03, REF-04) |
 
 ### v3.4.11 — 03.10.2026
 
@@ -978,4 +1000,4 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | **3.0.0** | 🛡️ security | Folgeaudit – Shared Editor & AI-Translation | **Der kritische Shared-Editor-Pfad wurde gegen Client- und Server-Randfälle nachgezogen.** `CMS/assets/js/admin-content-editor.js` erzwingt für AI-Translation-Requests nun Same-Origin-Endpunkte, setzt ein clientseitiges Zeitlimit, prüft deklarierte und tatsächliche JSON-Antwortgrößen und verwirft übergroße Antworten ohne sie dauerhaft im UI-State zu halten. `CMS/admin/modules/system/AiEditorJsTranslationModule.php` validiert Editor.js-Payloads vor der AI-Pipeline zusätzlich auf gültiges JSON, maximale Blockanzahl, erlaubte Blocktyp-Metadaten und array-basierte Blockdaten. `CMS/assets/js/admin-seo-editor.js` begrenzt die Liveanalyse von Editor.js-JSON, Blockanzahl und HTML-Fragmenten defensiv, damit große oder manipulierte Inhalte die SEO-Vorschau nicht unnötig blockieren. Damit folgt der Übersetzungspfad enger dem OWASP-ASVS-Fail-Closed-Prinzip und reduziert unnötige Heap-Last bei fehlerhaften oder manipulierten Editor-Daten. |
 | **3.0.0** | ⬜ chore | Release-Schnitt & Dokumentation | **Die 2.x-Historie wurde von `Changelog.md` nach `Changelog_old.md` verschoben und eine neue, schlanke `Changelog.md` für Version `3.0.0` angelegt.** Version, Update-Metadaten und README verweisen auf den neuen Major-Release-Stand; die historische Detailspur bleibt weiterhin vollständig über `Changelog_old.md` nachvollziehbar. |
 
-> Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+> Die vollständige historische 2.x-Historie wurde in `Changelog_old.md` archiviert; die Datei ist nicht mehr Teil dieses Repositorys (siehe Git-Historie).

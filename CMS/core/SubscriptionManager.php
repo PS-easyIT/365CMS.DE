@@ -263,8 +263,12 @@ class SubscriptionManager
      */
     private function getFreePlan(): ?object
     {
+        // Deterministisch: zuerst ein aktiver Plan mit Slug „free“, sonst der
+        // günstigste aktive Plan (bisher: erster Datensatz ohne Sortierung).
         $stmt = $this->db->query("
             SELECT * FROM {$this->db->getPrefix()}subscription_plans
+            WHERE is_active = 1
+            ORDER BY (slug = 'free') DESC, price_monthly ASC, sort_order ASC, id ASC
             LIMIT 1
         ");
         
@@ -306,8 +310,13 @@ class SubscriptionManager
             return false;
         }
         
-        $limitField = 'limit_' . str_replace('-', '_', $resourceType);
-        $limit = $subscription->{$limitField} ?? 0;
+        $limitKey = str_replace('-', '_', $resourceType);
+        // Spalte heißt limit_storage_mb – Ressourcenname „storage“ darauf abbilden.
+        if ($limitKey === 'storage') {
+            $limitKey = 'storage_mb';
+        }
+        $limitField = 'limit_' . $limitKey;
+        $limit = (int) ($subscription->{$limitField} ?? 0);
         
         // -1 = unlimited
         if ($limit === -1) {

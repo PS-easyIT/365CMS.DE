@@ -68,7 +68,7 @@ The installer welcome screen checks:
 
 The installer does **not** encode a MySQL/MariaDB version gate. Database access is PDO MySQL (`mysql:host=…;dbname=…;charset=utf8mb4`).
 
-[`CMS/README.md`](../CMS/README.md) documents MySQL 8.0+ / MariaDB 10.6+. The repository root README documents MySQL 5.7+ / MariaDB 10.3+. Treat those as documentation statements, not installer checks.
+Neither `CMS/` nor the root [`README.md`](../README.md) names a minimum database version any more ("MySQL- or MariaDB-compatible"). Recommended, because the schema uses `utf8mb4` and `ON DUPLICATE KEY` upserts: MySQL 8.0+ or MariaDB 10.6+ (audit 2026-10-03).
 
 | Component | In code / documented |
 |---|---|
@@ -91,7 +91,7 @@ Der Installer-Willkommensbildschirm prüft:
 
 Der Installer prüft **keine** MySQL-/MariaDB-Versionsnummer. Der Datenbankzugriff läuft über PDO MySQL (`mysql:host=…;dbname=…;charset=utf8mb4`).
 
-[`CMS/README.md`](../CMS/README.md) nennt MySQL 8.0+ / MariaDB 10.6+. Das Root-README nennt MySQL 5.7+ / MariaDB 10.3+. Das sind Dokumentationsangaben, keine Installer-Gates.
+Weder `CMS/` noch das Root-[`README.md`](../README.md) nennen noch eine Mindestversion der Datenbank („MySQL- oder MariaDB-kompatibel“). Empfohlen, weil das Schema `utf8mb4` und `ON DUPLICATE KEY`-Upserts nutzt: MySQL 8.0+ oder MariaDB 10.6+ (Audit 2026-10-03).
 
 | Komponente | Im Code / dokumentiert |
 |---|---|

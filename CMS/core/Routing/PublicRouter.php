@@ -60,6 +60,40 @@ final class PublicRouter
         $this->router->addRoute('POST', '/order', [$this, 'handleOrder']);
         $this->router->addRoute('POST', '/comments/post', [$this, 'handleCommentPost']);
         $this->router->addRoute('GET', '/cookie-einstellungen', [$this, 'renderCookiePreferencesPage']);
+        $this->router->addRoute('GET', '/health', [$this, 'renderHealth']);
+    }
+
+    /**
+     * Minimaler Health-Endpunkt für Monitoring (Diagnose → Health-Check).
+     * Nur aktiv, wenn `monitor_health_endpoint_enabled` = 1; gibt keine Systemdetails preis.
+     */
+    public function renderHealth(): void
+    {
+        $enabled = false;
+        $dbOk = false;
+        try {
+            $db = Database::instance();
+            $enabled = (string) ($db->get_var(
+                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'monitor_health_endpoint_enabled' LIMIT 1"
+            ) ?? '0') === '1';
+            $dbOk = true;
+        } catch (\Throwable) {
+        }
+
+        if (!$enabled && $dbOk) {
+            $this->router->render404();
+            return;
+        }
+
+        if (!headers_sent()) {
+            http_response_code($dbOk ? 200 : 503);
+            header('Content-Type: application/json; charset=utf-8');
+            header('Cache-Control: no-store, private');
+            header('X-Robots-Tag: noindex');
+        }
+
+        echo json_encode(['status' => $dbOk ? 'ok' : 'error', 'database' => $dbOk ? 'ok' : 'error']);
+        exit;
     }
 
     public function redirectLegacyMediaProxy(): void
@@ -511,6 +545,15 @@ final class PublicRouter
 
         $settings = $authPageService->getSettings();
 
+        // Massenregistrierung bremsen: max. 5 Versuche je IP in 15 Minuten.
+        $clientIp = Security::getClientIp();
+        if (!Security::checkDbRateLimit($clientIp, 'register', 5, 900)) {
+            $_SESSION['error'] = 'Zu viele Registrierungsversuche. Bitte versuche es später erneut.';
+            $this->router->redirect($this->getPublicAuthPath('register'));
+            return;
+        }
+        Security::recordDbRateLimitAttempt($clientIp, 'register');
+
         $registerPassword = $this->requestString($_POST['password'] ?? '', 4096, false);
         $registerPassword2 = $this->requestString($_POST['password2'] ?? '', 4096, false);
 
@@ -616,7 +659,8 @@ final class PublicRouter
             return;
         }
 
-        $this->router->render404();
+        // Der Checkout liegt in CMS/orders.php – /order dorthin weiterleiten statt 404.
+        $this->redirectToCheckout(302);
     }
 
     public function handleOrder(): void
@@ -632,7 +676,19 @@ final class PublicRouter
             return;
         }
 
-        $this->router->render404();
+        // 307 erhält Methode und POST-Daten.
+        $this->redirectToCheckout(307);
+    }
+
+    private function redirectToCheckout(int $status): void
+    {
+        $query = (string) ($_SERVER['QUERY_STRING'] ?? '');
+        $target = rtrim((string) SITE_URL, '/') . '/orders.php' . ($query !== '' ? '?' . $query : '');
+
+        if (!headers_sent()) {
+            header('Location: ' . $target, true, $status);
+        }
+        exit;
     }
 
     private function isPublicOrderingEnabled(): bool

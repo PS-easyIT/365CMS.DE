@@ -15,6 +15,7 @@ Security is layered: transport (HTTPS redirect strategy, HSTS), response headers
 | `CMS_HTTPS_REDIRECT_STRATEGY` | `upstream` | wer HTTP→HTTPS umleitet: vorgelagerter Proxy/Webserver (`upstream`), Apache-`.htaccess` oder Core-PHP; `disabled` möglich |
 | `CMS_HSTS_MODE` | `https-only` | HSTS nur bei HTTPS-Anfragen |
 | `CMS_HSTS_MAX_AGE` | 31536000 | Gültigkeit in Sekunden |
+| `CMS_TRUSTED_PROXIES` | nicht gesetzt | seit 3.4.12: Komma-Liste vertrauenswürdiger Proxy-IPs/CIDR (IPv4/IPv6). Nur wenn `REMOTE_ADDR` darin liegt, ermittelt `Security::getClientIp()` die Client-IP aus `X-Forwarded-For` (von rechts, erste nicht vertrauenswürdige Adresse). Ohne Konstante gilt `REMOTE_ADDR`. Betrifft Rate-Limits, Firewall, Audit-Log |
 
 HTTPS wird auch hinter Proxys erkannt (`X-Forwarded-Proto`, `X-Forwarded-SSL`, `Front-End-Https`, Port 443).
 
@@ -78,6 +79,7 @@ Rollen- und Rechtemodell: [../admin/users-groups/RBAC.md](../admin/users-groups/
 
 - **Firewall** mit IP-/CIDR-/User-Agent-/Länderregeln, Simulationsmodus und Rate-Limit ([../admin/security/FIREWALL.md](../admin/security/FIREWALL.md)).
 - **API-Rate-Limit** 60 Anfragen/60 s je IP (`CMS\Api`), Web-Vitals mit eigenem Limit und Same-Origin-Prüfung.
+- **Registrierung**: seit 3.4.12 höchstens 5 Versuche je IP in 15 Minuten (`Security::checkDbRateLimit(…, 'register', 5, 900)`).
 - **Anti-Spam** für Formulare ([../admin/security/ANTISPAM.md](../admin/security/ANTISPAM.md)).
 - **Sichere Weiterleitungen**: `Router::redirect()` und Login-Redirects lassen nur interne/erlaubte Ziele zu.
 - **Ausgehende Requests** (`Http\Client`): Host-Allowlists für Updates/Marketplace/KI, HTTPS-Pflicht für Cloud-Ziele, keine privaten Netze außer explizit freigegebenen (Ollama).
@@ -87,7 +89,7 @@ Rollen- und Rechtemodell: [../admin/users-groups/RBAC.md](../admin/users-groups/
 - Datenbank nur über PDO mit nativen Prepared Statements (`ATTR_EMULATE_PREPARES = false`).
 - Rich-Text über `PurifierService` (HTMLPurifier), Editor.js über `EditorJsSanitizer`/`EditorJsHtmlSanitizer`, Frontend zusätzlich DOMPurify.
 - Ausgabe-Escaping über `htmlspecialchars` bzw. Helfer in `includes/functions/escaping.php`.
-- Uploads: Endungs-Allowlist, gefährliche Endungen gesperrt, MIME- und Bildinhaltsprüfung, Dateinamen-Bereinigung, `.htaccess` im Upload-Ordner ([../admin/media/MEDIA.md](../admin/media/MEDIA.md)).
+- Uploads: Endungs-Allowlist, gefährliche Endungen gesperrt (seit 3.4.12 auch als innere Doppelendung, z. B. `datei.php.jpg`), MIME- und Bildinhaltsprüfung, Dateinamen-Bereinigung, `.htaccess` im Upload-Ordner ([../admin/media/MEDIA.md](../admin/media/MEDIA.md)).
 - Geheimnisse in der Datenbank: `SettingsService` verschlüsselt mit AES-256-CBC (Präfix `enc:`). Der Schlüssel wird aus `AUTH_KEY` und `SECURE_AUTH_KEY` abgeleitet – werden diese Konstanten geändert, sind gespeicherte Secrets (SMTP, Azure, Graph, KI-Provider) nicht mehr lesbar und müssen neu eingegeben werden.
 - ZIP-Verarbeitung (Updates, Marketplace, Backups): Grenzen für Einträge/Größe, Pfadprüfung, SHA-256-Pflicht.
 

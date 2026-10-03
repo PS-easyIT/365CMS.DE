@@ -1,10 +1,10 @@
 # 365CMS – Projektdokumentation | Abschnitt: Core – Implementierungsstatus
 
-> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Schema:** v22 | **Status:** Stable
+> **Stand:** 2026-10-03 | **Version:** 3.4.00 (Changelog bis 3.4.12) | **Schema:** v22 | **Status:** Stable
 
 ## English (summary)
 
-Snapshot of the runtime state verified against the source code on 2026-10-02: version and schema constants, feature areas and their maturity, the changes recorded since the 3.4.00 release (3.4.01–3.4.08, which do not bump `Version::CURRENT`), and a list of known gaps and inconsistencies found while updating the documentation.
+Snapshot of the runtime state verified against the source code on 2026-10-02: version and schema constants, feature areas and their maturity, the changes recorded since the 3.4.00 release (3.4.01–3.4.12, which do not bump `Version::CURRENT`), and a list of known gaps and inconsistencies found while updating the documentation.
 
 ## Deutsch
 
@@ -15,15 +15,19 @@ Snapshot of the runtime state verified against the source code on 2026-10-02: ve
 | Core-Version | `3.4.00`, Release `2026-09-05`, Status `stable` | `CMS/core/Version.php`, `CMS/update.json` |
 | Schema | `v22` | `SchemaManager::SCHEMA_VERSION`, `MigrationManager::SCHEMA_VERSION` |
 | PHP | ≥ 8.4.0 | `CMS_MIN_PHP_VERSION` in `CMS/config.php`, `min_php` in `update.json` |
-| Datenbank | MySQL ≥ 5.7 / MariaDB | Update-Preflight |
+| Datenbank | MySQL ≥ 5.7 / MariaDB (empfohlen MySQL 8.0+ / MariaDB 10.6+) | Update-Preflight |
 | Standard-Theme | `cms-default` 1.0.9 („Meridian CMS Default“) | `CMS/themes/cms-default/theme.json` |
 | Mitgeliefertes Plugin | `cms-importer` 3.0.3 | `CMS/plugins/cms-importer/cms-importer.php` |
-| Changelog | Einträge bis `3.4.08` (30.09.2026) | `Changelog.md` – historische Einträge ohne Änderung von `Version::CURRENT` |
+| Changelog | Einträge bis `3.4.12` (03.10.2026) | `Changelog.md` – historische Einträge ohne Änderung von `Version::CURRENT` |
 
 ### Änderungen seit 3.4.00 (laut Changelog)
 
 | Version | Schwerpunkt |
 |---|---|
+| 3.4.12 | Audit 2026-10-03: Wartungsmodus, `/order`, `/health`, Config-Speichern, Upload-/Proxy-/Registrierungs-Härtung, Theme-Abfragen, Doku-Links – siehe [../audit/README.md](../audit/README.md) |
+| 3.4.11 | PageSpeed: DOMPurify per `defer`, OPcache-Deploy-Prüfung gedrosselt |
+| 3.4.10 | Editor.js: Zitate/Media-Text im Purifier, klassenbasiertes CSS |
+| 3.4.09 | Dokumentation vollständig gegen 3.4-Code abgeglichen |
 | 3.4.08 | SEO: Template-Variablen in gespeicherten Meta-Titeln/-Beschreibungen werden aufgelöst |
 | 3.4.07 | Admin-Sidebar: Plugin-Menüs nach Schema „Familie \| Name“, umbrechende Titel, Tooltip |
 | 3.4.06 | Suche: nur Treffer mit allen Begriffen, sichtbarer Text statt Editor.js-JSON, strikte Typ-Filter, Sortierung nach Relevanz/Datum, Plugin-Treffer mit `date` |
@@ -52,27 +56,32 @@ Snapshot of the runtime state verified against the source code on 2026-10-02: ve
 | Backups, Updates, Monitoring, Cron | produktiv | [../admin/system-settings/](../admin/system-settings/README.md) |
 | JSON-API | lesend + Admin-Listen, Session-basiert | [API-REFERENCE.md](API-REFERENCE.md) |
 
-### Bekannte Lücken und Inkonsistenzen (Stand 2026-10-02)
+### Bekannte Lücken und Inkonsistenzen (Stand 2026-10-03)
 
-| # | Befund | Auswirkung | Fundstelle |
-|---|---|---|---|
-| 1 | Speichern unter `/admin/settings` erzeugt `config/app.php` aus einer Vorlage neu | manuell gesetzte `LDAP_*`, `JWT_*`, `SMTP_*`, HTTPS/HSTS-Konstanten und Zeitzone werden zurückgesetzt | `SettingsModule::saveSettings()` |
-| 2 | Option `maintenance_mode` wird gespeichert, aber zur Laufzeit nicht ausgewertet | Wartungsmodus ohne Wirkung | `SettingsModule`, Router |
-| 3 | Route `/order` erwartet `CMS/member/order_public.php`, Datei fehlt | `/order` liefert 404; Checkout nur über `/orders.php` | `PublicRouter::renderOrder()` |
-| 4 | Sicherheits-Audit bewertet PHP ≥ 8.2 als „ok“ | weicht von der Mindestanforderung 8.4 ab | `SecurityAuditModule` |
-| 5 | `SubscriptionManager::checkLimit('storage')` sucht `limit_storage`, Spalte heißt `limit_storage_mb`; Free-Fallback nimmt den ersten Paket-Datensatz ohne Sortierung | Speicherlimit nur mit Ressourcenname `storage_mb` prüfbar; Fallback abhängig von der Anlage-Reihenfolge | `SubscriptionManager` |
-| 6 | `DesignSettingsModule` und `views/themes/settings.php` werden nicht mehr eingebunden | toter Code | `CMS/admin/modules/themes/` |
-| 7 | Dokumentations-Sync-Klassen sind nicht an `/admin/documentation` angebunden | kein Abgleich aus GitHub per Oberfläche | `DocumentationSync*` |
-| 8 | Benutzer-Sammelaktion `delete` löscht wie `hard_delete` endgültig | kein „weiches“ Löschen per Sammelaktion | `UserService::bulkAction()` |
-| 9 | Health-Endpunkt `/health` ist konfigurierbar, der Core registriert aber keine Route | Prüfung schlägt ohne externen Endpunkt fehl | `SystemInfoModule` |
-| 10 | `JwtService` ist nicht in API-Routen verdrahtet | API nur mit Session nutzbar | `ApiRouter`, `Api` |
-| 11 | Beispiel-Manifeste unter `CMS/marketplace/` nennen veraltete Versionen (`cms-importer` 1.6.0, `cms-default` 1.0.3) | Anzeige im lokalen Marketplace-Spiegel veraltet | `CMS/marketplace/*/index.json` |
-| 12 | Member-Upload unter `/member/media` sendet ein Token der Aktion `member_media_action`, `/api/upload` prüft `media_action` | erster Upload je Seitenaufruf scheitert (403), Wiederholung gelingt mit dem zurückgegebenen Token | `CMS/member/media.php`, `FileUploadService` |
+Nachgeprüft im Audit vom 2026-10-03 ([../audit/README.md](../audit/README.md)). Behobene Punkte bleiben zur Nachvollziehbarkeit stehen.
+
+| # | Befund | Auswirkung | Fundstelle | Status |
+|---|---|---|---|---|
+| 1 | Speichern unter `/admin/settings` erzeugte `config/app.php` aus einer Vorlage neu | manuell gesetzte Konstanten gingen verloren | `SettingsModule::saveSettings()` | ✅ 3.4.12 – nur verwaltete Konstanten werden ersetzt |
+| 2 | Option `maintenance_mode` wurde nicht ausgewertet | Wartungsmodus ohne Wirkung | `SettingsModule`, Router | ✅ 3.4.12 – 503-Seite in `Router::dispatch()` |
+| 3 | Route `/order` erwartete fehlendes `CMS/member/order_public.php` | 404 | `PublicRouter::renderOrder()` | ✅ 3.4.12 – Weiterleitung auf `/orders.php` |
+| 4 | Sicherheits-Audit bewertete PHP ≥ 8.2 als „ok“ | Abweichung zur Mindestanforderung 8.4 | `SecurityAuditModule` | ✅ 3.4.12 – nutzt `CMS_MIN_PHP_VERSION` |
+| 5 | `checkLimit('storage')` suchte `limit_storage`; Free-Fallback unsortiert | Speicherlimit nicht prüfbar | `SubscriptionManager` | ✅ 3.4.12 |
+| 6 | `DesignSettingsModule` und `views/themes/settings.php` werden nicht eingebunden | toter Code | `CMS/admin/modules/themes/` | offen |
+| 7 | Dokumentations-Sync-Klassen nicht an `/admin/documentation` angebunden | kein Abgleich per Oberfläche | `DocumentationSync*` | offen |
+| 8 | Sammelaktion `delete` löschte wie `hard_delete` | kein weiches Löschen | `UserService::bulkAction()` | ✅ 3.4.12 – `delete` = Soft-Delete |
+| 9 | Health-Endpunkt ohne Core-Route | Prüfung schlug fehl | `SystemInfoModule` | ✅ 3.4.12 – `GET /health` (Standardpfad) |
+| 10 | `JwtService` nicht in API-Routen verdrahtet | API nur mit Session | `ApiRouter`, `Api` | offen |
+| 11 | Beispiel-Manifeste unter `CMS/marketplace/` mit veralteten Versionen | Anzeige veraltet | `CMS/marketplace/*/index.json` | ✅ 3.4.12 |
+| 12 | Member-Upload sendete Token `member_media_action`, `/api/upload` prüft `media_action` | erster Upload scheiterte (403) | `CMS/member/media.php` | ✅ 3.4.12 |
+| 13 | Plugin-Member-Bereiche (`post_callback`) ohne zentrale CSRF-Prüfung | Plugins müssen CSRF selbst prüfen | `CMS/member/plugin-section.php` | offen (Audit SEC-07) |
+| 14 | `wp_enqueue_*`/`wp_dequeue_*` sind leere Stubs | WP-nahe Plugins laden keine Assets | `includes/functions/wordpress-compat.php` | offen (Audit FUN-10) |
+| 15 | `Version::CURRENT` bleibt `3.4.00` trotz ausgelieferter Fixes | Installationen nicht unterscheidbar | `CMS/core/Version.php` | offen (Audit FUN-12) |
 
 ### Grundsatz dieser Dokumentation
 
-Dokumentiert wird nur, was im ausgelieferten Code nachvollziehbar ist. Pfade, Klassen und Routen in `DOC/` wurden am 2026-10-02 gegen `CMS/` abgeglichen.
+Dokumentiert wird nur, was im ausgelieferten Code nachvollziehbar ist. Pfade, Klassen und Routen in `DOC/` wurden am 2026-10-02 gegen `CMS/` abgeglichen und im Audit vom 2026-10-03 erneut geprüft.
 
 ### Verwandte Dokumente
 
-[README.md](README.md) · [../README.md](../README.md) · [../../Changelog.md](../../Changelog.md)
+[README.md](README.md) · [../README.md](../README.md) · [../audit/README.md](../audit/README.md) · [../../Changelog.md](../../Changelog.md)
