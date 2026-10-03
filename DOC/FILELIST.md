@@ -27,13 +27,13 @@
 
 This file is the **readable structure map**. It answers: where does something live, what does the running CMS load, and which paths matter when you change code.
 
-Product version in code: `3.4.00`. PHP: 8.4.0+. Schema: `v22`.
+Product version in code: `3.4.00`. PHP: 8.4.0+. Schema: `v23`.
 
 **Deutsch**
 
 Diese Datei ist die **lesbare Strukturkarte**. Sie beantwortet: wo liegt etwas, was lädt das laufende CMS, und welche Pfade zählen bei Änderungen.
 
-Produktversion im Code: `3.4.00`. PHP: 8.4.0+. Schema: `v22`.
+Produktversion im Code: `3.4.00`. PHP: 8.4.0+. Schema: `v23`.
 
 ### 1.1 Workspace context | Workspace-Kontext
 
@@ -63,13 +63,13 @@ Das CMS lädt Themes und Plugins nur aus `CMS/themes/` und `CMS/plugins/`.
 |---|---|
 | `CMS/` | productive application runtime |
 | `DOC/` | documentation |
-| `ASSETS/` | vendor/source assets outside runtime |
 | `RELEASE/` | release zips and checksums |
 | `SCREENSHOTS/` | screenshots |
-| `TESTS/` | tests |
-| `tools/` | helper tools |
+| `CODE_OF_CONDUCT.md` | code of conduct |
 | `README.md` | public README |
 | `Changelog.md` | changelog |
+
+`ASSETS/`, `TESTS/` and `tools/` are not part of this repository (see [FILESTRUCTUR.md](FILESTRUCTUR.md)). / `ASSETS/`, `TESTS/` und `tools/` sind nicht Teil dieses Repositories.
 
 Rule: **always know whether you are editing runtime, documentation, or source context.**
 
@@ -308,17 +308,17 @@ Geladen durch `PluginManager` aus `CMS/plugins/<slug>/`. Derzeit installiert: nu
 
 Canonical `DOC/` files: `README.md`, `INDEX.md`, `INSTALLATION.md`, `DEVLIST.md`, `FILELIST.md`, `FILESTRUCTUR.md`, `CMSFILESTRUCTUR.md`.
 
-Subfolders: `admin/`, `ai/`, `assets/`, `core/`, `member/`, `plugins/`, `theme/`, `workflow/`.
+Subfolders: `admin/`, `ai/`, `assets/`, `audit/`, `core/`, `member/`, `plugins/`, `theme/`, `workflow/`.
 
-Asset Markdown is under `DOC/assets/`. There is no audit folder in this repository; see `core/STATUS.md`.
+Asset Markdown is under `DOC/assets/`. The code audit of 2026-10-03 is in `DOC/audit/`; open gaps are tracked in `core/STATUS.md`.
 
 **Deutsch**
 
 Kanonische `DOC/`-Dateien: `README.md`, `INDEX.md`, `INSTALLATION.md`, `DEVLIST.md`, `FILELIST.md`, `FILESTRUCTUR.md`, `CMSFILESTRUCTUR.md`.
 
-Unterordner: `admin/`, `ai/`, `assets/`, `core/`, `member/`, `plugins/`, `theme/`, `workflow/`.
+Unterordner: `admin/`, `ai/`, `assets/`, `audit/`, `core/`, `member/`, `plugins/`, `theme/`, `workflow/`.
 
-Asset-Markdown liegt unter `DOC/assets/`. Ein Audit-Ordner existiert im Repository nicht; siehe `core/STATUS.md`.
+Asset-Markdown liegt unter `DOC/assets/`. Das Code-Audit vom 2026-10-03 liegt unter `DOC/audit/`; offene Lücken stehen in `core/STATUS.md`.
 
 ---
 

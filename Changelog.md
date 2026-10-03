@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06`, `v3.4.07`, `v3.4.08` and `v3.4.09` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.13` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06`, `v3.4.07`, `v3.4.08` und `v3.4.09` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.13` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -23,6 +23,49 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.4.13 — 03.10.2026
+
+Offene Punkte aus dem Audit vom 03.10.2026 abgearbeitet ([`DOC/audit/`](DOC/audit/README.md)) und erstmals gegen eine echte MariaDB getestet: 15 Befunde behoben (davon 4 neu durch die Laufzeittests gefunden), PERF-06 teilweise; offen bleibt nur FUN-12 (Versionsnummer, Release-Entscheidung).
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.13** | 🛡️ security | Rate-Limits / Zeitzone | **`CMS\Database` setzt die MySQL-Sitzungszeitzone auf den PHP-Offset.** `login_attempts` wurde mit `NOW()` (Server-Zeitzone) geschrieben, aber gegen PHP-Zeit (`Europe/Berlin`) geprüft – bei UTC-Datenbanken lag das Fenster in der Zukunft und Login-, Reset-, Registrierungs-, API- und Kontakt-Limits zählten nie (im Test: Login nach 6 Fehlversuchen weiterhin möglich). Betrifft auch Firewall-, Alarm- und Mail-Queue-Zeitfenster. (SEC-10) |
+| **3.4.13** | 🛡️ security | Doku-Sync | `DocumentationSyncEnvironment::isAllowedCommand()` wendet die Git-Allowlist jetzt immer an; vorher endete die Prüfung bei jedem Befehl mit `2>&1` vorzeitig. (SEC-11) |
+| **3.4.13** | 🔴 fix | Kontaktformular | `POST /contact` und `POST /kontakt` sind registriert; das Formular von `cms-default` lieferte beim Absenden bisher immer 404. (FUN-13) |
+| **3.4.13** | 🔴 fix | Neuinstallation / Beiträge | `cms_posts` enthält `title_en`, `content_en`, `excerpt_en` im Basisschema und per Migration v23. Vorher ergänzte nur `/admin/posts` die Spalten; bis dahin lieferten `/blog` und `/api/v1/admin/posts` 500. (FUN-14) |
+| **3.4.13** | 🟠 perf | Options-Cache | **Neu: `CMS\Services\OptionStore`.** Lädt alle `autoload`-Optionen mit einer Abfrage, merkt sich weitere Schlüssel (auch Fehlschläge) für den Request und wird von `Database::prepare()`/`query()` bei Schreibzugriffen auf `settings` automatisch geleert. Umgestellt: Router, PublicRouter, ThemeManager, PluginManager, Bootstrap, TableOfContents, SubscriptionManager, `SettingsService`, `SeoSettingsStore`, `CmsAuthPageService` (Ergebnis gemerkt, lief bis zu 7× pro Request) und weitere Services sowie das Standard-Theme. `get_option()` nutzt den Store und liefert nun auch Optionen mit `autoload = 0`. Gemessen: Startseite 122 → 58 Abfragen (`settings` 74 → 10), Antwortzeit 54 → 36 ms. (PERF-03) |
+| **3.4.13** | 🟠 perf | Datenbank / Schema v23 | `SCHEMA_VERSION` → `v23` (inkl. FUN-14): Index `posts.idx_status_published (status, published_at)` für Blog-/Archiv-/Feed-Listen, redundanter Index `settings.idx_key` entfernt. Migration idempotent über `MigrationManager`. (PERF-04, PERF-05) |
+| **3.4.13** | 🛡️ security | Member-Plugins | `PluginDashboardRegistry::handleRoute()` prüft POSTs auf Plugin-Bereiche: Herkunft (`Origin`/`Referer`) muss zur Site passen; mit `'csrf' => 'core'` erzwingt der Core zusätzlich das Token `member_plugin_<slug>` (`csrfField()`, `csrfToken()`). Bestehende Plugins bleiben kompatibel. (SEC-07) |
+| **3.4.13** | 🛡️ security | Kontaktformular | Das Kontaktformular von `cms-default` sendet höchstens 5 Nachrichten je IP und Stunde. (SEC-08) |
+| **3.4.13** | 🛡️ security | Datenschutz / Fonts | Theme-Option „Google Fonts als Fallback laden“ ist standardmäßig aus (`theme.json`, Customizer, Code-Fallback). Gespeicherte Werte bleiben erhalten. (SEC-09) |
+| **3.4.13** | 🟢 feat | API / JWT | **Bearer-Anmeldung für `/api/*`, opt-in über `JWT_SECRET` (≥ 32 Zeichen).** `POST /api/v1/auth/token` stellt Access- und Refresh-Token nur für eine angemeldete Session aus (kein MFA-Bypass, Same-Origin, 10/h), `POST /api/v1/auth/refresh` erneuert (30/h). `Auth::authenticateBearerToken()` akzeptiert keine Refresh-Tokens und nur aktive Konten. (FUN-08) |
+| **3.4.13** | 🟢 feat | Dokumentation / Doku-Sync | `/admin/documentation` zeigt für `manage_system` die Karte „Doku-Sync“ mit Status und Button. Git-Modus ohne Konfiguration, ZIP-Modus mit `CMS_DOCS_SYNC_BUNDLE_SHA256`/`CMS_DOCS_SYNC_BUNDLE_FILES`; optional `CMS_DOCS_SYNC_REMOTE`, `_BRANCH`, `_ZIP_URL`. (FUN-09) |
+| **3.4.13** | 🟢 feat | WordPress-Kompatibilität | `wp_register_style/script`, `wp_enqueue_style/script`, `wp_dequeue_*` und `wp_localize_script` laden jetzt tatsächlich: Abhängigkeiten, `?ver=`, Ausgabe in `head`/`admin_head`/`body_end`, CSP-Nonce, keine `javascript:`/`data:`-URLs. (FUN-10) |
+| **3.4.13** | ⬜ chore | Toter Code | Entfernt: `admin/modules/themes/DesignSettingsModule.php`, `admin/views/themes/settings.php`, `PageManager::listPages()`, `cms_default_theme_customizer_get_admin_menu_paths()`. (FUN-11, REF-05, PERF-06 teilweise) |
+| **3.4.13** | 🔵 docs | Dokumentation | `DOC/audit/*`, `DOC/core/STATUS.md`, `SECURITY.md`, `API-REFERENCE.md` (JWT), `DATABASE-SCHEMA.md` (v23), `DOC/member/MEMBER-DASHBOARD.md`, `DOC/plugins/PLUGIN-DEVELOPMENT.md`, `DOC/admin/system-settings/SYSTEM.md`, `DOC/admin/themes-design/FONTS.md` und `DESIGN-SETTINGS.md` aktualisiert; Schema-Angaben auf `v23`. |
+
+### v3.4.12 — 03.10.2026
+
+Vollständiges Code-Audit (Sicherheit, Geschwindigkeit, Funktionen, Verweise). Ausführlich dokumentiert unter [`DOC/audit/`](DOC/audit/README.md): 32 Befunde, 19 behoben, 13 offen mit Empfehlung.
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.12** | 🛡️ security | Konfiguration / Backups | **Backups von `config/app.php` heißen jetzt `config/app.backup-<Datum>.php` statt `app.php.backup.<Datum>`** (`SettingsModule`, `InstallerService`). Ohne `.htaccess`-Schutz (z. B. nginx) wurden die alten Dateien als Klartext mit DB-Passwort und Schlüsseln ausgeliefert; mit `.php`-Endung werden sie ausgeführt und geben nichts aus. Vorhandene `app.php.backup.*` bitte manuell löschen. (Audit SEC-01) |
+| **3.4.12** | 🛡️ security | Uploads | `MediaService::validateUploadFile()` blockiert gefährliche **Doppelendungen** (`datei.php.jpg`) und kennt zusätzlich `php7`, `php8`, `pht`, `phps`, `phpt`, `shtml`, `htaccess`, `htpasswd`, `py`, `jsp`. (SEC-02) |
+| **3.4.12** | 🛡️ security | Registrierung | `PublicRouter::handleRegister()` begrenzt Registrierungen auf 5 Versuche je IP in 15 Minuten (`checkDbRateLimit`/`recordDbRateLimitAttempt`). (SEC-03) |
+| **3.4.12** | 🛡️ security | Client-IP / Reverse Proxy | Neue opt-in-Konstante **`CMS_TRUSTED_PROXIES`** (IPs/CIDR, IPv4/IPv6). Liegt `REMOTE_ADDR` darin, nimmt `Security::getClientIp()` die erste nicht vertrauenswürdige Adresse aus `X-Forwarded-For`. Vorher sahen Rate-Limits, Firewall und Audit-Log hinter einem Proxy nur dessen IP – fünf Fehlversuche sperrten den Login für alle. (SEC-04) |
+| **3.4.12** | 🔴 fix | Sicherheits-Audit | Die PHP-Prüfung unter `/admin/security-audit` nutzt `CMS_MIN_PHP_VERSION` (8.4) statt fest 8.2. (SEC-05) |
+| **3.4.12** | 🔴 fix | Einstellungen / `config/app.php` | **Speichern unter `/admin/settings` ersetzt nur noch `SITE_NAME`, `SITE_URL`, `ADMIN_EMAIL` und `CMS_DEBUG` in der bestehenden Datei** (`patchConfigContent()`), statt sie aus einer Vorlage neu zu erzeugen. Manuell gesetzte `LDAP_*`, `JWT_*`, `SMTP_*`, HTTPS/HSTS-Konstanten und Zeitzone bleiben erhalten. Der Parser liest Werte escape-bewusst; Passwörter mit `'` oder `\` wurden vorher beim Speichern beschädigt. (FUN-02, SEC-06) |
+| **3.4.12** | 🟢 feat | Wartungsmodus | Die Option `maintenance_mode` wird jetzt in `Router::dispatch()` ausgewertet: Besucher erhalten HTTP 503 (`Retry-After`, `noindex`) mit der gespeicherten Nachricht, API-Aufrufe JSON. Admins, `/admin/*`, Login-/Passwort-/MFA-Routen (auch umbenannte) und `/health` bleiben erreichbar. (FUN-01) |
+| **3.4.12** | 🟢 feat | Health-Endpunkt | Neue Route `GET /health` (`PublicRouter::renderHealth()`): bei aktivierter Option `monitor_health_endpoint_enabled` JSON `{"status":"ok","database":"ok"}`, bei DB-Fehler 503, sonst 404. (FUN-04) |
+| **3.4.12** | 🔴 fix | Bestellung `/order` | `/order` leitet auf den Checkout `/orders.php` weiter (GET 302, POST 307, Query bleibt), solange keine eigene `member/order_public.php` existiert. Vorher 404. (FUN-03) |
+| **3.4.12** | 🔴 fix | Abo-Limits | `SubscriptionManager::checkLimit('storage')` liest `limit_storage_mb` (vorher immer 0 → verweigert), Limits werden als `int` verglichen; der Free-Fallback wählt den aktiven Plan `free` bzw. den günstigsten aktiven Plan statt eines beliebigen Datensatzes. (FUN-05) |
+| **3.4.12** | 🔴 fix | Member-Medien | Das Upload-Formular unter `/member/media` sendet ein Token der Aktion `media_action`; vorher scheiterte der erste Upload je Seitenaufruf mit 403. (FUN-06) |
+| **3.4.12** | 🔴 fix | Benutzer-Sammelaktionen | `UserService::bulkAction('delete')` ist ein Soft-Delete (Status inaktiv); endgültig löscht nur `hard_delete`. (FUN-07) |
+| **3.4.12** | 🟠 perf | Standard-Theme | Cookie-Banner (`functions.php`) und Kontaktblock (`contact.php`) laden ihre Optionen mit einer `IN (…)`-Abfrage statt vier Einzelabfragen; `isLocalFontsEnabled()` wird pro Request nur einmal abgefragt. (PERF-01, PERF-02) |
+| **3.4.12** | 🔴 fix | Verweise | Admin-Link „Pakete“ in den Abo-Einstellungen zeigt auf `/admin/packages` (vorher 404). Lokale Marketplace-Manifeste nennen die tatsächlichen Versionen (`cms-importer` 3.0.3, `cms-default` 1.0.9). (REF-01, REF-02) |
+| **3.4.12** | 🔵 docs | Audit / Dokumentation | Neuer Ordner **`DOC/audit/`** (`README.md`, `SECURITY.md`, `PERFORMANCE.md`, `FUNKTIONEN.md`, `VERWEISE.md`). 15 tote Markdown-Links korrigiert, `DOC/core/STATUS.md` (Status je Lücke), `DOC/core/SECURITY.md`, `INDEX.md`, `FILELIST.md`, `FILESTRUCTUR.md`, `INSTALLATION.md`, `README.md` und die Bereichsdokumente zu Wartungsmodus, Health, Bestellungen, Benutzer-Sammelaktionen und Member-Uploads aktualisiert. (REF-03, REF-04) |
 
 ### v3.4.11 — 03.10.2026
 
@@ -978,4 +1021,4 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | **3.0.0** | 🛡️ security | Folgeaudit – Shared Editor & AI-Translation | **Der kritische Shared-Editor-Pfad wurde gegen Client- und Server-Randfälle nachgezogen.** `CMS/assets/js/admin-content-editor.js` erzwingt für AI-Translation-Requests nun Same-Origin-Endpunkte, setzt ein clientseitiges Zeitlimit, prüft deklarierte und tatsächliche JSON-Antwortgrößen und verwirft übergroße Antworten ohne sie dauerhaft im UI-State zu halten. `CMS/admin/modules/system/AiEditorJsTranslationModule.php` validiert Editor.js-Payloads vor der AI-Pipeline zusätzlich auf gültiges JSON, maximale Blockanzahl, erlaubte Blocktyp-Metadaten und array-basierte Blockdaten. `CMS/assets/js/admin-seo-editor.js` begrenzt die Liveanalyse von Editor.js-JSON, Blockanzahl und HTML-Fragmenten defensiv, damit große oder manipulierte Inhalte die SEO-Vorschau nicht unnötig blockieren. Damit folgt der Übersetzungspfad enger dem OWASP-ASVS-Fail-Closed-Prinzip und reduziert unnötige Heap-Last bei fehlerhaften oder manipulierten Editor-Daten. |
 | **3.0.0** | ⬜ chore | Release-Schnitt & Dokumentation | **Die 2.x-Historie wurde von `Changelog.md` nach `Changelog_old.md` verschoben und eine neue, schlanke `Changelog.md` für Version `3.0.0` angelegt.** Version, Update-Metadaten und README verweisen auf den neuen Major-Release-Stand; die historische Detailspur bleibt weiterhin vollständig über `Changelog_old.md` nachvollziehbar. |
 
-> Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+> Die vollständige historische 2.x-Historie wurde in `Changelog_old.md` archiviert; die Datei ist nicht mehr Teil dieses Repositorys (siehe Git-Historie).

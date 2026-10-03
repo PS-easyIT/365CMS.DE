@@ -1,6 +1,6 @@
 # 365CMS – Projektdokumentation | Abschnitt: Core – Architektur
 
-> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Schema:** v22 | **PHP:** ≥ 8.4
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Schema:** v23 | **PHP:** ≥ 8.4
 
 ## English (summary)
 
@@ -62,7 +62,7 @@ Der Modus steht als `CMS_MODE` zur Verfügung; zusätzlich wird `cms_init_<modus
 ### Bootstrap im Detail (`Bootstrap::initializeCore()`)
 
 1. **Konstanten** sicherstellen (`ensureConstants()`), Plattformprüfung der gebündelten Bibliotheken (`validateBundledPhpPlatform()` liest Mindest-PHP-Versionen aus den Vendor-Manifests).
-2. **Datenbank** (`Database::instance()`), danach `MigrationManager::run()` – läuft nur, bis `SCHEMA_VERSION = v22` erreicht ist (Flag-Datei `cache/db_schema_v22.flag`).
+2. **Datenbank** (`Database::instance()`), danach `MigrationManager::run()` – läuft nur, bis `SCHEMA_VERSION = v23` erreicht ist (Flag-Datei `cache/db_schema_v23.flag`).
 3. **Security** (`Security::init()`): CSP-Nonce, Sicherheitsheader, Session-Start.
 4. **Auth** (`Auth::instance()`): Session-Benutzer laden, Rollen-Lebensdauer prüfen.
 5. **Firewall** (`SecurityRuntimeService::handleRequest()`), nicht im CLI.

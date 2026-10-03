@@ -35,6 +35,9 @@ class Auth
 
     private static ?self $instance = null;
     private ?object $currentUser = null;
+
+    /** true, wenn der aktuelle Request per JWT-Bearer-Token (statt Session) angemeldet ist */
+    private bool $bearerAuthenticated = false;
     /** @var array{admin:int,member:int}|null */
     private ?array $sessionLifetimes = null;
     
@@ -593,6 +596,51 @@ class Auth
         return self::instance()->currentUser;
     }
     
+    /**
+     * Meldet einen API-Request per `Authorization: Bearer <JWT>` an (ohne Session).
+     * Nur wenn JWT aktiviert ist, kein Session-Benutzer vorliegt, das Token gültig und kein
+     * Refresh-Token ist und der Benutzer aktiv ist.
+     */
+    public function authenticateBearerToken(): bool
+    {
+        if ($this->currentUser !== null || !Services\JwtService::isApiAuthEnabled()) {
+            return false;
+        }
+
+        $token = Services\JwtService::extractBearerToken();
+        if ($token === null) {
+            return false;
+        }
+
+        $payload = Services\JwtService::getInstance()->validateToken($token);
+        if ($payload === null || ($payload->type ?? '') === 'refresh' || !isset($payload->sub)) {
+            return false;
+        }
+
+        $user = $this->getUserById((int) $payload->sub);
+        if ($user === null) {
+            return false;
+        }
+
+        $this->currentUser = $user;
+        $this->bearerAuthenticated = true;
+
+        return true;
+    }
+
+    public function isBearerAuthenticated(): bool
+    {
+        return $this->bearerAuthenticated;
+    }
+
+    /**
+     * Prüft, ob eine Benutzer-ID zu einem aktiven Konto gehört (für Refresh-Tokens).
+     */
+    public function isActiveUserId(int $userId): bool
+    {
+        return $userId > 0 && $this->getUserById($userId) !== null;
+    }
+
     /**
      * Get user by ID
      */

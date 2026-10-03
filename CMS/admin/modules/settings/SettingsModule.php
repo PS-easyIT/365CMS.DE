@@ -626,43 +626,46 @@ class SettingsModule
         }
 
         $clean = static fn(string $value): string => str_contains($value, 'YOUR_') ? '' : trim($value);
+        // Werte stehen PHP-escaped in der Datei (\' bzw. \\) – vor der Weiterverarbeitung zurückwandeln,
+        // sonst werden sie beim Neuschreiben doppelt escaped.
+        $unescape = static fn(string $value): string => (string) preg_replace('/\\\\([\\\\\'])/', '$1', $value);
         $config = [];
 
-        if (preg_match("/define\('DB_HOST',\s*'([^']+)'\);/", $content, $m)) {
-            $config['db_host'] = $m[1];
+        if (preg_match("/define\('DB_HOST',\s*'((?:[^'\\\\]|\\\\.)+)'\);/", $content, $m)) {
+            $config['db_host'] = $unescape($m[1]);
         }
-        if (preg_match("/define\('DB_NAME',\s*'([^']+)'\);/", $content, $m)) {
-            $config['db_name'] = $clean($m[1]);
+        if (preg_match("/define\('DB_NAME',\s*'((?:[^'\\\\]|\\\\.)+)'\);/", $content, $m)) {
+            $config['db_name'] = $clean($unescape($m[1]));
         }
-        if (preg_match("/define\('DB_USER',\s*'([^']+)'\);/", $content, $m)) {
-            $config['db_user'] = $clean($m[1]);
+        if (preg_match("/define\('DB_USER',\s*'((?:[^'\\\\]|\\\\.)+)'\);/", $content, $m)) {
+            $config['db_user'] = $clean($unescape($m[1]));
         }
-        if (preg_match("/define\('DB_PASS',\s*'([^']+)'\);/", $content, $m)) {
-            $config['db_pass'] = str_contains($m[1], 'YOUR_') ? '' : $m[1];
+        if (preg_match("/define\('DB_PASS',\s*'((?:[^'\\\\]|\\\\.)+)'\);/", $content, $m)) {
+            $config['db_pass'] = str_contains($unescape($m[1]), 'YOUR_') ? '' : $unescape($m[1]);
         }
-        if (preg_match("/define\('DB_PREFIX',\s*'([^']+)'\);/", $content, $m)) {
-            $config['db_prefix'] = $m[1] !== '' ? $m[1] : 'cms_';
+        if (preg_match("/define\('DB_PREFIX',\s*'((?:[^'\\\\]|\\\\.)+)'\);/", $content, $m)) {
+            $config['db_prefix'] = $unescape($m[1]) !== '' ? $unescape($m[1]) : 'cms_';
         }
-        if (preg_match("/define\('SITE_NAME',\s*'([^']*)'\);/", $content, $m)) {
-            $config['site_name'] = $clean($m[1]);
+        if (preg_match("/define\('SITE_NAME',\s*'((?:[^'\\\\]|\\\\.)*)'\);/", $content, $m)) {
+            $config['site_name'] = $clean($unescape($m[1]));
         }
-        if (preg_match("/define\('ADMIN_EMAIL',\s*'([^']*)'\);/", $content, $m)) {
-            $config['admin_email'] = $clean($m[1]);
+        if (preg_match("/define\('ADMIN_EMAIL',\s*'((?:[^'\\\\]|\\\\.)*)'\);/", $content, $m)) {
+            $config['admin_email'] = $clean($unescape($m[1]));
         }
-        if (preg_match("/define\('SITE_URL',\s*'([^']*)'\);/", $content, $m)) {
-            $config['site_url'] = $clean($m[1]);
+        if (preg_match("/define\('SITE_URL',\s*'((?:[^'\\\\]|\\\\.)*)'\);/", $content, $m)) {
+            $config['site_url'] = $clean($unescape($m[1]));
         }
         if (preg_match("/define\('CMS_DEBUG',\s*(true|false)\);/", $content, $m)) {
             $config['debug_mode'] = $m[1];
         }
-        if (preg_match("/define\('AUTH_KEY',\s*'([^']*)'\);/", $content, $m)) {
-            $config['auth_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
+        if (preg_match("/define\('AUTH_KEY',\s*'((?:[^'\\\\]|\\\\.)*)'\);/", $content, $m)) {
+            $config['auth_key'] = str_contains($unescape($m[1]), 'REPLACE_VIA_INSTALLER') ? '' : $unescape($m[1]);
         }
-        if (preg_match("/define\('SECURE_AUTH_KEY',\s*'([^']*)'\);/", $content, $m)) {
-            $config['secure_auth_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
+        if (preg_match("/define\('SECURE_AUTH_KEY',\s*'((?:[^'\\\\]|\\\\.)*)'\);/", $content, $m)) {
+            $config['secure_auth_key'] = str_contains($unescape($m[1]), 'REPLACE_VIA_INSTALLER') ? '' : $unescape($m[1]);
         }
-        if (preg_match("/define\('NONCE_KEY',\s*'([^']*)'\);/", $content, $m)) {
-            $config['nonce_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
+        if (preg_match("/define\('NONCE_KEY',\s*'((?:[^'\\\\]|\\\\.)*)'\);/", $content, $m)) {
+            $config['nonce_key'] = str_contains($unescape($m[1]), 'REPLACE_VIA_INSTALLER') ? '' : $unescape($m[1]);
         }
 
         return (!empty($config['db_user']) && !empty($config['db_name'])) ? $config : false;
@@ -704,11 +707,27 @@ class SettingsModule
             return 'Fehler: config/.htaccess konnte nicht geschrieben werden.';
         }
 
+        $escape = static fn(string $value): string => str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
+
         if (is_file($configPath)) {
-            @copy($configPath, $configDir . '/app.php.backup.' . date('Y-m-d_H-i-s'));
+            // Backup mit .php-Endung: bei fehlendem .htaccess-Schutz (z. B. nginx) wird die Datei
+            // ausgeführt statt als Klartext mit DB-Zugangsdaten ausgeliefert.
+            @copy($configPath, $configDir . '/app.backup-' . date('Y-m-d_H-i-s') . '.php');
+
+            // Bevorzugt nur die verwalteten Werte in der bestehenden Datei ersetzen, damit manuell
+            // gesetzte Konstanten (LDAP_*, JWT_*, SMTP_*, HTTPS/HSTS, Zeitzone …) erhalten bleiben.
+            $existingContent = (string) @file_get_contents($configPath);
+            $patched = $this->patchConfigContent($existingContent, $data, $escape);
+            if ($patched !== null) {
+                $validationResult = $this->validateGeneratedPhpFile($patched, 'config/app.php');
+                if ($validationResult === true) {
+                    return $this->writeFileAtomically($configPath, $patched)
+                        ? true
+                        : 'Fehler: config/app.php konnte nicht geschrieben werden.';
+                }
+            }
         }
 
-        $escape = static fn(string $value): string => str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
         $content = <<<PHP
 <?php
 /**
@@ -818,6 +837,47 @@ PHP;
         return $this->writeFileAtomically($configPath, $content)
             ? true
             : 'Fehler: config/app.php konnte nicht geschrieben werden.';
+    }
+
+    /**
+     * Ersetzt SITE_NAME, SITE_URL, ADMIN_EMAIL und CMS_DEBUG direkt in einer bestehenden config/app.php.
+     * Liefert null, wenn eine der Konstanten nicht genau einmal gefunden wird (dann Vorlage verwenden).
+     *
+     * @param array<string,string> $data
+     */
+    private function patchConfigContent(string $content, array $data, callable $escape): ?string
+    {
+        if ($content === '' || !str_starts_with(ltrim($content), '<?php')) {
+            return null;
+        }
+
+        $stringConstants = [
+            'SITE_NAME' => (string) $data['site_name'],
+            'SITE_URL' => rtrim((string) $data['site_url'], '/'),
+            'ADMIN_EMAIL' => (string) $data['admin_email'],
+        ];
+
+        foreach ($stringConstants as $constant => $value) {
+            $pattern = "/define\\('" . $constant . "',(\\s*)'(?:[^'\\\\]|\\\\.)*'\\);/";
+            $replacement = $escape($value);
+            $count = 0;
+            $content = (string) preg_replace_callback(
+                $pattern,
+                static fn(array $m): string => "define('" . $constant . "'," . $m[1] . "'" . $replacement . "');",
+                $content,
+                -1,
+                $count
+            );
+            if ($count !== 1) {
+                return null;
+            }
+        }
+
+        $debug = ($data['debug_mode'] ?? 'false') === 'true' ? 'true' : 'false';
+        $count = 0;
+        $content = (string) preg_replace('/define\(\'CMS_DEBUG\',(\s*)(?:true|false)\);/', "define('CMS_DEBUG',\${1}" . $debug . ');', $content, -1, $count);
+
+        return $count === 1 ? $content : null;
     }
 
     public function repairImportedSlugs(): array

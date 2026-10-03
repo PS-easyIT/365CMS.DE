@@ -517,16 +517,10 @@ class ThemeManager
         $slug = DEFAULT_THEME;
 
         try {
-            $db = Database::instance();
-            $stmt = $db->prepare("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'active_theme' LIMIT 1");
-
-            if ($stmt) {
-                $stmt->execute();
-                $result = $stmt->fetch();
-                if ($result && $result->option_value) {
-                    // Defense-in-depth: Slug darf nur sichere Zeichen enthalten
-                    $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $result->option_value);
-                }
+            $activeTheme = (string) Services\OptionStore::getInstance()->get('active_theme', '');
+            if ($activeTheme !== '') {
+                // Defense-in-depth: Slug darf nur sichere Zeichen enthalten
+                $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $activeTheme);
             }
         } catch (\Exception $e) {
             Logger::instance()->withChannel('theme')->warning('Active theme could not be loaded from settings.', [
@@ -968,13 +962,9 @@ class ThemeManager
     public function getMenu(string $location): array
     {
         try {
-            $db = Database::instance();
-            $stmt = $db->prepare("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ? LIMIT 1");
-            $stmt->execute(['menu_' . $location]);
-            $result = $stmt->fetch();
-
-            if ($result && $result->option_value) {
-                return Json::decodeArray($result->option_value ?? null, []);
+            $menuJson = Services\OptionStore::getInstance()->get('menu_' . $location);
+            if ($menuJson !== null && $menuJson !== '') {
+                return Json::decodeArray($menuJson, []);
             }
         } catch (\Exception $e) {
             Logger::instance()->withChannel('theme')->warning('Theme menu could not be loaded.', [
@@ -1060,13 +1050,10 @@ class ThemeManager
 
         // Additional user-created locations
         try {
-            $db   = Database::instance();
-            $stmt = $db->prepare("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'menu_custom_locations' LIMIT 1");
-            $stmt->execute();
-            $result = $stmt->fetch();
+            $customJson = Services\OptionStore::getInstance()->get('menu_custom_locations');
 
-            if ($result && $result->option_value) {
-                $custom = Json::decodeArray($result->option_value ?? null, []);
+            if ($customJson !== null && $customJson !== '') {
+                $custom = Json::decodeArray($customJson, []);
                 foreach ($custom as $loc) {
                     // Defensive: nur valide Array-Einträge mit 'slug'-Schlüssel verarbeiten
                     if (!is_array($loc) || !isset($loc['slug'], $loc['label'])) {

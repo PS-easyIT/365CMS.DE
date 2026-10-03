@@ -765,12 +765,7 @@ class Bootstrap
             // Custom Fonts (DSGVO-konform lokal gespeicherte Schriften)
             Hooks::addAction('head', function () {
                 try {
-                    $db = Database::instance();
-                    $localFontsRow = $db->get_row(
-                        "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'privacy_use_local_fonts' LIMIT 1"
-                    );
-
-                    if (!$localFontsRow || (string)($localFontsRow->option_value ?? '0') !== '1') {
+                    if (Services\OptionStore::getInstance()->get('privacy_use_local_fonts', '0') !== '1') {
                         return;
                     }
 

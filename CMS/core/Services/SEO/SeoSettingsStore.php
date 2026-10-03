@@ -22,16 +22,8 @@ final class SeoSettingsStore
 
     public function getSetting(string $key, string $default = ''): string
     {
-        try {
-            $value = $this->db->get_var(
-                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
-                ['seo_' . $key]
-            );
-
-            return $value !== null ? (string) $value : $default;
-        } catch (\Throwable) {
-            return $default;
-        }
+        // Request-Cache statt Einzelabfrage je SEO-Schlüssel.
+        return \CMS\Services\OptionStore::getInstance()->get('seo_' . $key) ?? $default;
     }
 
     public function getCustomHeaderCode(): string

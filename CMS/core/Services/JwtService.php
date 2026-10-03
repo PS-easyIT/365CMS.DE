@@ -83,6 +83,26 @@ final class JwtService
     // ── Öffentliche API ──────────────────────────────────────────────────────
 
     /**
+     * Bearer-Authentifizierung für /api/* ist nur aktiv, wenn JWT_SECRET explizit gesetzt ist
+     * (der AUTH_KEY-Fallback reicht zum Signieren, schaltet die API-Anmeldung aber nicht frei).
+     */
+    public static function isApiAuthEnabled(): bool
+    {
+        if (!defined('JWT_SECRET')) {
+            return false;
+        }
+
+        $secret = trim((string) constant('JWT_SECRET'));
+
+        return strlen($secret) >= 32 && !str_contains($secret, 'REPLACE_VIA_INSTALLER') && !str_contains($secret, 'YOUR_');
+    }
+
+    public function getTtl(): int
+    {
+        return $this->ttl;
+    }
+
+    /**
      * Access-Token für einen User generieren.
      *
      * @param int               $userId         Benutzer-ID (wird als 'sub'-Claim gesetzt)

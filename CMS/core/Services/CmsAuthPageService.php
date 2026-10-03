@@ -50,6 +50,9 @@ final class CmsAuthPageService
     private Logger $logger;
     private string $prefix;
 
+    /** @var array<string,string>|null */
+    private ?array $settingsCache = null;
+
     private function __construct()
     {
         $this->db = Database::instance();
@@ -130,6 +133,11 @@ final class CmsAuthPageService
     /** @return array<string, string> */
     public function getSettings(): array
     {
+        // Wird pro Request mehrfach aufgerufen (Router, Theme, Auth-Seiten) – Ergebnis merken.
+        if ($this->settingsCache !== null) {
+            return $this->settingsCache;
+        }
+
         $settings = array_merge($this->getDefaultSettings(), self::SHARED_SETTING_DEFAULTS);
 
         try {
@@ -173,7 +181,7 @@ final class CmsAuthPageService
             ]);
         }
 
-        return $settings;
+        return $this->settingsCache = $settings;
     }
 
     /** @return array<int, array{id:int,title:string,slug:string,url:string}> */
@@ -212,6 +220,8 @@ final class CmsAuthPageService
     /** @return array{success:bool,message?:string,error?:string} */
     public function saveSettings(array $input): array
     {
+        $this->settingsCache = null;
+
         try {
             $values = $this->normalizeSettingsInput($input);
 
@@ -227,6 +237,8 @@ final class CmsAuthPageService
             return ['success' => true, 'message' => 'CMS Loginpage gespeichert.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'CMS Loginpage konnte nicht gespeichert werden: ' . $e->getMessage()];
+        } finally {
+            $this->settingsCache = null;
         }
     }
 

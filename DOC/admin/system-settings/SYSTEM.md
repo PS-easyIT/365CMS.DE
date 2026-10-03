@@ -20,7 +20,7 @@
 | Mail-System | Hinweis und Link auf `/admin/mail-settings` | eigentliche Konfiguration siehe [MAIL.md](MAIL.md) |
 | Inhalte | Beiträge pro Seite (`posts_per_page`, 1–100), Kommentare aktiv (`comments_enabled`) | Benutzer-/Auth-Optionen liegen unter `/admin/user-settings` |
 | Marketplace & Updates | Marketplace aktiv (`marketplace_enabled`), Marketplace-Übersicht (`marketplace_public_url`), Plugins-Index (`plugin_registry_url`), Themes-Index (`theme_registry_url`), Plugins-Basis (`plugin_marketplace_base_url`), Themes-Basis (`theme_marketplace_url`), Public Einreichung (`marketplace_submit_url`), CMS-Update-Feed (`core_update_url`) | Standard: `https://365cms.de/marketplace-public`, `…/marketplace/plugins/index.json`, `…/marketplace/themes/index.json`, `…/marketplace/plugins`, `…/marketplace/themes`, `…/marketplace-submit`, `…/marketplace/core/365cms/update.json` (zentral in `MarketplaceEndpoints`) |
-| Wartungsmodus | `maintenance_mode`, `maintenance_message` | Wird gespeichert, in 3.4.00 aber von keinem Core-Router ausgewertet – das Frontend bleibt erreichbar. Themes/Plugins können die Option lesen; für echte Wartungsfenster den Webserver (z. B. 503-Seite) nutzen |
+| Wartungsmodus | `maintenance_mode`, `maintenance_message` | Seit 3.4.12 aktiv: Besucher erhalten HTTP 503 mit der Nachricht (erlaubt `<p><strong><em><br>`), API-Aufrufe JSON. Erreichbar bleiben eingeloggte Admins, `/admin/*`, Login-/Passwort-/MFA-Routen und `/health` |
 | Erweitert | Google-Analytics-Altfeld (`google_analytics`), `robots_txt` | Tracking besser über [../seo/ANALYTICS.md](../seo/ANALYTICS.md) |
 
 ### Site-URL-Migration (`run_site_url_migration`)
@@ -51,7 +51,16 @@ Die angezeigte „aktive Runtime-URL“ ist der tatsächlich verwendete Wert aus
 
 ### Dokumentation (`/admin/documentation`)
 
-`CMS/admin/documentation.php` → `DocumentationModule` zeigt die Markdown- und CSV-Dateien aus dem Ordner `DOC/` neben dem `CMS/`-Verzeichnis als navigierbaren Katalog an (`?doc=<pfad>`; nur `.md`/`.csv`, keine Pfad-Traversal, max. 256 KB je Datei). Relative Links zwischen Dokumenten werden umgeschrieben. Lesend, Capability `manage_settings` oder `manage_system`. Die Klassen `DocumentationSyncService`, `DocumentationGitSync` und `DocumentationGithubZipSync` (Abgleich aus GitHub) sind vorhanden, auf der Seite aber derzeit nicht als Aktion verdrahtet. `/admin/support` leitet auf diese Seite um.
+`CMS/admin/documentation.php` → `DocumentationModule` zeigt die Markdown- und CSV-Dateien aus dem Ordner `DOC/` neben dem `CMS/`-Verzeichnis als navigierbaren Katalog an (`?doc=<pfad>`; nur `.md`/`.csv`, keine Pfad-Traversal, max. 256 KB je Datei). Relative Links zwischen Dokumenten werden umgeschrieben. Lesend, Capability `manage_settings` oder `manage_system`. `/admin/support` leitet auf diese Seite um.
+
+**Doku-Sync (seit 3.4.13):** Benutzer mit `manage_system` sehen links die Karte „Doku-Sync“ mit Status und – falls möglich – dem Button „/DOC jetzt synchronisieren“ (Aktion `sync_docs`, CSRF `admin_documentation`, Bestätigungsdialog). `DocumentationSyncService` wählt den Modus:
+
+| Modus | Voraussetzung | Konfiguration (`config/app.php`, optional) |
+|---|---|---|
+| Git | `.git` im Repository-Root, `git` und `exec()` verfügbar | `CMS_DOCS_SYNC_REMOTE` (Standard `origin`), `CMS_DOCS_SYNC_BRANCH` (Standard `main`) |
+| GitHub-ZIP | ZIP-Extension, HTTPS über den zentralen HTTP-Client | **Pflicht:** `CMS_DOCS_SYNC_BUNDLE_SHA256` (SHA-256 des freigegebenen Bundles) und `CMS_DOCS_SYNC_BUNDLE_FILES` (Dateianzahl); optional `CMS_DOCS_SYNC_ZIP_URL` |
+
+Ohne freigegebenes Bundle zeigt die Karte „ZIP-Sync nicht konfiguriert“. Der Sync ersetzt ausschließlich den Ordner `DOC/` und läuft mit Datei-Lock; lokale Änderungen in `DOC/` gehen verloren.
 
 ### Verwandte Dokumente
 

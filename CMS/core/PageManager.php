@@ -277,15 +277,6 @@ class PageManager
     }
     
     /**
-     * List Pages
-     */
-    public function listPages(): array
-    {
-        $stmt = $this->db->query("SELECT * FROM {$this->prefix}pages ORDER BY created_at DESC");
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-    }
-    
-    /**
      * Search Pages
      */
     public function search(string $query): array

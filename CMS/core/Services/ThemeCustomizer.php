@@ -61,13 +61,9 @@ class ThemeCustomizer
         $slug = defined('DEFAULT_THEME') ? DEFAULT_THEME : 'cms-default';
 
         try {
-            $stmt = $this->db->prepare(
-                "SELECT option_value FROM {$this->db->getPrefix()}settings WHERE option_name = 'active_theme' LIMIT 1"
-            );
-            $stmt->execute();
-            $result = $stmt->fetch(\PDO::FETCH_OBJ);
-            if ($result && !empty($result->option_value)) {
-                $slug = $result->option_value;
+            $activeTheme = OptionStore::getInstance()->get('active_theme');
+            if ($activeTheme !== null && $activeTheme !== '') {
+                $slug = $activeTheme;
             }
         } catch (\Throwable $e) {
             Logger::instance()->withChannel('theme-customizer')->warning('Active theme could not be detected for the customizer.', [

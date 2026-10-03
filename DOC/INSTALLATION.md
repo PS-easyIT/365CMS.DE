@@ -23,7 +23,7 @@
 Two practical install paths exist:
 
 1. **Web installer via `CMS/install.php`**  
-   The installer checks PHP compatibility, PDO MySQL availability, and write access for `CMS/config/app.php`. It collects database, site, and admin data, writes `CMS/config/app.php`, creates the schema through `CMS\SchemaManager` (`SCHEMA_VERSION = v22`), and creates the first administrator.
+   The installer checks PHP compatibility, PDO MySQL availability, and write access for `CMS/config/app.php`. It collects database, site, and admin data, writes `CMS/config/app.php`, creates the schema through `CMS\SchemaManager` (`SCHEMA_VERSION = v23`), and creates the first administrator.
 2. **Repository checkout / manual setup**  
    Edit `CMS/config/app.php` directly. Replace every placeholder and every security key.
 
@@ -40,7 +40,7 @@ On an existing install the welcome step can run a schema repair / update without
 Für neue Installationen gibt es zwei praktikable Wege:
 
 1. **Web-Installer über `CMS/install.php`**  
-   Der Installer prüft PHP-Kompatibilität, PDO-MySQL und Schreibrechte für `CMS/config/app.php`. Er fragt Datenbank-, Site- und Admin-Daten ab, schreibt `CMS/config/app.php`, erstellt das Schema über `CMS\SchemaManager` (`SCHEMA_VERSION = v22`) und legt den ersten Administrator an.
+   Der Installer prüft PHP-Kompatibilität, PDO-MySQL und Schreibrechte für `CMS/config/app.php`. Er fragt Datenbank-, Site- und Admin-Daten ab, schreibt `CMS/config/app.php`, erstellt das Schema über `CMS\SchemaManager` (`SCHEMA_VERSION = v23`) und legt den ersten Administrator an.
 2. **Repository-Checkout / manuelle Einrichtung**  
    `CMS/config/app.php` direkt bearbeiten. Alle Platzhalterwerte und Security-Keys müssen ersetzt werden.
 
@@ -68,7 +68,7 @@ The installer welcome screen checks:
 
 The installer does **not** encode a MySQL/MariaDB version gate. Database access is PDO MySQL (`mysql:host=…;dbname=…;charset=utf8mb4`).
 
-[`CMS/README.md`](../CMS/README.md) documents MySQL 8.0+ / MariaDB 10.6+. The repository root README documents MySQL 5.7+ / MariaDB 10.3+. Treat those as documentation statements, not installer checks.
+Neither `CMS/` nor the root [`README.md`](../README.md) names a minimum database version any more ("MySQL- or MariaDB-compatible"). Recommended, because the schema uses `utf8mb4` and `ON DUPLICATE KEY` upserts: MySQL 8.0+ or MariaDB 10.6+ (audit 2026-10-03).
 
 | Component | In code / documented |
 |---|---|
@@ -91,7 +91,7 @@ Der Installer-Willkommensbildschirm prüft:
 
 Der Installer prüft **keine** MySQL-/MariaDB-Versionsnummer. Der Datenbankzugriff läuft über PDO MySQL (`mysql:host=…;dbname=…;charset=utf8mb4`).
 
-[`CMS/README.md`](../CMS/README.md) nennt MySQL 8.0+ / MariaDB 10.6+. Das Root-README nennt MySQL 5.7+ / MariaDB 10.3+. Das sind Dokumentationsangaben, keine Installer-Gates.
+Weder `CMS/` noch das Root-[`README.md`](../README.md) nennen noch eine Mindestversion der Datenbank („MySQL- oder MariaDB-kompatibel“). Empfohlen, weil das Schema `utf8mb4` und `ON DUPLICATE KEY`-Upserts nutzt: MySQL 8.0+ oder MariaDB 10.6+ (Audit 2026-10-03).
 
 | Komponente | Im Code / dokumentiert |
 |---|---|
@@ -374,7 +374,7 @@ After configuration:
 2. 365CMS loads `CMS/config.php`
 3. The stub loads `CMS/config/app.php`
 4. `CMS\Bootstrap` detects mode (`web` / `admin` / `api` / `cli`) and initializes services and routing
-5. `CMS\Database` and `CMS\SchemaManager` create the base schema (`v22`) if needed
+5. `CMS\Database` and `CMS\SchemaManager` create the base schema (`v23`) if needed
 6. If you used the installer, the first admin account is created in the installer (step 4 of 5)
 
 Change the first admin password immediately after install.
@@ -387,7 +387,7 @@ Nach korrekter Konfiguration:
 2. 365CMS lädt `CMS/config.php`
 3. Der Stub lädt `CMS/config/app.php`
 4. `CMS\Bootstrap` erkennt den Modus (`web` / `admin` / `api` / `cli`) und initialisiert Services und Routing
-5. `CMS\Database` und `CMS\SchemaManager` legen bei Bedarf das Basisschema (`v22`) an
+5. `CMS\Database` und `CMS\SchemaManager` legen bei Bedarf das Basisschema (`v23`) an
 6. Beim Installer wird das erste Admin-Konto im Installer angelegt (Schritt 4 von 5)
 
 Das erste Admin-Passwort nach der Installation sofort ändern.
@@ -442,7 +442,7 @@ Check Apache rewrite or Nginx `try_files`, the web root, and `SITE_URL` (no typo
 
 ### Admin loads but features are missing
 
-Typical causes: missing PHP extensions (`curl`, `zip`, `gd`), directories that are not writable (`cache`, `logs`, `backups`, `uploads`), or a schema that was not migrated to `v22`.
+Typical causes: missing PHP extensions (`curl`, `zip`, `gd`), directories that are not writable (`cache`, `logs`, `backups`, `uploads`), or a schema that was not migrated to `v23`.
 
 Further reading:
 
@@ -466,7 +466,7 @@ Apache-Rewrite bzw. Nginx-`try_files`, korrektes Webroot und `SITE_URL` prüfen 
 
 ### Admin lädt, aber Teilfunktionen fehlen
 
-Typische Ursachen: fehlende PHP-Erweiterungen (`curl`, `zip`, `gd`), nicht beschreibbare Verzeichnisse (`cache`, `logs`, `backups`, `uploads`) oder ein nicht auf `v22` migriertes Schema.
+Typische Ursachen: fehlende PHP-Erweiterungen (`curl`, `zip`, `gd`), nicht beschreibbare Verzeichnisse (`cache`, `logs`, `backups`, `uploads`) oder ein nicht auf `v23` migriertes Schema.
 
 Weiterführend:
 

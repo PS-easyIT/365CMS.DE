@@ -91,7 +91,9 @@ $sectionPageConfig = [
     'csrf_action' => 'admin_documentation',
     'module_file' => __DIR__ . '/modules/system/DocumentationModule.php',
     'module_factory' => static fn (): DocumentationModule => new DocumentationModule(),
-    'data_loader' => static fn (DocumentationModule $module): array => $module->getData(cms_admin_documentation_normalize_selected_doc($_GET['doc'] ?? null))->toArray(),
+    'data_loader' => static fn (DocumentationModule $module): array => $module->getData(cms_admin_documentation_normalize_selected_doc($_GET['doc'] ?? null))->toArray()
+        + ['sync' => Auth::instance()->hasCapability('manage_system') ? $module->getSyncStatus() : null],
+    'post_handler' => static fn (DocumentationModule $module, string $section, array $post): array => $module->handleAction($post),
     'access_checker' => static fn (): bool => cms_admin_documentation_can_access(),
     'redirect_path_resolver' => static fn (): string => cms_admin_documentation_redirect_url(cms_admin_documentation_normalize_selected_doc($_GET['doc'] ?? null)),
     'invalid_token_message' => 'Sicherheitstoken ungültig.',

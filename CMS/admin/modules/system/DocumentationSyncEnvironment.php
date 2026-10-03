@@ -224,12 +224,15 @@ final class DocumentationSyncEnvironment
 
     private function isAllowedCommand(string $command): bool
     {
-        if (!preg_match('/^git(?:\s+-C\s+[^\s]+)?\s+(.+)$/', $command, $matches)) {
+        // Einzig erlaubte Umleitung ist ein abschließendes "2>&1"; danach dürfen keine Shell-Metazeichen
+        // mehr vorkommen. Vorher endete die Prüfung hier mit true und übersprang die Unterbefehls-Allowlist.
+        $commandWithoutRedirect = (string) preg_replace('/\s+2>&1$/', '', $command);
+        if (preg_match('/(?:;|&&|\|\||\||`|\$\(|>|<|\n|\r)/', $commandWithoutRedirect) === 1) {
             return false;
         }
 
-        if (preg_match('/(?:^|\s)(?:;|&&|\|\||\||`|\$\(|>|<)/', $command) === 1) {
-            return str_ends_with($command, '2>&1') && preg_match('/(?:^|\s)(?:;|&&|\|\||\||`|\$\(|(?<!2)>|<)/', $command) !== 1;
+        if (!preg_match('/^git(?:\s+-C\s+[^\s]+)?\s+(.+)$/', $commandWithoutRedirect, $matches)) {
+            return false;
         }
 
         $subcommand = strtolower(strtok((string)($matches[1] ?? ''), ' '));

@@ -3,7 +3,7 @@
 
 ## English (summary)
 
-This folder is the public documentation tree for 365CMS; runtime code lives in [`CMS/`](../CMS/). Core version `3.4.00` ([`CMS/core/Version.php`](../CMS/core/Version.php), released 2026-09-05, `stable`), PHP 8.4+, schema `v22`. In October 2026 every document under `DOC/` was reviewed against the 3.4 code: admin, core, member, theme, plugin, AI and workflow docs were rewritten or extended, and code/doc discrepancies were collected in [core/STATUS.md](core/STATUS.md) under "Bekannte Lücken". Most documents contain a short English summary followed by a detailed German section.
+This folder is the public documentation tree for 365CMS; runtime code lives in [`CMS/`](../CMS/). Core version `3.4.00` ([`CMS/core/Version.php`](../CMS/core/Version.php), released 2026-09-05, `stable`), PHP 8.4+, schema `v23`. In October 2026 every document under `DOC/` was reviewed against the 3.4 code: admin, core, member, theme, plugin, AI and workflow docs were rewritten or extended, and code/doc discrepancies were collected in [core/STATUS.md](core/STATUS.md) under "Bekannte Lücken". Most documents contain a short English summary followed by a detailed German section.
 
 ## Deutsch
 
@@ -31,7 +31,7 @@ This folder is the public documentation tree for 365CMS; runtime code lives in [
 ### Eckdaten 3.4.00
 
 - `CMS/core/Version.php`: `CURRENT = '3.4.00'`, `RELEASE_DATE = '2026-09-05'`, `STATUS = 'stable'`
-- `SchemaManager::SCHEMA_VERSION = 'v22'`, Tabellenpräfix `cms_`
+- `SchemaManager::SCHEMA_VERSION = 'v23'`, Tabellenpräfix `cms_`
 - Konfiguration: `CMS/config/app.php` (vom Installer erzeugt); `CMS/config.php` ist nur ein Stub
 - Bootstrap-Modi `cli`, `api`, `admin`, `web`; je Request wird nur die passende Routengruppe geladen
 - Adminbereich nur für Rolle `admin`; Capabilities steuern die einzelnen Seiten
@@ -53,9 +53,9 @@ This folder is the public documentation tree for 365CMS; runtime code lives in [
 ### Wichtige Hinweise
 
 - **Konfiguration:** `CMS/index.php` lädt `config/app.php` vor `config.php`. Eigene Konstanten deshalb in `config/app.php` pflegen und nach jedem Installer-Lauf prüfen.
-- **Wartungsmodus:** Die Einstellung existiert, wird im Frontend derzeit aber nicht erzwungen (siehe [core/STATUS.md](core/STATUS.md)).
+- **Wartungsmodus:** Seit 3.4.12 liefert der Router Besuchern HTTP 503; Admins und Login-Routen bleiben erreichbar (siehe [audit/FUNKTIONEN.md](audit/FUNKTIONEN.md)).
 - **Bekannte Lücken:** Abweichungen zwischen Code und Doku (z. B. Upload-Token im Member-Medienbereich, fehlende `/order`-Ansicht, `config/app.php`-Neuerzeugung) stehen gesammelt in [core/STATUS.md](core/STATUS.md).
-- **Audits:** Es gibt im Repository keinen `AUDIT/`-Ordner; Sicherheitsprüfungen laufen über `/admin/security-audit` ([admin/security/](admin/security/)).
+- **Audits:** Code-Audit vom 2026-10-03 unter [audit/README.md](audit/README.md); Laufzeit-Sicherheitsprüfungen über `/admin/security-audit` ([admin/security/](admin/security/)).
 - **Release-Änderungen:** [../Changelog.md](../Changelog.md) ist die führende Datei.
 
 ### Verwandte Einstiege

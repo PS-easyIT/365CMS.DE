@@ -328,7 +328,7 @@
         "google_fonts": {
           "label": "Google Fonts als Fallback laden",
           "type": "checkbox",
-          "default": true,
+          "default": false,
           "description": "Erlaubt externe Google-Fonts im Frontend, solange keine lokalen Fonts aktiv sind; lokale Dateien aus dem Font Manager haben Vorrang"
         },
         "font_size_base": {

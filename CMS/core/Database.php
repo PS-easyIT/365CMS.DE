@@ -90,6 +90,19 @@ class Database implements DatabaseInterface
             ];
             
             $this->pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+
+            // Sitzungszeitzone an PHP angleichen: Viele Abfragen vergleichen NOW()/CURRENT_TIMESTAMP-
+            // Werte mit date(...) aus PHP (Rate-Limits, Firewall, Sicherheitsalarme, Mail-Queue).
+            // Läuft MySQL z. B. in UTC und PHP in Europe/Berlin, lag das Prüffenster sonst in der Zukunft
+            // und Login-/Reset-/API-Limits zählten nie. Fehler hier dürfen die Verbindung nicht kippen.
+            try {
+                $offset = date('P');
+                if (preg_match('/^[+-]\d{2}:\d{2}$/', $offset) === 1) {
+                    $this->pdo->exec("SET time_zone = '" . $offset . "'");
+                }
+            } catch (\Throwable $e) {
+                error_log('Database: time_zone konnte nicht gesetzt werden: ' . $this->sanitizeDiagnosticText($e->getMessage()));
+            }
             
         } catch (PDOException $e) {
             error_log('Database connection failed: ' . $this->sanitizeDiagnosticText($e->getMessage()));
@@ -146,6 +159,8 @@ class Database implements DatabaseInterface
             throw new \RuntimeException('Database connection is not available. PDO is null.');
         }
         
+        $this->noteWrite($sql);
+
         try {
             $stmt = $this->pdo->prepare($sql);
             if ($stmt === false) {
@@ -170,11 +185,30 @@ class Database implements DatabaseInterface
             throw new \RuntimeException('Database connection is not available. PDO is null.');
         }
 
+        $this->noteWrite($sql);
+
         $startedAt = microtime(true);
         $statement = $this->pdo->query($sql);
         $this->logQueryTelemetry($sql, null, $startedAt);
 
         return $statement;
+    }
+
+    /**
+     * Leert den Options-Cache, sobald eine Anweisung in die Tabelle `settings` schreibt.
+     */
+    private function noteWrite(string $sql): void
+    {
+        $head = strtoupper(substr(ltrim($sql), 0, 7));
+        if (!str_starts_with($head, 'INSERT') && !str_starts_with($head, 'UPDATE')
+            && !str_starts_with($head, 'DELETE') && !str_starts_with($head, 'REPLACE')) {
+            return;
+        }
+
+        if (preg_match('/`?' . preg_quote($this->prefix, '/') . 'settings`?(?![a-z0-9_])/i', $sql) === 1
+            && class_exists(Services\OptionStore::class, false)) {
+            Services\OptionStore::getInstance()->flush();
+        }
     }
 
     /**

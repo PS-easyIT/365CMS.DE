@@ -73,7 +73,7 @@ Fehler liefern `{"error":"…","new_token":"…"}` und werden über den Logger p
 
 ### Bekannter Hinweis
 
-Das Mitglieder-Medienmodul unter `/member/media` erzeugt sein Token mit der Aktion `member_media_action`, während `/api/upload` `media_action` prüft – Uploads aus diesem Formular scheitern daher mit `upload.invalid_csrf` (siehe [core/STATUS.md](../core/STATUS.md), [member/MEMBER-SECURITY.md](../member/MEMBER-SECURITY.md)).
+Das Mitglieder-Medienmodul unter `/member/media` erzeugt sein Upload-Token seit 3.4.12 mit der Aktion `media_action`, die `/api/upload` prüft (vorher scheiterte der erste Upload mit `upload.invalid_csrf`; siehe [member/MEMBER-SECURITY.md](../member/MEMBER-SECURITY.md)). Uploads mit Doppelendungen wie `datei.php.jpg` werden seit 3.4.12 abgelehnt.
 
 ## Verwandte Dokumente
 

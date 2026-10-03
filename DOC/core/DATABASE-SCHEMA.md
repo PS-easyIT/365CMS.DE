@@ -1,10 +1,10 @@
 # 365CMS – Projektdokumentation | Abschnitt: Core – Datenbank & Schema
 
-> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Schema:** `v22` | **Status:** Stable
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Schema:** `v23` | **Status:** Stable
 
 ## English (summary)
 
-365CMS uses MySQL ≥ 5.7 or a current MariaDB (InnoDB, `utf8mb4`; the update preflight checks the server version ≥ 5.7) through the PDO wrapper `CMS\Database` (native prepared statements, `ATTR_EMULATE_PREPARES = false`). All tables carry the prefix `DB_PREFIX` (default `cms_`). The base schema (45 tables) is defined in `CMS\SchemaManager::getSchemaQueries()`; `CMS\MigrationManager::run()` applies idempotent `CREATE`/`ALTER` migrations once per schema version (`SCHEMA_VERSION = 'v22'`, flag file `CMS/cache/db_schema_v22.flag`). Further tables are created on demand by the services and admin modules that own them. Settings use the key/value table `cms_settings`.
+365CMS uses MySQL ≥ 5.7 or a current MariaDB (InnoDB, `utf8mb4`; the update preflight checks the server version ≥ 5.7) through the PDO wrapper `CMS\Database` (native prepared statements, `ATTR_EMULATE_PREPARES = false`). All tables carry the prefix `DB_PREFIX` (default `cms_`). The base schema (45 tables) is defined in `CMS\SchemaManager::getSchemaQueries()`; `CMS\MigrationManager::run()` applies idempotent `CREATE`/`ALTER` migrations once per schema version (`SCHEMA_VERSION = 'v23'`, flag file `CMS/cache/db_schema_v23.flag`). Further tables are created on demand by the services and admin modules that own them. Settings use the key/value table `cms_settings`.
 
 ## Deutsch
 
@@ -88,7 +88,7 @@ Fehler werden ohne Zugangsdaten protokolliert; im Debug-Modus erfasst `Debug::qu
 
 | Tabelle | Spalten |
 |---|---|
-| `settings` | id, option_name (eindeutig), option_value, autoload |
+| `settings` | id, option_name (eindeutig), option_value, autoload – gelesen über den Request-Cache `CMS\Services\OptionStore` (alle `autoload = 1` in einer Abfrage); seit v23 ohne den redundanten Index `idx_key` |
 | `plugins`, `plugin_meta` | Plugin-Registry und Metadaten (aktive Plugins zusätzlich in Option `active_plugins`) |
 | `theme_customizations` | theme_slug, setting_category, setting_key, setting_value, user_id |
 | `cache` | cache_key, cache_value, expires_at |
@@ -100,6 +100,18 @@ Fehler werden ohne Zugangsdaten protokolliert; im Debug-Modus erfasst `Debug::qu
 | `mail_log` | recipient, subject, status, transport, provider, message_id, error_message, meta, source |
 | `mail_queue` | recipient, subject, body, headers, status, attempts, max_attempts, available_at, sent_at, locked_at, attachment_*, error_category, last_error |
 | `ai_quota_usage` | scope_name, period_key, user_id, provider_id, request_count, character_count |
+
+### Schema v23 (3.4.13)
+
+| Änderung | Zweck |
+|---|---|
+| `posts`: Index `idx_status_published (status, published_at)` | Blog-, Archiv- und Feed-Listen filtern auf `status` und sortieren nach `published_at` |
+| `posts`: Spalten `title_en`, `content_en`, `excerpt_en` im Basisschema | wurden bisher nur von `PostsModule::ensureColumns()` ergänzt; frische Installationen lieferten bis dahin 500 auf `/blog` |
+| `settings`: Index `idx_key` entfernt | doppelte `UNIQUE(option_name)` und kostete nur Schreibzeit |
+
+Alle Änderungen laufen idempotent über `MigrationManager::run()`.
+
+**Zeitzone (seit 3.4.13):** `CMS\Database` setzt pro Verbindung `SET time_zone` auf den PHP-Offset (`date('P')`), damit `NOW()`/`CURRENT_TIMESTAMP` zu den PHP-seitigen Zeitvergleichen passen.
 
 ### Bedarfsweise angelegte Tabellen
 

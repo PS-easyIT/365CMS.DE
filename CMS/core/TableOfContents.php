@@ -87,12 +87,9 @@ class TableOfContents
     private function loadSettings(): void
     {
         try {
-            $db  = Database::instance();
-            $row = $db->fetchOne(
-                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'toc_settings'"
-            );
-            if ($row && !empty($row['option_value'])) {
-                $saved = Json::decodeArray($row['option_value'] ?? null, []);
+            $tocJson = Services\OptionStore::getInstance()->get('toc_settings');
+            if ($tocJson !== null && $tocJson !== '') {
+                $saved = Json::decodeArray($tocJson, []);
                 if (is_array($saved)) {
                     $this->settings = $this->normalizeSettings(array_merge(self::DEFAULTS, $saved));
                     return;

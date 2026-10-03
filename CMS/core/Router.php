@@ -169,8 +169,18 @@ class Router
             }
         }
 
+        if ($this->isApiRequest($routingUri)) {
+            // Optional: API-Clients per JWT-Bearer-Token anmelden (nur wenn JWT_SECRET gesetzt ist).
+            Auth::instance()->authenticateBearerToken();
+        }
+
+        if ($this->shouldServeMaintenancePage($routingUri)) {
+            $this->renderMaintenancePage($routingUri);
+            return;
+        }
+
         $csrfBypassPrefixes = ['/contact/'];
-        $csrfBypassExact = ['/login', '/register', '/forgot-password', '/cms-login', '/cms-register', '/cms-password-forgot', '/logout', '/contact', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
+        $csrfBypassExact = ['/login', '/register', '/forgot-password', '/cms-login', '/cms-register', '/cms-password-forgot', '/logout', '/contact', '/kontakt', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
             $isThemeFavoriteToggle = $method === 'POST'
                 && (string) ($_POST['phinit_toggle_favorite'] ?? '') === '1'
                 && in_array((string) ($_POST['favorite_content_type'] ?? ''), ['post', 'page'], true)
@@ -248,6 +258,70 @@ class Router
 
         Debug::checkpoint('router.route.dynamic_lookup', ['uri' => $routingUri]);
         $this->dispatchDynamicPage($routingUri, $uri);
+    }
+
+    /**
+     * Wartungsmodus (Option `maintenance_mode`): Besucher erhalten 503, Admins sowie
+     * Admin-, Login- und Auth-Routen bleiben erreichbar.
+     */
+    private function shouldServeMaintenancePage(string $routingUri): bool
+    {
+        if ($this->isAdminRequest($routingUri)) {
+            return false;
+        }
+
+        $exempt = ['/login', '/logout', '/cms-login', '/cms-password-forgot', '/forgot-password', '/mfa-challenge', '/mfa-setup', '/mfa-disable', '/health'];
+        if (in_array($routingUri, $exempt, true)) {
+            return false;
+        }
+
+        if (Services\OptionStore::getInstance()->get('maintenance_mode', '0') !== '1') {
+            return false;
+        }
+
+        if (Auth::isAdmin()) {
+            return false;
+        }
+
+        // Konfigurierte (ggf. umbenannte) Login-/Passwort-Pfade freihalten, damit Admins sich anmelden können.
+        try {
+            $authPages = Services\CmsAuthPageService::getInstance();
+            foreach (['login', 'forgot-password'] as $authPage) {
+                if (rtrim($authPages->getPublicPath($authPage, $this->getRequestLocale()), '/') === rtrim($routingUri, '/')) {
+                    return false;
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        return true;
+    }
+
+    private function renderMaintenancePage(string $routingUri): void
+    {
+        $message = (string) Services\OptionStore::getInstance()->get('maintenance_message', '');
+        if (trim($message) === '') {
+            $message = 'Die Website wird gerade gewartet.';
+        }
+
+        if (!headers_sent()) {
+            http_response_code(503);
+            header('Retry-After: 3600');
+            header('Cache-Control: no-store, private');
+            header('Content-Type: ' . ($this->isApiRequest($routingUri) ? 'application/json' : 'text/html') . '; charset=utf-8');
+        }
+
+        if ($this->isApiRequest($routingUri)) {
+            echo json_encode(['success' => false, 'error' => 'maintenance'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        // Nachricht ist beim Speichern auf <p><strong><em><br> begrenzt (SettingsModule).
+        $safeMessage = (string) preg_replace('/<(\/?)(p|strong|em|br)\b[^>]*>/i', '<$1$2>', strip_tags($message, '<p><strong><em><br>'));
+        $siteName = defined('SITE_NAME') ? htmlspecialchars((string) SITE_NAME, ENT_QUOTES, 'UTF-8') : '365CMS';
+        echo '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="robots" content="noindex"><title>Wartungsmodus – ' . $siteName . '</title>'
+            . '<style ' . Security::instance()->nonceAttr() . '>body{font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;background:#f8fafc;color:#0f172a}main{max-width:36rem;padding:2rem;text-align:center}</style></head>'
+            . '<body><main><h1>' . $siteName . '</h1><div>' . $safeMessage . '</div></main></body></html>';
     }
 
     private function shouldAttemptDynamicPageLookup(string $routingUri): bool

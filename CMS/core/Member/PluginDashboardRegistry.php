@@ -43,6 +43,7 @@ namespace CMS\Member;
 use CMS\Auth;
 use CMS\Hooks;
 use CMS\Router;
+use CMS\Security;
 use CMS\Services\CmsAuthPageService;
 use CMS\ThemeManager;
 
@@ -153,7 +154,11 @@ class PluginDashboardRegistry
     *   dashboard_widget?:  array|bool|null,
      *   render_callback:    callable,
      *   post_callback?:     callable|null,
+     *   csrf?:              string,
      * } $config
+     *
+     * `csrf`: 'core' erzwingt für POST-Requests das Core-Token aus csrfField()/csrfToken();
+     * Standard 'plugin' = Plugin prüft selbst (zusätzlich gilt immer die Same-Origin-Prüfung).
      */
     public function register(array $config): void
     {
@@ -178,6 +183,7 @@ class PluginDashboardRegistry
             'dashboard_widget' => $config['dashboard_widget'] ?? null,
             'render_callback'  => $config['render_callback'],
             'post_callback'    => $config['post_callback'] ?? null,
+            'csrf'             => ($config['csrf'] ?? 'plugin') === 'core' ? 'core' : 'plugin',
         ];
     }
 
@@ -400,6 +406,12 @@ class PluginDashboardRegistry
             return;
         }
 
+        if (!$this->verifyPostRequest($section)) {
+            http_response_code(403);
+            echo '<div class="alert alert-danger">Sicherheitsüberprüfung fehlgeschlagen. Bitte lade die Seite neu und versuche es erneut.</div>';
+            return;
+        }
+
         $user = Auth::instance()->getCurrentUser();
 
         // Theme-Override bevorzugen, damit Plugin-Bereiche im Member-Design
@@ -412,6 +424,60 @@ class PluginDashboardRegistry
 
         // Fallback auf den generischen Core-Wrapper.
         require_once ABSPATH . 'member/plugin-section.php';
+    }
+
+    // ── CSRF ──────────────────────────────────────────────────────────────────
+
+    /**
+     * CSRF-Token für Formulare eines Plugin-Bereichs (Feldname `csrf_token`).
+     */
+    public function csrfToken(string $slug): string
+    {
+        return Security::instance()->generateToken('member_plugin_' . $slug);
+    }
+
+    /**
+     * Fertiges Hidden-Field für Plugin-Formulare.
+     */
+    public function csrfField(string $slug): string
+    {
+        return '<input type="hidden" name="csrf_token" value="'
+            . htmlspecialchars($this->csrfToken($slug), ENT_QUOTES, 'UTF-8') . '">';
+    }
+
+    /**
+     * Zentrale Prüfung für POST-Requests auf Plugin-Bereiche:
+     * - immer: Origin/Referer müssen (falls gesendet) zur eigenen Site gehören,
+     * - bei `csrf => 'core'`: gültiges Core-Token `member_plugin_<slug>` Pflicht.
+     *
+     * @param array<string,mixed> $section
+     */
+    private function verifyPostRequest(array $section): bool
+    {
+        if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
+            return true;
+        }
+
+        $siteHost = strtolower((string) parse_url(defined('SITE_URL') ? (string) SITE_URL : '', PHP_URL_HOST));
+        $requestHost = strtolower((string) preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? '')));
+        foreach (['HTTP_ORIGIN', 'HTTP_REFERER'] as $header) {
+            $value = trim((string) ($_SERVER[$header] ?? ''));
+            if ($value === '' || $value === 'null') {
+                continue;
+            }
+            $sourceHost = strtolower((string) parse_url($value, PHP_URL_HOST));
+            if ($sourceHost === '' || ($sourceHost !== $siteHost && $sourceHost !== $requestHost)) {
+                return false;
+            }
+            break;
+        }
+
+        if (($section['csrf'] ?? 'plugin') === 'core') {
+            $token = (string) ($_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
+            return Security::instance()->verifyToken($token, 'member_plugin_' . (string) $section['slug']);
+        }
+
+        return true;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

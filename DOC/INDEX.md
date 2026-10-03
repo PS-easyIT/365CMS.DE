@@ -33,7 +33,7 @@ Dieser Index führt zu den kanonischen Dokumenten. Die Produktversion im Code is
 | Installation | [INSTALLATION.md](INSTALLATION.md) |
 | Root README | [../README.md](../README.md) |
 | Changelog | [../Changelog.md](../Changelog.md) |
-| Status / known gaps | [core/STATUS.md](core/STATUS.md) |
+| Status / known gaps | [core/STATUS.md](core/STATUS.md), [audit/README.md](audit/README.md) |
 
 ---
 
@@ -52,7 +52,7 @@ Die Core-Dokumente beschreiben Bootstrap, Routing, Schema, Services, Hooks, APIs
 | [core/README.md](core/README.md) | Core documentation entry |
 | [core/ARCHITECTURE.md](core/ARCHITECTURE.md) | Bootstrap, routing, services, modules |
 | [core/CORE-CLASSES.md](core/CORE-CLASSES.md) | Central core classes |
-| [core/DATABASE-SCHEMA.md](core/DATABASE-SCHEMA.md) | Base schema and module tables (`SCHEMA_VERSION = v22`) |
+| [core/DATABASE-SCHEMA.md](core/DATABASE-SCHEMA.md) | Base schema and module tables (`SCHEMA_VERSION = v23`) |
 | [core/HOOKS-REFERENCE.md](core/HOOKS-REFERENCE.md) | Actions, filters, integration points |
 | [core/API-REFERENCE.md](core/API-REFERENCE.md) | Technical interfaces |
 | [core/SERVICES.md](core/SERVICES.md) | Service layer |
@@ -178,7 +178,7 @@ Asset-Dokumente liegen unter [`assets/`](assets/), nicht in der `DOC/`-Wurzel. F
 | Area / Bereich | Documents / Dokumente |
 |---|---|
 | Assets | [assets/ASSET.md](assets/ASSET.md), [assets/README.md](assets/README.md), [assets/ASSETS_NEW.md](assets/ASSETS_NEW.md), [assets/ASSETS_OwnAssets.md](assets/ASSETS_OwnAssets.md) |
-| Audits | No `AUDIT/` folder in this repository – use `/admin/security-audit` ([admin/security/SECURITY-AUDIT.md](admin/security/SECURITY-AUDIT.md)) and [core/STATUS.md](core/STATUS.md) |
+| Audits | Code audit 2026-10-03: [audit/README.md](audit/README.md) ([security](audit/SECURITY.md), [performance](audit/PERFORMANCE.md), [functions](audit/FUNKTIONEN.md), [references](audit/VERWEISE.md)); runtime check: `/admin/security-audit` ([admin/security/SECURITY-AUDIT.md](admin/security/SECURITY-AUDIT.md)); open gaps: [core/STATUS.md](core/STATUS.md) |
 | Workflows | [workflow/](workflow/) |
 
 ### Workflows

@@ -31,7 +31,7 @@ if (!class_exists(__NAMESPACE__ . '\\SchemaManager', false)) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v22';
+    public const SCHEMA_VERSION = 'v23';
 
     private Database $db;
     private string $prefix;
@@ -93,8 +93,7 @@ class SchemaManager
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 option_name VARCHAR(255) NOT NULL UNIQUE,
                 option_value LONGTEXT,
-                autoload TINYINT(1) DEFAULT 1,
-                INDEX idx_key (option_name)
+                autoload TINYINT(1) DEFAULT 1
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
             'sessions' => "CREATE TABLE IF NOT EXISTS {$p}sessions (
@@ -381,10 +380,13 @@ class SchemaManager
             'posts' => "CREATE TABLE IF NOT EXISTS {$p}posts (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 title VARCHAR(255) NOT NULL,
+                title_en VARCHAR(255) DEFAULT NULL,
                 slug VARCHAR(255) NOT NULL UNIQUE,
                 slug_en VARCHAR(255) DEFAULT NULL,
                 content LONGTEXT,
+                content_en LONGTEXT DEFAULT NULL,
                 excerpt TEXT,
+                excerpt_en TEXT DEFAULT NULL,
                 featured_image VARCHAR(500),
                 status ENUM('draft','published','trash') NOT NULL DEFAULT 'draft',
                 author_id INT UNSIGNED NOT NULL,
@@ -407,7 +409,8 @@ class SchemaManager
                 INDEX idx_status (status),
                 INDEX idx_author (author_id),
                 INDEX idx_category (category_id),
-                INDEX idx_published (published_at)
+                INDEX idx_published (published_at),
+                INDEX idx_status_published (status, published_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
             'post_revisions' => "CREATE TABLE IF NOT EXISTS {$p}post_revisions (

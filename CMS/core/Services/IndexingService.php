@@ -805,16 +805,7 @@ final class IndexingService
 
     private function getDirectSettingValue(string $optionName): string
     {
-        try {
-            $value = $this->db->get_var(
-                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
-                [$optionName]
-            );
-
-            return $value !== null ? trim((string) $value) : '';
-        } catch (\Throwable) {
-            return '';
-        }
+        return trim((string) (OptionStore::getInstance()->get($optionName) ?? ''));
     }
 
     private function resolvePublicBaseUrl(): string

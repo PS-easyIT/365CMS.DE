@@ -35,8 +35,8 @@ User accounts are managed at `/admin/users` (`CMS/admin/users.php` → `CMS/admi
 |---|---|
 | `activate` | Status `active` |
 | `deactivate` | Status `inactive` (Login gesperrt, Daten bleiben erhalten) |
-| `delete` | Benutzer **endgültig** löschen |
-| `hard_delete` | wie `delete` (endgültig) |
+| `delete` | Soft-Delete: Status `inactive` (seit 3.4.12; vorher endgültig) |
+| `hard_delete` | Benutzer **endgültig** löschen (einzige Löschaktion in der Oberfläche) |
 
 Der eigene Account wird bei Sammelaktionen immer übersprungen; nicht (mehr) existierende IDs führen zu einer Fehlermeldung.
 

@@ -133,19 +133,20 @@ class SecurityAuditModule
             $isHttps ? 'Verbindung ist verschlüsselt.' : 'HTTPS ist nicht aktiv! Alle Daten werden unverschlüsselt übertragen.'
         );
 
-        $phpVersion = PHP_VERSION;
-        $phpStatus  = match (true) {
-            version_compare($phpVersion, '8.2.0', '>=') => 'ok',
-            version_compare($phpVersion, '8.1.0', '>=') => 'warning',
-            default                                      => 'critical',
+        $phpVersion    = PHP_VERSION;
+        $minPhpVersion = defined('CMS_MIN_PHP_VERSION') ? (string) CMS_MIN_PHP_VERSION : '8.4.0';
+        $phpStatus     = match (true) {
+            version_compare($phpVersion, $minPhpVersion, '>=') => 'ok',
+            version_compare($phpVersion, '8.2.0', '>=')        => 'warning',
+            default                                             => 'critical',
         };
         $checks[] = $this->buildCheck(
             'PHP-Version (' . $phpVersion . ')',
             $phpStatus,
             match ($phpStatus) {
-                'ok'       => 'PHP-Version ist aktuell.',
-                'warning'  => 'PHP 8.1 – Update auf 8.2+ empfohlen.',
-                'critical' => 'PHP-Version ist veraltet! Mindestens 8.1 erforderlich.',
+                'ok'       => 'PHP-Version erfüllt die Mindestanforderung (' . $minPhpVersion . '+).',
+                'warning'  => 'PHP-Version liegt unter der Mindestanforderung – Update auf ' . $minPhpVersion . '+ erforderlich.',
+                'critical' => 'PHP-Version ist veraltet! Mindestens ' . $minPhpVersion . ' erforderlich.',
             }
         );
 
