@@ -21,12 +21,17 @@ $userSettingsUrl = '/admin/user-settings';
 $mediaApiUrl = '/api/media';
 $hideSettingsTabs = $hideSettingsTabs ?? false;
 $editorMediaToken = $editorMediaToken ?? '';
-$defaultPluginRegistryUrl = 'https://365cms.de/marketplace/plugins/index.json';
-$defaultThemeMarketplaceUrl = 'https://365cms.de/marketplace/themes';
-$defaultCoreUpdateUrl = 'https://365cms.de/marketplace/core/365cms/update.json';
-$usesDefaultPluginRegistry = (($s['plugin_registry_url'] ?? $defaultPluginRegistryUrl) === $defaultPluginRegistryUrl);
-$usesDefaultThemeMarketplace = (($s['theme_marketplace_url'] ?? $defaultThemeMarketplaceUrl) === $defaultThemeMarketplaceUrl);
-$usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $defaultCoreUpdateUrl);
+$marketplaceEndpointDefaults = \CMS\Services\MarketplaceEndpoints::defaults();
+$marketplaceEndpointLabels = \CMS\Services\MarketplaceEndpoints::LABELS;
+$marketplaceEndpointHints = [
+    'marketplace_public_url' => 'Öffentliche Marketplace-Übersicht; wird im Plugin- und Theme-Marketplace verlinkt.',
+    'plugin_registry_url' => 'Zentraler JSON-Feed für den Plugin-Marketplace und Plugin-Updates.',
+    'theme_registry_url' => 'Zentraler JSON-Feed für den Theme-Marketplace und Theme-Updates.',
+    'plugin_marketplace_base_url' => 'Basis für relative Plugin-Manifeste, Pakete und Assets aus dem Plugins-Index.',
+    'theme_marketplace_url' => 'Basis für relative Theme-Manifeste, Pakete und Screenshots aus dem Themes-Index.',
+    'marketplace_submit_url' => 'Öffentliches Formular, über das Plugins und Themes für den Marketplace eingereicht werden.',
+    'core_update_url' => 'Expliziter Feed für 365CMS-Core-Updates (GitHub-Releases bleiben Fallback).',
+];
 $formValues = is_array($formValues ?? null) ? $formValues : [];
 $invalidFields = array_values(array_filter(array_map(
     static fn ($field): string => trim((string) $field),
@@ -392,49 +397,34 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                                     <div class="cms-admin-info-box__head">
                                         <h3 class="cms-admin-info-box__title">Offizielle 365CMS-Endpunkte</h3>
                                     </div>
-                                    <p class="cms-admin-info-box__text">Empfohlene produktive Standardwerte für Plugin-Marketplace, Theme-Katalog und Core-Updates.</p>
+                                    <p class="cms-admin-info-box__text">Empfohlene produktive Standardwerte für Marketplace-Übersicht, Plugin- und Theme-Feeds, Einreichung und Core-Updates.</p>
                                 </div>
-                                <div class="mb-3">
-                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
-                                        <label class="form-label mb-0">Plugin-Registry</label>
-                                        <?php if ($usesDefaultPluginRegistry): ?>
-                                            <span class="text-secondary small">Produktiv-Standard aktiv</span>
-                                        <?php else: ?>
-                                            <span class="text-warning small fw-semibold">Individuell überschrieben</span>
-                                        <?php endif; ?>
+                                <?php foreach ($marketplaceEndpointDefaults as $endpointKey => $endpointDefault): ?>
+                                    <?php
+                                    $endpointValue = (string)($s[$endpointKey] ?? $endpointDefault);
+                                    $endpointInputId = 'setting-' . str_replace('_', '-', $endpointKey);
+                                    ?>
+                                    <div class="mb-3">
+                                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                                            <label class="form-label mb-0" for="<?php echo htmlspecialchars($endpointInputId); ?>"><?php echo htmlspecialchars($marketplaceEndpointLabels[$endpointKey] ?? $endpointKey); ?></label>
+                                            <?php if ($endpointValue === $endpointDefault): ?>
+                                                <span class="text-secondary small">Produktiv-Standard aktiv</span>
+                                            <?php else: ?>
+                                                <span class="text-warning small fw-semibold">Individuell überschrieben</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="input-group">
+                                            <input type="url" id="<?php echo htmlspecialchars($endpointInputId); ?>" name="<?php echo htmlspecialchars($endpointKey); ?>" class="form-control" value="<?php echo htmlspecialchars($endpointValue); ?>" placeholder="<?php echo htmlspecialchars($endpointDefault); ?>">
+                                            <a class="btn btn-outline-secondary" href="<?php echo htmlspecialchars($endpointValue); ?>" target="_blank" rel="noopener noreferrer" title="Endpunkt öffnen">Öffnen</a>
+                                        </div>
+                                        <div class="form-hint"><?php echo htmlspecialchars($marketplaceEndpointHints[$endpointKey] ?? ''); ?> Offizieller Standard: <code><?php echo htmlspecialchars($endpointDefault); ?></code></div>
                                     </div>
-                                    <input type="url" name="plugin_registry_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['plugin_registry_url'] ?? 'https://365cms.de/marketplace/plugins/index.json')); ?>" placeholder="https://365cms.de/marketplace/plugins/index.json">
-                                    <div class="form-hint">Zentraler JSON-Feed für den Plugin-Marketplace im Admin. Offizieller Standard: <code><?php echo htmlspecialchars($defaultPluginRegistryUrl); ?></code></div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
-                                        <label class="form-label mb-0">Theme-Marketplace-Basis</label>
-                                        <?php if ($usesDefaultThemeMarketplace): ?>
-                                            <span class="text-secondary small">Produktiv-Standard aktiv</span>
-                                        <?php else: ?>
-                                            <span class="text-warning small fw-semibold">Individuell überschrieben</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <input type="url" name="theme_marketplace_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['theme_marketplace_url'] ?? 'https://365cms.de/marketplace/themes')); ?>" placeholder="https://365cms.de/marketplace/themes">
-                                    <div class="form-hint">Basis-URL für Theme-Katalog und Theme-Manifeste. Offizieller Standard: <code><?php echo htmlspecialchars($defaultThemeMarketplaceUrl); ?></code>. Das System ergänzt intern weiterhin <code>/index.json</code>.</div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
-                                        <label class="form-label mb-0">Core-Update-Feed</label>
-                                        <?php if ($usesDefaultCoreUpdate): ?>
-                                            <span class="text-secondary small">Produktiv-Standard aktiv</span>
-                                        <?php else: ?>
-                                            <span class="text-warning small fw-semibold">Individuell überschrieben</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <input type="url" name="core_update_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['core_update_url'] ?? 'https://365cms.de/marketplace/core/365cms/update.json')); ?>" placeholder="https://365cms.de/marketplace/core/365cms/update.json">
-                                    <div class="form-hint">Expliziter Feed für 365CMS-Core-Updates. Offizieller Standard: <code><?php echo htmlspecialchars($defaultCoreUpdateUrl); ?></code>.</div>
-                                </div>
+                                <?php endforeach; ?>
                                 <div class="cms-admin-info-box mb-0" role="note">
                                     <div class="cms-admin-info-box__head">
                                         <h3 class="cms-admin-info-box__title">Fallback bleibt aktiv</h3>
                                     </div>
-                                    <p class="cms-admin-info-box__text">Diese Felder zeigen die aktuell verwendeten zentralen Marketplace-Endpunkte. Leere oder ungültige Werte fallen beim Speichern automatisch auf die offiziellen 365CMS-Defaults zurück.</p>
+                                    <p class="cms-admin-info-box__text">Diese Felder zeigen die aktuell verwendeten zentralen Marketplace-Endpunkte. Leere oder ungültige Werte fallen beim Speichern automatisch auf die offiziellen 365CMS-Defaults zurück. Wird nur eine Basis- oder nur eine Index-URL angepasst, leitet das System das Gegenstück automatisch ab.</p>
                                 </div>
                             </div>
                         </div>

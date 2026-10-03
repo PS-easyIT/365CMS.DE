@@ -51,9 +51,7 @@ class UpdateService
     /** Fallback-Werte – werden von DB-Setting überschrieben, wenn vorhanden */
     private const DEFAULT_GITHUB_REPO = 'PS-easyIT/365CMS.DE';
     private const DEFAULT_GITHUB_API = 'https://api.github.com';
-    private const DEFAULT_CORE_UPDATE_URL = 'https://365cms.de/marketplace/core/365cms/update.json';
-    private const DEFAULT_PLUGIN_REGISTRY_URL = 'https://365cms.de/marketplace/plugins/index.json';
-    private const DEFAULT_THEME_MARKETPLACE_URL = 'https://365cms.de/marketplace/themes';
+    private const DEFAULT_CORE_UPDATE_URL = MarketplaceEndpoints::CORE_UPDATE_URL;
     private const CACHE_DURATION = 3600; // 1 hour
 
     /** Aktive Konfiguration (aus DB oder Fallback) */
@@ -98,10 +96,7 @@ class UpdateService
             );
             $this->githubApi = (!empty($row2['option_value'])) ? rtrim($row2['option_value'], '/') : self::DEFAULT_GITHUB_API;
 
-            $row3 = $this->db->fetchOne(
-                "SELECT option_value FROM {$this->db->getPrefix()}settings WHERE option_name = 'core_update_url'"
-            );
-            $this->coreUpdateUrl = (!empty($row3['option_value'])) ? trim((string) $row3['option_value']) : self::DEFAULT_CORE_UPDATE_URL;
+            $this->coreUpdateUrl = MarketplaceEndpoints::coreUpdateUrl();
         } catch (\Throwable $e) {
             $this->githubRepo = self::DEFAULT_GITHUB_REPO;
             $this->githubApi  = self::DEFAULT_GITHUB_API;
@@ -310,20 +305,6 @@ class UpdateService
         ];
     }
 
-    private function getSettingValue(string $optionName): string
-    {
-        try {
-            $row = $this->db->fetchOne(
-                "SELECT option_value FROM {$this->db->getPrefix()}settings WHERE option_name = ?",
-                [$optionName]
-            );
-
-            return trim((string) ($row['option_value'] ?? ''));
-        } catch (\Throwable $e) {
-            return '';
-        }
-    }
-
     private function fetchMarketplaceJson(string $url, int $maxBytes = 1048576): ?array
     {
         if (!$this->isAllowedSensitiveRemoteUrl($url) || !$this->isSafeExternalUrl($url)) {
@@ -350,10 +331,7 @@ class UpdateService
 
     private function loadPluginMarketplaceCatalog(): array
     {
-        $registryUrl = $this->getSettingValue('plugin_registry_url');
-        if ($registryUrl === '') {
-            $registryUrl = self::DEFAULT_PLUGIN_REGISTRY_URL;
-        }
+        $registryUrl = MarketplaceEndpoints::pluginIndexUrl();
 
         $data = $this->fetchMarketplaceJson($registryUrl);
         if (!is_array($data)) {
@@ -365,7 +343,7 @@ class UpdateService
             return [];
         }
 
-        return $this->normalizePluginCatalogEntries($entries, $this->resolveBaseUrl($registryUrl));
+        return $this->normalizePluginCatalogEntries($entries, $this->resolveMarketplaceSourceBase(MarketplaceEndpoints::pluginBaseUrl(), $registryUrl));
     }
 
     private function normalizePluginCatalogEntries(array $entries, string $sourceBase): array
@@ -396,12 +374,7 @@ class UpdateService
 
     private function loadThemeMarketplaceCatalog(): array
     {
-        $baseUrl = $this->getSettingValue('theme_marketplace_url');
-        if ($baseUrl === '') {
-            $baseUrl = self::DEFAULT_THEME_MARKETPLACE_URL;
-        }
-
-        $catalogUrl = $this->resolveCatalogIndexUrl($baseUrl);
+        $catalogUrl = $this->resolveCatalogIndexUrl(MarketplaceEndpoints::themeIndexUrl());
         if ($catalogUrl === '') {
             return [];
         }
@@ -411,7 +384,7 @@ class UpdateService
             return [];
         }
 
-        return $this->normalizeThemeCatalogEntries($data, $this->resolveBaseUrl($catalogUrl));
+        return $this->normalizeThemeCatalogEntries($data, $this->resolveMarketplaceSourceBase(MarketplaceEndpoints::themeBaseUrl(), $catalogUrl));
     }
 
     private function normalizeThemeCatalogEntries(array $data, string $sourceBase): array
@@ -494,6 +467,17 @@ class UpdateService
         $resolved = rtrim($normalizedBaseUrl, '/') . '/' . $normalizedRelativePath;
 
         return $this->normalizeSensitiveRemoteUrl($resolved);
+    }
+
+    /**
+     * Basis für relative Katalog-URLs: konfigurierte Marketplace-Basis,
+     * sonst das Verzeichnis des Index-Feeds.
+     */
+    private function resolveMarketplaceSourceBase(string $configuredBaseUrl, string $indexUrl): string
+    {
+        $base = $this->normalizeSensitiveRemoteUrl(rtrim($configuredBaseUrl, '/'));
+
+        return $base !== '' ? $base : $this->resolveBaseUrl($indexUrl);
     }
 
     private function resolveCatalogIndexUrl(string $baseUrl): string

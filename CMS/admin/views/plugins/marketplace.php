@@ -22,6 +22,9 @@ $source = is_array($data['source'] ?? null) ? $data['source'] : [];
 $constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
 $allowedHosts = is_array($constraints['allowed_marketplace_hosts'] ?? null) ? $constraints['allowed_marketplace_hosts'] : [];
 $allowedArchiveExtensions = is_array($constraints['allowed_archive_extensions'] ?? null) ? $constraints['allowed_archive_extensions'] : [];
+$endpoints = is_array($data['endpoints'] ?? null) ? $data['endpoints'] : [];
+$marketplaceOverviewUrl = (string) ($endpoints['marketplace_public_url'] ?? '');
+$marketplaceSubmitUrl = (string) ($endpoints['marketplace_submit_url'] ?? '');
 $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 ?>
 
@@ -33,7 +36,13 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                 <h2 class="page-title"><?php echo htmlspecialchars($pageTitle); ?></h2>
                 <div class="text-secondary mt-1">Verfügbare Plugins durchsuchen und installieren</div>
             </div>
-            <div class="col-auto ms-auto">
+            <div class="col-auto ms-auto d-flex flex-wrap gap-2">
+                <?php if ($marketplaceOverviewUrl !== ''): ?>
+                    <a href="<?php echo $escape($marketplaceOverviewUrl); ?>" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer">Marketplace-Übersicht</a>
+                <?php endif; ?>
+                <?php if ($marketplaceSubmitUrl !== ''): ?>
+                    <a href="<?php echo $escape($marketplaceSubmitUrl); ?>" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer">Plugin einreichen</a>
+                <?php endif; ?>
                 <a href="/admin/plugins" class="btn btn-outline-primary">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
                     Installierte Plugins

@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Http\Client as HttpClient;
 use CMS\Services\ErrorReportService;
+use CMS\Services\MarketplaceEndpoints;
 use CMS\Services\UpdateService;
 
 class PluginMarketplaceModule
@@ -78,7 +79,7 @@ class PluginMarketplaceModule
         'raw.githubusercontent.com',
     ];
 
-    private const DEFAULT_REGISTRY_URL = 'https://365cms.de/marketplace/plugins/index.json';
+    private const DEFAULT_REGISTRY_URL = MarketplaceEndpoints::PLUGIN_INDEX_URL;
 
     private readonly \CMS\Database $db;
     private readonly string $prefix;
@@ -136,6 +137,7 @@ class PluginMarketplaceModule
             'installed' => $installed,
             'stats'     => $this->buildStats($available, $installed),
             'source'    => $this->registrySource,
+            'endpoints' => MarketplaceEndpoints::all(),
             'constraints' => [
                 'registry_cache_ttl' => self::REGISTRY_CACHE_TTL,
                 'registry_max_bytes' => self::MAX_REGISTRY_BYTES,
@@ -455,13 +457,7 @@ class PluginMarketplaceModule
 
     private function getRegistryUrl(): string
     {
-        $row = $this->db->get_row(
-            "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'plugin_registry_url'"
-        );
-
-        $value = trim((string) ($row->option_value ?? ''));
-
-        $normalizedRegistryUrl = $this->normalizeMarketplaceUrl($value);
+        $normalizedRegistryUrl = $this->normalizeMarketplaceUrl(MarketplaceEndpoints::pluginIndexUrl());
         if ($normalizedRegistryUrl !== '') {
             return $normalizedRegistryUrl;
         }
@@ -507,7 +503,7 @@ class PluginMarketplaceModule
 
         $sanitizedPlugins = $this->sanitizeCatalogEntries(
             is_array($plugins) ? $plugins : [],
-            $this->resolveBasePath($registryUrl)
+            $this->resolveSourceBase($registryUrl)
         );
 
         if ($sanitizedPlugins === []) {
@@ -766,6 +762,17 @@ class PluginMarketplaceModule
         }
 
         return '';
+    }
+
+    /**
+     * Basis für relative Katalog-URLs: konfigurierte Plugins-Basis,
+     * sonst das Verzeichnis des Plugins-Index.
+     */
+    private function resolveSourceBase(string $registryUrl): string
+    {
+        $base = $this->normalizeMarketplaceUrl(rtrim(MarketplaceEndpoints::pluginBaseUrl(), '/'));
+
+        return $base !== '' ? $base : $this->resolveBasePath($registryUrl);
     }
 
     private function resolveBasePath(string $url): string

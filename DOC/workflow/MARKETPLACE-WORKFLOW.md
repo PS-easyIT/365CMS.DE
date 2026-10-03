@@ -26,7 +26,7 @@ Themes werden über den Theme-Marketplace bzw. `/admin/updates` (`install_theme`
 
 ### Betreiber: Registry-Quelle ändern
 
-*Einstellungen → Marketplace*: `plugin_registry_url`, `theme_marketplace_url`, `core_update_url`. Nur HTTPS-Adressen auf erlaubten Hosts (`365cms.de`, `www.365cms.de`, `365network.de`, `www.365network.de`, `github.com`, `api.github.com`, `codeload.github.com`, `objects.githubusercontent.com`, `raw.githubusercontent.com`) funktionieren. Der Cache gilt 15 Minuten.
+*Einstellungen → Marketplace & Updates*: `marketplace_public_url`, `plugin_registry_url`, `theme_registry_url`, `plugin_marketplace_base_url`, `theme_marketplace_url`, `marketplace_submit_url`, `core_update_url` (Defaults in `CMS\Services\MarketplaceEndpoints`). Nur HTTPS-Adressen auf erlaubten Hosts (`365cms.de`, `www.365cms.de`, `365network.de`, `www.365network.de`, `github.com`, `api.github.com`, `codeload.github.com`, `objects.githubusercontent.com`, `raw.githubusercontent.com`) funktionieren. Der Cache gilt 15 Minuten.
 
 ### Anbieter: Plugin veröffentlichen
 
