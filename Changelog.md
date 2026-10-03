@@ -24,6 +24,13 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 
 ---
 
+### v3.4.11 — 03.10.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.11** | 🟠 perf | CSP-Runtime / PageSpeed | `cms_csp_runtime_tags(bool $deferSanitizer = false)`: Mit `true` (Frontend-Themes) lädt DOMPurify (~29 KB) per `defer` und die Trusted-Types-Runtime wird inline mit Nonce ausgegeben – keine render-blockierenden Scripts mehr am Anfang des `<head>`. `cms-csp-runtime.js` löst DOMPurify erst beim Aufruf auf; bis es geladen ist, bleiben HTML-Zuweisungen blockiert (fail closed). Admin und Themes ohne Parameter nutzen weiter die synchrone Variante. Im Browser unter der Produktiv-CSP geprüft: `innerHTML` wird bereinigt, dynamische `<style>`-Elemente erhalten den Nonce. |
+| **3.4.11** | 🟠 perf | OPcache-Warmup | Die Deploy-Prüfung (`maybeWarmAfterDeploy()`) durchsuchte bei **jedem** Request alle PHP-Dateien unter Core, Themes und Plugins, um die Signatur zu bilden. Sie läuft jetzt höchstens alle 10 Minuten (Marker `cache/opcache-warmup.checked`). |
+
 ### v3.4.10 — 02.10.2026
 
 | Version | Typ | Bereich | Beschreibung |
