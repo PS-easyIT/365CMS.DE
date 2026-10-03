@@ -56,7 +56,8 @@ Health-Check beim Aktivieren (`ThemeManager::healthCheckTheme()`): `style.css` v
 
 ### 3. Rendering-Vertrag
 
-- **Rahmen:** `ThemeManager::render()` bindet `header.php`, das Template und `footer.php` ein und zählt den Seitenaufruf (`TrackingService`). Templates rufen den Rahmen nicht selbst auf; nur `error.php` (vom Fatal-Handler direkt eingebunden) rendert ihn selbst.
+- **Rahmen:** `ThemeManager::render()` bindet `header.php`, das Template und `footer.php` ein und zählt den Seitenaufruf (`TrackingService`). Templates rufen den Rahmen nicht selbst auf; nur `error.php` im eigenständigen Modus (Fatal-Handler, Wartungsmodus) gibt ein vollständiges Dokument aus.
+- **Fehlerseiten (ab 3.4.16):** `Router::renderError(int $status, string $title = '', string $message = '')` rendert für jeden Status außer 404 das Theme-Template `<status>.php` (z. B. `403.php`), sonst `error.php`; fehlt beides, die eingebaute Core-Seite. 404 läuft weiter über `render404()` → `404.php`. Der Router nutzt das für CSRF-Fehler (403), Methoden ohne Route (405 mit `Allow`-Header), Webserver-Fehler per `ErrorDocument` (`REDIRECT_STATUS` 400–599) und den Wartungsmodus (503). Bei 429/503 setzt er `Retry-After`, bei allen Fehlern `Cache-Control: no-store`.
 - **Template-Hierarchie:** `<template>.php` → `index.php`. Der Filter `template_name` kann umleiten. Für `authors` und `sitemap` (Routen `/autoren`, `/sitemap`) greift ohne eigenes Template der Fallback.
 - **Daten je Template** (als Variablen verfügbar):
 
@@ -71,6 +72,7 @@ Health-Check beim Aktivieren (`ThemeManager::healthCheckTheme()`): `style.css` v
 | `author` | `$author`, `$posts`, `$total`, `$currentPage`, `$totalPages`, `$perPage` |
 | `search` | `$results` (Arrays mit `_type`, `_type_label`, `slug`, `title`, `meta_description`; Plugin-Treffer zusätzlich `url`, optional `date`), `$query`, `$type`, `$sort` (`relevance`/`date`), `$total`, `$location`, `$filter` |
 | `contact`, `404` | – |
+| `error` (und `<status>.php`) | `$error_code` (int), `$error_title`, `$error_message` (leer = Theme-Standardtext), `$title` (nur wenn ein Titel übergeben wurde). Eigenständiger Modus zusätzlich `$error_standalone = true` und bei 503 `$error_retry_after` (Sekunden): ohne Header/Footer, ohne Datenbankzugriff, das Template gibt das ganze HTML-Dokument aus. |
 | `login`, `register`, `forgot-password` | nur im Auth-Modus `legacy` ([../admin/themes-design/CMS-LOGINPAGE.md](../admin/themes-design/CMS-LOGINPAGE.md)) |
 
 - **Suche:** Treffer sind bereits gefiltert (jedes Suchwort im sichtbaren Text) und sortiert; ohne Suchbegriff keine Treffer. Formulare senden `q`, `type`, `sort`.

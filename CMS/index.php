@@ -220,11 +220,26 @@ try {
         ? (preg_replace('/[^a-zA-Z0-9_-]/', '', trim(DEFAULT_THEME)) ?: 'cms-default')
         : 'cms-default';
 
-    $errorTemplates = [
+    // Fehlerseite des aktiven Themes (sofern ermittelbar), sonst Standard-Theme.
+    $activeTheme = '';
+    try {
+        if (class_exists('CMS\\ThemeManager', false)) {
+            $activeTheme = preg_replace('/[^a-zA-Z0-9_-]/', '', CMS\ThemeManager::instance()->getActiveThemeSlug()) ?: '';
+        }
+    } catch (Throwable) {
+        $activeTheme = '';
+    }
+
+    $errorTemplates = array_values(array_unique(array_filter([
+        $activeTheme !== '' ? __DIR__ . '/themes/' . $activeTheme . '/error.php' : '',
         __DIR__ . '/themes/' . $defaultTheme . '/error.php',
         __DIR__ . '/themes/cms-default/error.php',
         __DIR__ . '/themes/default/error.php',
-    ];
+    ])));
+
+    // Variablen für Theme-Fehlerseiten: eigenständiges Dokument ohne Header/Footer (Datenbank evtl. nicht erreichbar).
+    $error_code = 500;
+    $error_standalone = true;
 
     foreach ($errorTemplates as $errorTemplate) {
         if (is_file($errorTemplate)) {

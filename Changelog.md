@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.14` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.16` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.14` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.16` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -23,6 +23,23 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.4.16 — 03.10.2026
+
+Core-Anteile des Laufzeit-Audits des PHINIT-Themes (Theme 1.7.36, Bericht im Theme-Repository unter `cms-phinit/DOC/checks/LAUFZEIT.md`).
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.16** | 🟢 feat | Router / Fehlerseiten | **Neue Methode `Router::renderError(int $status, string $title = '', string $message = '')`.** Rendert für jeden HTTP-Fehlercode die Fehlerseite des aktiven Themes: `<status>.php`, sonst `error.php` (Variablen `$error_code`, `$error_title`, `$error_message`), sonst die eingebaute Core-Seite; 404 läuft weiter über `render404()`. Setzt `Cache-Control: no-store`, bei 429/503 `Retry-After: 120`. |
+| **3.4.16** | 🔴 fix | Router / CSRF | Schlug die globale Formularprüfung (`form_guard`) bei einem normalen Formular-POST fehl, kam die nackte Core-Fallback-Seite. Jetzt 403 mit Theme-Fehlerseite und Hinweis, die vorherige Seite neu zu laden. AJAX-Anfragen erhalten weiter JSON. |
+| **3.4.16** | 🔴 fix | Router / HTTP | Ein Request mit einer Methode, für die der Pfad keine Route hat (z. B. POST auf eine reine GET-Seite), lieferte 404. Jetzt **405** mit `Allow`-Header (RFC 9110), auch für öffentliche Beitrags-URLs. |
+| **3.4.16** | 🟢 feat | Router / Webserver-Fehler | Leitet Apache einen Fehler per `ErrorDocument` an `index.php` weiter (`REDIRECT_STATUS` 400–599), rendert der Router den Code mit der Theme-Fehlerseite statt der Route. API-Pfade ausgenommen. |
+| **3.4.16** | 🔴 fix | Wartungsmodus | Die 503-Seite nutzt die Fehlerseite des aktiven Themes im eigenständigen Modus (`$error_standalone`, `$error_retry_after = 3600`); das bisherige eingebaute HTML bleibt Fallback. |
+| **3.4.16** | 🔴 fix | Fatal-Handler (`index.php`) | Bei einem schweren Fehler suchte `index.php` die `error.php` nur in `DEFAULT_THEME`, `cms-default` und `default` – das aktive Theme wurde übergangen. Jetzt zuerst das aktive Theme (sofern der `ThemeManager` schon geladen ist); übergeben werden `$error_code = 500` und `$error_standalone = true`. |
+| **3.4.16** | 🟢 feat | `.htaccess` | `ErrorDocument` für 400, 401, 403, 404, 405, 408, 410, 413, 414 und 429 auf `/index.php` – Webserver-Fehler (etwa 403 für gesperrte Pfade) erscheinen im Theme-Layout. Bei Installation in einem Unterverzeichnis den Pfad anpassen. |
+| **3.4.16** | 🔴 fix | SEO-Metadaten | `SeoMetaRepository` schrieb für eine leere Sitemap-Priorität `''` in die DECIMAL-Spalte `sitemap_priority`. Mit SQL-Strict-Mode schlug damit **jedes** Speichern von SEO-Metadaten fehl (Beiträge und Seiten); jetzt `NULL`. |
+| **3.4.16** | 🔴 fix | Member-Beiträge | `PostsModule::saveMemberDraft()` (3.4.15) gab Vorlagen-Metadaten mit Listenwerten als Array an `save()` weiter; die Eingabeprüfung lehnte das als ungültige Eingabe ab und der Entwurf wurde nicht gespeichert. Listen werden jetzt wie im Editor als zeilengetrennter Text übergeben. |
+| **3.4.16** | 🔵 docs | Theme-Entwicklung | `DOC/theme/THEME-DEVELOPMENT.md`: Fehlerseiten-Vertrag (`renderError()`, `<status>.php`/`error.php`, Variablen, eigenständiger Modus); `DOC/core/CORE-CLASSES.md` nennt `renderError()`. |
 
 ### v3.4.15 — 03.10.2026
 
