@@ -557,7 +557,7 @@ final class EditorJsRenderer
         ];
         $warningVariant = $variantMap[$type] ?? 'info';
 
-        return '<div class="editorjs-block editorjs-alert editorjs-alert--' . htmlspecialchars($type, ENT_QUOTES, 'UTF-8') . ' editorjs-alert--align-' . htmlspecialchars($align, ENT_QUOTES, 'UTF-8') . ' editorjs-warning editorjs-warning--' . htmlspecialchars($warningVariant, ENT_QUOTES, 'UTF-8') . '" data-variant="' . htmlspecialchars($type, ENT_QUOTES, 'UTF-8') . '" style="text-align:' . htmlspecialchars($align, ENT_QUOTES, 'UTF-8') . ';"><div class="warning-message">' . $message . '</div></div>';
+        return '<div class="editorjs-block editorjs-alert editorjs-alert--' . htmlspecialchars($type, ENT_QUOTES, 'UTF-8') . ' editorjs-alert--align-' . htmlspecialchars($align, ENT_QUOTES, 'UTF-8') . ' editorjs-warning editorjs-warning--' . htmlspecialchars($warningVariant, ENT_QUOTES, 'UTF-8') . '" data-variant="' . htmlspecialchars($type, ENT_QUOTES, 'UTF-8') . '"><div class="warning-message">' . $message . '</div></div>';
     }
 
     /** @param array<string,mixed> $data */
@@ -840,8 +840,8 @@ final class EditorJsRenderer
             $ratio = round(($height / max(1, $width)) * 100, 4);
 
             return '<figure class="editorjs-block editorjs-embed">'
-                . '<div class="editorjs-embed__frame" style="position:relative;width:100%;padding-top:' . $ratio . '%;overflow:hidden;border-radius:14px;background:#0f172a;">'
-                . '<iframe src="' . htmlspecialchars($embedUrl, ENT_QUOTES, 'UTF-8') . '" title="' . htmlspecialchars(strip_tags($label), ENT_QUOTES, 'UTF-8') . '" loading="lazy" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;inset:0;width:100%;height:100%;border:0;"></iframe>'
+                . '<div class="editorjs-embed__frame" style="padding-top:' . $ratio . '%;">'
+                . '<iframe src="' . htmlspecialchars($embedUrl, ENT_QUOTES, 'UTF-8') . '" title="' . htmlspecialchars(strip_tags($label), ENT_QUOTES, 'UTF-8') . '" loading="lazy" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation" referrerpolicy="strict-origin-when-cross-origin"></iframe>'
                 . '</div>'
                 . ($caption !== '' ? '<figcaption>' . $caption . '</figcaption>' : '')
                 . '</figure>';
@@ -1026,12 +1026,12 @@ final class EditorJsRenderer
             $galleryClasses[] = 'editorjs-gallery--border';
         }
 
-        $html = '<div class="' . implode(' ', $galleryClasses) . '" data-columns="' . $columns . '" data-border="' . htmlspecialchars($borderStyle, ENT_QUOTES, 'UTF-8') . '" style="display:grid;grid-template-columns:repeat(' . $columns . ', minmax(0, 1fr));gap:var(--cms-editorjs-gallery-gap,5px);align-items:flex-start;">';
+        $html = '<div class="' . implode(' ', $galleryClasses) . '" data-columns="' . $columns . '" data-border="' . htmlspecialchars($borderStyle, ENT_QUOTES, 'UTF-8') . '">';
         foreach ($images as $image) {
-            $html .= '<figure class="editorjs-gallery__item" style="margin:0;min-width:0;">';
-            $html .= '<img src="' . htmlspecialchars($image['url'], ENT_QUOTES, 'UTF-8') . '" alt="' . $image['alt'] . '"' . $this->getLazyLoadingAttribute() . ' style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px;">';
+            $html .= '<figure class="editorjs-gallery__item">';
+            $html .= '<img src="' . htmlspecialchars($image['url'], ENT_QUOTES, 'UTF-8') . '" alt="' . $image['alt'] . '"' . $this->getLazyLoadingAttribute() . '>';
             if ($image['caption'] !== '' && !$image['is_generated_caption']) {
-                $html .= '<figcaption style="margin-top:0.6rem;font-size:0.92rem;color:#475569;">' . $image['caption'] . '</figcaption>';
+                $html .= '<figcaption>' . $image['caption'] . '</figcaption>';
             }
             $html .= '</figure>';
         }
@@ -1097,7 +1097,7 @@ final class EditorJsRenderer
         }
         if ($imageUrl !== '') {
             $html .= '<figure class="editorjs-media-text__media" style="' . htmlspecialchars($mediaStyle, ENT_QUOTES, 'UTF-8') . '">';
-            $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $alt . '"' . $this->getLazyLoadingAttribute() . ' style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:' . htmlspecialchars($imageFit, ENT_QUOTES, 'UTF-8') . ';border-radius:14px;">';
+            $html .= '<img class="editorjs-media-text__image" src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $alt . '"' . $this->getLazyLoadingAttribute() . '>';
             $html .= '</figure>';
         }
 
@@ -1188,11 +1188,11 @@ final class EditorJsRenderer
             return '';
         }
 
-        $html = '<section class="editorjs-block editorjs-terminal" style="margin:1.5rem 0;border:1px solid #1f2937;border-radius:14px;overflow:hidden;background:#0f172a;color:#e2e8f0;box-shadow:0 18px 34px rgba(15,23,42,.16);">';
-        $html .= '<header style="display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.7rem 1rem;background:linear-gradient(180deg,#111827 0%,#0f172a 100%);border-bottom:1px solid rgba(148,163,184,.16);"><strong style="font-size:.85rem;color:#f8fafc;">' . ($title !== '' ? $title : 'Terminal') . '</strong><span style="font:600 .72rem/1.2 var(--font-mono,ui-monospace,monospace);letter-spacing:.08em;text-transform:uppercase;color:#93c5fd;">' . $shell . '</span></header>';
-        $html .= '<pre style="margin:0;padding:1rem 1.1rem 0;font:500 .84rem/1.7 var(--font-mono,ui-monospace,monospace);white-space:pre-wrap;"><code>' . htmlspecialchars($command, ENT_QUOTES, 'UTF-8') . '</code></pre>';
+        $html = '<section class="editorjs-block editorjs-terminal">';
+        $html .= '<div class="editorjs-terminal__header"><strong>' . ($title !== '' ? $title : 'Terminal') . '</strong><span class="editorjs-terminal__shell">' . $shell . '</span></div>';
+        $html .= '<pre class="editorjs-terminal__command"><code>' . htmlspecialchars($command, ENT_QUOTES, 'UTF-8') . '</code></pre>';
         if ($output !== '') {
-            $html .= '<div style="padding:.85rem 1.1rem 1rem;border-top:1px solid rgba(148,163,184,.14);font:500 .8rem/1.7 var(--font-mono,ui-monospace,monospace);color:#94a3b8;white-space:pre-wrap;">' . htmlspecialchars($output, ENT_QUOTES, 'UTF-8') . '</div>';
+            $html .= '<div class="editorjs-terminal__output">' . htmlspecialchars($output, ENT_QUOTES, 'UTF-8') . '</div>';
         }
         $html .= '</section>';
 
@@ -1230,10 +1230,10 @@ final class EditorJsRenderer
             $isActive = $renderedTabs === 0;
             $renderedTabs++;
 
-            $buttonsHtml .= '<button type="button" data-target="' . htmlspecialchars($tabId, ENT_QUOTES, 'UTF-8') . '" aria-pressed="' . ($isActive ? 'true' : 'false') . '" style="padding:.5rem .85rem;border:1px solid ' . ($isActive ? '#60a5fa' : 'rgba(148,163,184,.16)') . ';border-radius:999px;background:' . ($isActive ? 'rgba(59,130,246,.16)' : 'transparent') . ';color:' . ($isActive ? '#dbeafe' : '#94a3b8') . ';font:600 .75rem/1.2 var(--font-sans,system-ui,sans-serif);cursor:pointer;">' . $label . '</button>';
-            $panesHtml .= '<div id="' . htmlspecialchars($tabId, ENT_QUOTES, 'UTF-8') . '" data-code-tab-pane' . ($isActive ? '' : ' hidden') . ' style="display:' . ($isActive ? 'block' : 'none') . ';">'
-                . '<div style="display:flex;justify-content:flex-end;padding:.65rem 1rem 0;color:#94a3b8;font:600 .68rem/1.2 var(--font-mono,ui-monospace,monospace);text-transform:uppercase;letter-spacing:.08em;">' . ($language !== '' ? $language : 'code') . '</div>'
-                . '<pre style="margin:0;padding:.8rem 1rem 1rem;overflow:auto;"><code class="' . ($language !== '' ? 'language-' . $language : '') . '">' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '</code></pre>'
+            $buttonsHtml .= '<button type="button" class="editorjs-code-tabs__tab" data-target="' . htmlspecialchars($tabId, ENT_QUOTES, 'UTF-8') . '" aria-pressed="' . ($isActive ? 'true' : 'false') . '">' . $label . '</button>';
+            $panesHtml .= '<div id="' . htmlspecialchars($tabId, ENT_QUOTES, 'UTF-8') . '" class="editorjs-code-tabs__pane" data-code-tab-pane' . ($isActive ? '' : ' hidden') . '>'
+                . '<div class="editorjs-code-tabs__language">' . ($language !== '' ? $language : 'code') . '</div>'
+                . '<pre class="editorjs-code-tabs__code"><code class="' . ($language !== '' ? 'language-' . $language : '') . '">' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '</code></pre>'
                 . '</div>';
         }
 
@@ -1241,13 +1241,13 @@ final class EditorJsRenderer
             return '';
         }
 
-        $script = '(function(){var root=document.getElementById(' . json_encode($instanceId) . ');if(!root){return;}var buttons=root.querySelectorAll("[data-target]");var panes=root.querySelectorAll("[data-code-tab-pane]");buttons.forEach(function(button){button.addEventListener("click",function(){var targetId=button.getAttribute("data-target");buttons.forEach(function(item){var active=item===button;item.setAttribute("aria-pressed",active?"true":"false");item.style.borderColor=active?"#60a5fa":"rgba(148,163,184,.16)";item.style.background=active?"rgba(59,130,246,.16)":"transparent";item.style.color=active?"#dbeafe":"#94a3b8";});panes.forEach(function(pane){var show=pane.id===targetId;pane.hidden=!show;pane.style.display=show?"block":"none";});});});})();';
+        $script = '(function(){var root=document.getElementById(' . json_encode($instanceId) . ');if(!root){return;}var buttons=root.querySelectorAll("[data-target]");var panes=root.querySelectorAll("[data-code-tab-pane]");buttons.forEach(function(button){button.addEventListener("click",function(){var targetId=button.getAttribute("data-target");buttons.forEach(function(item){var active=item===button;item.setAttribute("aria-pressed",active?"true":"false");});panes.forEach(function(pane){pane.hidden=pane.id!==targetId;});});});})();';
 
-        $html = '<section class="editorjs-block editorjs-code-tabs" id="' . htmlspecialchars($instanceId, ENT_QUOTES, 'UTF-8') . '" style="margin:1.5rem 0;border:1px solid #1f2937;border-radius:16px;overflow:hidden;background:#0f172a;color:#e2e8f0;">';
+        $html = '<section class="editorjs-block editorjs-code-tabs" id="' . htmlspecialchars($instanceId, ENT_QUOTES, 'UTF-8') . '">';
         if ($title !== '') {
-            $html .= '<header style="padding:1rem 1rem 0;color:#f8fafc;font:700 .95rem/1.3 var(--font-sans,system-ui,sans-serif);">' . $title . '</header>';
+            $html .= '<div class="editorjs-code-tabs__title">' . $title . '</div>';
         }
-        $html .= '<div style="display:flex;flex-wrap:wrap;gap:.55rem;padding:1rem 1rem .35rem;">' . $buttonsHtml . '</div>';
+        $html .= '<div class="editorjs-code-tabs__tabs">' . $buttonsHtml . '</div>';
         $html .= $panesHtml;
         $html .= '<script ' . \CMS\Security::instance()->nonceAttr() . '>' . $script . '</script>';
         $html .= '</section>';
@@ -1266,16 +1266,16 @@ final class EditorJsRenderer
         $instanceId = 'editorjs-mermaid-' . uniqid();
         $title = $this->sanitizeInline((string) ($data['title'] ?? ''));
         $caption = $this->sanitizeInline((string) ($data['caption'] ?? ''));
-        $script = '(function(){var root=document.getElementById(' . json_encode($instanceId) . ');if(!root||!window.mermaid||typeof window.mermaid.render!=="function"){return;}var source=root.querySelector("[data-mermaid-source]");var target=root.querySelector("[data-mermaid-target]");var preview=root.querySelector("[data-mermaid-preview]");if(!source||!target){return;}try{window.mermaid.initialize({startOnLoad:false,securityLevel:"strict"});window.mermaid.render(' . json_encode($instanceId . '-svg') . ',source.textContent||"").then(function(result){target.innerHTML=result.svg;target.hidden=false;target.style.display="block";if(preview){preview.hidden=true;preview.style.display="none";}}).catch(function(){});}catch(error){}})();';
+        $script = '(function(){var root=document.getElementById(' . json_encode($instanceId) . ');if(!root||!window.mermaid||typeof window.mermaid.render!=="function"){return;}var source=root.querySelector("[data-mermaid-source]");var target=root.querySelector("[data-mermaid-target]");var preview=root.querySelector("[data-mermaid-preview]");if(!source||!target){return;}try{window.mermaid.initialize({startOnLoad:false,securityLevel:"strict"});window.mermaid.render(' . json_encode($instanceId . '-svg') . ',source.textContent||"").then(function(result){target.innerHTML=result.svg;target.hidden=false;if(preview){preview.hidden=true;}}).catch(function(){});}catch(error){}})();';
 
-        $html = '<figure class="editorjs-block editorjs-mermaid" id="' . htmlspecialchars($instanceId, ENT_QUOTES, 'UTF-8') . '" style="margin:1.5rem 0;padding:1rem 1.1rem;border:1px solid #dbe4f0;border-radius:16px;background:linear-gradient(180deg,#fff 0%,#f8fbff 100%);">';
+        $html = '<figure class="editorjs-block editorjs-mermaid" id="' . htmlspecialchars($instanceId, ENT_QUOTES, 'UTF-8') . '">';
         if ($title !== '') {
-            $html .= '<div style="margin-bottom:.65rem;font:700 .95rem/1.3 var(--font-sans,system-ui,sans-serif);color:#0f172a;">' . $title . '</div>';
+            $html .= '<div class="editorjs-mermaid__title">' . $title . '</div>';
         }
-        $html .= '<div data-mermaid-target hidden style="display:none;overflow:auto;"></div>';
-        $html .= '<pre data-mermaid-preview style="margin:0;padding:1rem;border-radius:12px;background:#0f172a;color:#dbeafe;overflow:auto;"><code data-mermaid-source class="language-mermaid">' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '</code></pre>';
+        $html .= '<div class="editorjs-mermaid__diagram" data-mermaid-target hidden></div>';
+        $html .= '<pre class="editorjs-mermaid__source" data-mermaid-preview><code data-mermaid-source class="language-mermaid">' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '</code></pre>';
         if ($caption !== '') {
-            $html .= '<figcaption style="margin-top:.75rem;color:#64748b;font-size:.86rem;">' . $caption . '</figcaption>';
+            $html .= '<figcaption>' . $caption . '</figcaption>';
         }
         $html .= '<script ' . \CMS\Security::instance()->nonceAttr() . '>' . $script . '</script>';
         $html .= '</figure>';
@@ -1297,21 +1297,21 @@ final class EditorJsRenderer
             return '';
         }
 
-        $html = '<section class="editorjs-block editorjs-api-endpoint" style="margin:1.5rem 0;padding:1rem 1.1rem;border:1px solid #dbe4f0;border-radius:16px;background:#fff;box-shadow:0 10px 26px rgba(15,23,42,.04);">';
-        $html .= '<div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:.8rem;"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:4.25rem;padding:.28rem .65rem;border-radius:999px;background:#dbeafe;color:#1d4ed8;font:700 .72rem/1.2 var(--font-sans,system-ui,sans-serif);letter-spacing:.06em;">' . $method . '</span><code style="font:700 .9rem/1.4 var(--font-mono,ui-monospace,monospace);color:#0f172a;">' . $path . '</code></div>';
+        $html = '<section class="editorjs-block editorjs-api-endpoint">';
+        $html .= '<div class="editorjs-api-endpoint__head"><span class="editorjs-api-endpoint__method">' . $method . '</span><code class="editorjs-api-endpoint__path">' . $path . '</code></div>';
         if ($summary !== '') {
-            $html .= '<p style="margin:.2rem 0 .85rem;color:#475569;">' . $summary . '</p>';
+            $html .= '<p class="editorjs-api-endpoint__summary">' . $summary . '</p>';
         }
         if ($auth !== '') {
-            $html .= '<div style="margin:0 0 .85rem;padding:.65rem .8rem;border-radius:12px;background:#f8fafc;color:#334155;font-size:.84rem;"><strong>Auth:</strong> ' . $auth . '</div>';
+            $html .= '<div class="editorjs-api-endpoint__auth"><strong>Auth:</strong> ' . $auth . '</div>';
         }
         if ($requestExample !== '' || $responseExample !== '') {
-            $html .= '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;">';
+            $html .= '<div class="editorjs-api-endpoint__examples">';
             if ($requestExample !== '') {
-                $html .= '<div><div style="margin-bottom:.35rem;font:700 .74rem/1.2 var(--font-sans,system-ui,sans-serif);letter-spacing:.06em;text-transform:uppercase;color:#64748b;">Request</div><pre style="margin:0;padding:.85rem 1rem;border-radius:12px;background:#0f172a;color:#dbeafe;overflow:auto;"><code>' . htmlspecialchars($requestExample, ENT_QUOTES, 'UTF-8') . '</code></pre></div>';
+                $html .= '<div><div class="editorjs-api-endpoint__label">Request</div><pre class="editorjs-api-endpoint__code"><code>' . htmlspecialchars($requestExample, ENT_QUOTES, 'UTF-8') . '</code></pre></div>';
             }
             if ($responseExample !== '') {
-                $html .= '<div><div style="margin-bottom:.35rem;font:700 .74rem/1.2 var(--font-sans,system-ui,sans-serif);letter-spacing:.06em;text-transform:uppercase;color:#64748b;">Response</div><pre style="margin:0;padding:.85rem 1rem;border-radius:12px;background:#0f172a;color:#dbeafe;overflow:auto;"><code>' . htmlspecialchars($responseExample, ENT_QUOTES, 'UTF-8') . '</code></pre></div>';
+                $html .= '<div><div class="editorjs-api-endpoint__label">Response</div><pre class="editorjs-api-endpoint__code"><code>' . htmlspecialchars($responseExample, ENT_QUOTES, 'UTF-8') . '</code></pre></div>';
             }
             $html .= '</div>';
         }
@@ -1332,13 +1332,13 @@ final class EditorJsRenderer
             return '';
         }
 
-        $html = '<section class="editorjs-block editorjs-changelog" style="margin:1.5rem 0;padding:1rem 1.1rem;border:1px solid #e2e8f0;border-radius:16px;background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);">';
-        $html .= '<header style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;">';
-        $html .= '<div>' . ($title !== '' ? '<strong style="display:block;color:#0f172a;">' . $title . '</strong>' : '<strong style="display:block;color:#0f172a;">Changelog</strong>') . '</div>';
-        $html .= '<div style="display:flex;gap:.5rem;flex-wrap:wrap;">' . ($version !== '' ? '<span class="badge badge-b">' . $version . '</span>' : '') . ($date !== '' ? '<span class="badge">' . $date . '</span>' : '') . '</div>';
-        $html .= '</header>';
+        $html = '<section class="editorjs-block editorjs-changelog">';
+        $html .= '<div class="editorjs-changelog__header">';
+        $html .= '<div class="editorjs-changelog__title"><strong>' . ($title !== '' ? $title : 'Changelog') . '</strong></div>';
+        $html .= '<div class="editorjs-changelog__meta">' . ($version !== '' ? '<span class="badge badge-b">' . $version . '</span>' : '') . ($date !== '' ? '<span class="badge">' . $date . '</span>' : '') . '</div>';
+        $html .= '</div>';
         if ($items !== []) {
-            $html .= '<ul class="changelog-list" style="padding:0;margin:0;">';
+            $html .= '<ul class="changelog-list editorjs-changelog__items">';
             foreach ($items as $item) {
                 $itemText = $this->renderMarkdownInline((string) $item);
                 if ($itemText === '') {
@@ -1366,12 +1366,12 @@ final class EditorJsRenderer
             return '';
         }
 
-        $html = '<section class="editorjs-block editorjs-pros-cons" style="margin:1.5rem 0;">';
+        $html = '<section class="editorjs-block editorjs-pros-cons">';
         if ($title !== '') {
-            $html .= '<h3 style="margin:0 0 .85rem;color:#0f172a;font:700 1rem/1.35 var(--font-sans,system-ui,sans-serif);">' . $title . '</h3>';
+            $html .= '<h3 class="editorjs-pros-cons__title">' . $title . '</h3>';
         }
-        $html .= '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;">';
-        $html .= '<div style="padding:1rem;border-radius:16px;background:#f0fdf4;border:1px solid #bbf7d0;"><strong style="display:block;margin-bottom:.6rem;color:#166534;">' . ($prosTitle !== '' ? $prosTitle : 'Vorteile') . '</strong><ul style="margin:0;padding-left:1.1rem;display:grid;gap:.45rem;">';
+        $html .= '<div class="editorjs-pros-cons__grid">';
+        $html .= '<div class="editorjs-pros-cons__column editorjs-pros-cons__column--pros"><strong>' . ($prosTitle !== '' ? $prosTitle : 'Vorteile') . '</strong><ul class="editorjs-pros-cons__list">';
         foreach ($pros as $item) {
             $itemText = $this->sanitizeInline((string) $item);
             if ($itemText !== '') {
@@ -1379,7 +1379,7 @@ final class EditorJsRenderer
             }
         }
         $html .= '</ul></div>';
-        $html .= '<div style="padding:1rem;border-radius:16px;background:#fff7ed;border:1px solid #fdba74;"><strong style="display:block;margin-bottom:.6rem;color:#9a3412;">' . ($consTitle !== '' ? $consTitle : 'Nachteile') . '</strong><ul style="margin:0;padding-left:1.1rem;display:grid;gap:.45rem;">';
+        $html .= '<div class="editorjs-pros-cons__column editorjs-pros-cons__column--cons"><strong>' . ($consTitle !== '' ? $consTitle : 'Nachteile') . '</strong><ul class="editorjs-pros-cons__list">';
         foreach ($cons as $item) {
             $itemText = $this->sanitizeInline((string) $item);
             if ($itemText !== '') {
@@ -1589,12 +1589,7 @@ final class EditorJsRenderer
 
     private function sanitizeInline(string $html): string
     {
-        $sanitized = EditorJsHtmlSanitizer::sanitizeInline($html);
-        return preg_replace(
-            '/<span class="tg-spoiler">(.*?)<\/span>/is',
-            '<span class="tg-spoiler" style="background:#111827;color:transparent;border-radius:0.25rem;padding:0 0.2rem;">$1</span>',
-            $sanitized
-        ) ?? $sanitized;
+        return EditorJsHtmlSanitizer::sanitizeInline($html);
     }
 
     private function normalizeRenderableAssetUrl(string $url, bool $preferInline = false, bool $allowDataImage = false): string

@@ -1,5 +1,5 @@
-> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00 (Changelog bis 3.4.08)
+> **Datum:** 2026-09-06 | **Status:** Stable – **Zuletzt aktualisiert am:** 2026-10-02 (Abgleich mit `MemberRouter`, `MemberController`, `PluginDashboardRegistry`)
 > **Kurzbeschreibung:** Sicherheitsreferenz für Authentifizierung, CSRF, Capabilities, privates Caching, benutzerbezogene Medien, sichere Ausgabe und die Trennung von Member- und Admin-Bereich. Sie entspricht der Implementierung von Version 3.4.00.
 
 # 365CMS Member Security
@@ -41,3 +41,19 @@ Verwenden Sie ein einzigartiges Passwort, aktivieren Sie TOTP/MFA oder einen Pas
 - Plugin-Bereiche benötigen Login und können eine Capability verlangen. `admin` entspricht `Auth::isAdmin()`; unbekannte Capability-Namen werden in der Registry derzeit als zulässig behandelt und müssen daher von Plugin-Autoren eingeschränkt werden.
 - Die Admin-Konfiguration ist vom Member-Zugriff getrennt: Administratorstatus, Allowlist-Capability, aktiviertes Admin-Seitenmodul und CSRF-Aktion `admin_member_dashboard` sind erforderlich.
 - Fehlende Tabellen, optionale Dienste, Callback-Fehler, unbekannte Routen, ungültige Einstellungen und fehlende Theme-Dateien nutzen sichere Fallbacks und ermöglichen keinen Benutzerübergriff.
+
+---
+
+## Ergänzung (Stand 2026-10-02)
+
+### Sicherheitsseite (`/member/security`) im Überblick
+
+- **Passwort ändern:** aktuelles Passwort erforderlich; neue Passwörter müssen die Richtlinie erfüllen (≥ 12 Zeichen, Groß-/Kleinbuchstabe, Ziffer, Sonderzeichen).
+- **Zwei-Faktor (TOTP):** `totp_start` zeigt Secret und QR-Code (`otpauth://`-URI), `totp_confirm` aktiviert nach gültigem Code und zeigt die Backup-Codes **einmalig** an; `totp_disable` schaltet ab.
+- **Backup-Codes:** Anzahl verbleibender Codes wird angezeigt; `backup_generate` erzeugt einen neuen Satz.
+- **Passkeys:** Registrierung über WebAuthn im Browser (`passkey_register`), Entfernen einzelner Schlüssel (`passkey_delete`). Voraussetzung: HTTPS und korrekte `SITE_URL`.
+- **Aktive Sitzungen:** Liste der eigenen Sessions (Gerät, IP, letzte Aktivität).
+
+### Bekannte Einschränkung beim Datei-Upload
+
+Die Upload-Maske unter `/member/media` übergibt ein Token aus dem Member-Kontext (`member_media_action`), `POST /api/upload` prüft jedoch die Aktion `media_action`. Der **erste** Upload nach dem Laden der Seite wird deshalb mit „Sicherheitsüberprüfung fehlgeschlagen.“ abgelehnt; die Antwort enthält ein gültiges Token, sodass ein erneuter Versuch gelingt. Siehe [../core/STATUS.md](../core/STATUS.md).

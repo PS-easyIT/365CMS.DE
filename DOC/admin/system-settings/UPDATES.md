@@ -1,25 +1,73 @@
-# 365CMS – Projektdokumentation | Abschnitt: Updates
+# 365CMS – Projektdokumentation | Abschnitt: Admin – Updates
 
-## English
-### Purpose
-Administrators review available updates and update status at `/admin/updates`.
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
+> **Route:** `/admin/updates` | **Capability:** `manage_settings` | **CSRF-Aktion:** `admin_updates`
 
-### Implementation
-- Entry: `CMS/admin/updates.php`
-- Module/view: `CMS/admin/modules/system/UpdatesModule.php`, `CMS/admin/views/system/updates.php`
-- Service: `CMS/core/Services/UpdateService.php`
+## English (summary)
 
-### Safe update flow
-Review the offered version, compatibility status, and backup state. Start an update only with the required capability and CSRF/nonce. Do not refresh during the operation; verify the final status and record failures through the operational log.
+`/admin/updates` (`CMS/admin/updates.php` → `CMS/admin/modules/system/UpdatesModule.php` → `CMS\Services\UpdateService`, view `CMS/admin/views/system/updates.php`) checks and installs updates for the core, plugins and the active theme, and runs pending database migrations (`DatabaseUpdateRunner`). Packages must come from allow-listed hosts and carry a SHA-256 checksum; core updates preserve `backups/`, `cache/`, `config/`, `config.php`, `logs/` and `uploads/`. Actions: `check_updates`, `run_database_update`, `install_core`, `install_plugin`, `install_theme`.
 
 ## Deutsch
-### Zweck
-Verfügbare Updates und ihr Status werden unter `/admin/updates` geprüft.
 
-### Implementierung
-- Einstieg: `CMS/admin/updates.php`
-- Modul/View: `CMS/admin/modules/system/UpdatesModule.php`, `CMS/admin/views/system/updates.php`
-- Service: `CMS/core/Services/UpdateService.php`
+### Übersicht
 
-### Sicherer Update-Ablauf
-Version, Kompatibilität und Backup-Zustand prüfen. Updates nur mit erforderlicher Capability und CSRF/Nonce starten. Während des Vorgangs nicht aktualisieren; Abschlussstatus prüfen und Fehler im Betriebslog festhalten.
+| Bereich | Inhalt |
+|---|---|
+| Core | installierte Version (`CMS\Version::CURRENT`, derzeit `3.4.00`), verfügbare Version laut Update-Quelle, Release-Notizen, kritisch ja/nein |
+| Datenbank | installierte und Ziel-Schema-Version (`SchemaManager::SCHEMA_VERSION = v22`), Downgrade-Erkennung |
+| Plugins | installierte vs. verfügbare Versionen aus der Plugin-Registry |
+| Theme | aktives Theme vs. Marktplatz-Version |
+| Systemvoraussetzungen | PHP-Version, MySQL/MariaDB-Version, Erweiterungen (`pdo`, `pdo_mysql`, `mbstring`, `json`, `curl`, `gd`, `zip`), Schreibrechte (`uploads`, `cache`, `logs`, `backups`, `assets`), freier Speicherplatz |
+| Historie | letzte Update-Vorgänge |
+
+### Update-Quellen
+
+| Typ | Einstellung | Standard |
+|---|---|---|
+| Core | `core_update_url` | `https://365cms.de/marketplace/core/365cms/update.json` |
+| Plugins | `plugin_registry_url` | `https://365cms.de/marketplace/plugins/index.json` |
+| Themes | `theme_marketplace_url` | `https://365cms.de/marketplace/themes` |
+| Fallback | GitHub-Repository | `PS-easyIT/365CMS.DE` über `api.github.com` |
+
+Erlaubte Hosts: `365cms.de`, `www.365cms.de`, `365network.de`, `www.365network.de`, `github.com`, `api.github.com`, `codeload.github.com`, `objects.githubusercontent.com`, `raw.githubusercontent.com`. Prüfergebnisse werden eine Stunde zwischengespeichert; `check_updates` erzwingt eine neue Prüfung.
+
+**Format `update.json` (Core):**
+
+```json
+{
+  "slug": "365cms-core",
+  "type": "core",
+  "version": "3.4.00",
+  "min_php": "8.4",
+  "released": "2026-09-05",
+  "download_url": "https://365cms.de/marketplace/core/365cms/365CMS-3.4.0-update.zip",
+  "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
+  "checksum_sha256": "<64 Hex-Zeichen>",
+  "notes": "…",
+  "critical": false
+}
+```
+
+### Installation (`install_core`, `install_plugin`, `install_theme`)
+
+1. **Preflight:** Systemvoraussetzungen, Schreibrechte, mindestens 1 GB freier Speicher (Warnung unter 2 GB).
+2. **Download** nur von erlaubten Hosts.
+3. **Integrität:** Ohne gültige SHA-256-Prüfsumme (64 Hex-Zeichen) wird abgebrochen (`updates.install.integrity_hash_missing`); abweichender Hash bricht ebenfalls ab.
+4. **Entpacken** mit Grenzen: 5000 Einträge, 256 MB je Datei, 512 MB entpackt.
+5. **Austausch:** Beim Core bleiben `backups/`, `cache/`, `config/`, `config.php`, `logs/` und `uploads/` unangetastet.
+6. Protokoll in der Update-Historie und im Audit-Log. Der Bootstrap erkennt beim nächsten Aufruf geänderte Dateien und wärmt den OPcache für die 30 wichtigsten Dateien vor (`OpcacheWarmupService::maybeWarmAfterDeploy()`).
+
+### Datenbank-Update (`run_database_update`)
+
+`DatabaseUpdateRunner::run()` führt die idempotenten `CREATE`/`ALTER`-Migrationen von `SchemaManager`/`MigrationManager` erneut aus (es werden keine Daten gelöscht) und schreibt danach `installed_cms_version`, `installed_cms_schema_version` und `db_schema_version`. Ein **Downgrade** (Datenbank neuer als Code) wird nicht automatisch ausgeführt.
+
+### Empfohlener Ablauf
+
+1. Backup erstellen ([BACKUP.md](BACKUP.md)).
+2. `check_updates`, Release-Notizen lesen ([../../../Changelog.md](../../../Changelog.md)).
+3. Core aktualisieren, dann `run_database_update`, dann Plugins und Theme.
+4. Sicherheits-Audit und Systemprüfung ausführen.
+
+### Verwandte Dokumente
+
+[BACKUP.md](BACKUP.md) · [../plugins/UPDATES.md](../plugins/UPDATES.md) · [../../workflow/UPDATE-DEPLOYMENT-WORKFLOW.md](../../workflow/UPDATE-DEPLOYMENT-WORKFLOW.md)

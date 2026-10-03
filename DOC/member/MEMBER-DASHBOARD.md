@@ -1,5 +1,5 @@
-> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00 (Changelog bis 3.4.08)
+> **Datum:** 2026-09-06 | **Status:** Stable – **Zuletzt aktualisiert am:** 2026-10-02 (Abgleich mit `MemberRouter`, `MemberController`, `PluginDashboardRegistry`)
 > **Kurzbeschreibung:** Referenz für Dashboard-Runtime, Bereiche, Widgets, Reihenfolge, Plugin-Integration und Normalisierung. Dokumentiert das Verhalten von Version 3.4.00 einschließlich der Admin-Vorschau.
 
 # 365CMS Member Dashboard
@@ -61,3 +61,50 @@ Die von `MemberController` verwendeten Einstellungen sind:
 `PluginDashboardRegistry::getAll()` filtert nach Berechtigung und der Datenbankoption `member_dashboard_plugin_{plugin}`. Eine fehlende Sichtbarkeitsoption bedeutet sichtbar. `getMenuItems()` liefert über `member_menu_items` Einträge nach `/member/plugin/{slug}`; doppelte Slugs werden vermieden. `getDashboardWidgets()` überspringt Unterbereiche (`parent_slug`) und `dashboard_widget=false`, bereinigt Texte, sechsstellige Farben und lokale/HTTP(S)-Admin-Links und ignoriert Fehler in Statistik-Callbacks.
 
 Der Controller validiert Links und Farben, kürzt Texte, entfernt unbekannte Sortierwerte, begrenzt Arrays und verwendet sichere Fallbacks. `member_dashboard_widgets` kann die fertige Widget-Liste verändern. Die Feature-Nutzung wird als `member.dashboard` erfasst.
+
+---
+
+## Ergänzung (Stand 2026-10-02): Plugin-Bereiche und -Widgets registrieren
+
+Plugins tragen sich im Hook `member_dashboard_init` in die `CMS\Member\PluginDashboardRegistry` ein. Pflichtfelder: `slug`, `label`, `render_callback`.
+
+```php
+\CMS\Hooks::addAction('member_dashboard_init', static function (\CMS\Member\PluginDashboardRegistry $registry): void {
+    $registry->register([
+        'plugin'     => 'mein-plugin',
+        'slug'       => 'meine-buchungen',
+        'label'      => 'Meine Buchungen',
+        'icon'       => '📅',
+        'category'   => 'plugins',
+        'priority'   => 20,                 // kleiner = weiter oben
+        'capability' => null,               // null = alle Mitglieder, 'admin' = nur Administratoren
+        'dashboard_widget' => [
+            'title'          => 'Buchungen',
+            'description'    => 'Offene und kommende Termine',
+            'color'          => '#0ea5e9', // #rrggbb
+            'stats_callback' => [MeinPlugin\Member::class, 'stats'], // gibt ['count' => int, 'label' => string] zurück
+        ],
+        'render_callback' => static function (object $user, array $params): void {
+            // Ausgabe innerhalb des Member-Layouts; $params enthält action/id aus der URL
+        },
+        'post_callback' => static function (object $user, array $params): void {
+            // optional: POST-Verarbeitung (eigenes CSRF-Token prüfen!)
+        },
+    ]);
+});
+```
+
+- Aufruf: `/member/plugin/meine-buchungen[/<aktion>[/<id>]]`; die Aktion steht in `$_GET['action']`, die numerische ID in `$_GET['id']`.
+- Unterbereiche über `parent_slug` erscheinen nicht als eigene Dashboard-Kachel.
+- `dashboard_widget => false` blendet die Kachel aus; die Sichtbarkeit lässt sich zusätzlich im Admin unter *Mitglieder-Dashboard → Plugin-Widgets* steuern (Option `member_dashboard_plugin_<plugin>`, Reihenfolge `member_dashboard_plugin_order`).
+- Fehler im `stats_callback` werden ignoriert; die Kachel bleibt sichtbar.
+- **Achtung Capability:** außer `null` und `'admin'` werden andere Werte derzeit als „erlaubt“ gewertet. Feinere Rechte prüft das Plugin im Callback selbst (`Auth::instance()->hasCapability(...)`).
+
+### Filter
+
+| Filter | Zweck |
+|---|---|
+| `member_dashboard_widgets` | endgültige Widget-Liste (`$widgets, $user, $settings`) |
+| `member_menu_items` | Menüeinträge ergänzen/ändern |
+
+Admin-Konfiguration aller Dashboard-Optionen: [../admin/member/README.md](../admin/member/README.md).

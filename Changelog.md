@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06` and `v3.4.07` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06`, `v3.4.07`, `v3.4.08` and `v3.4.09` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06` und `v3.4.07` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge mit `v3.4.01`, `v3.4.02`, `v3.4.03`, `v3.4.04`, `v3.4.05`, `v3.4.06`, `v3.4.07`, `v3.4.08` und `v3.4.09` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -24,12 +24,31 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 
 ---
 
-### v3.4.09 — 30.09.2026
+### v3.4.11 — 03.10.2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|--------------|
-| **3.4.09** | 🟠 perf | CSP-Runtime / PageSpeed | `cms_csp_runtime_tags(bool $deferSanitizer = false)`: Mit `true` (Frontend-Themes) lädt DOMPurify (~29 KB) per `defer` und die Trusted-Types-Runtime wird inline mit Nonce ausgegeben – keine render-blockierenden Scripts mehr am Anfang des `<head>`. `cms-csp-runtime.js` löst DOMPurify erst beim Aufruf auf; bis es geladen ist, bleiben HTML-Zuweisungen blockiert (fail closed). Admin und Themes ohne Parameter nutzen weiter die synchrone Variante. Im Browser unter der Produktiv-CSP geprüft: `innerHTML` wird bereinigt, dynamische `<style>`-Elemente erhalten den Nonce. |
-| **3.4.09** | 🟠 perf | OPcache-Warmup | Die Deploy-Prüfung (`maybeWarmAfterDeploy()`) durchsuchte bei **jedem** Request alle PHP-Dateien unter Core, Themes und Plugins, um die Signatur zu bilden. Sie läuft jetzt höchstens alle 10 Minuten (Marker `cache/opcache-warmup.checked`). |
+| **3.4.11** | 🟠 perf | CSP-Runtime / PageSpeed | `cms_csp_runtime_tags(bool $deferSanitizer = false)`: Mit `true` (Frontend-Themes) lädt DOMPurify (~29 KB) per `defer` und die Trusted-Types-Runtime wird inline mit Nonce ausgegeben – keine render-blockierenden Scripts mehr am Anfang des `<head>`. `cms-csp-runtime.js` löst DOMPurify erst beim Aufruf auf; bis es geladen ist, bleiben HTML-Zuweisungen blockiert (fail closed). Admin und Themes ohne Parameter nutzen weiter die synchrone Variante. Im Browser unter der Produktiv-CSP geprüft: `innerHTML` wird bereinigt, dynamische `<style>`-Elemente erhalten den Nonce. |
+| **3.4.11** | 🟠 perf | OPcache-Warmup | Die Deploy-Prüfung (`maybeWarmAfterDeploy()`) durchsuchte bei **jedem** Request alle PHP-Dateien unter Core, Themes und Plugins, um die Signatur zu bilden. Sie läuft jetzt höchstens alle 10 Minuten (Marker `cache/opcache-warmup.checked`). |
+
+### v3.4.10 — 02.10.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.10** | 🔴 fix | Purifier / Editor.js-Zitate | **`CMS/core/Services/PurifierService.php` erlaubt `cite` (inkl. `cite.class`) in den Profilen `default` und `hub`, `hub` erhält zusätzlich `blockquote.class`.** `renderQuote()` gibt die Quellenangabe als `<cite>` aus; nach dem Purifier blieb davon nur ein nackter Textknoten im `<blockquote>` übrig, das Styling über `.editorjs-quote cite` griff nicht mehr. `HTML_DEFINITION_REVISION` wurde angehoben, damit der Serializer-Cache neu aufgebaut wird. |
+| **3.4.10** | 🔴 fix | Editor.js / Media-Text | **`CMS/core/Bootstrap.php` und `CMS/assets/css/editorjs-content.css` heben die Selektoren für `.editorjs-media-text--valign-*` und `--image-width-*` auf `.editorjs-block.editorjs-media-text.editorjs-media-text--…` an.** Das kritische CSS setzt die Ausrichtungsvariable über `.editorjs-block.editorjs-media-text` (Spezifität 0,2,0); die Valign-Klassen (0,1,0) verloren dagegen. Sobald der Purifier die Inline-Styles entfernt, war die vertikale Ausrichtung in jedem Theme kaputt. Neu: `--image-fit-*`-Klassen, das Bild trägt `editorjs-media-text__image`, Eckenradius und Seitenverhältnis (`14px`, `4/3`) kommen jetzt aus dem CSS, und die Kopfzeile nutzt `box-sizing: border-box`. |
+| **3.4.10** | 🟡 refactor | Editor.js / Renderer | **`CMS/core/Services/EditorJsRenderer.php` verlagert Inline-Styles, die keine CSS-Entsprechung hatten, in klassenbasiertes CSS in `editorjs-content.css`.** Betroffen sind Alert-Ausrichtung (`editorjs-alert--align-*`), Galerie-Bilder und -Beschriftungen, Embed-Rahmen (inline bleibt nur das Seitenverhältnis), Terminal, Code-Tabs (Umschaltung jetzt über `hidden` und `aria-pressed`), Mermaid, API-Endpoint, Changelog und Pro/Contra mit neuen BEM-Klassen. Die Spoiler-Hervorhebung nutzt nur noch `.tg-spoiler`; das bisherige Inline-`color:transparent` hatte das Aufdecken per `:hover` blockiert. Innere `<header>` in Terminal und Changelog sind jetzt `<div>`-Elemente, damit sie auch das `default`-Profil überstehen. |
+
+### v3.4.09 — 02.10.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.09** | 🔵 docs | Gesamte Dokumentation | **Alle Dokumente unter `DOC/` gegen den 3.4-Code geprüft, aktualisiert und erweitert.** Einheitlicher Kopf (`Stand 2026-10-02`, `3.4.00 (Changelog bis 3.4.09)`), englische Kurzfassung plus ausführlicher deutscher Teil, Quellenangaben und „Verwandte Dokumente“. |
+| **3.4.09** | 🔵 docs | Admin | Sämtliche Dokumente unter `DOC/admin/**` neu geschrieben (Inhalte, Medien, Benutzer/Gruppen, Mitglieder, Abos, Design, Landing Page, SEO, Performance, Sicherheit, Recht, System, Diagnose, Info, Dashboard, Plugins, AI). Neu: `admin/system-settings/MAIL.md` (SMTP/Graph, Mail-Queue) und `admin/system-settings/MODULES.md` (Core-Module). |
+| **3.4.09** | 🔵 docs | Core / AI | `DOC/core/*` (Architektur, Sicherheit, Hooks, Datenbankschema, Klassen, Services, API, Struktur, Status) neu; `core/STATUS.md` enthält die Tabelle „Bekannte Lücken“ mit im Code gefundenen Abweichungen. `DOC/ai/*` aktualisiert. |
+| **3.4.09** | 🔵 docs | Member / Theme / Plugins | Member-Doku ergänzt (Routen, Dashboard-Registry, Upload-Token-Hinweis), Theme-Doku komplett neu, Plugin-Handbuch erweitert (Header-Felder, Lifecycle-Callbacks `<slug>_activate/_deactivate/_uninstall`, Sicherheits-Scan, WP-Kompatibilität, Abo-Gating, DSGVO-/Cron-Hooks), Marketplace-Doku mit Ladereihenfolge der Registry und Fehlercodes. |
+| **3.4.09** | 🔵 docs | Workflows | Alle sieben Workflows unter `DOC/workflow/` von Platzhaltern zu Schritt-für-Schritt-Anleitungen ausgebaut (API-Integration, Content, Medien-Upload, Marketplace, Update/Deployment; Integrationsfahrpläne für Forum- und Newsletter-Plugins). |
+| **3.4.09** | 🔵 docs | Übersichten | `README.md`, `DOC/README.md`, `DOC/INDEX.md`, `DOC/INSTALLATION.md`, `DOC/FILESTRUCTUR.md`, `DOC/FILELIST.md`, `DOC/DEVLIST.md`, `DOC/assets/README.md` aktualisiert; tote Verweise auf `AUDIT/`, `ASSETS/` und `assets/VENDOR-NETWORK-PATHS.md` entfernt. |
 
 ### v3.4.08 — 30.09.2026
 

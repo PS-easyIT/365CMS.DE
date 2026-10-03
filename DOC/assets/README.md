@@ -1,5 +1,5 @@
 # 365CMS Asset-Dokumentation
-> **Stand:** 2026-09-26 | **Version:** 3.4.02 | **Status:** Aktuell
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.09) | **Status:** Aktuell | **Update:** 2026-10-02
 
 ## Inhaltsverzeichnis
 - <a>Tabellarische Übersicht</a>
@@ -42,7 +42,7 @@
 | Util | `polyfill-*` | `1.3x`/`1.4x` | mbstring, ctype, intl-idn, intl-normalizer, intl-grapheme, uuid (nur ohne Extension aktiv) | Transitiv |
 | PDF | `dompdf` | `3.1.5` | PDF-Erzeugung | System |
 | Intern | `css/js/images` | intern | 365CMS-eigene Runtime-Dateien | Admin / Frontend / Member |
-| Referenz | `msgraph` | Referenzstand | SDK-Ablage | aktuell nicht produktiv verdrahtet |
+| Referenz | `msgraph` | Referenzstand (nur `ASSETS/msgraph-sdk-php-2.56.0/` im lokalen Staging, **kein** `CMS/assets/msgraph/`) | SDK-Ablage | nicht verdrahtet; Graph-Mailversand nutzt eigene HTTP-Aufrufe (`AzureMailTokenProvider`) |
 
 ---
 
@@ -130,3 +130,32 @@ Diese Kandidaten benötigen vor einer Aufnahme:
 4. dokumentierte Entscheidung, ob lokales Bundling überhaupt sinnvoll ist
 
 Die ausführliche Bewertungsdoku steht in [../ASSETS_NEW.md](../ASSETS_NEW.md). Die kanonische AI-Konzeption liegt zusätzlich in [../ai/AI-SERVICES.md](../ai/AI-SERVICES.md), ergänzt um den Admin-Kontext unter [../admin/system-settings/AI-SERVICES.md](../admin/system-settings/AI-SERVICES.md). Die Roadmap für Eigenersatz und Wrapper-Strategien steht in [../ASSETS_OwnAssets.md](../ASSETS_OwnAssets.md).
+
+---
+
+## Prüfstand 2026-10-02
+
+Abgleich mit `CMS/assets/`, `CMS/assets/autoload.php` und `CMS/core/VendorRegistry.php`:
+
+| Library | Verifizierter Stand | Einbindung im Code |
+|---|---|---|
+| `dompurify` | 3.4.16 (`purify.min.js`) | `cms_csp_runtime_tags()` in `includes/functions/options-runtime.php` zusammen mit `js/cms-csp-runtime.js` |
+| `editorjs` | 2.31.6 + 27 Plugin-UMDs | `EditorJsService` / `EditorJsAssetService` |
+| `photoswipe` | 5.4.4 (ESM-Build) | `Bootstrap.php` (Customizer `performance.enable_photoswipe`), `js/photoswipe-init.js` |
+| `tabler-icons` | 3.41.1 | Admin-Header (lokal) |
+| `htmlpurifier` | 4.19.0 | eigener Autoloader in `assets/autoload.php`; `PurifierService` (Cache `cache/htmlpurifier`) |
+| `cron` (poliander/cron) | 3.3.1 | `CronExpressionAdapter` |
+| `twofactorauth` + `bacon-qr-code` | Snapshot | `Auth/MFA/TotpAdapter.php` |
+| `webauthn` | Snapshot | `Auth/Passkey/WebAuthnAdapter.php` |
+| `ldaprecord` | 4.0.3 | `Auth/LDAP/LdapAuthProvider.php` |
+| `php-jwt` | Snapshot | `Services/JwtService.php` (von keiner Core-Route genutzt) |
+| `melbahja-seo` | Snapshot | `SeoSchemaRenderer`, `SitemapService`, `IndexingService`, SEO-Suite |
+| `mailer` / `mime` | 8.0.8 | `MailService` |
+| `translation` / `yaml` | 8.0.8 | `TranslationService` (Kataloge `CMS/lang/*.yaml`) |
+| `tntsearch` | 5.0.3 | `SearchService` (Index `cache/search/`); die Seitensuche `/search` nutzt seit 3.4.06 `SiteSearchService` |
+| `Carbon` | 3.11.4 | `time_ago()` in `includes/functions/redirects-auth.php` |
+| `suneditor` | 3.0.5 | `EditorService`, nur bei `setting_editor_type = suneditor` |
+| `dompdf` | 3.1.5 | `CMS/vendor/dompdf/`, `PdfService` (z. B. PDF-Export im Router) |
+| `images/` | 13 PNG + `plugin-not-found.svg` | Logos, Dashboard-Icons, Member-Platzhalter |
+
+Nicht (mehr) im Repository: `cookieconsent`, `filepond`, `elfinder`, `gridjs`, `simplepie`, `msgraph` unter `CMS/assets/` sowie der Staging-Ordner `ASSETS/` im Repository-Root. Die Unterordner-READMEs dieser Pakete sind als historische Notizen zu lesen.

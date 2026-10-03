@@ -1,4 +1,5 @@
 # 365CMS – Projektdokumentation | Abschnitt: FILELIST
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.09) | **Status:** Stable | **Update:** 2026-10-02
 
 ## Table of contents | Inhaltsverzeichnis
 
@@ -63,7 +64,6 @@ Das CMS lädt Themes und Plugins nur aus `CMS/themes/` und `CMS/plugins/`.
 | `CMS/` | productive application runtime |
 | `DOC/` | documentation |
 | `ASSETS/` | vendor/source assets outside runtime |
-| `AUDIT/` | audit reports |
 | `RELEASE/` | release zips and checksums |
 | `SCREENSHOTS/` | screenshots |
 | `TESTS/` | tests |
@@ -310,7 +310,7 @@ Canonical `DOC/` files: `README.md`, `INDEX.md`, `INSTALLATION.md`, `DEVLIST.md`
 
 Subfolders: `admin/`, `ai/`, `assets/`, `core/`, `member/`, `plugins/`, `theme/`, `workflow/`.
 
-Asset Markdown is under `DOC/assets/`. Audits are under `AUDIT/audit/`, not `DOC/audit/`.
+Asset Markdown is under `DOC/assets/`. There is no audit folder in this repository; see `core/STATUS.md`.
 
 **Deutsch**
 
@@ -318,7 +318,7 @@ Kanonische `DOC/`-Dateien: `README.md`, `INDEX.md`, `INSTALLATION.md`, `DEVLIST.
 
 Unterordner: `admin/`, `ai/`, `assets/`, `core/`, `member/`, `plugins/`, `theme/`, `workflow/`.
 
-Asset-Markdown liegt unter `DOC/assets/`. Audits liegen unter `AUDIT/audit/`, nicht unter `DOC/audit/`.
+Asset-Markdown liegt unter `DOC/assets/`. Ein Audit-Ordner existiert im Repository nicht; siehe `core/STATUS.md`.
 
 ---
 

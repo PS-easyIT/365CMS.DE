@@ -1,61 +1,64 @@
-# 365CMS – Projektdokumentation | Abschnitt: Admin – DIAGNOSE
+# 365CMS – Projektdokumentation | Abschnitt: Admin – Diagnose & Protokolle
 
-## 365CMS Admin – Diagnose
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
+> **Routen:** `/admin/diagnose`, `/admin/monitor-assets`, `/admin/cms-logs`, `/admin/logs`, `/admin/logs/{operational,security-audit,php-errors,channels}` | **Capability:** `manage_settings` | **CSRF-Aktion:** `admin_system_info`
 
-## English
+## English (summary)
 
-### Administrator guide
-
-This document covers operations, logs, and monitoring. Open `/admin/diagnose` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
-
-Use the page in this order:
-
-1. Review the current status, filters, and warnings before changing data.
-2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
-3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
-4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
-
-Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
-
-### Technical reference
-
-**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/diagnose.php`, `CMS/admin/views/system/diagnose.php`.
-
-**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
-
-**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
-
-**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
-
-**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
-
-**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
+Diagnostic screens are rendered by `CMS/admin/system-monitor-page.php` (sections `diagnose`, `assets`, `logs`, …) and `CMS/admin/logs-page.php` (sidebar group *Logs & Audit*), both backed by `CMS/admin/modules/system/SystemInfoModule.php`. They show database/table state, runtime telemetry, vendor/asset inventory, error reports and log files, and offer maintenance actions (clear cache, optimise/repair/create tables, export a diagnostic report). Operational logs are daily files `CMS/logs/<channel>-YYYY-MM-DD.log` written by `CMS\Logger`; security/business events are stored in `cms_audit_log` by `CMS\AuditLogger`.
 
 ## Deutsch
 
-### Anwenderleitfaden
+### Diagnose – Datenbank (`/admin/diagnose`)
 
-Dieses Dokument beschreibt Betrieb, Protokolle und Überwachung. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/diagnose`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
+| Anzeige | Inhalt |
+|---|---|
+| Datenbankstatus | Verbindung, Server-Version, Größe, Zeichensatz |
+| Tabellen | alle CMS-Tabellen mit Zeilen, Größe, Overhead, Engine; fehlende Tabellen werden markiert |
+| Berechtigungen | Schreibrechte kritischer Verzeichnisse |
+| Runtime-Telemetrie | PHP-Version, Speicherlimit, OPcache, Ausführungszeit |
+| Fehlerreports | letzte 15 Einträge aus `cms_error_reports` |
 
-Empfohlener Ablauf:
+| Aktion | Wirkung |
+|---|---|
+| `clear_cache` | Datei-/APCu-Cache leeren |
+| `optimize_db` | `OPTIMIZE TABLE` für CMS-Tabellen |
+| `create_tables` | fehlende Tabellen aus `SchemaManager` anlegen |
+| `repair_tables` | Tabellen reparieren und idempotente Migrationen ausführen |
+| `export_diagnostic_report` | Diagnosebericht (System, Datenbank, letzte Logs) als Datei herunterladen – zum Weitergeben an den Support |
+| `clear_error_reports` | Fehlerreports löschen |
 
-1. Status, Filter und Warnungen vor Änderungen prüfen.
-2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
-3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
-4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
+### Diagnose – Assets (`/admin/monitor-assets`)
 
-Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
+Verzeichnisgrößen, Dateirechte und das **Vendor-Inventar** aus `CMS\VendorRegistry` (gebündelte Bibliotheken unter `CMS/assets/`, Version, Status, Prüfsymbol). Details: [../../assets/README.md](../../assets/README.md).
 
-### Technische Referenz
+### Fehlerreports
 
-**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/diagnose.php`, `CMS/admin/views/system/diagnose.php`.
+Viele Admin-Fehlermeldungen bieten „Fehler melden“ an. Der Bericht wird über `POST /admin/error-report` (CSRF `admin_error_report`) mit Titel, Nachricht, Fehlercode, Quell-URL, Fehlerdaten und Kontext in `cms_error_reports` gespeichert und erscheint unter `/admin/diagnose`.
 
-**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
+### Protokolle & Audit (Sidebar-Gruppe)
 
-**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
+| Menüpunkt | Route | Inhalt | Aktionen |
+|---|---|---|---|
+| Übersicht | `/admin/logs` | Kennzahlen, letzte Ereignisse aller Quellen; Badge in der Sidebar zeigt neue Fehler | `clear_all_cms_logs`, `export_diagnostic_report`, `run_audit`, `clear_log` |
+| Operativer Log | `/admin/logs/operational` | Einträge aus den Kanal-Logdateien (Warnung und höher) | `clear_all_cms_logs` |
+| Sicherheits-Audit | `/admin/logs/security-audit` | `cms_audit_log` (Anmeldungen, Rollen, Plugins, Themes, Einstellungen, Sicherheit) | `run_audit`, `clear_log` (älter als 30 Tage) |
+| PHP-Fehlerlog | `/admin/logs/php-errors` | `CMS_ERROR_LOG` (Standard `CMS/logs/error.log`) | `clear_logs` |
+| Kanal-Logs & Update-Historie | `/admin/logs/channels` | einzelne Logdateien je Kanal (`?log_file=`), Update-Historie | `clear_cms_log` |
 
-**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
+`/admin/cms-logs` zeigt dieselben Logdateien innerhalb der Diagnose-Gruppe.
 
-**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
+### Logging im Code
 
-**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.
+| Komponente | Ziel | Hinweise |
+|---|---|---|
+| `CMS\Logger` | `CMS/logs/<kanal>-JJJJ-MM-TT.log` | Kanäle über `Logger::instance()->withChannel('admin.posts')`; Mindest-Level `WARNING`, mit `CMS_DEBUG` `DEBUG` oder per Konstante `LOG_LEVEL`; ab `CRITICAL` zusätzlich ins Audit-Log |
+| `CMS\AuditLogger` | `cms_audit_log` | Kategorien `auth`, `content`, `theme`, `plugin`, `user`, `setting`, `media`, `system`, `security` |
+| Sicherheitsereignisse | `cms_security_log` | Firewall, Anti-Spam |
+| PHP-Fehler | `CMS_ERROR_LOG` | per `ini_set('error_log', …)` |
+
+Geheimnisse, Tokens und vollständige Inhalte werden nicht protokolliert; Logtexte werden gekürzt und von Steuerzeichen bereinigt.
+
+### Verwandte Dokumente
+
+[README.md](README.md) · [../info/INFO.md](../info/INFO.md) · [../system-settings/MONITORING.md](../system-settings/MONITORING.md) · [../../core/SERVICES.md](../../core/SERVICES.md)

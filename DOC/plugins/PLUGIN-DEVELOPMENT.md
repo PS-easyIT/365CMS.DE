@@ -1,5 +1,5 @@
-> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-27
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00 (Changelog bis 3.4.08)
+> **Datum:** 2026-09-06 | **Status:** Stable – **Zuletzt aktualisiert am:** 2026-10-02 (Abgleich mit `PluginManager`, `AdminRouter`, `PluginDashboardRegistry`, `Security`)
 > **Kurzbeschreibung:** Complete development reference for 365CMS plugins, covering lifecycle, hooks, admin and member integration, persistence, security, assets, routing, testing, and release quality.
 
 # 365CMS Plugin Development
@@ -129,17 +129,17 @@ public function renderSettingsPage(): void
             $this->addError('Permission denied.');
         } else {
             $value = sanitize_text_field((string) ($_POST['my_setting'] ?? ''));
-            $this->settings->save('my_plugin.setting', $value);
+            \CMS\Services\SettingsService::getInstance()->set('my_plugin', 'setting', $value);
             $this->redirectWithNotice('Saved.');
         }
     }
 
-    $csrfToken = $security->generatePersistentToken('my_plugin_settings');
+    $csrfToken = $security->generateToken('my_plugin_settings');
     include MY_PLUGIN_PATH . 'admin/page.php';
 }
 ```
 
-The exact helper used by an existing module must match the current `CMS\Security` contract. Never rely on hidden fields alone; authorization and CSRF are both server-side checks.
+`generateToken()` creates the token (1 h, up to 20 per action); `verifyToken()` consumes it once, `verifyPersistentToken()` checks without consuming (useful for AJAX forms that submit several times). Never rely on hidden fields alone; authorization and CSRF are both server-side checks.
 
 #### Member integration
 
@@ -311,17 +311,17 @@ public function renderSettingsPage(): void
             $this->addError('Keine Berechtigung.');
         } else {
             $value = sanitize_text_field((string) ($_POST['my_setting'] ?? ''));
-            $this->settings->save('my_plugin.setting', $value);
+            \CMS\Services\SettingsService::getInstance()->set('my_plugin', 'setting', $value);
             $this->redirectWithNotice('Gespeichert.');
         }
     }
 
-    $csrfToken = $security->generatePersistentToken('my_plugin_settings');
+    $csrfToken = $security->generateToken('my_plugin_settings');
     include MY_PLUGIN_PATH . 'admin/page.php';
 }
 ```
 
-Die verwendete Hilfsmethode muss dem aktuellen `CMS\Security`-Vertrag entsprechen. Versteckte Felder allein schützen nicht; Autorisierung und CSRF werden beide serverseitig geprüft.
+`generateToken()` erzeugt das Token (1 h gültig, bis zu 20 je Aktion); `verifyToken()` entwertet es nach einmaliger Prüfung, `verifyPersistentToken()` prüft ohne Entwertung (für AJAX-Formulare mit mehreren Absendungen). Versteckte Felder allein schützen nicht; Autorisierung und CSRF werden beide serverseitig geprüft.
 
 #### Member-Integration
 
@@ -367,3 +367,100 @@ Verwenden Sie pluginbezogene CSS- und JavaScript-Dateien. Binden Sie sie über d
 #### Prüf- und Release-Gate
 
 Vor dem Release Syntaxprüfungen und vorhandene Projekt-Tests beziehungsweise Quality-Gates ausführen, Aktivierung/Deaktivierung und fehlende Dateien testen, Admin- und Member-Autorisierung prüfen, ungültige Eingaben und CSRF-Ablehnung testen, Migrationen auf leerer und bestehender Installation prüfen, Asset-Laden und CSP-Kompatibilität kontrollieren und Dokumentation, Changelog und Versionsmetadaten aktualisieren.
+
+
+---
+
+## Ergänzung (Stand 2026-10-02) / Addendum
+
+> English: plugin header fields, lifecycle callbacks, the activation security scan, WordPress-compatible helpers, custom routes, subscription gating, GDPR and cron hooks – verified against `CMS/core/PluginManager.php` and `CMS/includes/functions/`.
+
+### Plugin-Header
+
+Gelesen aus der Bootstrap-Datei `CMS/plugins/<slug>/<slug>.php`:
+
+```php
+<?php
+/**
+ * Plugin Name: Mein Plugin
+ * Description: Kurzbeschreibung für /admin/plugins
+ * Version:     1.0.0
+ * Author:      Firma
+ * Requires CMS: 3.4.00
+ * Requires Plugins: anderes-plugin, drittes-plugin
+ */
+declare(strict_types=1);
+if (!defined('ABSPATH')) { exit; }
+```
+
+`Requires Plugins` (bzw. `Requires`) listet Abhängigkeiten; fehlt ein Plugin oder ist es inaktiv, wird die Aktivierung mit Meldung abgelehnt. `Requires CMS` (oder `requires_cms`/`min_cms_version` in `update.json`) verhindert die Aktivierung auf zu alten Core-Versionen.
+
+### Lebenszyklus-Callbacks
+
+Der `PluginManager` ruft nach dem Laden der Bootstrap-Datei optionale **Funktionen** auf, deren Name aus dem Slug (Bindestriche → Unterstriche) gebildet wird:
+
+| Ereignis | Funktion | Hook danach |
+|---|---|---|
+| Aktivieren | `mein_plugin_activate()` | `plugin_activated` |
+| Deaktivieren | `mein_plugin_deactivate()` | `plugin_deactivated` |
+| Löschen | `mein_plugin_uninstall()` | `plugin_before_delete`, `plugin_deleted` |
+
+Fehler in Callbacks werden protokolliert (Kanal `plugins`, Audit `plugin.lifecycle_error`) und brechen den Vorgang nicht ab. Tabellen in `_activate()` idempotent anlegen, in `_uninstall()` aufräumen.
+
+### Sicherheits-Scan bei der Aktivierung
+
+Vor dem Aktivieren durchsucht `PluginManager::securityScanPlugin()` die PHP-Dateien des Plugins nach `eval(`, `exec(`, `shell_exec(`, `system(`, `passthru(`, `popen(`, `proc_open(`, `pcntl_exec(` (ohne Methodenaufrufe `->`/`::`). Ein Treffer verhindert die Aktivierung.
+
+### WordPress-kompatible Hilfsfunktionen
+
+`CMS/includes/functions/wordpress-compat.php`, `escaping.php`, `admin-menu.php` u. a. stellen bereit:
+
+- Hooks: `add_action`, `do_action`, `add_filter`, `apply_filters`, `remove_action`, `remove_filter`, `has_action`, `has_filter`
+- Admin: `add_menu_page`, `add_submenu_page`, `admin_url`, `submit_button`, `check_admin_referer`, `wp_create_nonce`, `wp_verify_nonce`
+- Ausgabe/Validierung: `esc_html`, `esc_attr`, `esc_url`, `esc_textarea`, `esc_js`, `wp_kses_post`, `sanitize_text_field`, `sanitize_email`, `sanitize_key`, `sanitize_title`, `absint`, `wp_unslash`
+- Optionen: `get_option`, `update_option`; Daten: `wp_parse_args`, `wp_json_encode`, `maybe_serialize`
+- Antworten: `wp_send_json_success`, `wp_send_json_error`, `wp_redirect`, `wp_safe_redirect`, `wp_die`
+- Assets: `plugins_url`; `wp_enqueue_style`, `wp_enqueue_script`, `wp_register_*`, `wp_localize_script`, `wp_dequeue_*` existieren nur als **leere Stubs** (kein Laden!) – CSS/JS selbst über die Hooks `head`/`admin_head`/`body_end` als externe Dateien ausgeben
+- Rechte: `current_user_can()`; Datenbank: globales `$wpdb` (`CMS_WPDB_Compat`) mit `prepare`, `get_row`, `get_results`, `get_var`, `insert`, `update`, `delete`, `query`, `esc_like`
+
+Sie erleichtern die Portierung, ersetzen aber nicht die Core-APIs (`CMS\Hooks`, `CMS\Database`, `CMS\Security`).
+
+### Eigene öffentliche Routen
+
+```php
+\CMS\Hooks::addAction('register_routes', static function (\CMS\Router $router): void {
+    $router->addRoute('GET', '/veranstaltungen', [MeinPlugin\Frontend::class, 'list']);
+    $router->addRoute('GET', '/veranstaltungen/:slug', [MeinPlugin\Frontend::class, 'show']);
+});
+```
+
+Ausgabe über `ThemeManager::instance()->render('page', ['page' => [...]])` oder ein eigenes Template; öffentliche POST-Formulare brauchen das Token `form_guard` (globale Router-Prüfung). Für `/en/…` die Helfer aus `plugin-public-i18n.php` nutzen.
+
+### Abo-Freigaben
+
+```php
+$subs = \CMS\SubscriptionManager::instance();
+if (!$subs->canAccessPlugin($userId, 'events')) { /* Upgrade-Hinweis */ }
+if (!$subs->checkLimit($userId, 'events'))       { /* Limit erreicht */ }
+$subs->updateUsage($userId, 'events', $neueAnzahl);
+```
+
+Details: [../admin/subscription/SUBSCRIPTION-SYSTEM.md](../admin/subscription/SUBSCRIPTION-SYSTEM.md).
+
+### DSGVO und Cron
+
+- `dsgvo_export_data($userId, $email)` – eigene personenbezogene Daten zur Auskunft beitragen.
+- `dsgvo_delete_data($userId, $email)` – vor der endgültigen Kontolöschung eigene Daten löschen.
+- `cms_cron_hourly`, `cms_cron_daily`, `cms_cron_<name>` – geplante Aufgaben (`cron.php --task=<name>`).
+
+### Mitglieder-Dashboard
+
+Strukturierte Bereiche und Kacheln über `member_dashboard_init` und `PluginDashboardRegistry::register()` – vollständiges Beispiel in [../member/MEMBER-DASHBOARD.md](../member/MEMBER-DASHBOARD.md).
+
+### Landingpage
+
+Bausteine über den Filter `landing_page_plugins` – siehe [../admin/landing-page/LANDING-PAGE.md](../admin/landing-page/LANDING-PAGE.md).
+
+### Weiterführend
+
+[GUIDE.md](GUIDE.md) · [PLUGIN-MARKETPLACE.md](PLUGIN-MARKETPLACE.md) · [../core/HOOKS-REFERENCE.md](../core/HOOKS-REFERENCE.md) · [../admin/PANEL-INTEGRATION.md](../admin/PANEL-INTEGRATION.md)

@@ -1,61 +1,66 @@
-# 365CMS – Projektdokumentation | Abschnitt: Admin – COOKIES
+# 365CMS – Projektdokumentation | Abschnitt: Admin – Cookie-Manager & Einwilligung
 
-## 365CMS Admin – Cookies
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
+> **Route:** `/admin/cookie-manager` (Alt-Route `/admin/cookies`) | **Capability:** `manage_settings` | **CSRF-Aktion:** `admin_cookies` | **Core-Modul:** `legal`
 
-## English
+## English (summary)
 
-### Administrator guide
-
-This document covers legal and privacy administration. Open `/admin/cookie-manager` after signing in through the CMS admin entry point. The sidebar is capability-aware; a missing menu item means that the current user, module state, or feature gate does not permit the operation.
-
-Use the page in this order:
-
-1. Review the current status, filters, and warnings before changing data.
-2. Make the smallest required change and use the supplied form controls rather than crafting requests manually.
-3. Save through the page action, wait for the Post/Redirect/Get response, and verify the resulting state.
-4. For destructive, security-sensitive, or bulk operations, confirm the target, keep a recent backup, and review the audit or operational log.
-
-Empty results, unavailable optional modules, and service errors are displayed as safe empty or warning states. They do not grant additional access and should be investigated through the linked system or log page.
-
-### Technical reference
-
-**Entry, routing, and views.** The PHP entry points live below `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` and `CMS/core/Router.php` resolve the friendly `/admin/...` paths. Shared layout, navigation, flash messages, and request shells are in `CMS/admin/partials/`; rendered screens are in `CMS/admin/views/`. The implementation files relevant to this document are `CMS/admin/cookie-manager.php`, `CMS/admin/views/legal/cookies.php`.
-
-**Authentication and CSRF.** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` establish the authenticated administrator and capability checks. Every state-changing form must use the shared admin nonce/CSRF contract from the admin shell; handlers validate the token, capability, action, and normalized input before writing. GET requests are read-only, and successful POST requests redirect to an internal allowlisted admin path.
-
-**Settings, persistence, and CRUD.** Settings are read and written through `CMS/core/Services/SettingsService.php` (with domain stores where present). CRUD handlers use the core database and service layer, prepared statements, explicit allowlists, and server-side validation. Views do not own persistence logic. Optional modules fail closed when disabled.
-
-**APIs, AJAX, uploads, and media.** Admin actions may expose WordPress AJAX or REST-compatible handlers registered by the corresponding module. Requests require authentication, capability, CSRF protection where applicable, and strict parameter validation. Uploads are delegated to `CMS/core/Services/FileUploadService.php` and media services; MIME, size, ownership, and destination checks run before storage. Returned URLs and HTML are escaped for their output context.
-
-**Logs and monitoring.** Security and business events use `CMS/core/AuditLogger.php`; operational diagnostics use `CMS/core/Logger.php` and the monitoring services. Secrets, tokens, raw prompts, and unnecessary personal data are excluded from UI and logs. A degraded dependency must produce a bounded warning or fallback, never an unhandled fatal response.
-
-**Modules, legacy routes, and fallbacks.** Feature classes under `CMS/admin/modules/` register the current module screens and hooks. Older PHP entry files remain compatibility shims where present; prefer the documented friendly route and the current module/view. When a module or optional data source is unavailable, the page keeps its shell, reports the condition, and links to the canonical diagnostic or log route.
+The cookie manager (`CMS/admin/cookie-manager.php` → `CMS/admin/modules/legal/CookieManagerModule.php` → `CMS/admin/views/legal/cookies.php`) maintains consent categories (`cms_cookie_categories`), services (`cms_cookie_services`) and banner settings. The frontend banner is rendered by `CMS\Services\CookieConsentService::render()` with the CMS's own script `CMS/assets/js/cookieconsent-init.js`; the decision is stored in the first-party cookie `cc_cookie`. Visitors can change their choice at `/cookie-einstellungen`. Actions: `save_settings`, `save_category`, `delete_category`, `save_service`, `delete_service`, `import_curated_service`, `run_scan`.
 
 ## Deutsch
 
-### Anwenderleitfaden
+### Kategorien
 
-Dieses Dokument beschreibt die Rechts- und Datenschutzverwaltung. Öffnen Sie nach der Anmeldung über den Admin-Einstieg die Route `/admin/cookie-manager`. Die Sidebar berücksichtigt Capabilities; ein fehlender Menüpunkt bedeutet, dass Benutzer, Modulstatus oder Feature-Gate den Vorgang nicht erlauben.
+| Slug | Name | Pflicht | Reihenfolge |
+|---|---|---|---|
+| `necessary` | Essenziell | ja (nicht abwählbar) | 0 |
+| `functional` | Funktional | nein | 10 |
+| `analytics` | Analytics | nein | 20 |
+| `marketing` | Marketing | nein | 30 |
+| `external_media` | Externe Medien | nein | 40 |
 
-Empfohlener Ablauf:
+Eigene Kategorien: Name, Slug, Beschreibung, Pflicht, aktiv, Sortierung, optionale Skripte (`save_category` / `delete_category`).
 
-1. Status, Filter und Warnungen vor Änderungen prüfen.
-2. Nur die notwendige Änderung über die vorhandenen Formulare durchführen.
-3. Speichern, die Weiterleitung nach POST abwarten und den Zielzustand kontrollieren.
-4. Vor Lösch-, Sicherheits- oder Sammelaktionen Ziel, Backup und Audit- beziehungsweise Betriebslog prüfen.
+### Dienste
 
-Leere Ergebnisse, deaktivierte optionale Module und Dienstfehler erscheinen als sichere Leer- oder Warnzustände. Sie erweitern keine Berechtigungen; die Ursache ist über die verlinkte System- oder Logseite zu prüfen.
+Ein Dienst gehört zu einer Kategorie und beschreibt Anbieter, Zweck, gesetzte Cookies (`cookie_names`) und optional einen Code-Schnipsel (`code_snippet`), der erst nach Zustimmung ausgeführt wird.
 
-### Technische Referenz
+**Kuratierte Dienste** (`import_curated_service`): Google Analytics, Google Tag Manager, Matomo (auch als selbst gehostete Variante), Facebook Pixel, LinkedIn Insight Tag, YouTube, Vimeo, Google Maps, HubSpot sowie „365CMS Kernfunktionen“ (essenziell).
 
-**Einstieg, Routing und Views.** Die PHP-Einstiege liegen unter `CMS/admin/`; `CMS/core/Routing/AdminRouter.php` und `CMS/core/Router.php` lösen die sprechenden `/admin/...`-Pfade auf. Gemeinsames Layout, Navigation, Flash-Meldungen und Request-Shells liegen in `CMS/admin/partials/`, die Bildschirme in `CMS/admin/views/`. Für dieses Dokument maßgeblich sind `CMS/admin/cookie-manager.php`, `CMS/admin/views/legal/cookies.php`.
+### Scanner (`run_scan`)
 
-**Authentifizierung und CSRF.** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` stellen den angemeldeten Administrator und Capability-Prüfungen bereit. Zustandsändernde Formulare verwenden den gemeinsamen Admin-Nonce-/CSRF-Vertrag; Handler prüfen Token, Capability, Aktion und normalisierte Eingaben vor jedem Schreiben. GET bleibt lesend, erfolgreiche POST-Anfragen leiten auf einen internen Allowlist-Adminpfad weiter.
+Durchsucht `CMS/themes/`, `CMS/includes/` und `CMS/assets/js/` sowie die Analytics-Einstellungen nach bekannten Mustern (z. B. `google-analytics.com`, `_paq`, `youtube.com/embed`) und schlägt passende kuratierte Dienste mit Fundstelle vor.
 
-**Settings, Persistenz und CRUD.** Einstellungen laufen über `CMS/core/Services/SettingsService.php` und vorhandene Fachdienste. CRUD nutzt Core-Datenbank und Services, vorbereitete Statements, Allowlists und serverseitige Validierung. Views enthalten keine Persistenzlogik. Deaktivierte optionale Module bleiben geschlossen.
+### Banner-Einstellungen (`save_settings`)
 
-**APIs, AJAX, Uploads und Medien.** Admin-Aktionen können WordPress-AJAX- oder REST-kompatible Handler registrieren. Authentifizierung, Capability, gegebenenfalls CSRF und strenge Parameterprüfung sind erforderlich. Uploads laufen über `CMS/core/Services/FileUploadService.php` und Media-Services; MIME-Typ, Größe, Besitz und Ziel werden vor dem Speichern geprüft. URLs und HTML werden kontextgerecht escaped.
+| Option | Bedeutung |
+|---|---|
+| `cookie_consent_enabled` (Fallback `cookie_banner_enabled`) | Consent-Banner aktiv |
+| `cookie_banner_position`, `cookie_banner_style` | Position und Darstellung |
+| `cookie_banner_text`, `cookie_essential_text` | Texte |
+| `cookie_accept_text`, `cookie_reject_text` | Button-Beschriftungen |
+| `cookie_policy_url` | Link zur Datenschutzerklärung |
+| `cookie_lifetime_days` | Gültigkeit der Entscheidung |
+| `cookie_matomo_*` | Matomo-Details: selbst gehostete URL, Site-ID, Hosting-Region, IP-Anonymisierung, ohne Cookies, DNT, Log-Aufbewahrung, DSGVO-Hinweis |
 
-**Logs und Monitoring.** Sicherheits- und Fachereignisse schreiben über `CMS/core/AuditLogger.php`; Betriebsdiagnosen verwenden `CMS/core/Logger.php` und Monitoring-Services. Geheimnisse, Tokens, Rohprompts und unnötige personenbezogene Daten bleiben aus UI und Logs heraus. Abhängigkeitfehler werden begrenzt als Warnung oder Fallback behandelt.
+### Ablauf im Frontend
 
-**Module, Legacy-Routen und Fallbacks.** Aktuelle Modulklassen unter `CMS/admin/modules/` registrieren Screens und Hooks. Ältere PHP-Einstiege sind, sofern vorhanden, Kompatibilitätsschichten; bevorzugt wird die dokumentierte sprechende Route mit aktuellem Modul/View. Bei deaktiviertem Modul oder fehlender Datenquelle bleibt die Shell renderbar und verweist auf Diagnose oder Logs.
+1. `CookieConsentService::render()` gibt Stylesheet und `cookieconsent-init.js` aus (nur bei aktivem Modul `legal` und aktiviertem Consent; nie im Adminbereich).
+2. Der Besucher wählt Kategorien; die Entscheidung wird als Cookie `cc_cookie` (Pfad `/`, `SameSite=Lax`, `Secure` unter HTTPS) gespeichert.
+3. Server- und Clientseite fragen die Zustimmung ab: `CookieConsentService::hasConsentForCategory('analytics')` bzw. `hasConsentForService('youtube')`. `SeoAnalyticsRenderer` lädt GA4/Matomo/GTM/Pixel nur mit Zustimmung.
+4. `/cookie-einstellungen` zeigt die Einstellungsseite zum Ändern oder Widerrufen.
+
+### Plugin- und Theme-Integration
+
+```php
+$consent = \CMS\Services\CookieConsentService::getInstance();
+if ($consent->hasConsentForService('google_maps', 'external_media')) {
+    // Karte direkt einbetten
+} else {
+    // Platzhalter mit Hinweis „Externe Medien zulassen“
+}
+```
+
+### Verwandte Dokumente
+
+[README.md](README.md) · [LEGAL.md](LEGAL.md) · [../seo/ANALYTICS.md](../seo/ANALYTICS.md) · [../../assets/cookieconsent/README.md](../../assets/cookieconsent/README.md)

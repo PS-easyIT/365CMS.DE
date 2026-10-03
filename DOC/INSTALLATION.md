@@ -1,4 +1,5 @@
 # 365CMS – Projektdokumentation | Abschnitt: INSTALLATION
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.09) | **Status:** Stable | **Update:** 2026-10-02
 
 ## Table of contents | Inhaltsverzeichnis
 
@@ -472,3 +473,14 @@ Weiterführend:
 - [Systemarchitektur](core/ARCHITECTURE.md)
 - [Datenbank-Schema](core/DATABASE-SCHEMA.md)
 - [System & Monitoring](admin/system-settings/SYSTEM.md)
+
+---
+
+## Ergänzung (Stand 2026-10-02)
+
+- **Konfigurationsreihenfolge:** `CMS/index.php` lädt `config/app.php` vor `config.php`. Eigene Konstanten (z. B. `JWT_SECRET`, Debug-Schalter) gehören deshalb in `config/app.php`; nach jedem erneuten Installer-Lauf prüfen, ob sie erhalten geblieben sind (siehe [core/STATUS.md](core/STATUS.md)).
+- **Installer-Sperre:** Existiert bereits eine Konfiguration, schreibt der Installer eine Lock-Datei und beantwortet weitere Aufrufe mit HTTP 403 („blocked“). `install.php` trotzdem nach der Installation entfernen oder per Webserver sperren.
+- **Mindest-PHP:** `CMS_MIN_PHP_VERSION = 8.4.0` (Prüfung im Willkommensschritt).
+- **Cron:** `php CMS/cron.php --task=all` (CLI) oder HTTP-Aufruf mit Token (`?token=…&task=…`); Tasks `all`, `mail-queue`, `hourly`, `daily`, `feeds`, `cms_cron_*`. Details: [admin/system-settings/SYSTEM.md](admin/system-settings/SYSTEM.md).
+- **Nach der Installation:** Mailversand testen ([admin/system-settings/MAIL.md](admin/system-settings/MAIL.md)), erstes Backup anlegen ([admin/system-settings/BACKUP.md](admin/system-settings/BACKUP.md)), Sicherheits-Audit ausführen ([admin/security/SECURITY-AUDIT.md](admin/security/SECURITY-AUDIT.md)).
+- **Updates und Deployments:** [workflow/UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md).

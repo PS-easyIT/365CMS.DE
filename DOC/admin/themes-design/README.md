@@ -1,35 +1,40 @@
-# 365CMS – Projektdokumentation | Abschnitt: Themes and design
+# 365CMS – Projektdokumentation | Abschnitt: Admin – Themes & Gestaltung
 
-## English
-### Scope
-This section documents the CMS login page, theme editor/customizer, menus, fonts, dashboard widgets, design settings, and marketplace.
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-### Screens
-| Area | Route | Source |
-|---|---|---|
-| CMS login page | `/admin/cms-loginpage` | `CMS/admin/cms-loginpage.php`, `CMS/admin/views/themes/cms-loginpage.php` |
-| Editor/customizer | `/admin/theme-editor` | `CMS/admin/theme-editor.php` |
-| Menus | `/admin/menu-editor` | `CMS/admin/menu-editor.php`, `CMS/admin/modules/menus/MenuEditorModule.php` |
-| Fonts | `/admin/font-manager` | `CMS/admin/font-manager.php`, `CMS/admin/views/themes/fonts.php` |
-| Widgets/design | `/admin/member-dashboard-widgets`, `/admin/design-settings` | `CMS/admin/member-dashboard-widgets.php`, `CMS/admin/design-settings.php` |
-| Marketplace | `/admin/plugin-marketplace` | `CMS/admin/plugin-marketplace.php`, `CMS/admin/modules/plugins/PluginMarketplaceModule.php` |
+## English (summary)
 
-### Common controls
-Use only controls rendered by the current page. Changes require capability, CSRF/nonce, allowlisted values, validation, and escaped output. Uploaded media is handled by `CMS/core/Services/FileUploadService.php`; audit security-sensitive changes with `CMS/core/AuditLogger.php`.
+This folder documents the sidebar group **Themes & Design** (*Themes & Gestaltung*). It covers theme management, the theme customizer (`/admin/theme-editor`), the theme file explorer, menus, the landing page, the font manager, the CMS login page and the theme marketplace. All pages require role `admin` and capability `manage_settings`.
 
 ## Deutsch
-### Umfang
-Dieser Abschnitt beschreibt CMS-Loginseite, Theme-Editor/Customizer, Menüs, Fonts, Dashboard-Widgets, Design-Einstellungen und Marketplace.
 
-### Seiten
-| Bereich | Route | Quelle |
+### Menüpunkte
+
+| Menüpunkt | Route | Dokument |
 |---|---|---|
-| CMS-Loginseite | `/admin/cms-loginpage` | `CMS/admin/cms-loginpage.php`, `CMS/admin/views/themes/cms-loginpage.php` |
-| Editor/Customizer | `/admin/theme-editor` | `CMS/admin/theme-editor.php` |
-| Menüs | `/admin/menu-editor` | `CMS/admin/menu-editor.php`, `CMS/admin/modules/menus/MenuEditorModule.php` |
-| Fonts | `/admin/font-manager` | `CMS/admin/font-manager.php`, `CMS/admin/views/themes/fonts.php` |
-| Widgets/Design | `/admin/member-dashboard-widgets`, `/admin/design-settings` | `CMS/admin/member-dashboard-widgets.php`, `CMS/admin/design-settings.php` |
-| Marketplace | `/admin/plugin-marketplace` | `CMS/admin/plugin-marketplace.php`, `CMS/admin/modules/plugins/PluginMarketplaceModule.php` |
+| Theme-Verwaltung | `/admin/themes` | [MARKETPLACE.md](MARKETPLACE.md#theme-verwaltung-adminthemes) |
+| Theme-Editor (Customizer) | `/admin/theme-editor` | [CUSTOMIZER.md](CUSTOMIZER.md) |
+| Theme-Explorer (Dateieditor) | `/admin/theme-explorer` | [EDITOR.md](EDITOR.md) |
+| Theme-Menü | `/admin/menu-editor` | [MENUS.md](MENUS.md) |
+| Landingpage | `/admin/landing-page` | [../landing-page/LANDING-PAGE.md](../landing-page/LANDING-PAGE.md) |
+| Schriftverwaltung | `/admin/font-manager` | [FONTS.md](FONTS.md) |
+| CMS-Loginseite | `/admin/cms-loginpage` | [CMS-LOGINPAGE.md](CMS-LOGINPAGE.md) |
+| Theme-Marktplatz | `/admin/theme-marketplace` (nur wenn `marketplace_enabled`) | [MARKETPLACE.md](MARKETPLACE.md) |
 
-### Gemeinsame Regeln
-Nur die Steuerelemente der aktuellen Seite verwenden. Änderungen benötigen Capability, CSRF/Nonce, Allowlists, Validierung und Escaping. Uploads behandelt `CMS/core/Services/FileUploadService.php`; sicherheitsrelevante Änderungen über `CMS/core/AuditLogger.php` prüfen.
+### Weiterleitungen und Alt-Routen
+
+| Alte Route | Ziel |
+|---|---|
+| `/admin/design-settings` | `/admin/theme-editor` ([DESIGN-SETTINGS.md](DESIGN-SETTINGS.md)) |
+| `/admin/theme-settings` | `/admin/settings` |
+| `/admin/theme-customizer` | `/admin/theme-editor` |
+| `/admin/menus` | `/admin/menu-editor` |
+| `/admin/fonts-local` | `/admin/font-manager` |
+
+### Mitgeliefertes Theme
+
+`CMS/themes/cms-default/` – „Meridian CMS Default“, Version **1.0.9** (`theme.json`). Es bringt einen eigenen Customizer (`admin/customizer.php`) mit neun Bereichen und registriert acht Menüpositionen. Entwicklung eigener Themes: [../../theme/THEME-DEVELOPMENT.md](../../theme/THEME-DEVELOPMENT.md).
+
+### Hinweis zu DASHBOARD-WIDGETS.md
+
+Die Widget-Konfiguration des Mitglieder-Dashboards gehört fachlich zum Bereich *Mitglieder-Dashboard*. [DASHBOARD-WIDGETS.md](DASHBOARD-WIDGETS.md) verweist dorthin.

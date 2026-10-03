@@ -1,113 +1,82 @@
-# 365CMS – Projektdokumentation | Abschnitt: Core classes
+# 365CMS – Projektdokumentation | Abschnitt: Core – Klassenübersicht
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-# Core class inventory
+## English (summary)
 
-This inventory reflects the active implementation under `CMS/core`. It is intentionally limited to classes that are present in the source tree and to behavior directly visible in the code.
-
-## Class overview
-
-| Class | File | Responsibility |
-| --- | --- | --- |
-| `Bootstrap` | `CMS/core/Bootstrap.php` | startup, runtime mode detection, dependency loading, platform validation |
-| `Container` | `CMS/core/Container.php` | DI container for lazy and singleton bindings |
-| `Router` | `CMS/core/Router.php` | request URI resolution and route dispatch |
-| `Api` | `CMS/core/Api.php` | generic JSON API request handling and rate limiting |
-| `Hooks` | `CMS/core/Hooks.php` | action/filter registry |
-| `Security` | `CMS/core/Security.php` | CSP, headers, CSRF and token checks |
-| `Auth` | `CMS/core/Auth.php` | session validation, login, MFA awareness, capability checks |
-| `Database` | `CMS/core/Database.php` | PDO wrapper with prepared statements and migration delegation |
-| `Version` | `CMS/core/Version.php` | runtime version information |
-
-## Bootstrap
-
-`Bootstrap` is the startup entry point. It sets `CMS_MODE`, validates the PHP platform requirements for bundled assets, loads dependencies, and initializes the core system. The mode detection logic is implemented in `Bootstrap::detectMode()`.
-
-## Container
-
-`Container` exposes a small DI container with `bind()`, `singleton()`, `bindInstance()`, `make()`, `get()`, `has()`, and `registered()`. Singletons are cached and reused; factory callbacks remain lazy until resolution time.
-
-## Router
-
-`Router` resolves the request URI, chooses the relevant route module by prefix, and calls `dispatch()`. It normalizes the URI, checks redirect rules, and enforces CSRF on protected methods outside the API/admin/member paths.
-
-## Api
-
-`Api` processes generic JSON endpoints such as `status`, `pages`, and `users`. It validates rate limits, normalizes search or slug input, and returns structured JSON responses or HTTP error codes.
-
-## Hooks
-
-`Hooks` provides WordPress-like action/filter semantics. It stores callbacks by tag and priority and exposes `doAction()`, `applyFilters()`, `removeAction()`, and `removeFilter()`.
-
-## Security
-
-`Security` generates a per-request nonce, builds a CSP policy, sets security headers such as `X-Content-Type-Options` and `X-Frame-Options`, and verifies tokens for CSRF.
-
-## Auth
-
-`Auth` initializes by validating the current session. It checks expiry based on role-defined session lifetimes, clears stale sessions without redirecting during constructor-time processing, and exposes `hasCapability()` for role-based permission checks.
-
-## Database
-
-`Database` is a PDO wrapper. It uses `prepare()`, `query()`, `execute()`, and `getPrefix()`. It keeps the database prefix and delegates schema creation and repair to `SchemaManager` and `MigrationManager`.
-
-## Version
-
-`Version` exposes `CURRENT`, `RELEASE_DATE`, and `STATUS` via `Version::CURRENT` and `Version::releaseDate()`. The active values are `3.4.00` and `stable`.
+Inventory of the classes directly under `CMS/core/` (namespace `CMS\`) and its sub-namespaces `CMS\Auth`, `CMS\Contracts`, `CMS\Http`, `CMS\Member` and `CMS\Routing`. Domain services in `CMS\Services\…` are listed in [SERVICES.md](SERVICES.md). Most core classes are singletons accessed via `::instance()`; services use `::getInstance()` and are additionally registered in the DI container.
 
 ## Deutsch
 
-# Inventar der Core-Klassen
+### Laufzeit & Infrastruktur
 
-Dieses Inventar spiegelt die aktive Implementierung unter `CMS/core` wider. Es ist bewusst auf Klassen begrenzt, die im Source-Tree vorhanden sind, und auf Verhalten, das unmittelbar im Code sichtbar ist.
+| Klasse | Datei | Aufgabe | Wichtige Methoden |
+|---|---|---|---|
+| `Bootstrap` | `core/Bootstrap.php` | Start, Modus, Plattformprüfung, Initialisierung, Run | `instance()`, `run()`, `db()`, `auth()`, `security()`, `container()` |
+| `Container` | `core/Container.php` | kleiner DI-Container | `bind()`, `singleton()`, `bindInstance()`, `make()`, `get()`, `has()`, `registered()`, `forget()`, `flush()` |
+| `Router` | `core/Router.php` | URI-Auflösung, Routenregister, Dispatch, Redirect, 404, Inhaltsaufbereitung | `addRoute()`, `dispatch()`, `redirect()`, `render404()`, `getRequestLocale()`, `prepareRenderableContent()`, `streamContentAsPdf()` |
+| `Hooks` | `core/Hooks.php` | Actions/Filter | siehe [HOOKS-REFERENCE.md](HOOKS-REFERENCE.md) |
+| `Database` | `core/Database.php` | PDO-Wrapper | siehe [DATABASE-SCHEMA.md](DATABASE-SCHEMA.md) |
+| `SchemaManager` | `core/SchemaManager.php` | Basisschema, `SCHEMA_VERSION = 'v22'` | `createTables()`, `getFlagFile()`, `clearFlag()` |
+| `MigrationManager` | `core/MigrationManager.php` | Migrationen je Schemaversion | `run()`, `repairTables()` |
+| `DatabaseUpdateRunner` | `core/DatabaseUpdateRunner.php` | manuelles DB-Update | `getStatus()`, `run()` |
+| `CacheManager` | `core/CacheManager.php` | Datei-/APCu-Cache (PSR-16-ähnlich), HTTP-Cache-Header | `get()`, `set()`, `delete()`, `clear()`, `clearAll()`, `getStatus()`, `sendResponseHeaders()`, `sendConditionalHeaders()` |
+| `Logger` | `core/Logger.php` | PSR-3-ähnliches Logging in Kanal-Dateien | `withChannel()`, `debug()` … `emergency()`, `log()` |
+| `AuditLogger` | `core/AuditLogger.php` | Audit-Log in `cms_audit_log` | `log()`, `loginSuccess()`, `loginFailed()`, `pluginAction()`, `themeSwitch()`, `userRoleChange()`, `backupAction()`, `getRecent()` |
+| `Debug` | `core/Debug.php` | Checkpoints und Query-Telemetrie bei `CMS_DEBUG` | `checkpoint()`, `query()` |
+| `Json` | `core/Json.php` | sichere JSON-Hilfen | `decodeArray()` u. a. |
+| `Version` | `core/Version.php` | `CURRENT = '3.4.00'`, `RELEASE_DATE = '2026-09-05'`, `STATUS = 'stable'` | `current()`, `releaseDate()` |
+| `VendorRegistry` | `core/VendorRegistry.php` | Inventar und Laden gebündelter Bibliotheken | `loadAssetsAutoloader()`, `loadPackage()`, `getDiagnostics()` |
+| `WP_Error` | `core/WP_Error.php` | WordPress-kompatibles Fehlerobjekt | `get_error_code()`, `get_error_message()`, `get_error_data()`, `add()` |
+| `Api` | `core/Api.php` | generische JSON-API (Rate-Limit, `pages`, `users`) | `handleRequest()` |
 
-## Klassenübersicht
+### Sicherheit & Authentifizierung
 
-| Klasse | Datei | Verantwortung |
-| --- | --- | --- |
-| `Bootstrap` | `CMS/core/Bootstrap.php` | Start, Moduserkennung, Abhängigkeitsladen, Plattformvalidierung |
-| `Container` | `CMS/core/Container.php` | DI-Container für Lazy- und Singleton-Bindings |
-| `Router` | `CMS/core/Router.php` | Request-URI-Auflösung und Routing-Dispatch |
-| `Api` | `CMS/core/Api.php` | generische JSON-API-Anfragebehandlung und Rate-Limits |
-| `Hooks` | `CMS/core/Hooks.php` | Action-/Filter-Registry |
-| `Security` | `CMS/core/Security.php` | CSP, Header, CSRF und Token-Prüfung |
-| `Auth` | `CMS/core/Auth.php` | Session-Validierung, Login, MFA-Awareness, Capability-Prüfungen |
-| `Database` | `CMS/core/Database.php` | PDO-Wrapper mit Prepared Statements und Migrationsdelegation |
-| `Version` | `CMS/core/Version.php` | Laufzeit-Versionen |
+| Klasse | Datei | Aufgabe |
+|---|---|---|
+| `Security` | `core/Security.php` | Header, CSP-Nonce, Session-Start, CSRF-Tokens, Rate-Limits, Passwort-Hash, Client-IP (`getClientIp()`), Sanitizing |
+| `Auth` | `core/Auth.php` | Login, Registrierung, Session-Benutzer, Rollen/Capabilities, Passwortrichtlinie, MFA (TOTP), Geräte-Cookie, Logout |
+| `Auth\AuthManager` | `core/Auth/AuthManager.php` | Fassade für Passwort-, Passkey-, LDAP-, MFA-Anmeldung; `getAvailableProviders()` |
+| `Auth\Passkey\WebAuthnAdapter` | `core/Auth/Passkey/` | WebAuthn-Registrierung und -Anmeldung |
+| `Auth\LDAP\LdapAuthProvider` | `core/Auth/LDAP/` | LDAP/AD-Anmeldung, Verzeichnis-Sync |
+| `Auth\MFA\TotpAdapter`, `BackupCodesManager` | `core/Auth/MFA/` | Zweiter Faktor, Backup-Codes |
+| `Totp` | `core/Totp.php` | RFC-6238-TOTP: Secret, Code, `otpauth://`-URI, QR-Code |
 
-## Bootstrap
+### Inhalte, Themes, Plugins, Abos
 
-`Bootstrap` ist der Startpunkt. Er setzt `CMS_MODE`, validiert die PHP-Plattformanforderungen für gebündelte Assets, lädt Abhängigkeiten und initialisiert das Core-System. Die Moduserkennung ist in `Bootstrap::detectMode()` implementiert.
+| Klasse | Datei | Aufgabe |
+|---|---|---|
+| `PageManager` | `core/PageManager.php` | Seiten-CRUD, Slug, Suche, Revisionen, Sprachverfügbarkeit |
+| `TableOfContents` | `core/TableOfContents.php` | Inhaltsverzeichnis aus Überschriften (Option `toc_settings`) |
+| `ThemeManager` | `core/ThemeManager.php` | aktives Theme, Template-Rendering, Header/Footer, Menüs, Theme-Wechsel/-Löschen/-Health-Check, Custom Styles, Favicon |
+| `PluginManager` | `core/PluginManager.php` | Plugins laden, aktivieren, deaktivieren, löschen, per ZIP installieren; Abhängigkeitsprüfung |
+| `SubscriptionManager` | `core/SubscriptionManager.php` | Pakete, Abos, Limits, Plugin-Freigaben, Verlängerungshinweise |
+| `Member\PluginDashboardRegistry` | `core/Member/` | Registrierung von Plugin-Widgets und -Bereichen im Mitglieder-Dashboard |
 
-## Container
+### Routing (`CMS\Routing`)
 
-`Container` bietet einen kleinen DI-Container mit `bind()`, `singleton()`, `bindInstance()`, `make()`, `get()`, `has()` und `registered()`. Singletons werden gecacht und erneut verwendet; Factory-Callbacks bleiben bis zur Auflösung lazy.
+| Klasse | Routen |
+|---|---|
+| `ApiRouter` | `/api/v1/*`, `/api/upload`, `/api/media` |
+| `AdminRouter` | `/admin`, `/admin/:page`, `/admin/logs/:section`, `/admin/plugins/:plugin/:page` |
+| `MemberRouter` | `/member`, `/member/:page`, `/member/plugin/:slug[/:action[/:id]]`, `/dashboard` |
+| `PublicRouter` | Login/Registrierung/Passwort, Logout, MFA, `/order`, `/comments/post`, `/cookie-einstellungen`, `/media-file` |
+| `ThemeRouter` | `/`, `/blog`, Beitrags-Permalinks, Archive, `/search`, `/sitemap`, `/sitemap.xml`, `/robots.txt`, `/feed`, `/contact`, Autoren, `/security.txt`, IndexNow-Key, Tabellen-Export |
+| `ThemeArchiveRepository` | Datenabfragen für Kategorie-/Tag-/Autoren-Archive |
 
-## Router
+### HTTP & Verträge
 
-`Router` löst die Request-URI auf, wählt das relevante Routemodul nach Präfix und ruft `dispatch()` auf. Es normalisiert die URI, prüft Redirect-Regeln und erzwingt CSRF auf geschützten Methoden außerhalb der API-/Admin-/Member-Pfade.
+| Klasse | Aufgabe |
+|---|---|
+| `Http\Client` | ausgehende HTTP-Anfragen (cURL) mit Host-Prüfung, Timeouts, Größenlimits |
+| `Http\Request` | Request-Hilfen |
+| `Http\InlineStyleRewriter` | wandelt `style`-Attribute in nonce-geschützte Klassen (CSP) |
+| `Contracts\CacheInterface`, `DatabaseInterface`, `LoggerInterface` | Schnittstellen für Cache, Datenbank, Logger |
 
-## Api
+### Hilfsfunktionen (`CMS/includes/`)
 
-`Api` verarbeitet generische JSON-Endpunkte wie `status`, `pages` und `users`. Es prüft Rate-Limits, normalisiert Such- oder Slug-Parameter und liefert strukturierte JSON-Antworten oder HTTP-Fehlercodes.
+`functions.php` lädt `includes/functions/*.php`: `admin-menu.php` (Admin-Menü-API), `escaping.php` (Escaping-Helfer), `mail.php`, `options-runtime.php` (Optionen, `cms_post_publication_where()`, CSP-Vorbereitung), `plugin-public-i18n.php`, `redirects-auth.php` (`current_user_can()`, Redirect-Helfer), `roles.php` (Rollen/Capabilities), `translation.php`, `wordpress-compat.php` (`add_action`, `get_option`, `esc_html` …). `subscription-helpers.php` enthält Abo-Helfer.
 
-## Hooks
+### Verwandte Dokumente
 
-`Hooks` bietet WordPress-ähnliche Action-/Filter-Semantik. Es speichert Callback-Handler nach Tag und Priorität und stellt `doAction()`, `applyFilters()`, `removeAction()` und `removeFilter()` bereit.
-
-## Security
-
-`Security` erzeugt ein per-Request-Nonce, baut eine CSP-Policy, setzt Sicherheitsheader wie `X-Content-Type-Options` und `X-Frame-Options` und validiert Tokens für CSRF.
-
-## Auth
-
-`Auth` initialisiert durch Validierung der aktuellen Session. Es prüft die Ablaufzeit anhand rollenbasierter Session-Lebensdauern, räumt veraltete Sessions ohne Redirect im Konstruktor auf und stellt `hasCapability()` für rollenbasierte Berechtigungsprüfungen bereit.
-
-## Database
-
-`Database` ist ein PDO-Wrapper. Er nutzt `prepare()`, `query()`, `execute()` und `getPrefix()`. Er verwaltet das Datenbank-Präfix und delegiert Schema-Erstellung und Reparatur an `SchemaManager` und `MigrationManager`.
-
-## Version
-
-`Version` stellt `CURRENT`, `RELEASE_DATE` und `STATUS` über `Version::CURRENT` und `Version::releaseDate()` bereit. Die aktiven Werte sind `3.4.00` und `stable`.
+[SERVICES.md](SERVICES.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [STRUCTURE.md](STRUCTURE.md)

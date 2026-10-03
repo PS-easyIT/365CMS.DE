@@ -1,5 +1,5 @@
-> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00
-> **Datum:** 2026-09-06 | **Status:** Abgeschlossen – **Zuletzt aktualisiert am:** 2026-09-06
+> **Website:** [365CMS.DE](https://365cms.de/) | **Version:** 3.4.00 (Changelog bis 3.4.08)
+> **Datum:** 2026-09-06 | **Status:** Stable – **Zuletzt aktualisiert am:** 2026-10-02
 > **Kurzbeschreibung:** User and technical reference for the AI-related JavaScript, the bundled Symfony AI Platform library, autoloading, licensing, and asset maintenance boundaries.
 
 # 365CMS AI – Assets and Platform Library
@@ -11,7 +11,7 @@
 The AI administration uses two browser assets:
 
 - `CMS/assets/js/admin-ai-services.js` powers provider form field switching, content-draft copy-to-clipboard, and provider deletion confirmation.
-- `CMS/assets/js/admin-content-editor.js` connects the content editor with translation and preview/diff workflows.
+- `CMS/assets/js/admin-content-editor.js` connects the page/post editor with block-by-block translation (`/admin/ai-translate-editorjs`), the SEO metadata generator (`/admin/ai-generate-seo-metadata`) and preview/diff workflows.
 
 The server-side AI foundation is bundled under `CMS/assets/ai-platform/`. It is a read-only Symfony AI Platform subtree used as a contract and adapter foundation; it is not a public browser asset and must not be edited from the admin UI.
 
@@ -37,6 +37,9 @@ The relevant integration points are:
 | `CMS/assets/autoload.php` | PSR-4 loading for `Symfony\AI\Platform\` |
 | `CMS/core/Services/AI/` | CMS provider adapters, policy, quota, execution, and pipelines |
 | `CMS/admin/ai-page.php` | AI admin route shell, actions, capabilities, and CSRF |
+| `CMS/core/VendorRegistry.php` | Inventory entry „Symfony AI Platform“ (diagnostics in `/admin/monitor-assets`) |
+
+**Current usage (3.4.00):** the CMS provider adapters in `CMS/core/Services/AI/` implement their own `AiProviderInterface` and HTTP calls via `CMS\Http\Client`; they do not import `Symfony\AI\Platform` classes directly. The bundled platform is registered and inventoried as the foundation for future adapters and for plugins that want to use it.
 
 ### Maintenance and security rules
 
@@ -49,7 +52,7 @@ Keep the JavaScript CSP-compatible and external; do not add inline scripts or se
 Die AI-Administration verwendet zwei Browser-Assets:
 
 - `CMS/assets/js/admin-ai-services.js` steuert Provider-Felder, das Kopieren von Content-Entwürfen und die Löschbestätigung für Provider.
-- `CMS/assets/js/admin-content-editor.js` verbindet den Content-Editor mit Übersetzung sowie Preview-/Diff-Abläufen.
+- `CMS/assets/js/admin-content-editor.js` verbindet den Seiten-/Beitragseditor mit der blockweisen Übersetzung (`/admin/ai-translate-editorjs`), dem SEO-Metadaten-Generator (`/admin/ai-generate-seo-metadata`) sowie Preview-/Diff-Abläufen.
 
 Die serverseitige AI-Grundlage liegt unter `CMS/assets/ai-platform/`. Das Verzeichnis enthält einen schreibgeschützten Symfony-AI-Platform-Baum für Verträge und Adaptergrundlagen. Es ist kein öffentliches Browser-Asset und darf nicht über die Admin-Oberfläche bearbeitet werden.
 
@@ -75,6 +78,9 @@ Die relevanten Integrationspunkte sind:
 | `CMS/assets/autoload.php` | PSR-4-Laden von `Symfony\AI\Platform\` |
 | `CMS/core/Services/AI/` | CMS-Adapter, Policy, Quotas, Ausführung und Pipelines |
 | `CMS/admin/ai-page.php` | Admin-Routes, Actions, Capabilities und CSRF |
+| `CMS/core/VendorRegistry.php` | Inventareintrag „Symfony AI Platform“ (Diagnose unter `/admin/monitor-assets`) |
+
+**Aktuelle Nutzung (3.4.00):** Die CMS-Provider-Adapter in `CMS/core/Services/AI/` implementieren ein eigenes `AiProviderInterface` und sprechen die Provider über `CMS\Http\Client` an; sie importieren keine `Symfony\AI\Platform`-Klassen direkt. Die gebündelte Plattform ist registriert und inventarisiert – als Grundlage für künftige Adapter und für Plugins, die sie nutzen möchten.
 
 ### Wartungs- und Sicherheitsregeln
 

@@ -1,21 +1,63 @@
 # 365CMS – Projektdokumentation | Abschnitt: Admin – Bedienleitfaden
 
-## English
+> **Stand:** 2026-10-02 | **Version:** 3.4.00 (Changelog bis 3.4.08) | **Status:** Stable
 
-1. Sign in through the CMS admin entry point and open `/admin`.
-2. Choose the required feature from the capability-aware navigation.
-3. Review warnings, current values, and the selected target before editing.
-4. Submit the supplied form and wait for the internal post/redirect/get response.
-5. Verify the resulting state and review audit or operational logs for sensitive changes.
+## English (summary)
 
-Optional modules may render an empty or warning state when unavailable. Do not bypass the route or form when that happens; use the linked diagnostic or log information.
+Operator guide for day-to-day work in the 365CMS administration: sign-in, navigation, typical tasks with the relevant routes, safe working rules and troubleshooting. Technical details are in the area documents linked from [README.md](README.md).
 
 ## Deutsch
 
-1. Über den CMS-Admin-Einstieg anmelden und `/admin` öffnen.
-2. Die benötigte Funktion über die capability-gesteuerte Navigation auswählen.
-3. Vor Änderungen Warnungen, aktuelle Werte und Zielobjekt prüfen.
-4. Das vorhandene Formular absenden und die interne POST-Weiterleitung abwarten.
-5. Zielzustand kontrollieren und bei sensiblen Änderungen Audit- oder Betriebslogs prüfen.
+### 1. Anmelden
 
-Optionale Module können bei Nichtverfügbarkeit einen Leer- oder Warnzustand anzeigen. Route oder Formular in diesem Fall nicht umgehen, sondern die angezeigte Diagnose oder das Log verwenden.
+1. `https://<domain>/cms-login` aufrufen (oder direkt `/admin` – nicht angemeldete Besucher werden zur Anmeldung geleitet und danach zurückgeführt).
+2. Benutzername/E-Mail und Passwort eingeben; je nach Konto folgt die Abfrage des Authenticator-Codes (`/mfa-challenge`) oder die Anmeldung per Passkey.
+3. Nur Konten mit der Rolle **Administrator** gelangen in den Adminbereich; alle anderen landen im Mitgliederbereich `/member`.
+
+Abmelden über das Benutzermenü oben rechts oder in der Sidebar (sichere POST-Abmeldung).
+
+### 2. Orientierung
+
+- Die **Sidebar** ist nach Abschnitten gegliedert (Kernsystem, Inhalte, Benutzer, Marketing & Gestaltung, Sicherheit & Protokolle, System, Plugin-Erweiterungen).
+- Fehlende Menüpunkte bedeuten: Modul deaktiviert (`/admin/modules`) oder Marketplace ausgeschaltet.
+- Das **Dashboard** zeigt offene Aufgaben unter „Nächste Aufmerksamkeit“ und lässt sich je Administrator personalisieren (sichtbare Bereiche, Widgets, Favoriten).
+
+### 3. Häufige Aufgaben
+
+| Aufgabe | Wo |
+|---|---|
+| Beitrag schreiben, planen, veröffentlichen | `/admin/posts` → „Neuer Beitrag“ ([pages-posts/POSTS.md](pages-posts/POSTS.md)) |
+| Seite anlegen / Englische Fassung erstellen | `/admin/pages` → Editor, Umschalter DE/EN ([pages-posts/PAGES.md](pages-posts/PAGES.md)) |
+| Bilder hochladen, ersetzen, Alt-Texte pflegen | `/admin/media` ([media/MEDIA.md](media/MEDIA.md)) |
+| Kommentare freigeben | `/admin/comments` |
+| Menü ändern | `/admin/menu-editor` |
+| Farben/Logo/Startseite des Themes | `/admin/theme-editor` |
+| Weiterleitung anlegen, 404-Fehler beheben | `/admin/redirect-manager`, `/admin/not-found-monitor` |
+| Benutzer anlegen/sperren | `/admin/users` |
+| Impressum/Datenschutz erzeugen | `/admin/legal-sites` |
+| DSGVO-Anfragen bearbeiten | `/admin/data-requests` |
+| Backup erstellen | `/admin/backups` |
+| Updates einspielen | `/admin/updates` |
+| Fehler untersuchen | `/admin/logs`, `/admin/info`, `/admin/monitor-health-check` |
+
+### 4. Sicher arbeiten
+
+1. **Vor Änderungen** Warnungen und aktuelle Werte prüfen.
+2. **Vor riskanten Aktionen** (Löschen, Sammelaktionen, Restore, Updates, Site-URL-Migration) ein Backup erstellen.
+3. Formulare nur über die Oberfläche absenden; nach dem Speichern die Erfolgsmeldung und das Ergebnis kontrollieren.
+4. Nach sicherheitsrelevanten Änderungen das Sicherheits-Audit (`/admin/security-audit`) ausführen.
+5. Zugangsdaten (Mail, KI-Provider, LDAP) nur in die dafür vorgesehenen Felder bzw. `config/app.php` eintragen – nie in Inhalte, Kommentare oder Prompts.
+
+### 5. Fehlerbilder
+
+| Meldung | Bedeutung / Lösung |
+|---|---|
+| „Sicherheitstoken ungültig.“ | Seite war zu lange offen oder wurde in einem anderen Tab erneut geladen → Seite neu laden, erneut speichern |
+| „Die Admin-Sektion konnte nicht geladen werden …“ | Datei fehlt oder Cache veraltet → Deployment prüfen, OPcache leeren (`/admin/performance-cache`) |
+| Fehlerkarte auf Plugin-Seite | Exception im Plugin → `/admin/logs/php-errors` prüfen, Plugin aktualisieren/deaktivieren |
+| Menüpunkt fehlt | Modul deaktiviert oder fehlende Capability |
+| „Fehler melden“-Button | erstellt einen Fehlerbericht unter `/admin/diagnose` |
+
+### Verwandte Dokumente
+
+[README.md](README.md) · [PRUEF-CHECKLISTE.md](PRUEF-CHECKLISTE.md) · [../workflow/CONTENT-MANAGEMENT-WORKFLOW.md](../workflow/CONTENT-MANAGEMENT-WORKFLOW.md)
