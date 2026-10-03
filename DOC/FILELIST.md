@@ -308,17 +308,17 @@ Geladen durch `PluginManager` aus `CMS/plugins/<slug>/`. Derzeit installiert: nu
 
 Canonical `DOC/` files: `README.md`, `INDEX.md`, `INSTALLATION.md`, `DEVLIST.md`, `FILELIST.md`, `FILESTRUCTUR.md`, `CMSFILESTRUCTUR.md`.
 
-Subfolders: `admin/`, `ai/`, `assets/`, `audit/`, `core/`, `member/`, `plugins/`, `theme/`, `workflow/`.
+Subfolders: `admin/`, `ai/`, `assets/`, `checks/`, `core/`, `member/`, `plugins/`, `theme/`, `workflow/`.
 
-Asset Markdown is under `DOC/assets/`. The code audit of 2026-10-03 is in `DOC/audit/`; open gaps are tracked in `core/STATUS.md`.
+Asset Markdown is under `DOC/assets/`. The code audit of 2026-10-03 is in `DOC/checks/`; open gaps are tracked in `core/STATUS.md`.
 
 **Deutsch**
 
 Kanonische `DOC/`-Dateien: `README.md`, `INDEX.md`, `INSTALLATION.md`, `DEVLIST.md`, `FILELIST.md`, `FILESTRUCTUR.md`, `CMSFILESTRUCTUR.md`.
 
-Unterordner: `admin/`, `ai/`, `assets/`, `audit/`, `core/`, `member/`, `plugins/`, `theme/`, `workflow/`.
+Unterordner: `admin/`, `ai/`, `assets/`, `checks/`, `core/`, `member/`, `plugins/`, `theme/`, `workflow/`.
 
-Asset-Markdown liegt unter `DOC/assets/`. Das Code-Audit vom 2026-10-03 liegt unter `DOC/audit/`; offene Lücken stehen in `core/STATUS.md`.
+Asset-Markdown liegt unter `DOC/assets/`. Das Code-Audit vom 2026-10-03 liegt unter `DOC/checks/`; offene Lücken stehen in `core/STATUS.md`.
 
 ---
 

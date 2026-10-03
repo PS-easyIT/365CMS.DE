@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.13` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.14` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.13` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.14` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -24,9 +24,15 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 
 ---
 
+### v3.4.14 — 03.10.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.14** | 🔵 docs | Audit-Dokumentation | **Audit-Berichte liegen jetzt unter `DOC/checks/`** (`README.md`, `SECURITY.md`, `PERFORMANCE.md`, `FUNKTIONEN.md`, `VERWEISE.md`). Der bisherige Pfad `DOC/audit/` steht in `.gitignore`, die Berichte aus 3.4.12/3.4.13 waren deshalb nie im Repository. Alle Verweise in `README.md`, `Changelog.md`, `DOC/INDEX.md`, `DOC/README.md`, `DOC/FILELIST.md`, `DOC/FILESTRUCTUR.md` und `DOC/core/STATUS.md` zeigen auf den neuen Ordner. |
+
 ### v3.4.13 — 03.10.2026
 
-Offene Punkte aus dem Audit vom 03.10.2026 abgearbeitet ([`DOC/audit/`](DOC/audit/README.md)) und erstmals gegen eine echte MariaDB getestet: 15 Befunde behoben (davon 4 neu durch die Laufzeittests gefunden), PERF-06 teilweise; offen bleibt nur FUN-12 (Versionsnummer, Release-Entscheidung).
+Offene Punkte aus dem Audit vom 03.10.2026 abgearbeitet ([`DOC/checks/`](DOC/checks/README.md)) und erstmals gegen eine echte MariaDB getestet: 15 Befunde behoben (davon 4 neu durch die Laufzeittests gefunden), PERF-06 teilweise; offen bleibt nur FUN-12 (Versionsnummer, Release-Entscheidung).
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|--------------|
@@ -43,11 +49,11 @@ Offene Punkte aus dem Audit vom 03.10.2026 abgearbeitet ([`DOC/audit/`](DOC/audi
 | **3.4.13** | 🟢 feat | Dokumentation / Doku-Sync | `/admin/documentation` zeigt für `manage_system` die Karte „Doku-Sync“ mit Status und Button. Git-Modus ohne Konfiguration, ZIP-Modus mit `CMS_DOCS_SYNC_BUNDLE_SHA256`/`CMS_DOCS_SYNC_BUNDLE_FILES`; optional `CMS_DOCS_SYNC_REMOTE`, `_BRANCH`, `_ZIP_URL`. (FUN-09) |
 | **3.4.13** | 🟢 feat | WordPress-Kompatibilität | `wp_register_style/script`, `wp_enqueue_style/script`, `wp_dequeue_*` und `wp_localize_script` laden jetzt tatsächlich: Abhängigkeiten, `?ver=`, Ausgabe in `head`/`admin_head`/`body_end`, CSP-Nonce, keine `javascript:`/`data:`-URLs. (FUN-10) |
 | **3.4.13** | ⬜ chore | Toter Code | Entfernt: `admin/modules/themes/DesignSettingsModule.php`, `admin/views/themes/settings.php`, `PageManager::listPages()`, `cms_default_theme_customizer_get_admin_menu_paths()`. (FUN-11, REF-05, PERF-06 teilweise) |
-| **3.4.13** | 🔵 docs | Dokumentation | `DOC/audit/*`, `DOC/core/STATUS.md`, `SECURITY.md`, `API-REFERENCE.md` (JWT), `DATABASE-SCHEMA.md` (v23), `DOC/member/MEMBER-DASHBOARD.md`, `DOC/plugins/PLUGIN-DEVELOPMENT.md`, `DOC/admin/system-settings/SYSTEM.md`, `DOC/admin/themes-design/FONTS.md` und `DESIGN-SETTINGS.md` aktualisiert; Schema-Angaben auf `v23`. |
+| **3.4.13** | 🔵 docs | Dokumentation | `DOC/checks/*`, `DOC/core/STATUS.md`, `SECURITY.md`, `API-REFERENCE.md` (JWT), `DATABASE-SCHEMA.md` (v23), `DOC/member/MEMBER-DASHBOARD.md`, `DOC/plugins/PLUGIN-DEVELOPMENT.md`, `DOC/admin/system-settings/SYSTEM.md`, `DOC/admin/themes-design/FONTS.md` und `DESIGN-SETTINGS.md` aktualisiert; Schema-Angaben auf `v23`. |
 
 ### v3.4.12 — 03.10.2026
 
-Vollständiges Code-Audit (Sicherheit, Geschwindigkeit, Funktionen, Verweise). Ausführlich dokumentiert unter [`DOC/audit/`](DOC/audit/README.md): 32 Befunde, 19 behoben, 13 offen mit Empfehlung.
+Vollständiges Code-Audit (Sicherheit, Geschwindigkeit, Funktionen, Verweise). Ausführlich dokumentiert unter [`DOC/checks/`](DOC/checks/README.md): 32 Befunde, 19 behoben, 13 offen mit Empfehlung.
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|--------------|
@@ -65,7 +71,7 @@ Vollständiges Code-Audit (Sicherheit, Geschwindigkeit, Funktionen, Verweise). A
 | **3.4.12** | 🔴 fix | Benutzer-Sammelaktionen | `UserService::bulkAction('delete')` ist ein Soft-Delete (Status inaktiv); endgültig löscht nur `hard_delete`. (FUN-07) |
 | **3.4.12** | 🟠 perf | Standard-Theme | Cookie-Banner (`functions.php`) und Kontaktblock (`contact.php`) laden ihre Optionen mit einer `IN (…)`-Abfrage statt vier Einzelabfragen; `isLocalFontsEnabled()` wird pro Request nur einmal abgefragt. (PERF-01, PERF-02) |
 | **3.4.12** | 🔴 fix | Verweise | Admin-Link „Pakete“ in den Abo-Einstellungen zeigt auf `/admin/packages` (vorher 404). Lokale Marketplace-Manifeste nennen die tatsächlichen Versionen (`cms-importer` 3.0.3, `cms-default` 1.0.9). (REF-01, REF-02) |
-| **3.4.12** | 🔵 docs | Audit / Dokumentation | Neuer Ordner **`DOC/audit/`** (`README.md`, `SECURITY.md`, `PERFORMANCE.md`, `FUNKTIONEN.md`, `VERWEISE.md`). 15 tote Markdown-Links korrigiert, `DOC/core/STATUS.md` (Status je Lücke), `DOC/core/SECURITY.md`, `INDEX.md`, `FILELIST.md`, `FILESTRUCTUR.md`, `INSTALLATION.md`, `README.md` und die Bereichsdokumente zu Wartungsmodus, Health, Bestellungen, Benutzer-Sammelaktionen und Member-Uploads aktualisiert. (REF-03, REF-04) |
+| **3.4.12** | 🔵 docs | Audit / Dokumentation | Neuer Ordner **`DOC/checks/`** (`README.md`, `SECURITY.md`, `PERFORMANCE.md`, `FUNKTIONEN.md`, `VERWEISE.md`). 15 tote Markdown-Links korrigiert, `DOC/core/STATUS.md` (Status je Lücke), `DOC/core/SECURITY.md`, `INDEX.md`, `FILELIST.md`, `FILESTRUCTUR.md`, `INSTALLATION.md`, `README.md` und die Bereichsdokumente zu Wartungsmodus, Health, Bestellungen, Benutzer-Sammelaktionen und Member-Uploads aktualisiert. (REF-03, REF-04) |
 
 ### v3.4.11 — 03.10.2026
 
