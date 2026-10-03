@@ -14,7 +14,7 @@ Inventory of the classes directly under `CMS/core/` (namespace `CMS\`) and its s
 |---|---|---|---|
 | `Bootstrap` | `core/Bootstrap.php` | Start, Modus, Plattformprüfung, Initialisierung, Run | `instance()`, `run()`, `db()`, `auth()`, `security()`, `container()` |
 | `Container` | `core/Container.php` | kleiner DI-Container | `bind()`, `singleton()`, `bindInstance()`, `make()`, `get()`, `has()`, `registered()`, `forget()`, `flush()` |
-| `Router` | `core/Router.php` | URI-Auflösung, Routenregister, Dispatch, Redirect, 404, Inhaltsaufbereitung | `addRoute()`, `dispatch()`, `redirect()`, `render404()`, `getRequestLocale()`, `prepareRenderableContent()`, `streamContentAsPdf()` |
+| `Router` | `core/Router.php` | URI-Auflösung, Routenregister, Dispatch, Redirect, 404, Inhaltsaufbereitung | `addRoute()`, `dispatch()`, `redirect()`, `render404()`, `renderError()`, `getRequestLocale()`, `prepareRenderableContent()`, `streamContentAsPdf()` |
 | `Hooks` | `core/Hooks.php` | Actions/Filter | siehe [HOOKS-REFERENCE.md](HOOKS-REFERENCE.md) |
 | `Database` | `core/Database.php` | PDO-Wrapper | siehe [DATABASE-SCHEMA.md](DATABASE-SCHEMA.md) |
 | `SchemaManager` | `core/SchemaManager.php` | Basisschema, `SCHEMA_VERSION = 'v23'` | `createTables()`, `getFlagFile()`, `clearFlag()` |
