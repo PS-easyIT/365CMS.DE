@@ -23,7 +23,7 @@
 Two practical install paths exist:
 
 1. **Web installer via `CMS/install.php`**  
-   The installer checks PHP compatibility, PDO MySQL availability, and write access for `CMS/config/app.php`. It collects database, site, and admin data, writes `CMS/config/app.php`, creates the schema through `CMS\SchemaManager` (`SCHEMA_VERSION = v22`), and creates the first administrator.
+   The installer checks PHP compatibility, PDO MySQL availability, and write access for `CMS/config/app.php`. It collects database, site, and admin data, writes `CMS/config/app.php`, creates the schema through `CMS\SchemaManager` (`SCHEMA_VERSION = v23`), and creates the first administrator.
 2. **Repository checkout / manual setup**  
    Edit `CMS/config/app.php` directly. Replace every placeholder and every security key.
 
@@ -40,7 +40,7 @@ On an existing install the welcome step can run a schema repair / update without
 Für neue Installationen gibt es zwei praktikable Wege:
 
 1. **Web-Installer über `CMS/install.php`**  
-   Der Installer prüft PHP-Kompatibilität, PDO-MySQL und Schreibrechte für `CMS/config/app.php`. Er fragt Datenbank-, Site- und Admin-Daten ab, schreibt `CMS/config/app.php`, erstellt das Schema über `CMS\SchemaManager` (`SCHEMA_VERSION = v22`) und legt den ersten Administrator an.
+   Der Installer prüft PHP-Kompatibilität, PDO-MySQL und Schreibrechte für `CMS/config/app.php`. Er fragt Datenbank-, Site- und Admin-Daten ab, schreibt `CMS/config/app.php`, erstellt das Schema über `CMS\SchemaManager` (`SCHEMA_VERSION = v23`) und legt den ersten Administrator an.
 2. **Repository-Checkout / manuelle Einrichtung**  
    `CMS/config/app.php` direkt bearbeiten. Alle Platzhalterwerte und Security-Keys müssen ersetzt werden.
 
@@ -374,7 +374,7 @@ After configuration:
 2. 365CMS loads `CMS/config.php`
 3. The stub loads `CMS/config/app.php`
 4. `CMS\Bootstrap` detects mode (`web` / `admin` / `api` / `cli`) and initializes services and routing
-5. `CMS\Database` and `CMS\SchemaManager` create the base schema (`v22`) if needed
+5. `CMS\Database` and `CMS\SchemaManager` create the base schema (`v23`) if needed
 6. If you used the installer, the first admin account is created in the installer (step 4 of 5)
 
 Change the first admin password immediately after install.
@@ -387,7 +387,7 @@ Nach korrekter Konfiguration:
 2. 365CMS lädt `CMS/config.php`
 3. Der Stub lädt `CMS/config/app.php`
 4. `CMS\Bootstrap` erkennt den Modus (`web` / `admin` / `api` / `cli`) und initialisiert Services und Routing
-5. `CMS\Database` und `CMS\SchemaManager` legen bei Bedarf das Basisschema (`v22`) an
+5. `CMS\Database` und `CMS\SchemaManager` legen bei Bedarf das Basisschema (`v23`) an
 6. Beim Installer wird das erste Admin-Konto im Installer angelegt (Schritt 4 von 5)
 
 Das erste Admin-Passwort nach der Installation sofort ändern.
@@ -442,7 +442,7 @@ Check Apache rewrite or Nginx `try_files`, the web root, and `SITE_URL` (no typo
 
 ### Admin loads but features are missing
 
-Typical causes: missing PHP extensions (`curl`, `zip`, `gd`), directories that are not writable (`cache`, `logs`, `backups`, `uploads`), or a schema that was not migrated to `v22`.
+Typical causes: missing PHP extensions (`curl`, `zip`, `gd`), directories that are not writable (`cache`, `logs`, `backups`, `uploads`), or a schema that was not migrated to `v23`.
 
 Further reading:
 
@@ -466,7 +466,7 @@ Apache-Rewrite bzw. Nginx-`try_files`, korrektes Webroot und `SITE_URL` prüfen 
 
 ### Admin lädt, aber Teilfunktionen fehlen
 
-Typische Ursachen: fehlende PHP-Erweiterungen (`curl`, `zip`, `gd`), nicht beschreibbare Verzeichnisse (`cache`, `logs`, `backups`, `uploads`) oder ein nicht auf `v22` migriertes Schema.
+Typische Ursachen: fehlende PHP-Erweiterungen (`curl`, `zip`, `gd`), nicht beschreibbare Verzeichnisse (`cache`, `logs`, `backups`, `uploads`) oder ein nicht auf `v23` migriertes Schema.
 
 Weiterführend:
 

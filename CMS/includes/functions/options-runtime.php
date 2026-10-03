@@ -9,20 +9,11 @@ if (!defined('ABSPATH')) {
  * Get site option
  */
 function get_option(string $key, $default = null) {
-    static $options = null;
+    // Zentraler Request-Cache: Autoload-Optionen in einer Abfrage, übrige Schlüssel einzeln
+    // nachgeladen; Schreibzugriffe auf `settings` leeren den Cache (CMS\Database::noteWrite()).
+    $value = CMS\Services\OptionStore::getInstance()->get($key);
 
-    if ($options === null) {
-        $db = CMS\Database::instance();
-        $stmt = $db->query("SELECT option_name, option_value FROM {$db->prefix()}settings WHERE autoload = 1");
-        $results = $stmt->fetchAll();
-
-        $options = [];
-        foreach ($results as $row) {
-            $options[$row->option_name] = $row->option_value;
-        }
-    }
-
-    return $options[$key] ?? $default;
+    return $value ?? $default;
 }
 
 /**

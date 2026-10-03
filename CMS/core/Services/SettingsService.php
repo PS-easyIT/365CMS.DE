@@ -53,18 +53,8 @@ class SettingsService
     {
         $optionName = $this->buildOptionName($group, $key);
 
-        try {
-            $value = $this->db->get_var(
-                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
-                [$optionName]
-            );
-        } catch (\Throwable $e) {
-            $this->logger->warning('Settings-Lookup fehlgeschlagen für {option}', [
-                'option' => $optionName,
-                'exception' => $e,
-            ]);
-            return $default;
-        }
+        // Request-Cache; DB-Fehler liefern dort null → Default.
+        $value = OptionStore::getInstance()->get($optionName);
 
         if ($value === null) {
             return $default;

@@ -51,6 +51,107 @@ final class ApiRouter
         $this->router->addRoute('POST', '/api/upload', [$this, 'upload']);
         $this->router->addRoute('GET', '/api/media', [$this, 'media']);
         $this->router->addRoute('POST', '/api/media', [$this, 'media']);
+        $this->router->addRoute('POST', '/api/v1/auth/token', [$this, 'issueApiToken']);
+        $this->router->addRoute('POST', '/api/v1/auth/refresh', [$this, 'refreshApiToken']);
+    }
+
+    /**
+     * Stellt für die angemeldete Session ein JWT-Paar aus (Access + Refresh).
+     * Bewusst nur mit bestehender Session (Login inkl. MFA) und Same-Origin – ein reiner
+     * Passwort-Login per API würde die Zwei-Faktor-Anmeldung umgehen.
+     */
+    public function issueApiToken(): void
+    {
+        $this->requireJwtEnabled();
+
+        $auth = Auth::instance();
+        if ($auth->isBearerAuthenticated() || !$auth->isLoggedIn()) {
+            $this->jsonError(401, 'Anmeldung über die Weboberfläche erforderlich.');
+        }
+
+        if (!$this->isSameOriginRequest()) {
+            $this->denyJson('Ungültige Herkunft der Anfrage.');
+        }
+
+        $clientIp = Security::getClientIp();
+        if (!Security::checkDbRateLimit($clientIp, 'api_token', 10, 3600)) {
+            $this->jsonError(429, 'Zu viele Token-Anfragen. Bitte später erneut versuchen.');
+        }
+        Security::recordDbRateLimitAttempt($clientIp, 'api_token');
+
+        $user = $auth->getCurrentUser();
+        $userId = (int) ($user->id ?? 0);
+        $jwt = Services\JwtService::getInstance();
+
+        try {
+            $payload = [
+                'token_type' => 'Bearer',
+                'access_token' => $jwt->generateToken($userId),
+                'expires_in' => $jwt->getTtl(),
+                'refresh_token' => $jwt->generateRefreshToken($userId),
+            ];
+        } catch (\Throwable) {
+            $this->jsonError(503, 'JWT ist nicht konfiguriert.');
+        }
+
+        if (class_exists(\CMS\AuditLogger::class)) {
+            \CMS\AuditLogger::instance()->log('security', 'api.token_issued', 'API-Token ausgestellt', 'user', $userId, [], 'info');
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode($payload);
+        exit;
+    }
+
+    /**
+     * Tauscht ein Refresh-Token (Feld `refresh_token`, Form oder JSON) gegen ein neues Access-Token.
+     */
+    public function refreshApiToken(): void
+    {
+        $this->requireJwtEnabled();
+
+        $clientIp = Security::getClientIp();
+        if (!Security::checkDbRateLimit($clientIp, 'api_refresh', 30, 3600)) {
+            $this->jsonError(429, 'Zu viele Anfragen. Bitte später erneut versuchen.');
+        }
+        Security::recordDbRateLimitAttempt($clientIp, 'api_refresh');
+
+        $refreshToken = trim((string) ($_POST['refresh_token'] ?? ''));
+        if ($refreshToken === '') {
+            $body = json_decode((string) file_get_contents('php://input', false, null, 0, 16384), true);
+            $refreshToken = is_array($body) ? trim((string) ($body['refresh_token'] ?? '')) : '';
+        }
+
+        $jwt = Services\JwtService::getInstance();
+        $payload = $refreshToken !== '' ? $jwt->validateToken($refreshToken) : null;
+        if ($payload === null || ($payload->type ?? '') !== 'refresh' || !Auth::instance()->isActiveUserId((int) ($payload->sub ?? 0))) {
+            $this->jsonError(401, 'Ungültiges oder abgelaufenes Refresh-Token.');
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode([
+            'token_type' => 'Bearer',
+            'access_token' => $jwt->generateToken((int) $payload->sub),
+            'expires_in' => $jwt->getTtl(),
+        ]);
+        exit;
+    }
+
+    private function requireJwtEnabled(): void
+    {
+        if (!Services\JwtService::isApiAuthEnabled()) {
+            $this->jsonError(404, 'Nicht gefunden.');
+        }
+    }
+
+    private function jsonError(int $status, string $message): never
+    {
+        http_response_code($status);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
     public function status(): void

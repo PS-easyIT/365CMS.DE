@@ -123,11 +123,7 @@ final class PermalinkService
     {
         if (class_exists('CMS\\Database')) {
             try {
-                $db = \CMS\Database::instance();
-                $value = $db->get_var(
-                    "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ? LIMIT 1",
-                    ['setting_post_permalink_structure']
-                );
+                $value = OptionStore::getInstance()->get('setting_post_permalink_structure');
                 if (is_string($value) && trim($value) !== '') {
                     return self::normalizePostStructure($value);
                 }

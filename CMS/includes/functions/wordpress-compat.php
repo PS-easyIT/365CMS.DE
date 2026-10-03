@@ -314,38 +314,191 @@ if (!function_exists('has_filter')) {
     }
 }
 
-if (!function_exists('wp_enqueue_style')) {
-    function wp_enqueue_style(string $handle, string $src = '', array $deps = [], $ver = false, string $media = 'all'): void {}
-}
+/**
+ * Minimale Asset-Registry für WordPress-kompatible Plugins (wp_register/enqueue/dequeue/localize).
+ * Ausgabe: Styles und Header-Scripts im Hook `head` bzw. `admin_head`, Footer-Scripts in `body_end`.
+ * Was nach `head` eingereiht wird, erscheint spätestens in `body_end`. Tags tragen den CSP-Nonce.
+ */
+if (!function_exists('cms_wp_assets')) {
+    /** @return array<string,mixed> */
+    function &cms_wp_assets(): array {
+        static $assets = [
+            'style' => ['registered' => [], 'queue' => [], 'done' => []],
+            'script' => ['registered' => [], 'queue' => [], 'done' => []],
+            'localize' => [],
+            'hooked' => false,
+        ];
 
-if (!function_exists('wp_enqueue_script')) {
-    function wp_enqueue_script(string $handle, string $src = '', array $deps = [], $ver = false, bool $in_footer = false): void {}
+        return $assets;
+    }
+
+    function cms_wp_assets_register(string $type, string $handle, string $src, array $deps, $ver, array $extra): void {
+        $assets = &cms_wp_assets();
+        $handle = trim($handle);
+        if ($handle === '') {
+            return;
+        }
+
+        $assets[$type]['registered'][$handle] = [
+            'src' => $src,
+            'deps' => array_values(array_filter(array_map('strval', $deps), static fn(string $dep): bool => $dep !== '')),
+            'ver' => $ver,
+        ] + $extra;
+    }
+
+    function cms_wp_assets_enqueue(string $type, string $handle): void {
+        $assets = &cms_wp_assets();
+        if (!in_array($handle, $assets[$type]['queue'], true)) {
+            $assets[$type]['queue'][] = $handle;
+        }
+
+        if (!$assets['hooked'] && class_exists('CMS\\Hooks')) {
+            $assets['hooked'] = true;
+            $head = static function (): void {
+                cms_wp_assets_print('style', null);
+                cms_wp_assets_print('script', false);
+            };
+            CMS\Hooks::addAction('head', $head, 20);
+            CMS\Hooks::addAction('admin_head', $head, 20);
+            CMS\Hooks::addAction('body_end', static function (): void {
+                cms_wp_assets_print('style', null);
+                cms_wp_assets_print('script', null);
+            }, 20);
+        }
+    }
+
+    function cms_wp_assets_url(string $src, $ver): string {
+        $src = trim($src);
+        if ($src === '') {
+            return '';
+        }
+
+        $isAbsolute = preg_match('#^(https?:)?//#i', $src) === 1;
+        if (!$isAbsolute && !str_starts_with($src, '/')) {
+            // Andere Schemata (javascript:, data:) verwerfen, relative Pfade auf die Site-Wurzel beziehen.
+            if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $src) === 1) {
+                return '';
+            }
+            $src = '/' . $src;
+        }
+
+        if ($ver !== false && $ver !== null && (string) $ver !== '') {
+            $src .= (str_contains($src, '?') ? '&' : '?') . 'ver=' . rawurlencode((string) $ver);
+        }
+
+        return $src;
+    }
+
+    /**
+     * @param bool|null $inFooter null = alle offenen, false = nur Header-Scripts
+     */
+    function cms_wp_assets_print(string $type, ?bool $inFooter): void {
+        $assets = &cms_wp_assets();
+        $nonce = class_exists('CMS\\Security') ? ' ' . CMS\Security::instance()->nonceAttr() : '';
+
+        $ordered = [];
+        $visit = static function (string $handle, array $stack) use (&$visit, &$ordered, &$assets, $type): void {
+            if (isset($ordered[$handle]) || in_array($handle, $stack, true) || !isset($assets[$type]['registered'][$handle])) {
+                return;
+            }
+            foreach ($assets[$type]['registered'][$handle]['deps'] as $dep) {
+                $visit($dep, array_merge($stack, [$handle]));
+            }
+            $ordered[$handle] = true;
+        };
+        foreach ($assets[$type]['queue'] as $handle) {
+            $visit($handle, []);
+        }
+
+        foreach (array_keys($ordered) as $handle) {
+            if (isset($assets[$type]['done'][$handle])) {
+                continue;
+            }
+            $item = $assets[$type]['registered'][$handle];
+            if ($type === 'script' && $inFooter === false && !empty($item['in_footer'])) {
+                continue;
+            }
+
+            $assets[$type]['done'][$handle] = true;
+            $url = cms_wp_assets_url((string) $item['src'], $item['ver']);
+            $id = htmlspecialchars($handle, ENT_QUOTES, 'UTF-8');
+
+            if ($type === 'style') {
+                if ($url !== '') {
+                    echo '<link rel="stylesheet" id="' . $id . '-css" href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8')
+                        . '" media="' . htmlspecialchars((string) ($item['media'] ?? 'all'), ENT_QUOTES, 'UTF-8') . '"' . $nonce . ">\n";
+                }
+                continue;
+            }
+
+            foreach ($assets['localize'][$handle] ?? [] as $objectName => $data) {
+                echo '<script' . $nonce . '>var ' . $objectName . ' = '
+                    . json_encode($data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)
+                    . ";</script>\n";
+            }
+            if ($url !== '') {
+                echo '<script id="' . $id . '-js" src="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '"' . $nonce . "></script>\n";
+            }
+        }
+    }
 }
 
 if (!function_exists('wp_register_style')) {
     function wp_register_style(string $handle, string $src, array $deps = [], $ver = false, string $media = 'all'): bool {
+        cms_wp_assets_register('style', $handle, $src, $deps, $ver, ['media' => $media]);
         return true;
     }
 }
 
 if (!function_exists('wp_register_script')) {
     function wp_register_script(string $handle, string $src, array $deps = [], $ver = false, bool $in_footer = false): bool {
+        cms_wp_assets_register('script', $handle, $src, $deps, $ver, ['in_footer' => $in_footer]);
         return true;
+    }
+}
+
+if (!function_exists('wp_enqueue_style')) {
+    function wp_enqueue_style(string $handle, string $src = '', array $deps = [], $ver = false, string $media = 'all'): void {
+        if ($src !== '') {
+            wp_register_style($handle, $src, $deps, $ver, $media);
+        }
+        cms_wp_assets_enqueue('style', $handle);
+    }
+}
+
+if (!function_exists('wp_enqueue_script')) {
+    function wp_enqueue_script(string $handle, string $src = '', array $deps = [], $ver = false, bool $in_footer = false): void {
+        if ($src !== '') {
+            wp_register_script($handle, $src, $deps, $ver, $in_footer);
+        }
+        cms_wp_assets_enqueue('script', $handle);
     }
 }
 
 if (!function_exists('wp_localize_script')) {
     function wp_localize_script(string $handle, string $object_name, array $l10n): bool {
+        // Nur gültige JS-Bezeichner zulassen – der Name wird ungequotet ausgegeben.
+        if (preg_match('/^[A-Za-z_$][A-Za-z0-9_$]*$/', $object_name) !== 1) {
+            return false;
+        }
+        $assets = &cms_wp_assets();
+        $assets['localize'][$handle][$object_name] = $l10n;
         return true;
     }
 }
 
 if (!function_exists('wp_dequeue_style')) {
-    function wp_dequeue_style(string $handle): void {}
+    function wp_dequeue_style(string $handle): void {
+        $assets = &cms_wp_assets();
+        $assets['style']['queue'] = array_values(array_diff($assets['style']['queue'], [$handle]));
+    }
 }
 
 if (!function_exists('wp_dequeue_script')) {
-    function wp_dequeue_script(string $handle): void {}
+    function wp_dequeue_script(string $handle): void {
+        $assets = &cms_wp_assets();
+        $assets['script']['queue'] = array_values(array_diff($assets['script']['queue'], [$handle]));
+    }
 }
 
 if (!function_exists('get_site_url')) {

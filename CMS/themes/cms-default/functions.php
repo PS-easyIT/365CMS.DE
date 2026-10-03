@@ -23,6 +23,44 @@ define('MERIDIAN_THEME_DIR',     THEME_PATH . 'cms-default/');
 define('MERIDIAN_THEME_URL',     \CMS\ThemeManager::instance()->getThemeUrl());
 
 /**
+ * Liest eine Option aus `settings` – über den Core-Options-Cache (ab 3.4.12),
+ * auf älteren Cores per Einzelabfrage.
+ */
+function meridian_option(string $name, ?string $default = null): ?string
+{
+    if (class_exists('\\CMS\\Services\\OptionStore')) {
+        return \CMS\Services\OptionStore::getInstance()->get($name, $default);
+    }
+
+    try {
+        $db = \CMS\Database::instance();
+        $value = $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ? LIMIT 1", [$name]);
+    } catch (\Throwable) {
+        return $default;
+    }
+
+    return $value !== null ? (string) $value : $default;
+}
+
+/**
+ * @param list<string> $names
+ * @return array<string, ?string>
+ */
+function meridian_options(array $names, ?string $default = null): array
+{
+    if (class_exists('\\CMS\\Services\\OptionStore')) {
+        return \CMS\Services\OptionStore::getInstance()->getMany($names, $default);
+    }
+
+    $result = [];
+    foreach ($names as $name) {
+        $result[$name] = meridian_option($name, $default);
+    }
+
+    return $result;
+}
+
+/**
  * Meridian CMS Default Theme Bootstrap
  */
 class MeridianCMSDefaultTheme
@@ -82,15 +120,7 @@ class MeridianCMSDefaultTheme
             return $this->localFontsEnabled;
         }
 
-        try {
-            $db  = \CMS\Database::instance();
-            $row = $db->execute(
-                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'privacy_use_local_fonts'"
-            )->fetch();
-            return $this->localFontsEnabled = ($row && $row->option_value === '1');
-        } catch (\Throwable $e) {
-            return $this->localFontsEnabled = false;
-        }
+        return $this->localFontsEnabled = (meridian_option('privacy_use_local_fonts', '0') === '1');
     }
 
     // ─── Local / Remote Fonts ───────────────────────────────────────────────
@@ -126,9 +156,10 @@ class MeridianCMSDefaultTheme
         }
 
         try {
-            return (bool) \CMS\Services\ThemeCustomizer::instance()->get('typography', 'google_fonts', true);
+            // Standard aus: externe Fonts übermitteln die Besucher-IP an Google (DSGVO).
+            return (bool) \CMS\Services\ThemeCustomizer::instance()->get('typography', 'google_fonts', false);
         } catch (\Throwable $e) {
-            return true;
+            return false;
         }
     }
 
@@ -250,11 +281,7 @@ class MeridianCMSDefaultTheme
     private function getStoredFontStack(string $fontKey): string
     {
         try {
-            $db = \CMS\Database::instance();
-            $value = $db->get_var(
-                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ? LIMIT 1",
-                ['font_stack_' . $fontKey]
-            );
+            $value = meridian_option('font_stack_' . $fontKey, '');
         } catch (\Throwable $e) {
             return '';
         }
@@ -573,22 +600,13 @@ class MeridianCMSDefaultTheme
         }
 
         try {
-            $db      = \CMS\Database::instance();
-            $enabled = $db->execute("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'cookie_consent_enabled'")->fetch();
-            if (!$enabled || $enabled->option_value !== '1') {
+            if (meridian_option('cookie_consent_enabled', '0') !== '1') {
                 return;
             }
 
             $keys = ['cookie_banner_text', 'cookie_accept_text', 'cookie_essential_text', 'cookie_policy_url'];
-            $s = array_fill_keys($keys, '');
-            // Eine Abfrage statt vier (vorher N+1 pro Seitenaufruf).
-            $rows = $db->execute(
-                "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN (?, ?, ?, ?)",
-                $keys
-            )->fetchAll();
-            foreach ($rows as $row) {
-                $s[(string)$row->option_name] = (string)$row->option_value;
-            }
+            // Gemeinsamer Options-Cache statt Einzelabfragen (vorher N+1 pro Seitenaufruf).
+            $s = array_map('strval', meridian_options($keys, ''));
             $text    = htmlspecialchars($s['cookie_banner_text']    ?: 'Wir verwenden Cookies.', ENT_QUOTES, 'UTF-8');
             $accept  = htmlspecialchars($s['cookie_accept_text']    ?: 'Akzeptieren',             ENT_QUOTES, 'UTF-8');
             $essential = htmlspecialchars($s['cookie_essential_text'] ?: 'Nur Essenzielle',       ENT_QUOTES, 'UTF-8');

@@ -84,6 +84,79 @@ final class DocumentationModule
         }
     }
 
+    // ── Doku-Sync ─────────────────────────────────────────────────────────────
+
+    /**
+     * Konfiguration (optional in config/app.php):
+     * - CMS_DOCS_SYNC_REMOTE / CMS_DOCS_SYNC_BRANCH  (Git-Modus, Standard origin/main)
+     * - CMS_DOCS_SYNC_ZIP_URL                          (ZIP-Modus, Standard GitHub-Archiv von main)
+     * - CMS_DOCS_SYNC_BUNDLE_SHA256 / CMS_DOCS_SYNC_BUNDLE_FILES  (Pflicht für den ZIP-Modus: freigegebenes Bundle)
+     */
+    private function createSyncService(): DocumentationSyncService
+    {
+        require_once __DIR__ . '/DocumentationSyncService.php';
+
+        $constant = static fn(string $name, string $default): string => defined($name) ? trim((string) constant($name)) : $default;
+
+        return new DocumentationSyncService(
+            $this->repoRoot,
+            $this->docsRoot,
+            $constant('CMS_DOCS_SYNC_ZIP_URL', 'https://codeload.github.com/PS-easyIT/365CMS.DE/zip/refs/heads/main'),
+            strtolower($constant('CMS_DOCS_SYNC_BUNDLE_SHA256', '')),
+            (int) $constant('CMS_DOCS_SYNC_BUNDLE_FILES', '0'),
+            $constant('CMS_DOCS_SYNC_REMOTE', 'origin'),
+            $constant('CMS_DOCS_SYNC_BRANCH', 'main')
+        );
+    }
+
+    /**
+     * @return array{can_sync: bool, mode: string, label: string, message: string}
+     */
+    public function getSyncStatus(): array
+    {
+        try {
+            $capabilities = $this->createSyncService()->getSyncCapabilities()->toArray();
+        } catch (\Throwable $e) {
+            $this->logThrowableWarning('Doku-Sync-Status konnte nicht ermittelt werden.', $e);
+
+            return ['can_sync' => false, 'mode' => 'none', 'label' => 'Nicht verfügbar', 'message' => 'Der Doku-Sync-Status konnte nicht ermittelt werden.'];
+        }
+
+        return [
+            'can_sync' => (bool) ($capabilities['can_sync'] ?? false),
+            'mode' => (string) ($capabilities['mode'] ?? 'none'),
+            'label' => (string) ($capabilities['label'] ?? ''),
+            'message' => (string) ($capabilities['message'] ?? ''),
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $post
+     * @return array{success: bool, message?: string, error?: string}
+     */
+    public function handleAction(array $post): array
+    {
+        if ((string) ($post['action'] ?? '') !== 'sync_docs') {
+            return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
+        }
+
+        if (!$this->canAccess() || !Auth::instance()->hasCapability('manage_system')) {
+            return ['success' => false, 'error' => 'Für den Doku-Sync ist die Berechtigung „manage_system“ erforderlich.'];
+        }
+
+        if (!$this->getSyncStatus()['can_sync']) {
+            return ['success' => false, 'error' => 'Doku-Sync ist auf diesem Server nicht verfügbar.'];
+        }
+
+        try {
+            return $this->createSyncService()->syncDocsFromRepository()->toArray();
+        } catch (\Throwable $e) {
+            $this->logThrowableWarning('Doku-Sync ist fehlgeschlagen.', $e);
+
+            return ['success' => false, 'error' => 'Doku-Sync ist fehlgeschlagen. Bitte Logs prüfen.'];
+        }
+    }
+
     private function canAccess(): bool
     {
         return class_exists(Auth::class) && Auth::instance()->isAdmin();

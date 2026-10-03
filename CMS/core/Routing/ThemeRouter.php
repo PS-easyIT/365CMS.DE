@@ -86,6 +86,10 @@ final class ThemeRouter
         $this->router->addRoute('GET', '/search', [$this, 'renderSearch']);
         $this->router->addRoute('GET', '/contact', [$this, 'renderContact']);
         $this->router->addRoute('GET', '/kontakt', [$this, 'renderContact']);
+        // Das Theme-Kontaktformular sendet an dieselbe URL; ohne POST-Route endete jedes Absenden mit 404.
+        // CSRF prüft das Template selbst (Token "contact_form"), siehe Router-Bypass für /contact und /kontakt.
+        $this->router->addRoute('POST', '/contact', [$this, 'renderContact']);
+        $this->router->addRoute('POST', '/kontakt', [$this, 'renderContact']);
         $this->router->addRoute('GET', '/autoren', [$this, 'renderAuthorsIndex']);
         $this->router->addRoute('GET', '/authors', [$this, 'renderAuthorsIndex']);
         $this->router->addRoute('GET', '/author/:identifier', [$this, 'renderAuthorPage']);

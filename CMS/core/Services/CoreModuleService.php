@@ -541,14 +541,7 @@ final class CoreModuleService
 
     private function readLegacyEnabledSetting(string $settingKey, bool $default): bool
     {
-        try {
-            $value = $this->db->get_var(
-                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
-                [$settingKey]
-            );
-        } catch (\Throwable) {
-            return $default;
-        }
+        $value = OptionStore::getInstance()->get($settingKey);
 
         if ($value === null) {
             return $default;

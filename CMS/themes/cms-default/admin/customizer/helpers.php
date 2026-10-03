@@ -9,18 +9,6 @@ use CMS\Security;
 use CMS\Services\MediaService;
 use CMS\Services\ThemeCustomizer;
 
-/**
- * @return list<string>
- */
-function cms_default_theme_customizer_get_admin_menu_paths(): array
-{
-    return [
-        (defined('ABSPATH') ? rtrim(ABSPATH, '/\\') : '') . '/admin/partials/admin-menu.php',
-        dirname(__DIR__, 3) . '/CMS/admin/partials/admin-menu.php',
-        dirname(__DIR__, 2) . '/admin/partials/admin-menu.php',
-    ];
-}
-
 function cms_default_theme_customizer_resolve_active_tab(array $config, string $requestedTab): string
 {
     return isset($config[$requestedTab]) ? $requestedTab : 'header';

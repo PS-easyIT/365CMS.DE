@@ -155,7 +155,7 @@ Root-Klassen in `CMS/core/`:
 - `PageManager.php`
 - `PluginManager.php`
 - `Router.php`
-- `SchemaManager.php` (`SCHEMA_VERSION = 'v22'`)
+- `SchemaManager.php` (`SCHEMA_VERSION = 'v23'`)
 - `Security.php`
 - `SubscriptionManager.php`
 - `TableOfContents.php`

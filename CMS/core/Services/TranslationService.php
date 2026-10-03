@@ -124,9 +124,7 @@ final class TranslationService
         $available = $this->getAvailableLocales();
 
         try {
-            $stmt = $this->db->prepare("SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1");
-            $stmt->execute(['setting_language']);
-            $value = (string) ($stmt->fetchColumn() ?: '');
+            $value = (string) (OptionStore::getInstance()->get('setting_language') ?? '');
             if ($value !== '' && in_array($value, $available, true)) {
                 return $value;
             }

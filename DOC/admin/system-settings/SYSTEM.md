@@ -51,7 +51,16 @@ Die angezeigte „aktive Runtime-URL“ ist der tatsächlich verwendete Wert aus
 
 ### Dokumentation (`/admin/documentation`)
 
-`CMS/admin/documentation.php` → `DocumentationModule` zeigt die Markdown- und CSV-Dateien aus dem Ordner `DOC/` neben dem `CMS/`-Verzeichnis als navigierbaren Katalog an (`?doc=<pfad>`; nur `.md`/`.csv`, keine Pfad-Traversal, max. 256 KB je Datei). Relative Links zwischen Dokumenten werden umgeschrieben. Lesend, Capability `manage_settings` oder `manage_system`. Die Klassen `DocumentationSyncService`, `DocumentationGitSync` und `DocumentationGithubZipSync` (Abgleich aus GitHub) sind vorhanden, auf der Seite aber derzeit nicht als Aktion verdrahtet. `/admin/support` leitet auf diese Seite um.
+`CMS/admin/documentation.php` → `DocumentationModule` zeigt die Markdown- und CSV-Dateien aus dem Ordner `DOC/` neben dem `CMS/`-Verzeichnis als navigierbaren Katalog an (`?doc=<pfad>`; nur `.md`/`.csv`, keine Pfad-Traversal, max. 256 KB je Datei). Relative Links zwischen Dokumenten werden umgeschrieben. Lesend, Capability `manage_settings` oder `manage_system`. `/admin/support` leitet auf diese Seite um.
+
+**Doku-Sync (seit 3.4.13):** Benutzer mit `manage_system` sehen links die Karte „Doku-Sync“ mit Status und – falls möglich – dem Button „/DOC jetzt synchronisieren“ (Aktion `sync_docs`, CSRF `admin_documentation`, Bestätigungsdialog). `DocumentationSyncService` wählt den Modus:
+
+| Modus | Voraussetzung | Konfiguration (`config/app.php`, optional) |
+|---|---|---|
+| Git | `.git` im Repository-Root, `git` und `exec()` verfügbar | `CMS_DOCS_SYNC_REMOTE` (Standard `origin`), `CMS_DOCS_SYNC_BRANCH` (Standard `main`) |
+| GitHub-ZIP | ZIP-Extension, HTTPS über den zentralen HTTP-Client | **Pflicht:** `CMS_DOCS_SYNC_BUNDLE_SHA256` (SHA-256 des freigegebenen Bundles) und `CMS_DOCS_SYNC_BUNDLE_FILES` (Dateianzahl); optional `CMS_DOCS_SYNC_ZIP_URL` |
+
+Ohne freigegebenes Bundle zeigt die Karte „ZIP-Sync nicht konfiguriert“. Der Sync ersetzt ausschließlich den Ordner `DOC/` und läuft mit Datei-Lock; lokale Änderungen in `DOC/` gehen verloren.
 
 ### Verwandte Dokumente
 

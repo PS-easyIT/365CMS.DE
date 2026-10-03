@@ -24,10 +24,9 @@ $formViewData   = ['name' => '', 'email' => '', 'subject' => '', 'message' => ''
 // Empfänger-E-Mail aus Settings
 $recipientEmail = '';
 try {
-    $db  = \CMS\Database::instance();
-    $row = $db->execute("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'contact_email' LIMIT 1")->fetch();
-    if ($row && $row->option_value) {
-        $recipientCandidate = filter_var(trim((string) $row->option_value), FILTER_VALIDATE_EMAIL);
+    $contactEmailOption = (string) meridian_option('contact_email', '');
+    if ($contactEmailOption !== '') {
+        $recipientCandidate = filter_var(trim($contactEmailOption), FILTER_VALIDATE_EMAIL);
         if (is_string($recipientCandidate) && $recipientCandidate !== '') {
             $recipientEmail = $recipientCandidate;
         }
@@ -78,7 +77,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
             $contactError = 'Bitte gib eine gültige E-Mail-Adresse an.';
         } elseif (strlen($formData['message']) < 20) {
             $contactError = 'Bitte gib eine ausführlichere Nachricht ein (min. 20 Zeichen).';
+        } elseif (class_exists('\\CMS\\Security')
+            && !\CMS\Security::checkDbRateLimit(\CMS\Security::getClientIp(), 'contact_form', 5, 3600)) {
+            // Mailversand begrenzen: max. 5 Nachrichten je IP und Stunde.
+            $contactError = 'Du hast in kurzer Zeit zu viele Nachrichten gesendet. Bitte versuche es später erneut.';
         } elseif (!empty($recipientEmail)) {
+            if (class_exists('\\CMS\\Security')) {
+                \CMS\Security::recordDbRateLimitAttempt(\CMS\Security::getClientIp(), 'contact_form');
+            }
+
             $subject  = '[Kontaktformular] Neue Nachricht';
             $body     = "Name: {$formData['name']}\n"
                       . 'Betreff: ' . ($formData['subject'] !== '' ? $formData['subject'] : '—') . "\n"
@@ -222,14 +229,9 @@ if ($contactSuccess === '') {
             $contactInfo = [];
             $contactKeys = ['contact_address', 'contact_phone', 'contact_email_display', 'contact_hours'];
             try {
-                $db = \CMS\Database::instance();
-                $rows = $db->execute(
-                    "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN (?, ?, ?, ?)",
-                    $contactKeys
-                )->fetchAll();
-                foreach ($rows as $row) {
-                    if ($row->option_value) {
-                        $contactInfo[(string)$row->option_name] = $row->option_value;
+                foreach (meridian_options($contactKeys) as $key => $value) {
+                    if ($value) {
+                        $contactInfo[$key] = $value;
                     }
                 }
             } catch (\Throwable $e) {}

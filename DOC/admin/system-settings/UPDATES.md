@@ -14,7 +14,7 @@
 | Bereich | Inhalt |
 |---|---|
 | Core | installierte Version (`CMS\Version::CURRENT`, derzeit `3.4.00`), verfügbare Version laut Update-Quelle, Release-Notizen, kritisch ja/nein |
-| Datenbank | installierte und Ziel-Schema-Version (`SchemaManager::SCHEMA_VERSION = v22`), Downgrade-Erkennung |
+| Datenbank | installierte und Ziel-Schema-Version (`SchemaManager::SCHEMA_VERSION = v23`), Downgrade-Erkennung |
 | Plugins | installierte vs. verfügbare Versionen aus der Plugin-Registry |
 | Theme | aktives Theme vs. Marktplatz-Version |
 | Systemvoraussetzungen | PHP-Version, MySQL/MariaDB-Version, Erweiterungen (`pdo`, `pdo_mysql`, `mbstring`, `json`, `curl`, `gd`, `zip`), Schreibrechte (`uploads`, `cache`, `logs`, `backups`, `assets`), freier Speicherplatz |

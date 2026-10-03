@@ -343,14 +343,7 @@ class SubscriptionManager
             return $this->settingsCache[$key];
         }
 
-        try {
-            $stmt = $this->db->prepare("SELECT option_value FROM {$this->db->getPrefix()}settings WHERE option_name = ? LIMIT 1");
-            $stmt->execute([$key]);
-            $value = $stmt->fetchColumn();
-            $this->settingsCache[$key] = $value !== false ? (string)$value : $default;
-        } catch (\Throwable) {
-            $this->settingsCache[$key] = $default;
-        }
+        $this->settingsCache[$key] = Services\OptionStore::getInstance()->get($key) ?? $default;
 
         return $this->settingsCache[$key];
     }

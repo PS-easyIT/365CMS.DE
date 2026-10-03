@@ -214,18 +214,10 @@ class PluginManager
     public function getActivePlugins(): array
     {
         try {
-            $db   = Database::instance();
-            $stmt = $db->prepare(
-                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'active_plugins' LIMIT 1"
-            );
-            if (!$stmt) {
-                return [];
-            }
-            $stmt->execute();
-            $result = $stmt->fetch();
+            $activePluginsJson = Services\OptionStore::getInstance()->get('active_plugins');
             $plugins = [];
-            if ($result && $result->option_value) {
-                $plugins = Json::decodeArray($result->option_value ?? null, []);
+            if ($activePluginsJson !== null && $activePluginsJson !== '') {
+                $plugins = Json::decodeArray($activePluginsJson, []);
             }
 
             if (!is_array($plugins)) {

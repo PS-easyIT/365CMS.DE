@@ -60,15 +60,7 @@ final class AssetOptimizerService
             return $this->settingsCache[$key] === '1';
         }
 
-        try {
-            $db = Database::instance();
-            $value = (string)($db->get_var(
-                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ? LIMIT 1",
-                [$key]
-            ) ?? '0');
-        } catch (\Throwable) {
-            $value = '0';
-        }
+        $value = (string) (OptionStore::getInstance()->get($key) ?? '0');
 
         $this->settingsCache[$key] = $value;
         return $value === '1';

@@ -625,10 +625,7 @@ final class MediaDeliveryService
     private function resolvePublicCacheProfile(): string
     {
         try {
-            $db = Database::instance();
-            $value = $db->get_var(
-                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'perf_browser_cache' LIMIT 1"
-            );
+            $value = OptionStore::getInstance()->get('perf_browser_cache');
 
             return (string) $value === '0' ? 'public_no_cache' : 'public';
         } catch (\Throwable) {

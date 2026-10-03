@@ -3,7 +3,7 @@
 
 ## English (summary)
 
-This folder is the public documentation tree for 365CMS; runtime code lives in [`CMS/`](../CMS/). Core version `3.4.00` ([`CMS/core/Version.php`](../CMS/core/Version.php), released 2026-09-05, `stable`), PHP 8.4+, schema `v22`. In October 2026 every document under `DOC/` was reviewed against the 3.4 code: admin, core, member, theme, plugin, AI and workflow docs were rewritten or extended, and code/doc discrepancies were collected in [core/STATUS.md](core/STATUS.md) under "Bekannte Lücken". Most documents contain a short English summary followed by a detailed German section.
+This folder is the public documentation tree for 365CMS; runtime code lives in [`CMS/`](../CMS/). Core version `3.4.00` ([`CMS/core/Version.php`](../CMS/core/Version.php), released 2026-09-05, `stable`), PHP 8.4+, schema `v23`. In October 2026 every document under `DOC/` was reviewed against the 3.4 code: admin, core, member, theme, plugin, AI and workflow docs were rewritten or extended, and code/doc discrepancies were collected in [core/STATUS.md](core/STATUS.md) under "Bekannte Lücken". Most documents contain a short English summary followed by a detailed German section.
 
 ## Deutsch
 
@@ -31,7 +31,7 @@ This folder is the public documentation tree for 365CMS; runtime code lives in [
 ### Eckdaten 3.4.00
 
 - `CMS/core/Version.php`: `CURRENT = '3.4.00'`, `RELEASE_DATE = '2026-09-05'`, `STATUS = 'stable'`
-- `SchemaManager::SCHEMA_VERSION = 'v22'`, Tabellenpräfix `cms_`
+- `SchemaManager::SCHEMA_VERSION = 'v23'`, Tabellenpräfix `cms_`
 - Konfiguration: `CMS/config/app.php` (vom Installer erzeugt); `CMS/config.php` ist nur ein Stub
 - Bootstrap-Modi `cli`, `api`, `admin`, `web`; je Request wird nur die passende Routengruppe geladen
 - Adminbereich nur für Rolle `admin`; Capabilities steuern die einzelnen Seiten

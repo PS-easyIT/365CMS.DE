@@ -30,7 +30,7 @@ class MigrationManager
      * Aktuelle Schema-Version – erhöhen wenn neue Migrations hinzukommen.
      * Wird in cms_settings (option_name = 'db_schema_version') gespeichert.
      */
-    public const SCHEMA_VERSION = 'v22';
+    public const SCHEMA_VERSION = 'v23';
 
     public function __construct(Database $db)
     {
@@ -180,6 +180,15 @@ class MigrationManager
                              AND `published_at` IS NULL",
             // v13: Notification-Center liest pro User chronologisch absteigend.
             "ALTER TABLE `{$p}notifications` ADD INDEX `idx_user_created` (`user_id`, `created_at`)",
+            // v23: Sprachspalten wurden bisher nur von PostsModule::ensureColumns() (Admin) ergänzt –
+            // Blog und API brachen auf frischen Installationen mit "Unknown column 'title_en'" ab.
+            "ALTER TABLE `{$p}posts` ADD COLUMN `title_en` VARCHAR(255) DEFAULT NULL AFTER `title`",
+            "ALTER TABLE `{$p}posts` ADD COLUMN `content_en` LONGTEXT DEFAULT NULL AFTER `content`",
+            "ALTER TABLE `{$p}posts` ADD COLUMN `excerpt_en` TEXT DEFAULT NULL AFTER `excerpt`",
+            // v23: Blog-, Archiv- und Feed-Listen filtern auf status und sortieren nach published_at.
+            "ALTER TABLE `{$p}posts` ADD INDEX `idx_status_published` (`status`, `published_at`)",
+            // v23: idx_key doppelte den UNIQUE-Index auf option_name und kostete nur Schreibzeit.
+            "ALTER TABLE `{$p}settings` DROP INDEX `idx_key`",
         ];
 
         foreach ($migrations as $sql) {

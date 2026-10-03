@@ -269,9 +269,9 @@ return [
             ],
             'google_fonts' => [
                 'label' => 'Google Fonts als Fallback laden',
-                'description' => 'Erlaubt externe Google-Fonts im Frontend, solange keine lokalen Fonts aktiv sind. Sobald im Font Manager bzw. über lokale Schriften eine passende lokale Datei aktiv ist, hat diese Vorrang und der Remote-Fallback wird unterdrückt.',
+                'description' => 'Erlaubt externe Google-Fonts im Frontend, solange keine lokalen Fonts aktiv sind. Standardmäßig aus (DSGVO: Übermittlung der Besucher-IP an Google). Empfohlen: Schriften im Font Manager lokal einbinden.',
                 'type' => 'checkbox',
-                'default' => true,
+                'default' => false,
             ],
             'font_family_body' => [
                 'label' => 'Schriftart Fließtext',

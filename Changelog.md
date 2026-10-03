@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.12` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.13` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.12` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.13` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -23,6 +23,27 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.4.13 — 03.10.2026
+
+Offene Punkte aus dem Audit vom 03.10.2026 abgearbeitet ([`DOC/audit/`](DOC/audit/README.md)) und erstmals gegen eine echte MariaDB getestet: 15 Befunde behoben (davon 4 neu durch die Laufzeittests gefunden), PERF-06 teilweise; offen bleibt nur FUN-12 (Versionsnummer, Release-Entscheidung).
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.13** | 🛡️ security | Rate-Limits / Zeitzone | **`CMS\Database` setzt die MySQL-Sitzungszeitzone auf den PHP-Offset.** `login_attempts` wurde mit `NOW()` (Server-Zeitzone) geschrieben, aber gegen PHP-Zeit (`Europe/Berlin`) geprüft – bei UTC-Datenbanken lag das Fenster in der Zukunft und Login-, Reset-, Registrierungs-, API- und Kontakt-Limits zählten nie (im Test: Login nach 6 Fehlversuchen weiterhin möglich). Betrifft auch Firewall-, Alarm- und Mail-Queue-Zeitfenster. (SEC-10) |
+| **3.4.13** | 🛡️ security | Doku-Sync | `DocumentationSyncEnvironment::isAllowedCommand()` wendet die Git-Allowlist jetzt immer an; vorher endete die Prüfung bei jedem Befehl mit `2>&1` vorzeitig. (SEC-11) |
+| **3.4.13** | 🔴 fix | Kontaktformular | `POST /contact` und `POST /kontakt` sind registriert; das Formular von `cms-default` lieferte beim Absenden bisher immer 404. (FUN-13) |
+| **3.4.13** | 🔴 fix | Neuinstallation / Beiträge | `cms_posts` enthält `title_en`, `content_en`, `excerpt_en` im Basisschema und per Migration v23. Vorher ergänzte nur `/admin/posts` die Spalten; bis dahin lieferten `/blog` und `/api/v1/admin/posts` 500. (FUN-14) |
+| **3.4.13** | 🟠 perf | Options-Cache | **Neu: `CMS\Services\OptionStore`.** Lädt alle `autoload`-Optionen mit einer Abfrage, merkt sich weitere Schlüssel (auch Fehlschläge) für den Request und wird von `Database::prepare()`/`query()` bei Schreibzugriffen auf `settings` automatisch geleert. Umgestellt: Router, PublicRouter, ThemeManager, PluginManager, Bootstrap, TableOfContents, SubscriptionManager, `SettingsService`, `SeoSettingsStore`, `CmsAuthPageService` (Ergebnis gemerkt, lief bis zu 7× pro Request) und weitere Services sowie das Standard-Theme. `get_option()` nutzt den Store und liefert nun auch Optionen mit `autoload = 0`. Gemessen: Startseite 122 → 58 Abfragen (`settings` 74 → 10), Antwortzeit 54 → 36 ms. (PERF-03) |
+| **3.4.13** | 🟠 perf | Datenbank / Schema v23 | `SCHEMA_VERSION` → `v23` (inkl. FUN-14): Index `posts.idx_status_published (status, published_at)` für Blog-/Archiv-/Feed-Listen, redundanter Index `settings.idx_key` entfernt. Migration idempotent über `MigrationManager`. (PERF-04, PERF-05) |
+| **3.4.13** | 🛡️ security | Member-Plugins | `PluginDashboardRegistry::handleRoute()` prüft POSTs auf Plugin-Bereiche: Herkunft (`Origin`/`Referer`) muss zur Site passen; mit `'csrf' => 'core'` erzwingt der Core zusätzlich das Token `member_plugin_<slug>` (`csrfField()`, `csrfToken()`). Bestehende Plugins bleiben kompatibel. (SEC-07) |
+| **3.4.13** | 🛡️ security | Kontaktformular | Das Kontaktformular von `cms-default` sendet höchstens 5 Nachrichten je IP und Stunde. (SEC-08) |
+| **3.4.13** | 🛡️ security | Datenschutz / Fonts | Theme-Option „Google Fonts als Fallback laden“ ist standardmäßig aus (`theme.json`, Customizer, Code-Fallback). Gespeicherte Werte bleiben erhalten. (SEC-09) |
+| **3.4.13** | 🟢 feat | API / JWT | **Bearer-Anmeldung für `/api/*`, opt-in über `JWT_SECRET` (≥ 32 Zeichen).** `POST /api/v1/auth/token` stellt Access- und Refresh-Token nur für eine angemeldete Session aus (kein MFA-Bypass, Same-Origin, 10/h), `POST /api/v1/auth/refresh` erneuert (30/h). `Auth::authenticateBearerToken()` akzeptiert keine Refresh-Tokens und nur aktive Konten. (FUN-08) |
+| **3.4.13** | 🟢 feat | Dokumentation / Doku-Sync | `/admin/documentation` zeigt für `manage_system` die Karte „Doku-Sync“ mit Status und Button. Git-Modus ohne Konfiguration, ZIP-Modus mit `CMS_DOCS_SYNC_BUNDLE_SHA256`/`CMS_DOCS_SYNC_BUNDLE_FILES`; optional `CMS_DOCS_SYNC_REMOTE`, `_BRANCH`, `_ZIP_URL`. (FUN-09) |
+| **3.4.13** | 🟢 feat | WordPress-Kompatibilität | `wp_register_style/script`, `wp_enqueue_style/script`, `wp_dequeue_*` und `wp_localize_script` laden jetzt tatsächlich: Abhängigkeiten, `?ver=`, Ausgabe in `head`/`admin_head`/`body_end`, CSP-Nonce, keine `javascript:`/`data:`-URLs. (FUN-10) |
+| **3.4.13** | ⬜ chore | Toter Code | Entfernt: `admin/modules/themes/DesignSettingsModule.php`, `admin/views/themes/settings.php`, `PageManager::listPages()`, `cms_default_theme_customizer_get_admin_menu_paths()`. (FUN-11, REF-05, PERF-06 teilweise) |
+| **3.4.13** | 🔵 docs | Dokumentation | `DOC/audit/*`, `DOC/core/STATUS.md`, `SECURITY.md`, `API-REFERENCE.md` (JWT), `DATABASE-SCHEMA.md` (v23), `DOC/member/MEMBER-DASHBOARD.md`, `DOC/plugins/PLUGIN-DEVELOPMENT.md`, `DOC/admin/system-settings/SYSTEM.md`, `DOC/admin/themes-design/FONTS.md` und `DESIGN-SETTINGS.md` aktualisiert; Schema-Angaben auf `v23`. |
 
 ### v3.4.12 — 03.10.2026
 

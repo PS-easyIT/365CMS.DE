@@ -592,14 +592,7 @@ final class CookieConsentService
 
     private function getSetting(string $key, string $default = ''): string
     {
-        try {
-            $stmt = $this->db->prepare("SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1");
-            $stmt->execute([$key]);
-            $val = $stmt->fetchColumn();
-            return $val !== false ? (string)$val : $default;
-        } catch (\Throwable) {
-            return $default;
-        }
+        return OptionStore::getInstance()->get($key) ?? $default;
     }
 
     private function sanitizePosition(string $position): string

@@ -169,13 +169,18 @@ class Router
             }
         }
 
+        if ($this->isApiRequest($routingUri)) {
+            // Optional: API-Clients per JWT-Bearer-Token anmelden (nur wenn JWT_SECRET gesetzt ist).
+            Auth::instance()->authenticateBearerToken();
+        }
+
         if ($this->shouldServeMaintenancePage($routingUri)) {
             $this->renderMaintenancePage($routingUri);
             return;
         }
 
         $csrfBypassPrefixes = ['/contact/'];
-        $csrfBypassExact = ['/login', '/register', '/forgot-password', '/cms-login', '/cms-register', '/cms-password-forgot', '/logout', '/contact', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
+        $csrfBypassExact = ['/login', '/register', '/forgot-password', '/cms-login', '/cms-register', '/cms-password-forgot', '/logout', '/contact', '/kontakt', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
             $isThemeFavoriteToggle = $method === 'POST'
                 && (string) ($_POST['phinit_toggle_favorite'] ?? '') === '1'
                 && in_array((string) ($_POST['favorite_content_type'] ?? ''), ['post', 'page'], true)
@@ -270,15 +275,7 @@ class Router
             return false;
         }
 
-        try {
-            $value = Database::instance()->get_var(
-                "SELECT option_value FROM " . Database::instance()->getPrefix() . "settings WHERE option_name = 'maintenance_mode' LIMIT 1"
-            );
-        } catch (\Throwable) {
-            return false;
-        }
-
-        if ((string) $value !== '1') {
+        if (Services\OptionStore::getInstance()->get('maintenance_mode', '0') !== '1') {
             return false;
         }
 
@@ -302,13 +299,7 @@ class Router
 
     private function renderMaintenancePage(string $routingUri): void
     {
-        $message = '';
-        try {
-            $message = (string) (Database::instance()->get_var(
-                "SELECT option_value FROM " . Database::instance()->getPrefix() . "settings WHERE option_name = 'maintenance_message' LIMIT 1"
-            ) ?? '');
-        } catch (\Throwable) {
-        }
+        $message = (string) Services\OptionStore::getInstance()->get('maintenance_message', '');
         if (trim($message) === '') {
             $message = 'Die Website wird gerade gewartet.';
         }

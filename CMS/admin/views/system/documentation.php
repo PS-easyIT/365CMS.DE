@@ -25,6 +25,7 @@ $selectedPath     = is_array($selectedDocument) ? (string) ($selectedDocument['r
 $selectedTitle    = is_array($selectedDocument) ? (string) ($selectedDocument['title'] ?? 'Dokument auswählen') : 'Dokument auswählen';
 $alertData        = is_array($alert ?? null) ? $alert : [];
 $alertMarginClass = 'mb-4';
+$syncStatus       = is_array($data['sync'] ?? null) ? $data['sync'] : null;
 
 if (!function_exists('cms_admin_documentation_view_document_admin_url')) {
     function cms_admin_documentation_view_document_admin_url(array $document): string
@@ -285,6 +286,25 @@ if (!function_exists('cms_admin_documentation_view_render_tree')) {
         <?php else: ?>
             <div class="row row-cards">
                 <div class="col-12 col-xl-4">
+                    <?php if ($syncStatus !== null): ?>
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                    <h3 class="card-title mb-0">Doku-Sync</h3>
+                                    <span class="badge <?= !empty($syncStatus['can_sync']) ? 'bg-success-lt' : 'bg-secondary-lt' ?>"><?= htmlspecialchars((string) ($syncStatus['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+                                </div>
+                                <p class="text-secondary small mb-3"><?= htmlspecialchars((string) ($syncStatus['message'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
+                                <?php if (!empty($syncStatus['can_sync'])): ?>
+                                    <form method="post" data-confirm-title="Dokumentation synchronisieren" data-confirm-message="/DOC wird mit dem Repository-Stand ersetzt. Lokale Änderungen in /DOC gehen dabei verloren. Fortfahren?" data-confirm-text="Synchronisieren" data-confirm-class="btn-primary" data-confirm-status-class="bg-primary">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="action" value="sync_docs">
+                                        <button type="submit" class="btn btn-outline-primary w-100">/DOC jetzt synchronisieren</button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <?php cms_admin_documentation_view_render_featured_docs($featuredDocs, $selectedPath); ?>
 
                     <nav class="docs-sidebar documentation-sidebar" aria-label="DOC-Dateibaum">

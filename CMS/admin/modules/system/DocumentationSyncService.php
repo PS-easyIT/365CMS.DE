@@ -148,7 +148,19 @@ final class DocumentationSyncService
             return $this->buildUnavailableCapabilities($configurationFailure['message']);
         }
 
-        return $this->normalizeCapabilities($this->environment->getSyncCapabilities());
+        $capabilities = $this->normalizeCapabilities($this->environment->getSyncCapabilities());
+        if ($capabilities->mode() === 'github-zip' && !$this->isValidApprovedBundleConfiguration()) {
+            return new DocumentationSyncCapabilities(
+                false,
+                false,
+                $capabilities->hasGithubZip(),
+                'github-zip',
+                'ZIP-Sync nicht konfiguriert',
+                'Kein Git-Checkout vorhanden. Für den ZIP-Download aus GitHub müssen CMS_DOCS_SYNC_BUNDLE_SHA256 und CMS_DOCS_SYNC_BUNDLE_FILES in config/app.php gesetzt sein.'
+            );
+        }
+
+        return $capabilities;
     }
 
     private function assertSyncConfiguration(bool $logFailure = true): ?DocumentationSyncServiceResult
@@ -245,16 +257,8 @@ final class DocumentationSyncService
             );
         }
 
-        if (!$this->isValidApprovedBundleConfiguration()) {
-            return $this->createConfigurationFailure(
-                'documentation.sync.invalid_integrity_profile',
-                'Das Integritätsprofil für den Doku-Sync ist ungültig konfiguriert.',
-                [
-                    'approved_hash' => $this->approvedDocsBundleHash,
-                    'approved_file_count' => $this->approvedDocsBundleFileCount,
-                ]
-            );
-        }
+        // Das Integritätsprofil (freigegebenes Bundle) ist nur für den ZIP-Modus nötig und wird in
+        // getSyncCapabilities() bzw. DocumentationGithubZipSync geprüft – Git-Sync braucht es nicht.
 
         return null;
     }

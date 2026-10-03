@@ -69,14 +69,11 @@ final class PublicRouter
      */
     public function renderHealth(): void
     {
-        $enabled = false;
+        $enabled = Services\OptionStore::getInstance()->get('monitor_health_endpoint_enabled', '0') === '1';
         $dbOk = false;
         try {
-            $db = Database::instance();
-            $enabled = (string) ($db->get_var(
-                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'monitor_health_endpoint_enabled' LIMIT 1"
-            ) ?? '0') === '1';
-            $dbOk = true;
+            // Echte DB-Probe – der Options-Cache allein sagt nichts über die Verbindung aus.
+            $dbOk = (string) Database::instance()->get_var('SELECT 1') === '1';
         } catch (\Throwable) {
         }
 
