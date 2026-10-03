@@ -6,7 +6,7 @@
 ## English (summary)
 
 - `/admin/themes` (`CMS/admin/themes.php` → `ThemesModule`) lists installed themes from `CMS/themes/`, activates (`activate`) and deletes (`delete`) them. The active theme and the last remaining theme cannot be deleted.
-- `/admin/theme-marketplace` (`CMS/admin/theme-marketplace.php` → `ThemeMarketplaceModule`) reads a remote catalog (default `https://365cms.de/marketplace/themes`, setting `theme_marketplace_url`), caches it for 15 minutes and installs ZIP packages (`install`) from an allow-listed set of hosts, requiring a valid SHA-256 checksum. The menu entry is hidden when `marketplace_enabled = 0`.
+- `/admin/theme-marketplace` (`CMS/admin/theme-marketplace.php` → `ThemeMarketplaceModule`) reads a remote catalog (default index `https://365cms.de/marketplace/themes/index.json`, setting `theme_registry_url`; relative paths resolve against `theme_marketplace_url`, default `https://365cms.de/marketplace/themes`), caches it for 15 minutes and installs ZIP packages (`install`) from an allow-listed set of hosts, requiring a valid SHA-256 checksum. The menu entry is hidden when `marketplace_enabled = 0`.
 
 ## Deutsch
 
@@ -33,7 +33,7 @@
 | View | `CMS/admin/views/themes/marketplace.php` |
 | Installation | `CMS/core/Services/UpdateService.php` (Download, Prüfsumme, Entpacken) |
 
-**Katalogquelle:** Einstellung `theme_marketplace_url` (*Einstellungen → Allgemein → Marketplace*), Standard `https://365cms.de/marketplace/themes`. Der Katalog (max. 1 MB, Manifeste max. 512 KB) wird 15 Minuten in `theme_marketplace_catalog_cache` zwischengespeichert.
+**Katalogquelle:** Einstellung `theme_registry_url` (*Einstellungen → Allgemein → Marketplace & Updates*), Standard `https://365cms.de/marketplace/themes/index.json`; relative Manifest-, Paket- und Screenshot-Pfade werden gegen `theme_marketplace_url` (Standard `https://365cms.de/marketplace/themes`) aufgelöst. Der Katalog (max. 1 MB, Manifeste max. 512 KB) wird 15 Minuten in `theme_marketplace_catalog_cache` zwischengespeichert.
 
 **Erlaubte Hosts** für Katalog und Pakete: `365cms.de`, `www.365cms.de`, `365network.de`, `www.365network.de`, `github.com`, `api.github.com`, `codeload.github.com`, `objects.githubusercontent.com`, `raw.githubusercontent.com`.
 

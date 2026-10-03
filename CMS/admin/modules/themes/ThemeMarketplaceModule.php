@@ -17,6 +17,7 @@ if (!defined('ABSPATH')) {
 use CMS\Http\Client as HttpClient;
 use CMS\Database;
 use CMS\Services\ErrorReportService;
+use CMS\Services\MarketplaceEndpoints;
 use CMS\Services\UpdateService;
 use CMS\ThemeManager;
 
@@ -79,7 +80,7 @@ class ThemeMarketplaceModule
         'raw.githubusercontent.com',
     ];
 
-    private const DEFAULT_MARKETPLACE_URL = 'https://365cms.de/marketplace/themes';
+    private const DEFAULT_MARKETPLACE_URL = MarketplaceEndpoints::THEME_INDEX_URL;
 
     private readonly Database $db;
     private readonly string $prefix;
@@ -158,6 +159,7 @@ class ThemeMarketplaceModule
             'total'     => count($catalog),
             'stats'     => $this->buildStats($catalog),
             'source'    => $this->catalogSource,
+            'endpoints' => MarketplaceEndpoints::all(),
             'constraints' => [
                 'catalog_cache_ttl' => self::CATALOG_CACHE_TTL,
                 'catalog_max_bytes' => self::MAX_CATALOG_BYTES,
@@ -430,20 +432,13 @@ class ThemeMarketplaceModule
     }
 
     /**
-     * Marketplace-URL aus Settings
+     * Themes-Index-URL aus den zentralen Marketplace-Endpunkten
      */
     private function getMarketplaceUrl(): string
     {
-        try {
-            $row  = $this->db->get_row(
-                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'theme_marketplace_url'"
-            );
-            $value = $this->normalizeMarketplaceUrl((string) ($row->option_value ?? ''));
+        $value = $this->normalizeMarketplaceUrl(MarketplaceEndpoints::themeIndexUrl());
 
-            return $value !== '' ? $value : $this->normalizeMarketplaceUrl(self::DEFAULT_MARKETPLACE_URL);
-        } catch (\Throwable $e) {
-            return $this->normalizeMarketplaceUrl(self::DEFAULT_MARKETPLACE_URL);
-        }
+        return $value !== '' ? $value : $this->normalizeMarketplaceUrl(self::DEFAULT_MARKETPLACE_URL);
     }
 
     /**
@@ -591,7 +586,8 @@ class ThemeMarketplaceModule
             ];
         }
 
-        $catalog = $this->normalizeCatalogEntries($data, $this->resolveBasePath($catalogUrl));
+        $themeBaseUrl = $this->normalizeMarketplaceUrl(rtrim(MarketplaceEndpoints::themeBaseUrl(), '/'));
+        $catalog = $this->normalizeCatalogEntries($data, $themeBaseUrl !== '' ? $themeBaseUrl : $this->resolveBasePath($catalogUrl));
         if ($catalog === []) {
             return [
                 'catalog' => [],

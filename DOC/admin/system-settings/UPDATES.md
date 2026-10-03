@@ -25,9 +25,15 @@
 | Typ | Einstellung | Standard |
 |---|---|---|
 | Core | `core_update_url` | `https://365cms.de/marketplace/core/365cms/update.json` |
-| Plugins | `plugin_registry_url` | `https://365cms.de/marketplace/plugins/index.json` |
-| Themes | `theme_marketplace_url` | `https://365cms.de/marketplace/themes` |
+| Plugins (Index) | `plugin_registry_url` | `https://365cms.de/marketplace/plugins/index.json` |
+| Plugins (Basis) | `plugin_marketplace_base_url` | `https://365cms.de/marketplace/plugins` |
+| Themes (Index) | `theme_registry_url` | `https://365cms.de/marketplace/themes/index.json` |
+| Themes (Basis) | `theme_marketplace_url` | `https://365cms.de/marketplace/themes` |
+| Marketplace-Übersicht | `marketplace_public_url` | `https://365cms.de/marketplace-public` |
+| Public Einreichung | `marketplace_submit_url` | `https://365cms.de/marketplace-submit` |
 | Fallback | GitHub-Repository | `PS-easyIT/365CMS.DE` über `api.github.com` |
+
+Alle Endpunkte und ihre Defaults sind zentral in `CMS\Services\MarketplaceEndpoints` hinterlegt. Index-Feeds werden geladen, relative Manifest-, Paket- und Asset-Pfade werden gegen die jeweilige Basis-URL aufgelöst. Wird nur Basis oder nur Index angepasst, leitet das System das Gegenstück ab.
 
 Erlaubte Hosts: `365cms.de`, `www.365cms.de`, `365network.de`, `www.365network.de`, `github.com`, `api.github.com`, `codeload.github.com`, `objects.githubusercontent.com`, `raw.githubusercontent.com`. Prüfergebnisse werden eine Stunde zwischengespeichert; `check_updates` erzwingt eine neue Prüfung.
 

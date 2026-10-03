@@ -34,7 +34,7 @@ The installed-plugin page is `/admin/plugins`. Its accepted actions are `activat
 
 #### Registry sources and cache
 
-`PluginMarketplaceModule` reads the configured `plugin_registry_url` (editable under **Settings → Marketplace**, `SettingsModule::MARKETPLACE_DEFAULTS`); when it is empty, the default is `https://365cms.de/marketplace/plugins/index.json`. The registry is JSON shaped as `{"plugins":[…]}` (a bare array is also accepted) and is limited to 1 MiB.
+`PluginMarketplaceModule` reads the configured `plugin_registry_url` (editable under **Settings → Marketplace**, `CMS\Services\MarketplaceEndpoints`); when it is empty, the default is `https://365cms.de/marketplace/plugins/index.json`. The registry is JSON shaped as `{"plugins":[…]}` (a bare array is also accepted) and is limited to 1 MiB.
 
 Load order in `loadRegistry()`:
 
@@ -115,7 +115,7 @@ Die Seite für installierte Plugins liegt unter `/admin/plugins`. Ihre Actions s
 
 #### Registry-Quellen und Cache
 
-`PluginMarketplaceModule` liest `plugin_registry_url` (pflegbar unter **Einstellungen → Marketplace**, Defaults in `SettingsModule::MARKETPLACE_DEFAULTS`); bei leerem Wert gilt `https://365cms.de/marketplace/plugins/index.json`. Die Registry ist JSON im Format `{"plugins":[…]}` (ein reines Array wird ebenfalls akzeptiert) und auf 1 MiB begrenzt.
+`PluginMarketplaceModule` liest `plugin_registry_url` (pflegbar unter **Einstellungen → Marketplace**, Defaults in `CMS\Services\MarketplaceEndpoints`); bei leerem Wert gilt `https://365cms.de/marketplace/plugins/index.json`. Die Registry ist JSON im Format `{"plugins":[…]}` (ein reines Array wird ebenfalls akzeptiert) und auf 1 MiB begrenzt.
 
 Ladereihenfolge in `loadRegistry()`:
 

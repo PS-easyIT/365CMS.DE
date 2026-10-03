@@ -22,6 +22,9 @@ $source = is_array($data['source'] ?? null) ? $data['source'] : [];
 $constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
 $allowedHosts = is_array($constraints['allowed_marketplace_hosts'] ?? null) ? $constraints['allowed_marketplace_hosts'] : [];
 $allowedArchiveExtensions = is_array($constraints['allowed_archive_extensions'] ?? null) ? $constraints['allowed_archive_extensions'] : [];
+$endpoints = is_array($data['endpoints'] ?? null) ? $data['endpoints'] : [];
+$marketplaceOverviewUrl = (string) ($endpoints['marketplace_public_url'] ?? '');
+$marketplaceSubmitUrl = (string) ($endpoints['marketplace_submit_url'] ?? '');
 $themeMarketplaceConfig = [
     'searchInputId' => 'themeMarketplaceSearch',
     'statusFilterId' => 'themeMarketplaceStatusFilter',
@@ -69,6 +72,12 @@ $resolvePreviewColor = static function (array $theme): string {
                 </div>
             </div>
             <div class="admin-section-toolbar__actions">
+                <?php if ($marketplaceOverviewUrl !== ''): ?>
+                    <a href="<?php echo $escape($marketplaceOverviewUrl); ?>" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener noreferrer">Marketplace-Übersicht</a>
+                <?php endif; ?>
+                <?php if ($marketplaceSubmitUrl !== ''): ?>
+                    <a href="<?php echo $escape($marketplaceSubmitUrl); ?>" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener noreferrer">Theme einreichen</a>
+                <?php endif; ?>
                 <a href="/admin/themes" class="btn btn-outline-primary btn-sm">Zur Theme-Verwaltung</a>
             </div>
         </div>
