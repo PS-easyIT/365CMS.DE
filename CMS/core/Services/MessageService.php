@@ -122,7 +122,8 @@ class MessageService
                 FROM {$this->prefix}messages m
                 JOIN {$this->prefix}users s ON s.id = m.sender_id
                 WHERE (m.id = ? OR m.parent_id = ?)
-                  AND (m.sender_id = ? OR m.recipient_id = ?)
+                  AND ((m.sender_id = ? AND m.deleted_by_sender = 0)
+                    OR (m.recipient_id = ? AND m.deleted_by_recipient = 0))
                 ORDER BY m.created_at ASC";
 
         return $this->db->get_results($sql, [$rootId, $rootId, $userId, $userId]) ?: [];

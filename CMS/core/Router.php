@@ -17,6 +17,14 @@ if (!defined('ABSPATH')) {
 
 class Router
 {
+    /**
+     * Filter für öffentliche Formulare mit sessiongebundenem Persistent-Token (statt Einmal-Token `form_guard`).
+     * Callback: fn(array|null $current, string $routingUri, string $method): ?array – Rückgabe
+     * `['action' => 'token-aktion', 'token' => 'übermittelter Token']` oder null. Themes prüfen die
+     * Unterstützung über defined('\CMS\Router::PUBLIC_FORM_TOKEN_FILTER').
+     */
+    public const PUBLIC_FORM_TOKEN_FILTER = 'cms_public_form_persistent_token';
+
     private static ?self $instance = null;
     private string $requestUri;
     private string $requestMethod;
@@ -198,7 +206,18 @@ class Router
             $csrfToken = trim((string) ($_POST['csrf_token'] ?? ''));
             $hasValidThemeFavoriteToken = false;
 
-            if ($isThemeFavoriteToggle) {
+            // Generischer Weg: Theme/Plugin nennt Token-Aktion und Token für dieses Formular.
+            $persistentFormToken = Hooks::applyFilters(self::PUBLIC_FORM_TOKEN_FILTER, null, $routingUri, $method);
+            if (is_array($persistentFormToken)) {
+                $persistentAction = trim((string) ($persistentFormToken['action'] ?? ''));
+                $persistentToken = trim((string) ($persistentFormToken['token'] ?? ''));
+                $hasValidThemeFavoriteToken = $persistentAction !== ''
+                    && $persistentToken !== ''
+                    && Security::instance()->verifyPersistentToken($persistentToken, $persistentAction);
+            }
+
+            // Legacy: PHINIT-Theme bis 1.7.34 (eine Token-Aktion pro Beitrag/Seite).
+            if (!$hasValidThemeFavoriteToken && $isThemeFavoriteToggle) {
                 $favoriteType = (string) ($_POST['favorite_content_type'] ?? '');
                 $favoriteId = (int) ($_POST['favorite_content_id'] ?? 0);
                 $favoriteAction = 'phinit_favorite_' . $favoriteType . '_' . $favoriteId;

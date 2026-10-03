@@ -24,6 +24,16 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 
 ---
 
+### v3.4.15 — 03.10.2026
+
+Core-Anpassungen aus dem Audit des PHINIT-Themes (Theme 1.7.35, Bericht im Theme-Repository unter `cms-phinit/DOC/checks/`).
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.15** | 🔴 fix | Member-Beiträge | **Neue Methode `PostsModule::saveMemberDraft()`.** Speichert ein Mitglied einen eingereichten Entwurf erneut, setzte `save()` alle Felder zurück, die das Member-Formular nicht kennt: Beitragsvorlage und Vorlagen-Metadaten, Autor-Anzeigename/-URL, Zusatzkategorien, geplanter Veröffentlichungs- und Aktualisierungstermin sowie sämtliche SEO-Metadaten (`seo_meta`: Canonical, Robots, Open Graph, Twitter, Schema, Sitemap, Fokus-Keyphrase). Die Methode übernimmt diese Werte aus dem Bestand und ruft dann `save()` auf; Meta-Titel/-Beschreibung folgen Titel/Auszug nur, solange sie nicht abweichend gepflegt wurden. Englische Fassung blieb schon bisher erhalten. |
+| **3.4.15** | 🔴 fix | Nachrichten | `MessageService::getThread()` berücksichtigt jetzt `deleted_by_sender`/`deleted_by_recipient`. Vorher blieb eine gelöschte Nachricht im Verlauf sichtbar, nur die Konversationsliste blendete sie aus. |
+| **3.4.15** | 🟠 perf | Router / CSRF | **Neuer Filter `Router::PUBLIC_FORM_TOKEN_FILTER`** (`cms_public_form_persistent_token`): Themes und Plugins können öffentliche Formulare mit sessiongebundenem Persistent-Token beim globalen `form_guard` anmelden (`['action' => …, 'token' => …]`). Das PHINIT-Theme nutzt ihn für den Favoriten-Button mit **einer** Token-Aktion statt einer pro Beitrag – die Session wuchs bisher mit jedem gelesenen Beitrag um einen Token-Bucket. Die fest verdrahtete Prüfung `phinit_favorite_<typ>_<id>` bleibt als Legacy-Pfad für ältere Theme-Versionen. |
+
 ### v3.4.14 — 03.10.2026
 
 | Version | Typ | Bereich | Beschreibung |

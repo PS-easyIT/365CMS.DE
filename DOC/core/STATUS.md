@@ -1,6 +1,6 @@
 # 365CMS – Projektdokumentation | Abschnitt: Core – Implementierungsstatus
 
-> **Stand:** 2026-10-03 | **Version:** 3.4.00 (Changelog bis 3.4.14) | **Schema:** v23 | **Status:** Stable
+> **Stand:** 2026-10-03 | **Version:** 3.4.00 (Changelog bis 3.4.15) | **Schema:** v23 | **Status:** Stable
 
 ## English (summary)
 

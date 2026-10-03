@@ -657,6 +657,85 @@ class PostsModule
     /**
      * Post speichern
      */
+    /**
+     * Speichert einen Beitrag aus dem Member-Bereich (Einreichung durch Mitglieder).
+     *
+     * Das Member-Formular kennt nur Titel, Slug, Auszug, Inhalt, Hauptkategorie, Beitragsbild und Tags.
+     * `save()` setzt fehlende Felder auf Standardwerte zurück; bei einem bestehenden Entwurf würden
+     * dadurch Beitragsvorlage, Vorlagen-Metadaten, Autor-Anzeige, Zusatzkategorien, geplanter
+     * Veröffentlichungstermin, englische Fassung und SEO-Metadaten verloren gehen, die ein Admin
+     * bereits gesetzt hat. Diese Methode übernimmt sie vor dem Speichern aus dem Bestand.
+     * Meta-Titel/-Beschreibung folgen Titel/Auszug nur, solange sie nicht abweichend gepflegt wurden.
+     *
+     * @param array<string,mixed> $post
+     * @return array<string,mixed>
+     */
+    public function saveMemberDraft(array $post, int $userId): array
+    {
+        $id = (int) ($post['id'] ?? 0);
+        if ($id <= 0) {
+            return $this->save($post, $userId);
+        }
+
+        $existing = $this->db->get_row(
+            "SELECT title, excerpt, meta_title, meta_description, author_display_name, author_display_url,
+                    post_template, post_meta_json, published_at, content_updated_at
+             FROM {$this->prefix}posts WHERE id = ? LIMIT 1",
+            [$id]
+        );
+        if (!$existing) {
+            return $this->save($post, $userId);
+        }
+
+        $keep = static function (string $key, mixed $value) use (&$post): void {
+            if (!array_key_exists($key, $post)) {
+                $post[$key] = $value;
+            }
+        };
+
+        $keep('author_display_name', (string) ($existing->author_display_name ?? ''));
+        $keep('author_display_url', (string) ($existing->author_display_url ?? ''));
+        $keep('post_template', (string) ($existing->post_template ?? ''));
+        $existingMeta = json_decode((string) ($existing->post_meta_json ?? ''), true);
+        $keep('post_meta', is_array($existingMeta) ? $existingMeta : []);
+
+        // Zusatzkategorien (Hauptkategorie kommt aus dem Formular).
+        $primaryCategoryId = (int) ($post['category_id'] ?? 0);
+        $keep('additional_category_ids', array_values(array_filter(
+            $this->getPostCategoryIds($id),
+            static fn(int $categoryId): bool => $categoryId !== $primaryCategoryId
+        )));
+
+        foreach (['published_at' => 'publish', 'content_updated_at' => 'content_updated'] as $column => $prefix) {
+            $timestamp = strtotime((string) ($existing->{$column} ?? ''));
+            if ($timestamp !== false && !empty($existing->{$column})) {
+                $keep($prefix . '_date', date('Y-m-d', $timestamp));
+                $keep($prefix . '_time', date('H:i', $timestamp));
+            }
+        }
+
+        // Meta-Titel/-Beschreibung nur nachziehen, wenn sie bisher automatisch Titel/Auszug entsprachen.
+        $existingMetaTitle = trim((string) ($existing->meta_title ?? ''));
+        if ($existingMetaTitle !== '' && $existingMetaTitle !== trim((string) ($existing->title ?? ''))) {
+            $post['meta_title'] = $existingMetaTitle;
+        }
+        $existingMetaDescription = trim((string) ($existing->meta_description ?? ''));
+        if ($existingMetaDescription !== '' && $existingMetaDescription !== trim((string) ($existing->excerpt ?? ''))) {
+            $post['meta_description'] = $existingMetaDescription;
+        }
+
+        // SEO-Metadaten (Canonical, Robots, Open Graph, Twitter, Schema, Sitemap) werden in save()
+        // komplett aus $post neu geschrieben – Bestand übernehmen.
+        try {
+            foreach (SEOService::getInstance()->getContentMeta('post', $id) as $key => $value) {
+                $keep((string) $key, $value);
+            }
+        } catch (\Throwable) {
+        }
+
+        return $this->save($post, $userId);
+    }
+
     public function save(array $post, int $userId): array
     {
         $invalidInputField = $this->findUnexpectedNonScalarInput($post, ['additional_category_ids', 'post_meta']);
