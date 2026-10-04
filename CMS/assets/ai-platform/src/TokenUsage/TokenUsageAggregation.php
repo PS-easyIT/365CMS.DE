@@ -32,6 +32,16 @@ final class TokenUsageAggregation implements TokenUsageInterface, MergeableMetad
         $this->tokenUsages[] = $tokenUsage;
     }
 
+    /**
+     * The individual usages this aggregation sums up, in the order they were reported.
+     *
+     * @return TokenUsageInterface[]
+     */
+    public function getTokenUsages(): array
+    {
+        return $this->tokenUsages;
+    }
+
     public function merge(MergeableMetadataInterface $metadata): self
     {
         if (!$metadata instanceof TokenUsageInterface) {
@@ -107,6 +117,26 @@ final class TokenUsageAggregation implements TokenUsageInterface, MergeableMetad
     public function getTotalTokens(): ?int
     {
         return $this->sum(static fn (TokenUsageInterface $usage) => $usage->getTotalTokens());
+    }
+
+    /**
+     * The model shared by every usage in this aggregation, or null when they disagree - a run that
+     * mixes a chat model with an embeddings one has no single model, and no single price either.
+     *
+     * Iterate {@see self::getTokenUsages()} to price such a run per call.
+     */
+    public function getModel(): ?string
+    {
+        $models = array_unique(array_filter(array_map(
+            static fn (TokenUsageInterface $usage) => $usage->getModel(),
+            $this->tokenUsages,
+        ), static fn (?string $model) => null !== $model));
+
+        if (1 !== \count($models)) {
+            return null;
+        }
+
+        return reset($models);
     }
 
     private function sum(\Closure $mapFunction): ?int

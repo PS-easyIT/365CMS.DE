@@ -27,13 +27,13 @@
 
 This file is the **readable structure map**. It answers: where does something live, what does the running CMS load, and which paths matter when you change code.
 
-Product version in code: `3.4.00`. PHP: 8.4.0+. Schema: `v23`.
+Product version in code: `3.4.00`. PHP: 8.4.1+. Schema: `v23`.
 
 **Deutsch**
 
 Diese Datei ist die **lesbare Strukturkarte**. Sie beantwortet: wo liegt etwas, was lädt das laufende CMS, und welche Pfade zählen bei Änderungen.
 
-Produktversion im Code: `3.4.00`. PHP: 8.4.0+. Schema: `v23`.
+Produktversion im Code: `3.4.00`. PHP: 8.4.1+. Schema: `v23`.
 
 ### 1.1 Workspace context | Workspace-Kontext
 
@@ -91,7 +91,7 @@ Regel: **immer klären, ob gerade Runtime, Doku oder Quellkontext bearbeitet wir
 |---|---|
 | `.htaccess` | rewrite and protection rules |
 | `index.php` | public entry |
-| `config.php` | config stub, PHP 8.4.0+ gate |
+| `config.php` | config stub, PHP 8.4.1+ gate |
 | `config/` | real configuration |
 | `install.php` / `install/` | installer |
 | `cron.php` | cron entry |

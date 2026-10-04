@@ -3,7 +3,7 @@
   "name": "365CMS",
   "type": "core",
   "version": "3.4.00",
-  "min_php": "8.4",
+  "min_php": "8.4.1",
   "released": "2026-09-05",
   "download_url": "https://365cms.de/marketplace/core/365cms/365CMS-3.4.0-update.zip",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",

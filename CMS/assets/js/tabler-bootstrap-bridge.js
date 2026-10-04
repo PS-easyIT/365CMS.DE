@@ -1,9 +1,10 @@
 /*!
  * 365CMS Tabler-Bridge
  *
- * Tabler 1.4 stellt die Bootstrap-Komponenten nur noch unter `window.tabler`
- * bereit. Admin-/Member-Skripte nutzen weiterhin `window.bootstrap.*`
- * (Modal, Tooltip, Dropdown …). Muss direkt nach tabler.min.js geladen werden.
+ * Tabler (ab 1.4, aktuell 1.6) stellt die Bootstrap-Komponenten nur noch unter
+ * `window.tabler` bzw. `window.tabler.bootstrap` bereit. Admin-/Member-Skripte
+ * nutzen weiterhin `window.bootstrap.*` (Modal, Tooltip, Dropdown …).
+ * Muss direkt nach tabler.min.js geladen werden.
  */
 (function () {
     'use strict';

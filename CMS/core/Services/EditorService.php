@@ -139,90 +139,120 @@ class EditorService
         <script <?= \CMS\Security::instance()->nonceAttr() ?>>
         (function() {
             var _initialContent = <?php echo $jsContent; ?>;
-            if (typeof SUNEDITOR === 'undefined') {
-                console.error('SunEditor not loaded. Please check script inclusion.');
-                // Fallback: show textarea with raw content
-                var el = document.getElementById('<?php echo $editorId; ?>');
-                if (el) { el.value = _initialContent; el.style.display = 'block'; }
-                return;
-            }
-            
+
+            // SunEditor wird per defer geladen und steht erst ab DOMContentLoaded bereit.
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initEditor);
             } else {
                 initEditor();
             }
-            
+
+            function showFallback(el) {
+                if (el) { el.value = _initialContent; el.hidden = false; el.style.display = 'block'; }
+            }
+
+            // SunEditor 3: Plugins müssen explizit übergeben werden; alte 2.x-Buttonnamen werden gemappt.
+            function resolveButtons(buttonList) {
+                var aliases = { hiliteColor: 'backgroundColor', formatBlock: 'blockStyle', horizontalRule: 'hr' };
+                var plugins = {};
+                var buttons = buttonList.map(function (group) {
+                    return group.map(function (name) {
+                        var resolved = aliases[name] || name;
+                        if (SUNEDITOR.plugins && SUNEDITOR.plugins[resolved]) {
+                            plugins[resolved] = SUNEDITOR.plugins[resolved];
+                        }
+                        return resolved;
+                    });
+                });
+                return { buttons: buttons, plugins: plugins };
+            }
+
             function initEditor() {
                 var editorElement = document.getElementById('<?php echo $editorId; ?>');
                 if (!editorElement) {
                     console.error('Editor element not found: <?php echo $editorId; ?>');
                     return;
                 }
-                
+
+                if (typeof SUNEDITOR === 'undefined') {
+                    console.error('SunEditor not loaded. Please check script inclusion.');
+                    showFallback(editorElement);
+                    return;
+                }
+
                 try {
+                    var toolbar = resolveButtons(<?php echo json_encode($settings['buttonList']); ?>);
+                    editorElement.value = _initialContent;
                     var editor_<?php echo self::$editorCount; ?> = SUNEDITOR.create(editorElement, {
-                        lang: SUNEDITOR_LANG && SUNEDITOR_LANG.de ? SUNEDITOR_LANG.de : 'en',
+                        lang: window.SUNEDITOR_LANG && SUNEDITOR_LANG.de ? SUNEDITOR_LANG.de : undefined,
+                        value: _initialContent,
                         height: '<?php echo htmlspecialchars((string)$settings['height']); ?>',
                         width: '100%',
-                        buttonList: <?php echo json_encode($settings['buttonList']); ?>,
-                        defaultStyle: 'font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace; font-size: 14px;',
+                        plugins: toolbar.plugins,
+                        buttonList: toolbar.buttons,
                         charCounter: false,
-                        maxCharCount: null,
-                        resizeEnable: true,
-                        resizingBar: true,
-                        showPathLabel: false,
-                        attributesWhitelist: {
-                            all: 'style|class|id|data-*',
+                        statusbar: true,
+                        statusbar_resizeEnable: true,
+                        statusbar_showPathLabel: false,
+                        tabDisable: false,
+                        attributeWhitelist: {
+                            '*': 'style|class|id|data-[^\\s]+',
                             table: 'cellpadding|cellspacing|border',
                             a: 'href|target|rel|title',
                             img: 'src|alt|title|width|height',
                             iframe: 'src|width|height|frameborder|allowfullscreen'
                         },
-                        pasteTagsWhitelist: 'p|h1|h2|h3|h4|h5|h6|blockquote|ul|ol|li|table|thead|tbody|tr|th|td|a|b|strong|i|em|u|s|del|sub|sup|br|img|div|span|hr',
-                        videoFileInput: false,
-                        audioFileInput: false,
-                        tabDisable: false,
-                        formats: ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre'],
-                        font: ['Arial', 'Comic Sans MS', 'Courier New', 'Georgia', 'Impact', 'Tahoma', 'Times New Roman', 'Verdana'],
-                        fontSize: [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64],
-                        colorList: [
-                            ['#ff0000', '#ff5e00', '#ffe400', '#abf200', '#00d8ff', '#0055ff', '#6600ff', '#ff00dd', '#000000'],
-                            ['#ffd8d8', '#fae0d4', '#faecc5', '#c5f2e6', '#d4f4fa', '#d9e5ff', '#e8d9ff', '#ffd9fa', '#f1f1f1'],
-                            ['#ffa7a7', '#ffc19e', '#faed7d', '#b7f0b1', '#b2ebf4', '#b2ccff', '#d1b2ff', '#ffb2f5', '#bdbdbd'],
-                            ['#ff7a7a', '#ff9770', '#f7d730', '#80df90', '#60d2f0', '#8bb8ff', '#bd8fff', '#ff8fe6', '#8c8c8c'],
-                            ['#f15f5f', '#ff7a44', '#f9d120', '#5ce07e', '#30cde4', '#6f9eff', '#af75ff', '#ff78d9', '#595959'],
-                            ['#c92323', '#df5319', '#e5b700', '#30c757', '#009cb4', '#4072ff', '#8150e6', '#ff40c0', '#3b3b3b'],
-                            ['#8c0000', '#a82800', '#ad8a00', '#158f3e', '#005f6d', '#1841bb', '#4e1a95', '#b60084', '#000000']
-                        ]
+                        blockStyle: { items: ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre'] },
+                        image: { createFileInput: false },
+                        video: { createFileInput: false },
+                        audio: { createFileInput: false },
+                        font: { items: ['Arial', 'Comic Sans MS', 'Courier New', 'Georgia', 'Impact', 'Tahoma', 'Times New Roman', 'Verdana'] },
+                        fontColor: { items: [
+                            '#ff0000', '#ff5e00', '#ffe400', '#abf200', '#00d8ff', '#0055ff', '#6600ff', '#ff00dd', '#000000',
+                            '#ffd8d8', '#fae0d4', '#faecc5', '#c5f2e6', '#d4f4fa', '#d9e5ff', '#e8d9ff', '#ffd9fa', '#f1f1f1',
+                            '#ffa7a7', '#ffc19e', '#faed7d', '#b7f0b1', '#b2ebf4', '#b2ccff', '#d1b2ff', '#ffb2f5', '#bdbdbd',
+                            '#ff7a7a', '#ff9770', '#f7d730', '#80df90', '#60d2f0', '#8bb8ff', '#bd8fff', '#ff8fe6', '#8c8c8c',
+                            '#f15f5f', '#ff7a44', '#f9d120', '#5ce07e', '#30cde4', '#6f9eff', '#af75ff', '#ff78d9', '#595959',
+                            '#c92323', '#df5319', '#e5b700', '#30c757', '#009cb4', '#4072ff', '#8150e6', '#ff40c0', '#3b3b3b',
+                            '#8c0000', '#a82800', '#ad8a00', '#158f3e', '#005f6d', '#1841bb', '#4e1a95', '#b60084', '#000000'
+                        ], splitNum: 9 },
+                        // Textarea bei Änderungen synchronisieren (SunEditor 3 schreibt nicht selbst zurück)
+                        events: {
+                            onChange: function (params) {
+                                editorElement.value = params && typeof params.data === 'string'
+                                    ? params.data
+                                    : editor_<?php echo self::$editorCount; ?>.$.html.get();
+                            }
+                        }
                     });
-                    
-                    // Inhalt via API setzen – verhindert jegliches Encoding-Problem
-                    editor_<?php echo self::$editorCount; ?>.setContents(_initialContent);
 
+                    // Registry-Adapter mit getContents()/setContents() für admin-content-editor.js
+                    var legacyAdapter = {
+                        editor: editor_<?php echo self::$editorCount; ?>,
+                        getContents: function () { return editor_<?php echo self::$editorCount; ?>.$.html.get(); },
+                        setContents: function (html) {
+                            editor_<?php echo self::$editorCount; ?>.$.html.set(String(html || ''));
+                            editorElement.value = editor_<?php echo self::$editorCount; ?>.$.html.get();
+                        }
+                    };
                     window.cmsLegacyEditors = window.cmsLegacyEditors || { byId: {}, byName: {} };
                     if (editorElement.id) {
-                        window.cmsLegacyEditors.byId[editorElement.id] = editor_<?php echo self::$editorCount; ?>;
+                        window.cmsLegacyEditors.byId[editorElement.id] = legacyAdapter;
                     }
                     if (editorElement.name) {
-                        window.cmsLegacyEditors.byName[editorElement.name] = editor_<?php echo self::$editorCount; ?>;
+                        window.cmsLegacyEditors.byName[editorElement.name] = legacyAdapter;
                     }
-                    
-                    // Textarea bei Änderungen synchronisieren
-                    editor_<?php echo self::$editorCount; ?>.onChange = function(contents, core) {
-                        editorElement.value = contents;
-                    };
+
                     // Auch vor Form-Submit sicherstellen dass der Wert aktuell ist
                     var form = editorElement.closest('form');
                     if (form) {
                         form.addEventListener('submit', function() {
-                            editorElement.value = editor_<?php echo self::$editorCount; ?>.getContents();
+                            editorElement.value = editor_<?php echo self::$editorCount; ?>.$.html.get();
                         });
                     }
                 } catch (error) {
                     console.error('Failed to initialize SunEditor:', error);
-                    // Fallback: show textarea
-                    editorElement.style.display = 'block';
+                    showFallback(editorElement);
                 }
             }
         })();

@@ -1512,7 +1512,7 @@ class UpdateService
      */
     public function getSystemRequirements(): array
     {
-        $requiredPhpVersion = defined('CMS_MIN_PHP_VERSION') ? CMS_MIN_PHP_VERSION : '8.4.0';
+        $requiredPhpVersion = \CMS\Version::minimumPhp();
         $mysqlVersion = $this->getMySQLVersion();
         $mysqlVersionDetected = preg_match('/^\d+\.\d+\.\d+/', $mysqlVersion) === 1;
         $extensionChecks = $this->buildExtensionRequirements();

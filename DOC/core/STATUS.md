@@ -14,7 +14,7 @@ Snapshot of the runtime state verified against the source code on 2026-10-02: ve
 |---|---|---|
 | Core-Version | `3.4.00`, Release `2026-09-05`, Status `stable` | `CMS/core/Version.php`, `CMS/update.json` |
 | Schema | `v23` | `SchemaManager::SCHEMA_VERSION`, `MigrationManager::SCHEMA_VERSION` |
-| PHP | ≥ 8.4.0 | `CMS_MIN_PHP_VERSION` in `CMS/config.php`, `min_php` in `update.json` |
+| PHP | ≥ 8.4.1 | `CMS_MIN_PHP_VERSION` in `CMS/config.php` und `CMS\Version::MIN_PHP` (es zählt das Maximum, `Version::minimumPhp()`), `min_php` in `update.json` |
 | Datenbank | MySQL ≥ 5.7 / MariaDB (empfohlen MySQL 8.0+ / MariaDB 10.6+) | Update-Preflight |
 | Standard-Theme | `cms-default` 1.0.9 („Meridian CMS Default“) | `CMS/themes/cms-default/theme.json` |
 | Mitgeliefertes Plugin | `cms-importer` 3.0.3 | `CMS/plugins/cms-importer/cms-importer.php` |

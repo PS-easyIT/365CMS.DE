@@ -70,7 +70,7 @@ final class InstallerController
     private function renderWelcome(): void
     {
         if (!defined('CMS_MIN_PHP_VERSION')) {
-            define('CMS_MIN_PHP_VERSION', '8.4.0');
+            define('CMS_MIN_PHP_VERSION', '8.4.1');
         }
 
         $this->render('welcome', [

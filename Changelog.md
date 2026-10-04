@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.17` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.18` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.17` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.18` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -21,6 +21,23 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.4.18 — 04.10.2026
+
+Fremd-Assets auf die unter `CMS_ASSETS/` abgelegten Upstream-Stände gehoben. Getestet mit PHP 8.4 und MariaDB 11.8: Installation, Admin, Asset-Diagnose (28/28 Runtime-Bundles inkl. Funktionsproben), Editor.js-Seiteneditor mit Speichern, SunEditor im Mitgliederprofil und in Hub-Sites, Volltextsuche, Dompdf-Rendering.
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.18** | ⬜ chore | Assets / Symfony | **Symfony-Komponenten auf 8.1:** `mailer`/`mime` 8.1.7, `translation` 8.1.5, `yaml` 8.1.8, `clock` 8.1.0, `event-dispatcher` 8.1.5, `serializer`/`property-info`/`type-info`/`uid` 8.1.8, `property-access` 8.1.4, `string` 8.1.7 (alle entsprechen Symfony 8.1.8). Polyfills (`mbstring`, `ctype`, `intl-idn`, `intl-normalizer`, `intl-grapheme`, `uuid`) auf 1.43.0. Ausschlüsse wie bisher (`Command/`, `DataCollector/`, `DependencyInjection/`, `Debug/`, `Test/`, `Extractor/`); die 365CMS-Kopfzeilen in den mitgelieferten README-/CHANGELOG-Dateien bleiben erhalten. |
+| **3.4.18** | ⬜ chore | Assets / PHP-Libraries | `symfony/ai-platform` 0.6.0 → **0.14.1** (nur Basis unter `src/`, ohne `src/Bridge/`, `src/Test/`, `dev/`), `nesbot/carbon` 3.11.4 → **3.14.2**, `directorytree/ldaprecord` 4.0.3 → **4.0.8** (ohne `Testing/`), `teamtnt/tntsearch` 5.0.3 → **5.3.0**, `firebase/php-jwt` → **7.2.1**, `doctrine/lexer` → **3.0.3**. Zeilenenden der Upstream-Archive wurden auf LF normalisiert. |
+| **3.4.18** | ⬜ chore | Assets / PDF | `CMS/vendor/dompdf/`: Dompdf 3.1.5 → **3.1.6**, `sabberworm/php-css-parser` 8.9.0 → **9.5.0**, `masterminds/html5` 2.10.0 → **2.11.0**. Die Composer-Autoload-Dateien wurden neu erzeugt (neu: `composer/autoload_files.php` für die BC-Aliase des CSS-Parsers 9.x). |
+| **3.4.18** | ⬜ chore | Assets / Editor.js | Core `editorjs.umd.js` 2.31.6 → **2.31.7** (offizieller Build, bytegleich). Neu in 2.31.7: `onChange` auch für native `<select>`-Felder; die Eigenschaften-Selects der lokalen Tools laufen damit zusätzlich zum bestehenden Holder-`change`-Listener in denselben entprellten Sync. Die lokal angepassten Plugin-Bundles bleiben unverändert. |
+| **3.4.18** | ⬜ chore | Assets / UI | Tabler 1.4.0 → **1.6.1** (`tabler.min.css`/`.js`, wie bisher ohne `sourceMappingURL`-Kommentar), Tabler Icons 3.41.1 → **3.48.0** (keine Icons entfernt). `window.tabler.bootstrap` bleibt verfügbar, `js/tabler-bootstrap-bridge.js` deckt alle `bootstrap.*`-Aufrufe weiter ab. |
+| **3.4.18** | 🔴 fix | SunEditor 3.3.3 | **SunEditor 3.0.5 → 3.3.3 und Umstellung aller Aufrufer auf die 3.x-API.** `EditorService::render()` und `js/admin-hub-site-edit.js` riefen SunEditor noch mit der 2.x-Konfiguration auf (ohne `plugins`, mit `setContents()`/`editor.onChange`); die Initialisierung brach ab und es blieb die nackte Textarea. Jetzt: Toolbar-Plugins explizit, `value`, `events.onChange`, `$.html.get()`/`set()`, `attributeWhitelist['*']`, `blockStyle.items`. `EditorService` prüft `SUNEDITOR` erst nach `DOMContentLoaded` (Skripte laden mit `defer`) und registriert für `admin-content-editor.js` einen Adapter mit `getContents()`/`setContents()`. Hub-Sites erzeugen die Editoren einmal pro Render-Durchlauf und lassen Formularfeld-Editoren beim Neuaufbau der Kacheln bestehen (SunEditor 3 meldete sonst `E_INIT_FAIL`). |
+| **3.4.18** | 🔴 fix | Plattform / PHP | **Symfony 8.1 verlangt PHP ≥ 8.4.1.** Neu: `CMS\Version::MIN_PHP = '8.4.1'` und `Version::minimumPhp()` (Maximum aus `CMS_MIN_PHP_VERSION` und `MIN_PHP`), genutzt von `Bootstrap`-Plattformprüfung, `VendorRegistry`, `StatusService`, `UpdateService` und Sicherheits-Audit. Ohne diese Änderung hätten bestehende Installationen nach dem Update mit „Plattformanforderung nicht erfüllt“ abgebrochen, weil Core-Updates `config.php` (mit `8.4.0`) nicht ersetzen. Neue `config.php`-Stubs und der Installer setzen `8.4.1`; `update.json` meldet `min_php` `8.4.1`. |
+| **3.4.18** | 🔵 docs | Asset-Doku | `DOC/assets/ASSET.md`, `README.md`, Unterordner `editorjs`, `suneditor`, `tabler`, `carbon`, `translation`, `365CMS_Asset_Uebersicht.xlsx` (Runtime-Stände), `INSTALLATION.md`, `DEVLIST.md`, `FILELIST.md`, `core/STATUS.md`. `symfony/cache` 8.1.8 und `phpstan/phpstan` 2.2.16 liegen nur als Archiv in `CMS_ASSETS/` und sind keine Runtime-Pakete. |
 
 ---
 

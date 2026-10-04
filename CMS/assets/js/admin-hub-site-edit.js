@@ -415,6 +415,7 @@
         var initialTemplateValue;
         var activeLanguage = 'de';
         var summaryEditors = new Map();
+        var summaryEditorsInitTimer = null;
         var dragCard = null;
 
         if (!form) {
@@ -630,9 +631,16 @@
 
         function destroySummaryEditors() {
             summaryEditors.forEach(function (editor, key) {
+                var textarea = document.getElementById(key);
+
+                // Formularfelder liegen außerhalb des neu gerenderten Kartencontainers und behalten ihren Editor.
+                // SunEditor 3 initialisiert asynchron; ein sofortiges destroy() bricht die Initialisierung ab.
+                if (textarea && textarea.dataset.source === 'form' && textarea.isConnected && !container.contains(textarea)) {
+                    return;
+                }
+
                 try {
                     if (editor && typeof editor.getContents === 'function') {
-                        var textarea = document.getElementById(key);
                         if (textarea) {
                             textarea.value = editor.getContents();
                         }
@@ -644,12 +652,25 @@
                 } catch (_error) {
                     // Editor cleanup should never block the form UI.
                 }
-            });
 
-            summaryEditors.clear();
+                summaryEditors.delete(key);
+            });
         }
 
         function initSummaryEditors() {
+            // Mehrere render()-Aufrufe im selben Durchlauf erzeugen die Editoren nur einmal;
+            // SunEditor 3 meldet sonst E_INIT_FAIL für sofort wieder zerstörte Instanzen.
+            if (summaryEditorsInitTimer !== null) {
+                window.clearTimeout(summaryEditorsInitTimer);
+            }
+
+            summaryEditorsInitTimer = window.setTimeout(function () {
+                summaryEditorsInitTimer = null;
+                createSummaryEditors();
+            }, 0);
+        }
+
+        function createSummaryEditors() {
             if (!form || typeof window.SUNEDITOR === 'undefined') {
                 return;
             }
@@ -682,48 +703,63 @@
             }
 
             try {
-                var editor = window.SUNEDITOR.create(textarea, {
-                    lang: window.SUNEDITOR_LANG && window.SUNEDITOR_LANG.de ? window.SUNEDITOR_LANG.de : 'en',
+                // SunEditor 3: Plugins explizit übergeben, Inhalt per `value`, Änderungen per `events.onChange`.
+                var pluginNames = ['blockStyle', 'list', 'align', 'link'];
+                var plugins = {};
+                pluginNames.forEach(function (name) {
+                    if (window.SUNEDITOR.plugins && window.SUNEDITOR.plugins[name]) {
+                        plugins[name] = window.SUNEDITOR.plugins[name];
+                    }
+                });
+
+                var instance = window.SUNEDITOR.create(textarea, {
+                    lang: window.SUNEDITOR_LANG && window.SUNEDITOR_LANG.de ? window.SUNEDITOR_LANG.de : undefined,
+                    value: textarea.value || '',
                     width: '100%',
                     height: isFormField ? '220' : '180',
                     minHeight: isFormField ? '180px' : '140px',
-                    resizingBar: true,
-                    resizeEnable: true,
+                    plugins: plugins,
+                    statusbar: true,
+                    statusbar_resizeEnable: true,
+                    statusbar_showPathLabel: false,
                     charCounter: false,
                     buttonList: [
                         ['undo', 'redo'],
-                        ['formatBlock'],
+                        ['blockStyle'],
                         ['bold', 'italic', 'underline'],
                         ['list', 'outdent', 'indent', 'align'],
                         ['link'],
                         ['removeFormat']
                     ],
-                    formats: ['p', 'div', 'blockquote'],
-                    defaultTag: 'p',
-                    showPathLabel: false,
-                    imageFileInput: false,
-                    videoFileInput: false,
-                    audioFileInput: false,
-                    font: ['Arial', 'Segoe UI', 'Verdana', 'Tahoma'],
-                    fontSize: [12, 14, 16, 18],
-                    pasteTagsWhitelist: 'p|div|blockquote|ul|ol|li|a|b|strong|i|em|u|s|br|span',
-                    attributesWhitelist: {
-                        all: 'style|class',
-                        a: 'href|target|rel|title',
-                        span: 'style|class',
-                        p: 'style|class',
-                        div: 'style|class'
+                    blockStyle: { items: ['p', 'div', 'blockquote'] },
+                    defaultLine: 'p',
+                    attributeWhitelist: {
+                        '*': 'style|class',
+                        a: 'href|target|rel|title'
+                    },
+                    events: {
+                        onChange: function (params) {
+                            var contents = params && typeof params.data === 'string' ? params.data : instance.$.html.get();
+
+                            if (!isFormField) {
+                                targetCollection[index][key] = contents;
+                                sync();
+                            }
+
+                            textarea.value = contents;
+                        }
                     }
                 });
 
-                editor.setContents(textarea.value || '');
-                editor.onChange = function (contents) {
-                    if (!isFormField) {
-                        targetCollection[index][key] = contents;
-                        sync();
+                // Adapter mit der bisherigen getContents()/destroy()-Schnittstelle für Submit und Cleanup.
+                var editor = {
+                    getContents: function () {
+                        return instance.$.html.get();
+                    },
+                    destroy: function () {
+                        instance.destroy();
+                        textarea.style.display = '';
                     }
-
-                    textarea.value = contents;
                 };
 
                 summaryEditors.set(id, editor);

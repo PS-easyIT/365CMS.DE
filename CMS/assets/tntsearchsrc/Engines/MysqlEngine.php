@@ -179,7 +179,7 @@ class MysqlEngine extends SqliteEngine
             }
 
             $this->index->exec('INSERT INTO ' . $this->indexName . '_wordlist (term, num_hits, num_docs) VALUES ' . implode(',',
-                    $insertRows) . ' ON DUPLICATE KEY UPDATE num_docs=num_docs+VALUES(num_docs), num_hits=num_hits+VALUES(num_docs)');
+                    $insertRows) . ' ON DUPLICATE KEY UPDATE num_docs=num_docs+VALUES(num_docs), num_hits=num_hits+VALUES(num_hits)');
 
             $termIds = $this->index->query('SELECT id, term FROM ' . $this->indexName . '_wordlist WHERE term IN (' . implode(',',
                     array_map([$this->index, 'quote'], array_keys($termChunk))) . ')');
@@ -293,8 +293,21 @@ class MysqlEngine extends SqliteEngine
         $res = $stmtWord->fetchAll(PDO::FETCH_ASSOC);
 
         if ($this->fuzziness && (!isset($res[0]) || $noLimit)) {
-            return $this->fuzzySearch($keyword);
+            $fuzzyResults = $this->fuzzySearch($keyword);
+
+            if (isset($res[0])) {
+                // Preserve the exact match — fuzzySearch may drop it when it
+                // falls outside fuzzy_max_expansions — without duplicating it.
+                $res[0]['distance'] = 0;
+                $exactId            = $res[0]['id'];
+                $fuzzyResults       = array_values(array_filter($fuzzyResults, function ($row) use ($exactId) {
+                    return $row['id'] != $exactId;
+                }));
+            }
+
+            array_push($res, ...$fuzzyResults);
         }
+
         return $res;
     }
 
@@ -309,7 +322,7 @@ class MysqlEngine extends SqliteEngine
 
         $resultSet = [];
         foreach ($matches as $match) {
-            $distance = levenshtein($match['term'], $keyword);
+            $distance = $this->mbLevenshtein($match['term'], $keyword);
             if ($distance <= $this->fuzzy_distance) {
                 $match['distance'] = $distance;
                 $resultSet[] = $match;
