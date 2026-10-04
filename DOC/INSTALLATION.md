@@ -29,7 +29,7 @@ Two practical install paths exist:
 
 The installer is the preferred path for a fresh deployment. After a successful install, remove `install.php` from public deployments or keep it reachable only for administrators.
 
-`CMS/config.php` is a stub. It sets `ABSPATH`, enforces PHP 8.4.0+, and loads `CMS/config/app.php`. If `config/app.php` is missing, the stub sends the visitor to the installer.
+`CMS/config.php` is a stub. It sets `ABSPATH`, enforces PHP 8.4.1+, and loads `CMS/config/app.php`. If `config/app.php` is missing, the stub sends the visitor to the installer.
 
 The installer session cookie uses `HttpOnly`, `SameSite=Strict`, and `Secure` when HTTPS is detected. Forms use a CSRF token. The admin password help text requires at least 12 characters.
 
@@ -46,7 +46,7 @@ Für neue Installationen gibt es zwei praktikable Wege:
 
 Der bevorzugte Einstieg für frische Deployments ist der Installer. Nach erfolgreicher Installation sollte `install.php` aus öffentlichen Deployments entfernt oder nur für Administratoren erreichbar gehalten werden.
 
-`CMS/config.php` ist ein Stub. Er setzt `ABSPATH`, erzwingt PHP 8.4.0+ und lädt `CMS/config/app.php`. Fehlt `config/app.php`, leitet der Stub zum Installer weiter.
+`CMS/config.php` ist ein Stub. Er setzt `ABSPATH`, erzwingt PHP 8.4.1+ und lädt `CMS/config/app.php`. Fehlt `config/app.php`, leitet der Stub zum Installer weiter.
 
 Die Installer-Session nutzt `HttpOnly`, `SameSite=Strict` und bei HTTPS zusätzlich `Secure`. Formulare sind CSRF-geschützt. Der Installer verlangt laut Hilfetext mindestens 12 Zeichen für das Admin-Passwort.
 
@@ -58,7 +58,7 @@ Bei einer bestehenden Installation kann der Willkommensschritt ein Schema-Update
 
 **English**
 
-Enforced in code (`CMS_MIN_PHP_VERSION` in `CMS/config.php`): **PHP 8.4.0+**. Below that, `config.php`, installer, and bootstrap block a normal start.
+Enforced in code (`CMS_MIN_PHP_VERSION` in `CMS/config.php`): **PHP 8.4.1+**. Below that, `config.php`, installer, and bootstrap block a normal start. The bundled Symfony 8.1 libraries require PHP 8.4.1, so the code also ships this floor as `CMS\Version::MIN_PHP`; the higher of the two values applies, which keeps older installations (whose `config.php` is not replaced by core updates) working.
 
 The installer welcome screen checks:
 
@@ -72,7 +72,7 @@ Neither `CMS/` nor the root [`README.md`](../README.md) names a minimum database
 
 | Component | In code / documented |
 |---|---|
-| PHP | **8.4.0+** (enforced) |
+| PHP | **8.4.1+** (enforced) |
 | Database | MySQL or MariaDB via `pdo_mysql` |
 | Web server | Apache 2.4 with rewrite, or Nginx with `try_files` |
 | PHP extensions (needed) | `pdo_mysql`, plus `mbstring`, `json`, `openssl` used across the core |
@@ -81,7 +81,7 @@ Neither `CMS/` nor the root [`README.md`](../README.md) names a minimum database
 
 **Deutsch**
 
-Im Code erzwungen (`CMS_MIN_PHP_VERSION` in `CMS/config.php`): **PHP 8.4.0+**. Darunter blockieren `config.php`, Installer und Bootstrap den normalen Start.
+Im Code erzwungen (`CMS_MIN_PHP_VERSION` in `CMS/config.php`): **PHP 8.4.1+**. Darunter blockieren `config.php`, Installer und Bootstrap den normalen Start. Die gebündelten Symfony-8.1-Libraries verlangen PHP 8.4.1, deshalb liefert der Code diese Untergrenze zusätzlich als `CMS\Version::MIN_PHP` mit; es gilt der höhere der beiden Werte. Ältere Installationen, deren `config.php` bei Core-Updates nicht ersetzt wird, laufen damit weiter.
 
 Der Installer-Willkommensbildschirm prüft:
 
@@ -95,7 +95,7 @@ Weder `CMS/` noch das Root-[`README.md`](../README.md) nennen noch eine Mindestv
 
 | Komponente | Im Code / dokumentiert |
 |---|---|
-| PHP | **8.4.0+** (erzwungen) |
+| PHP | **8.4.1+** (erzwungen) |
 | Datenbank | MySQL oder MariaDB über `pdo_mysql` |
 | Webserver | Apache 2.4 mit Rewrite oder Nginx mit `try_files` |
 | PHP-Erweiterungen (nötig) | `pdo_mysql`, plus `mbstring`, `json`, `openssl` im Core |
@@ -113,7 +113,7 @@ In production the contents of `CMS/` are typically the web root.
 | Path | Role |
 |---|---|
 | `CMS/index.php` | public entry |
-| `CMS/config.php` | stub, loads `config/app.php`, enforces PHP 8.4.0+ |
+| `CMS/config.php` | stub, loads `config/app.php`, enforces PHP 8.4.1+ |
 | `CMS/config/app.php` | real configuration |
 | `CMS/install.php` | installer entry (remove after install) |
 | `CMS/cron.php` | cron / background entry |
@@ -138,7 +138,7 @@ In produktiven Installationen ist in der Regel der Inhalt von `CMS/` das Webroot
 | Pfad | Zweck |
 |---|---|
 | `CMS/index.php` | Frontend-Einstieg |
-| `CMS/config.php` | Stub, lädt `config/app.php`, erzwingt PHP 8.4.0+ |
+| `CMS/config.php` | Stub, lädt `config/app.php`, erzwingt PHP 8.4.1+ |
 | `CMS/config/app.php` | echte Konfiguration |
 | `CMS/install.php` | Installer-Einstieg (nach der Installation entfernen) |
 | `CMS/cron.php` | Cron-/Hintergrund-Einstieg |
@@ -480,7 +480,7 @@ Weiterführend:
 
 - **Konfigurationsreihenfolge:** `CMS/index.php` lädt `config/app.php` vor `config.php`. Eigene Konstanten (z. B. `JWT_SECRET`, Debug-Schalter) gehören deshalb in `config/app.php`; nach jedem erneuten Installer-Lauf prüfen, ob sie erhalten geblieben sind (siehe [core/STATUS.md](core/STATUS.md)).
 - **Installer-Sperre:** Existiert bereits eine Konfiguration, schreibt der Installer eine Lock-Datei und beantwortet weitere Aufrufe mit HTTP 403 („blocked“). `install.php` trotzdem nach der Installation entfernen oder per Webserver sperren.
-- **Mindest-PHP:** `CMS_MIN_PHP_VERSION = 8.4.0` (Prüfung im Willkommensschritt).
+- **Mindest-PHP:** `CMS_MIN_PHP_VERSION = 8.4.1` (Prüfung im Willkommensschritt).
 - **Cron:** `php CMS/cron.php --task=all` (CLI) oder HTTP-Aufruf mit Token (`?token=…&task=…`); Tasks `all`, `mail-queue`, `hourly`, `daily`, `feeds`, `cms_cron_*`. Details: [admin/system-settings/SYSTEM.md](admin/system-settings/SYSTEM.md).
 - **Nach der Installation:** Mailversand testen ([admin/system-settings/MAIL.md](admin/system-settings/MAIL.md)), erstes Backup anlegen ([admin/system-settings/BACKUP.md](admin/system-settings/BACKUP.md)), Sicherheits-Audit ausführen ([admin/security/SECURITY-AUDIT.md](admin/security/SECURITY-AUDIT.md)).
 - **Updates und Deployments:** [workflow/UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md).

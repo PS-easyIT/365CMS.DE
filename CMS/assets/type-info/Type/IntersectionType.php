@@ -52,7 +52,7 @@ final class IntersectionType extends Type implements CompositeTypeInterface
             }
         }
 
-        usort($types, fn (Type $a, Type $b): int => (string) $a <=> (string) $b);
+        usort($types, static fn (Type $a, Type $b): int => (string) $a <=> (string) $b);
         $this->types = array_values(array_unique($types));
     }
 
@@ -64,10 +64,24 @@ final class IntersectionType extends Type implements CompositeTypeInterface
         return $this->types;
     }
 
+    /**
+     * @param-immediately-invoked-callable $specification
+     */
     public function composedTypesAreSatisfiedBy(callable $specification): bool
     {
         foreach ($this->types as $type) {
             if (!$type->isSatisfiedBy($specification)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function accepts(mixed $value): bool
+    {
+        foreach ($this->types as $type) {
+            if (!$type->accepts($value)) {
                 return false;
             }
         }

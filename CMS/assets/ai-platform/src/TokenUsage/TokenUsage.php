@@ -13,11 +13,12 @@ namespace Symfony\AI\Platform\TokenUsage;
 
 use Symfony\AI\Platform\Exception\InvalidArgumentException;
 use Symfony\AI\Platform\Metadata\MergeableMetadataInterface;
+use Symfony\AI\Platform\Result\Stream\Delta\DeltaInterface;
 
 /**
  * @author Junaid Farooq <ulislam.junaid125@gmail.com>
  */
-final class TokenUsage implements MergeableMetadataInterface, TokenUsageInterface
+final class TokenUsage implements MergeableMetadataInterface, TokenUsageInterface, DeltaInterface
 {
     public function __construct(
         private readonly ?int $promptTokens = null,
@@ -31,6 +32,7 @@ final class TokenUsage implements MergeableMetadataInterface, TokenUsageInterfac
         private readonly ?int $remainingTokensMinute = null,
         private readonly ?int $remainingTokensMonth = null,
         private readonly ?int $totalTokens = null,
+        private readonly ?string $model = null,
     ) {
     }
 
@@ -96,5 +98,10 @@ final class TokenUsage implements MergeableMetadataInterface, TokenUsageInterfac
     public function getTotalTokens(): ?int
     {
         return $this->totalTokens;
+    }
+
+    public function getModel(): ?string
+    {
+        return $this->model;
     }
 }

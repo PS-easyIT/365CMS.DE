@@ -83,7 +83,7 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
             $this->phpDocParser = new PhpDocParser($parserConfig, new TypeParser($parserConfig, new ConstExprParser($parserConfig)), new ConstExprParser($parserConfig));
             $this->lexer = new Lexer($parserConfig);
         } else {
-            $this->phpDocParser = new PhpDocParser(new TypeParser(new ConstExprParser()), new ConstExprParser());
+            $this->phpDocParser = new PhpDocParser(new TypeParser($constExprParser = new ConstExprParser(true, true), true), $constExprParser);
             $this->lexer = new Lexer();
         }
         $this->stringTypeResolver = new StringTypeResolver();
@@ -140,7 +140,8 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
     {
         $declaringClass = $class;
         if (!$tagDocNode = $this->getDocBlockFromConstructor($declaringClass, $property)) {
-            return $this->getType($class, $property);
+            // the doc block of a promoted property describes the constructor argument, the one of a plain property does not
+            return $this->isPromotedProperty($class, $property) ? $this->getType($class, $property) : null;
         }
 
         $typeContext = $this->typeContextFactory->createFromClassName($class, $declaringClass);
@@ -329,7 +330,7 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
 
     private function filterDocBlockParams(PhpDocNode $docNode, string $allowedParam): ?ParamTagValueNode
     {
-        $tags = array_values(array_filter($docNode->getTagsByName('@param'), fn ($tagNode) => $tagNode instanceof PhpDocTagNode && ('$'.$allowedParam) === $tagNode->value->parameterName));
+        $tags = array_values(array_filter($docNode->getTagsByName('@param'), static fn ($tagNode) => $tagNode instanceof PhpDocTagNode && ('$'.$allowedParam) === $tagNode->value->parameterName));
 
         if (!$tags) {
             return null;
@@ -428,22 +429,28 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
             try {
                 $method = new \ReflectionMethod($class, $methodName);
                 if ($method->isStatic()) {
+                    $method = null;
+
                     continue;
                 }
 
                 if (self::ACCESSOR === $type && \in_array((string) $method->getReturnType(), ['void', 'never'], true)) {
+                    $method = null;
+
                     continue;
                 }
 
                 if (
                     (
                         (self::ACCESSOR === $type && !$method->getNumberOfRequiredParameters())
-                        || (self::MUTATOR === $type && $method->getNumberOfParameters() >= 1)
+                        || (self::MUTATOR === $type && $method->getNumberOfParameters() >= 1 && $method->getNumberOfRequiredParameters() <= 1)
                     )
                     && $this->canAccessMemberBasedOnItsVisibility($method)
                 ) {
                     break;
                 }
+
+                $method = null;
             } catch (\ReflectionException) {
                 // Try the next prefix if the method doesn't exist
             }
@@ -474,5 +481,14 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
     private function canAccessMemberBasedOnItsVisibility(\ReflectionProperty|\ReflectionMethod $member): bool
     {
         return $this->allowPrivateAccess || $member->isPublic();
+    }
+
+    private function isPromotedProperty(string $class, string $property): bool
+    {
+        try {
+            return (new \ReflectionProperty($class, $property))->isPromoted();
+        } catch (\ReflectionException) {
+            return false;
+        }
     }
 }

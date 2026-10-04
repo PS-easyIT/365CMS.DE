@@ -21,7 +21,6 @@ use phpDocumentor\Reflection\Types\Array_;
 use phpDocumentor\Reflection\Types\Collection;
 use phpDocumentor\Reflection\Types\Compound;
 use phpDocumentor\Reflection\Types\Integer;
-use phpDocumentor\Reflection\Types\Mixed_;
 use phpDocumentor\Reflection\Types\Null_;
 use phpDocumentor\Reflection\Types\Nullable;
 use phpDocumentor\Reflection\Types\Scalar as LegacyScalar;
@@ -202,11 +201,11 @@ final class PhpDocTypeHelper
         }
 
         if ($docType instanceof Array_ && $this->hasNoExplicitKeyType($docType) && str_starts_with($docTypeString, 'array<')) {
-            return Type::list($this->getType($docType->getValueType()));
+            return Type::array($this->getType($docType->getValueType()));
         }
 
         if (str_ends_with($docTypeString, '[]') && $docType instanceof Array_) {
-            return Type::list($this->getType($docType->getValueType()));
+            return Type::array($this->getType($docType->getValueType()));
         }
 
         if (str_starts_with($docTypeString, 'list<') && $docType instanceof Array_) {
@@ -216,7 +215,7 @@ final class PhpDocTypeHelper
         }
 
         if (str_starts_with($docTypeString, 'array<') && $docType instanceof Array_) {
-            // array<value> is converted to x[] which is handled above
+            // array<value> is handled above
             // so it's only necessary to handle array<key, value> here
             $collectionKeyType = $this->getType($docType->getKeyType());
             $collectionValueType = $this->getType($docType->getValueType());
@@ -236,32 +235,17 @@ final class PhpDocTypeHelper
 
         [$phpType, $class] = $this->getPhpTypeAndClass($docTypeString);
 
-        if ('array' === $docTypeString) {
-            return Type::array();
-        }
-
-        if (null === $class) {
-            return Type::builtin($phpType);
-        }
-
-        if ($docType instanceof LegacyScalar || $docType instanceof Scalar) {
-            return Type::object('scalar');
-        }
-
-        if ($docType instanceof PseudoType) {
-            if ($docType->underlyingType() instanceof Integer) {
-                return Type::int();
-            }
-
-            if ($docType->underlyingType() instanceof String_) {
-                return Type::string();
-            }
-
-            // It's safer to fall back to other extractors here, as resolving pseudo types correctly is not easy at the moment
-            return null;
-        }
-
-        return Type::object($class);
+        return match (true) {
+            'array' === $docTypeString => Type::array(),
+            null === $class => Type::builtin($phpType),
+            $docType instanceof LegacyScalar || $docType instanceof Scalar => Type::object('scalar'),
+            $docType instanceof PseudoType => match (true) {
+                $docType->underlyingType() instanceof Integer => Type::int(),
+                $docType->underlyingType() instanceof String_ => Type::string(),
+                default => null, // It's safer to fall back to other extractors here, as resolving pseudo types correctly is not easy at the moment
+            },
+            default => Type::object($class),
+        };
     }
 
     private function hasNoExplicitKeyType(Array_|Collection $type): bool

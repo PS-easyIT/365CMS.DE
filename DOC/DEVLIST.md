@@ -39,7 +39,7 @@ Audience: developers, integrators, auditors, operators. Companion docs: [INDEX.m
 
 **English**
 
-- **PHP 8.4.0+** is enforced (`CMS_MIN_PHP_VERSION` in `CMS/config.php`).
+- **PHP 8.4.1+** is enforced (`CMS_MIN_PHP_VERSION` in `CMS/config.php`).
 - Database: **MySQL or MariaDB** via PDO (`pdo_mysql`). No version gate in the installer.
 - Typical web server: Apache 2.4 with rewrite, or Nginx `try_files` to `index.php`.
 - Required / widely used extensions: `pdo_mysql`, `mbstring`, `json`, `openssl`.
@@ -50,7 +50,7 @@ Audience: developers, integrators, auditors, operators. Companion docs: [INDEX.m
 
 **Deutsch**
 
-- **PHP 8.4.0+** wird erzwungen (`CMS_MIN_PHP_VERSION` in `CMS/config.php`).
+- **PHP 8.4.1+** wird erzwungen (`CMS_MIN_PHP_VERSION` in `CMS/config.php`).
 - Datenbank: **MySQL oder MariaDB** über PDO (`pdo_mysql`). Kein Versionsgate im Installer.
 - Typischer Webserver: Apache 2.4 mit Rewrite oder Nginx `try_files` auf `index.php`.
 - Nötige / häufig genutzte Erweiterungen: `pdo_mysql`, `mbstring`, `json`, `openssl`.

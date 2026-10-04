@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\Serializer\Normalizer;
 
+use Symfony\Component\PropertyAccess\PropertyPath;
 use Symfony\Component\Serializer\Exception\CircularReferenceException;
 use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 use Symfony\Component\Serializer\Exception\LogicException;
@@ -242,9 +243,14 @@ abstract class AbstractNormalizer implements NormalizerInterface, DenormalizerIn
             }
         }
 
-        if (!$ignoreUsed && [] === $groups && $allowExtraAttributes) {
-            // Backward Compatibility with the code using this method written before the introduction of @Ignore
-            return false;
+        if (!$ignoreUsed && $allowExtraAttributes) {
+            if ([] === $groups) {
+                return false;
+            }
+
+            if ([] === $allowedAttributes && \in_array('*', $groups, true)) {
+                return false;
+            }
         }
 
         return $allowedAttributes;
@@ -321,7 +327,7 @@ abstract class AbstractNormalizer implements NormalizerInterface, DenormalizerIn
 
         $constructor = $this->getConstructor($data, $class, $context, $reflectionClass, $allowedAttributes);
         if ($constructor) {
-            if (true !== $constructor->isPublic()) {
+            if (!$constructor->isPublic()) {
                 return $reflectionClass->newInstanceWithoutConstructor();
             }
 
@@ -329,6 +335,7 @@ abstract class AbstractNormalizer implements NormalizerInterface, DenormalizerIn
             $missingConstructorArguments = [];
             $params = [];
             $unsetKeys = [];
+            $collectedErrorCountBeforeConstructor = \count($context['not_normalizable_value_exceptions'] ?? []);
 
             foreach ($constructorParameters as $constructorParameter) {
                 $paramName = $constructorParameter->name;
@@ -445,6 +452,22 @@ abstract class AbstractNormalizer implements NormalizerInterface, DenormalizerIn
             } catch (\TypeError $e) {
                 if (!isset($context['not_normalizable_value_exceptions'])) {
                     throw $e;
+                }
+
+                // Only report the TypeError when no constructor-argument error was collected for
+                // this instantiation. When the loop above already recorded missing or invalid
+                // arguments, the TypeError is a downstream consequence of those errors and would
+                // just duplicate the report.
+                if (\count($context['not_normalizable_value_exceptions']) === $collectedErrorCountBeforeConstructor) {
+                    $context['not_normalizable_value_exceptions'][] = NotNormalizableValueException::createForUnexpectedDataType(
+                        \sprintf('Failed to create an instance of "%s" from constructor: %s', $class, $e->getMessage()),
+                        null,
+                        ['unknown'],
+                        $context['deserialization_path'] ?? null,
+                        false,
+                        0,
+                        $e,
+                    );
                 }
 
                 return $reflectionClass->newInstanceWithoutConstructor();
@@ -571,7 +594,7 @@ abstract class AbstractNormalizer implements NormalizerInterface, DenormalizerIn
      */
     protected function getAttributeDenormalizationContext(string $class, string $attribute, array $context): array
     {
-        $context['deserialization_path'] = ($context['deserialization_path'] ?? false) ? $context['deserialization_path'].'.'.$attribute : $attribute;
+        $context['deserialization_path'] = PropertyPath::append($context['deserialization_path'] ?? '', $attribute);
 
         if (null === $metadata = $this->getAttributeMetadata($class, $attribute)) {
             return $context;

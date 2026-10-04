@@ -132,21 +132,25 @@ class PhpDocExtractor implements PropertyDescriptionExtractorInterface, Property
 
     public function getTypeFromConstructor(string $class, string $property): ?Type
     {
-        if (!$docBlock = $this->getDocBlockFromConstructor($class, $property)) {
-            return null;
-        }
-
         $types = [];
-        /** @var DocBlock\Tags\Var_|DocBlock\Tags\Return_|DocBlock\Tags\Param $tag */
-        foreach ($docBlock->getTagsByName('param') as $tag) {
-            if ($tag instanceof InvalidTag || !$tagType = $tag->getType()) {
-                continue;
-            }
 
-            $types[] = $this->phpDocTypeHelper->getType($tagType);
+        if ($docBlock = $this->getDocBlockFromConstructor($class, $property)) {
+            /** @var DocBlock\Tags\Var_|DocBlock\Tags\Return_|DocBlock\Tags\Param $tag */
+            foreach ($docBlock->getTagsByName('param') as $tag) {
+                if ($tag instanceof InvalidTag || !$tagType = $tag->getType()) {
+                    continue;
+                }
+
+                $types[] = $this->phpDocTypeHelper->getType($tagType);
+            }
         }
 
-        return $types[0] ?? null;
+        if (null !== $type = $types[0] ?? null) {
+            return $type;
+        }
+
+        // the doc block of a promoted property describes the constructor argument, the one of a plain property does not
+        return $this->isPromotedProperty($class, $property) ? $this->getType($class, $property) : null;
     }
 
     public function getDocBlock(string $class, string $property): ?DocBlock
@@ -270,19 +274,25 @@ class PhpDocExtractor implements PropertyDescriptionExtractorInterface, Property
             try {
                 $method = new \ReflectionMethod($class, $methodName);
                 if ($method->isStatic()) {
+                    $method = null;
+
                     continue;
                 }
 
                 if (self::ACCESSOR === $type && \in_array((string) $method->getReturnType(), ['void', 'never'], true)) {
+                    $method = null;
+
                     continue;
                 }
 
                 if (
                     (self::ACCESSOR === $type && !$method->getNumberOfRequiredParameters())
-                    || (self::MUTATOR === $type && $method->getNumberOfParameters() >= 1)
+                    || (self::MUTATOR === $type && $method->getNumberOfParameters() >= 1 && $method->getNumberOfRequiredParameters() <= 1)
                 ) {
                     break;
                 }
+
+                $method = null;
             } catch (\ReflectionException) {
                 // Try the next prefix if the method doesn't exist
             }
@@ -447,5 +457,14 @@ class PhpDocExtractor implements PropertyDescriptionExtractorInterface, Property
         }
 
         return null;
+    }
+
+    private function isPromotedProperty(string $class, string $property): bool
+    {
+        try {
+            return (new \ReflectionProperty($class, $property))->isPromoted();
+        } catch (\ReflectionException) {
+            return false;
+        }
     }
 }

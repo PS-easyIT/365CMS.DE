@@ -27,7 +27,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 if (!defined('CMS_MIN_PHP_VERSION')) {
-    define('CMS_MIN_PHP_VERSION', '8.4.0');
+    define('CMS_MIN_PHP_VERSION', '8.4.1');
 }
 
 if (!defined('CMS_INSTALLER_RUNNING') && version_compare(PHP_VERSION, CMS_MIN_PHP_VERSION, '<')) {

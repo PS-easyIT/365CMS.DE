@@ -113,7 +113,7 @@ class Bootstrap
      */
     private function validateBundledPhpPlatform(): void
     {
-        $requiredPhpVersion = defined('CMS_MIN_PHP_VERSION') ? CMS_MIN_PHP_VERSION : '8.4.0';
+        $requiredPhpVersion = Version::minimumPhp();
         $manifests = [
             'symfony/mailer' => ABSPATH . 'assets/mailer/composer.json',
             'symfony/mime' => ABSPATH . 'assets/mime/composer.json',
@@ -317,7 +317,7 @@ class Bootstrap
     private function ensureConstants(): void
     {
         defined('CMS_VERSION')   || define('CMS_VERSION',   Version::CURRENT);
-        defined('CMS_MIN_PHP_VERSION') || define('CMS_MIN_PHP_VERSION', '8.4.0');
+        defined('CMS_MIN_PHP_VERSION') || define('CMS_MIN_PHP_VERSION', Version::MIN_PHP);
         defined('SITE_NAME')     || define('SITE_NAME',     'CMS');
         defined('SITE_URL')      || define('SITE_URL',      '');
         defined('ADMIN_EMAIL')   || define('ADMIN_EMAIL',   '');

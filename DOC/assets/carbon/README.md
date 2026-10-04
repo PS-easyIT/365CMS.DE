@@ -1,6 +1,6 @@
 # Carbon
 
-> **Stand:** 2026-09-26 | **Version:** 3.11.4 | **Status:** Aktiv
+> **Stand:** 2026-10-04 | **Version:** 3.14.2 | **Status:** Aktiv
 
 ## Kurzbeschreibung
 
@@ -21,7 +21,7 @@
 - `symfony/clock` (`CMS/assets/clock/`), `psr/clock` (`CMS/assets/psr/Clock/`)
 - `symfony/translation` (`CMS/assets/translation/`), `symfony-contracts`
 - `symfony/polyfill-mbstring` nur ohne ext-mbstring
-- Nicht übernommen: `Laravel/`, `PHPStan/`, `Cli/` (Framework-/Tooling-Integration)
+- Nicht übernommen: `Laravel/`, `PHPStan/`, `Cli/` (Framework-/Tooling-Integration) sowie das im Archiv `CMS_ASSETS/Carbon-3.14.2.zip` enthaltene `vendor/`
 
 ## Website / GitHub
 

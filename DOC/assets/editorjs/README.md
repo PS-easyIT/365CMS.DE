@@ -6,7 +6,7 @@
 
 ## Quellordner
 
-- Originalquelle: `ASSETS/editor.js-2.31.6/editorjs.umd.js`
+- Originalquelle: offizieller Build `dist/editorjs.umd.js` aus npm `@editorjs/editorjs@2.31.7` (Quellarchiv: `CMS_ASSETS/editor.js-2.31.7.zip`, enthält kein `dist/`)
 - Runtime-Ziel: `CMS/assets/editorjs/editorjs.umd.js`
 
 ## Verwendung in 365CMS
@@ -23,7 +23,7 @@
 - Der Admin-Editor bietet eine WordPress/Gutenberg-ähnlichere Oberfläche: Commandbar mit Block-Inserter, Undo/Redo, Breitenmodus und gruppierte Blockkarten für Text, Medien sowie Layout/Spezialblöcke. Aktive Blocktools sind in der Page/Post-GUI und im generischen `EditorJsAssetService` als Schnellwerkzeuge erreichbar; optionale Inline-Erweiterungen liegen in der Textformatierungsbubble bzw. in den nativen EditorJS-Tune-Menüs.
 - Hinweis-/Warnboxen werden seit `3.0.15` über das lokale `CmsWarningTool` gerendert: Titel und Inhalt sind contenteditable, unterstützen sichere Inline-Formatierungen und können als `Info`, `Warnung`, `Erfolg` oder `Kritisch` gespeichert werden.
 - Nachtrag 19.05.2026: Die lokale Tool-Schicht unterstützt Read-only-Kontexte defensiver, sodass Vorschau- und geschützte Ansichten nicht mehr von editierbaren UI-Annahmen abhängen.
-- Der Core wird bytegleich aus `ASSETS/editor.js-2.31.6/editorjs.umd.js` in `CMS/assets/editorjs/editorjs.umd.js` bereitgestellt.
+- Der Core wird bytegleich aus dem offiziellen 2.31.7-Build in `CMS/assets/editorjs/editorjs.umd.js` bereitgestellt. Der bisherige 2.31.6-Core war ebenfalls unverändert; lokale 365CMS-Anpassungen stecken ausschließlich in den Plugin-Bundles (z. B. `hyperlink.umd.js`, lokal gebautes `delimiter.umd.js`) und in `CMS/assets/js/editor-init.js`, die vom Core-Update unberührt bleiben.
 - Die Page/Post-Tools werden als lokale UMD-Dateien aus `CMS/assets/editorjs/` geladen: Core, Basis-Tools und stabile Erweiterungen werden deterministisch vor `CMS/assets/js/editor-init.js` eingebunden.
 - `CMS/assets/js/editor-init.js` ist nur noch die 365CMS-Factory/Normalizer-Schicht: Sie verdrahtet die UMD-Globals (`Paragraph`, `Header`, `EditorjsList`, `ImageTool`, `Quote`, `CodeTool`, `Table`, `Delimiter`, `Embed`, `LinkTool`, `AttachesTool`, `Warning`, `RawTool`, `Accordion`/`AccordionBlock`, `CmsImageGalleryTool`, `InlineCode`, `Underline`, `Strikethrough`, `Hyperlink`, `TgSpoilerEditorJS`, `ColorPlugin`) sowie lokale Factory-Tools wie `CmsMarkerTool` und die Plugin-Globals (`Undo`, `DragDrop`) mit Upload-, Save-, History- und Legacy-Datenkompatibilität.
 - Plugin-Registrierung ist defensiv: optionale Tools werden nur aktiviert, wenn ihr lokales UMD-Global tatsächlich vorhanden ist. Dadurch gibt es keine toten Toolbar-Buttons und keine parallelen Modul-/Eval-Loader.
@@ -87,7 +87,8 @@ Damit entsteht ein WordPress-ähnliches Blockgefühl, während Sanitizer, Render
 
 ## Sicherheits- und Betriebsvertrag
 
-- Gebündelte Core-Version: `Editor.js 2.31.6` (Upstream-Stand im Audit: `v2.31.6`).
+- Gebündelte Core-Version: `Editor.js 2.31.7` (Upstream-Stand 2026-10-04: `v2.31.7`).
+- 2.31.7 löst `onChange` jetzt auch bei Änderungen nativer `<select>`-Felder aus. Die Eigenschaften-Selects der lokalen Tools (`image`, `imageGallery`, `mediaText`, Spacer) synchronisierten bisher nur über den eigenen `change`-Listener am Holder (`createCmsEditor()`); beide Wege laufen in denselben entprellten `syncEditorChange()` und erzeugen keinen doppelten Save. Der Holder-Listener bleibt für Checkboxen und Eingabefelder nötig.
 - Gespeicherte Editor.js-JSON-Payloads werden serverseitig über `CMS\Services\EditorJs\EditorJsSanitizer` bereinigt; Client-Sanitizer der Tools sind nur Ergänzung.
 - Inline-HTML und Raw-Blöcke laufen über `CMS\Services\EditorJs\EditorJsHtmlSanitizer`: keine Event-Attribute, keine `javascript:`-Links, kontrollierte Link-/Asset-Schemata und strikt erlaubte Tags.
 - Der Frontend-Renderer sanitizt Raw-Blöcke erneut vor der Ausgabe, damit ältere oder importierte Inhalte nicht ungefiltert gerendert werden.

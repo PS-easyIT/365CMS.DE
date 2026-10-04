@@ -134,7 +134,7 @@ class SecurityAuditModule
         );
 
         $phpVersion    = PHP_VERSION;
-        $minPhpVersion = defined('CMS_MIN_PHP_VERSION') ? (string) CMS_MIN_PHP_VERSION : '8.4.0';
+        $minPhpVersion = \CMS\Version::minimumPhp();
         $phpStatus     = match (true) {
             version_compare($phpVersion, $minPhpVersion, '>=') => 'ok',
             version_compare($phpVersion, '8.2.0', '>=')        => 'warning',

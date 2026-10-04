@@ -207,7 +207,7 @@ class StatusService {
      */
     public function checkPHP(): array {
         $checks = [];
-        $requiredPhpVersion = defined('CMS_MIN_PHP_VERSION') ? CMS_MIN_PHP_VERSION : '8.4.0';
+        $requiredPhpVersion = \CMS\Version::minimumPhp();
         
         // PHP-Version
         if (version_compare(PHP_VERSION, $requiredPhpVersion, '>=')) {

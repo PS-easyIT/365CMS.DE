@@ -293,7 +293,7 @@ final class VendorRegistry
      */
     private function getBundledPlatformDiagnostics(): array
     {
-        $requiredPhpVersion = defined('CMS_MIN_PHP_VERSION') ? (string)CMS_MIN_PHP_VERSION : '8.4.0';
+        $requiredPhpVersion = Version::minimumPhp();
         $diagnostics = [];
 
         foreach ($this->getBundledPlatformManifestDefinitions() as $packageName => $manifestPath) {
@@ -776,8 +776,8 @@ final class VendorRegistry
             [
                 'package' => 'symfony/cache',
                 'label' => 'Symfony Cache (Staging)',
-                'paths' => [['path' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'cache-8.0.8', 'type' => 'dir']],
-                'symbol' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'cache-8.0.8',
+                'paths' => [['path' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'cache-8.1.8', 'type' => 'dir']],
+                'symbol' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'cache-8.1.8',
                 'symbol_type' => 'staging',
                 'notes' => 'Dokumentierter Kandidat außerhalb der aktiven Runtime.',
             ],

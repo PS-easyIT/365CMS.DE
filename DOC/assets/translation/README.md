@@ -1,6 +1,6 @@
 # Symfony Translation
 
-> **Stand:** 2026-09-26 | **Version:** 8.0.8 | **Status:** Aktiv
+> **Stand:** 2026-10-04 | **Version:** 8.1.5 | **Status:** Aktiv
 
 ## Kurzbeschreibung
 
@@ -9,7 +9,7 @@
 ## Quellordner
 
 - `CMS/assets/translation/`
-- `CMS/assets/yaml/` (`symfony/yaml` 8.0.8 zum Parsen von `CMS/lang/*.yaml`)
+- `CMS/assets/yaml/` (`symfony/yaml` 8.1.8 zum Parsen von `CMS/lang/*.yaml`)
 
 ## Verwendung in 365CMS
 
@@ -19,7 +19,8 @@
 
 ## Abhängigkeiten
 
-- `symfony-contracts` (Translation-Contracts 3.6.1), `symfony/polyfill-mbstring` (nur ohne ext-mbstring)
+- `symfony-contracts` (Translation-Contracts 3.6.1, Symfony 8.1 verlangt `^3.6.1`), `symfony/polyfill-mbstring` (nur ohne ext-mbstring)
+- PHP `>= 8.4.1` (Symfony 8.1)
 - Nicht übernommen: `Command/`, `DataCollector/`, `DependencyInjection/`, `Extractor/`, `DataCollectorTranslator` (Framework-/Tooling-Integration)
 
 ## Website / GitHub
