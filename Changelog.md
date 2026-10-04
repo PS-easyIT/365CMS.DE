@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.18` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.19` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.18` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.19` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -21,6 +21,19 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.4.19 — 04.10.2026
+
+Nicht mehr benötigte Assets und deren Doku entfernt. Grundlage ist eine Referenzsuche über Core, PhinIT-Theme und PhinIT-Plugins.
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.19** | ⬜ chore | Assets | `CMS/assets/suneditor/css/suneditor-contents.min.css` entfernt. Weder Admin, Member-Bereich noch Frontend laden die Datei. |
+| **3.4.19** | ⬜ chore | Asset-Diagnose | `CMS\VendorRegistry` führt die Staging-/Referenzeinträge `symfony/cache` und `msgraph-sdk-php` nicht mehr. Sie zeigten auf den nicht mehr vorhandenen Ordner `ASSETS/` im Repository-Root und wurden in der Diagnose ohnehin ausgeblendet. |
+| **3.4.19** | 🔵 docs | Asset-Doku | Historische READMEs unter `DOC/assets/` für längst entfernte Pakete gelöscht: `cookieconsent`, `elfinder`, `filepond`, `gridjs`, `msgraph`, `simplepie`. Verweise in `admin/legal/COOKIES.md`, `admin/media/MEDIA.md`, `admin/pages-posts/TABLES.md`, `admin/system-settings/MAIL.md` und `checks/VERWEISE.md` entfernt bzw. angepasst; `assets/ASSET.md`, `README.md`, `ASSETS_NEW.md`, `ASSETS_OwnAssets.md` und `suneditor/README.md` nachgezogen (Staging jetzt `CMS_ASSETS/`, Kandidatenliste nur noch mit vorhandenen Archiven). |
+| **3.4.19** | 🔵 docs | Bewusst behalten | Die Symfony-AI-Platform samt ihrer 15 nur von ihr genutzten Pakete bleibt als vorbereitete Basis für künftige AI-Adapter gebündelt, obwohl der Code sie derzeit nur in der Diagnose-Probe nutzt. Ebenso bleiben die nicht referenzierten Logo-Varianten in `CMS/assets/images/` als Branding-Set erhalten. |
 
 ---
 
