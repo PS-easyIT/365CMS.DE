@@ -9540,3 +9540,32 @@ body.admin-body .admin-section-toolbar__actions {
     font-family: Georgia, 'Times New Roman', serif;
     color: #93a4bd;
 }
+
+/* ──────────────────────────────────────────────────────────
+   Solid-Badges (.badge.bg-*) lesbar machen
+   Tabler setzt .badge { color: var(--tblr-secondary) } (#6b7280) und
+   .bg-* färbt nur den Hintergrund – grauer Text auf Vollfarbe.
+   Hier greift die Tabler-Kontrastfarbe (--tblr-*-fg), analog zu
+   .text-bg-*. *-lt-Varianten und explizite .text-*-Klassen (!important)
+   bleiben unberührt.
+   ────────────────────────────────────────────────────────── */
+.badge.bg-primary   { --tblr-badge-color: var(--tblr-primary-fg, #fff); }
+.badge.bg-secondary { --tblr-badge-color: var(--tblr-secondary-fg, #fff); }
+.badge.bg-success   { --tblr-badge-color: var(--tblr-success-fg, #fff); }
+.badge.bg-info      { --tblr-badge-color: var(--tblr-info-fg, #fff); }
+.badge.bg-warning   { --tblr-badge-color: var(--tblr-warning-fg, #fff); }
+.badge.bg-danger    { --tblr-badge-color: var(--tblr-danger-fg, #fff); }
+.badge.bg-dark      { --tblr-badge-color: var(--tblr-dark-fg, #fff); }
+.badge.bg-muted     { --tblr-badge-color: var(--tblr-muted-fg, #fff); }
+.badge.bg-blue      { --tblr-badge-color: var(--tblr-blue-fg, #fff); }
+.badge.bg-azure     { --tblr-badge-color: var(--tblr-azure-fg, #fff); }
+.badge.bg-indigo    { --tblr-badge-color: var(--tblr-indigo-fg, #fff); }
+.badge.bg-purple    { --tblr-badge-color: var(--tblr-purple-fg, #fff); }
+.badge.bg-pink      { --tblr-badge-color: var(--tblr-pink-fg, #fff); }
+.badge.bg-red       { --tblr-badge-color: var(--tblr-red-fg, #fff); }
+.badge.bg-orange    { --tblr-badge-color: var(--tblr-orange-fg, #fff); }
+.badge.bg-yellow    { --tblr-badge-color: var(--tblr-yellow-fg, #fff); }
+.badge.bg-lime      { --tblr-badge-color: var(--tblr-lime-fg, #fff); }
+.badge.bg-green     { --tblr-badge-color: var(--tblr-green-fg, #fff); }
+.badge.bg-teal      { --tblr-badge-color: var(--tblr-teal-fg, #fff); }
+.badge.bg-cyan      { --tblr-badge-color: var(--tblr-cyan-fg, #fff); }
