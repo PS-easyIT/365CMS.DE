@@ -7,6 +7,19 @@ Options -Indexes
 # Follow symbolic links
 Options +FollowSymLinks
 
+# Webserver-Fehler (z. B. 403 für gesperrte Pfade) über das CMS und die Fehlerseiten des aktiven Themes
+# ausliefern. index.php erkennt sie an REDIRECT_STATUS. Bei Installation in einem Unterverzeichnis den Pfad anpassen.
+ErrorDocument 400 /index.php
+ErrorDocument 401 /index.php
+ErrorDocument 403 /index.php
+ErrorDocument 404 /index.php
+ErrorDocument 405 /index.php
+ErrorDocument 408 /index.php
+ErrorDocument 410 /index.php
+ErrorDocument 413 /index.php
+ErrorDocument 414 /index.php
+ErrorDocument 429 /index.php
+
 # Enable rewrite engine
 <IfModule mod_rewrite.c>
     RewriteEngine On

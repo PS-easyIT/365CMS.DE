@@ -77,7 +77,8 @@ final class SeoMetaRepository
             'focus_keyphrase' => $this->sanitizeText((string) ($data['focus_keyphrase'] ?? ''), 255),
             'keywords' => $this->sanitizeKeywords((string) ($data['keywords'] ?? $data['seo_tags'] ?? $data['meta_keywords'] ?? '')),
             'schema_type' => SeoSchemaRenderer::selectableTypeFor((string) ($data['schema_type'] ?? ''), $contentType),
-            'sitemap_priority' => $this->sanitizePriority((string) ($data['sitemap_priority'] ?? '')),
+            // DECIMAL-Spalte: leer muss NULL sein – '' lässt den INSERT/UPDATE im SQL-Strict-Mode scheitern.
+            'sitemap_priority' => $this->sanitizePriority((string) ($data['sitemap_priority'] ?? '')) ?: null,
             'sitemap_changefreq' => $this->sanitizeChangefreq((string) ($data['sitemap_changefreq'] ?? '')),
             'hreflang_group' => $this->sanitizeText((string) ($data['hreflang_group'] ?? ''), 120),
         ];

@@ -163,6 +163,14 @@ class Router
 
         $this->applyRequestCacheHeaders($routingUri, $method);
 
+        // Apache-ErrorDocument (siehe .htaccess): Der Webserver leitet eigene Fehler (z. B. 403 für gesperrte
+        // Pfade) intern an index.php weiter und setzt REDIRECT_STATUS. Normales Rewrite-Routing liefert 200.
+        $webServerErrorStatus = (int) ($_SERVER['REDIRECT_STATUS'] ?? 0);
+        if ($webServerErrorStatus >= 400 && $webServerErrorStatus <= 599 && !$this->isApiRequest($routingUri)) {
+            $this->renderError($webServerErrorStatus);
+            return;
+        }
+
         if ($this->maybeRedirectHubAliasDomain($routingUri)) {
             return;
         }
@@ -241,7 +249,11 @@ class Router
                     header('Content-Type: application/json');
                     echo json_encode(['success' => false, 'error' => 'CSRF-Sicherheitsüberprüfung fehlgeschlagen.']);
                 } else {
-                    echo '<!DOCTYPE html><html><body><h1>403 Forbidden</h1><p>CSRF-Validierung fehlgeschlagen.</p></body></html>';
+                    $this->renderError(
+                        403,
+                        'Sicherheitsprüfung fehlgeschlagen',
+                        'Das Formular war abgelaufen oder ungültig. Lade die vorherige Seite neu und sende es erneut.'
+                    );
                 }
                 exit;
             }
@@ -260,6 +272,16 @@ class Router
                 call_user_func_array($callback, $params);
                 return;
             }
+        }
+
+        // Route existiert, aber nicht für diese Methode → 405 statt 404 (RFC 9110 inkl. Allow-Header).
+        $allowedMethods = $this->findAllowedMethods($routingUri, $routeMethod);
+        if ($allowedMethods !== []) {
+            if (!headers_sent()) {
+                header('Allow: ' . implode(', ', $allowedMethods));
+            }
+            $this->renderError(405);
+            return;
         }
 
         $landingAliasPath = $this->resolveLandingAliasPath();
@@ -332,6 +354,12 @@ class Router
 
         if ($this->isApiRequest($routingUri)) {
             echo json_encode(['success' => false, 'error' => 'maintenance'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        // Theme-Fehlerseite im eigenständigen Modus (ohne Navigation – Links würden nur wieder hier landen).
+        $plainMessage = trim((string) preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($message), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+        if ($this->renderThemeErrorTemplate(503, 'Wartungsmodus', $plainMessage, ['error_standalone' => true, 'error_retry_after' => 3600])) {
             return;
         }
 
@@ -558,13 +586,18 @@ class Router
 
     private function respondWithPublicPostNotFound(string $routingUri): never
     {
-        http_response_code(404);
-        echo $this->buildFallbackErrorPage(
-            404,
-            'Seite nicht gefunden',
-            'Die angeforderte Seite konnte nicht gefunden werden.',
-            $routingUri
-        );
+        // Öffentlicher POST ohne CSRF-Token: Existiert der Pfad für andere Methoden, ist es 405, sonst 404 –
+        // jeweils als Fehlerseite des aktiven Themes.
+        $allowedMethods = $this->findAllowedMethods($routingUri, 'POST');
+        if ($allowedMethods !== []) {
+            if (!headers_sent()) {
+                header('Allow: ' . implode(', ', $allowedMethods));
+            }
+            $this->renderError(405);
+            exit;
+        }
+
+        $this->render404();
         exit;
     }
 
@@ -933,6 +966,129 @@ class Router
             . '<p>Die Seite leitet weiter (' . $safeStatus . '). Falls nichts passiert, nutze bitte diesen Link:</p>'
             . '<p><a href="' . $safeUrl . '">' . $safeUrl . '</a></p>'
             . '</body></html>';
+    }
+
+    /**
+     * Rendert eine HTTP-Fehlerseite (4xx/5xx) mit dem aktiven Theme.
+     *
+     * Reihenfolge: Theme-Template `<status>.php` (z. B. 403.php), sonst `error.php` mit `$error_code`;
+     * 404 nutzt render404(). Ohne passendes Theme-Template greift die neutrale Fallback-Seite.
+     */
+    public function renderError(int $status, string $title = '', string $message = ''): void
+    {
+        $status = $status >= 400 && $status <= 599 ? $status : 500;
+
+        if ($status === 404) {
+            $this->render404();
+            return;
+        }
+
+        if (!headers_sent()) {
+            http_response_code($status);
+            header('Cache-Control: no-store, private');
+            if (in_array($status, [429, 503], true)) {
+                header('Retry-After: 120');
+            }
+        }
+
+        if ($this->renderThemeErrorTemplate($status, $title, $message)) {
+            return;
+        }
+
+        echo $this->buildFallbackErrorPage(
+            $status,
+            $title !== '' ? $title : 'Fehler ' . $status,
+            $message !== '' ? $message : 'Die Anfrage konnte nicht verarbeitet werden.',
+            $this->requestUri
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $extra
+     */
+    private function renderThemeErrorTemplate(int $status, string $title, string $message, array $extra = []): bool
+    {
+        try {
+            $themeManager = ThemeManager::instance();
+            $themePath = rtrim($themeManager->getThemePath(), '/\\') . DIRECTORY_SEPARATOR;
+            $template = is_file($themePath . $status . '.php') ? (string) $status : (is_file($themePath . 'error.php') ? 'error' : '');
+            if ($template === '') {
+                return false;
+            }
+
+            $data = array_merge([
+                'error_code' => $status,
+                'error_title' => $title,
+                'error_message' => $message,
+            ], $extra);
+            if ($title !== '') {
+                // Seitentitel für Themes, die getHeader(['title' => …]) auswerten; sonst bestimmt das Theme ihn.
+                $data['title'] = $status . ' – ' . $title;
+            }
+
+            ob_start();
+            if (!empty($data['error_standalone'])) {
+                (static function (string $__file, array $__data): void {
+                    extract($__data, EXTR_SKIP);
+                    include $__file;
+                })($themePath . $template . '.php', $data);
+            } else {
+                $themeManager->render($template, $data);
+            }
+            $rendered = (string) ob_get_clean();
+        } catch (\Throwable $e) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            Logger::instance()->withChannel('router')->error('Error page rendering failed.', [
+                'status' => $status,
+                'request_uri' => $this->requestUri,
+                'exception' => $e,
+            ]);
+
+            return false;
+        }
+
+        if (trim($rendered) === '') {
+            return false;
+        }
+
+        echo $rendered;
+        return true;
+    }
+
+    /**
+     * Methoden, für die der Pfad registriert ist – leer, wenn er für keine andere Methode existiert.
+     *
+     * @return list<string>
+     */
+    private function findAllowedMethods(string $routingUri, string $currentMethod): array
+    {
+        $allowed = [];
+        foreach ($this->routes as $routeMethod => $routes) {
+            if ($routeMethod === $currentMethod) {
+                continue;
+            }
+
+            $matches = isset($routes[$routingUri]);
+            if (!$matches) {
+                foreach (array_keys($routes) as $pattern) {
+                    if ($this->matchRoute((string) $pattern, $routingUri) !== false) {
+                        $matches = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($matches) {
+                $allowed[] = (string) $routeMethod;
+                if ($routeMethod === 'GET') {
+                    $allowed[] = 'HEAD';
+                }
+            }
+        }
+
+        return array_values(array_unique($allowed));
     }
 
     private function buildFallbackErrorPage(int $status, string $title, string $message, string $path = ''): string

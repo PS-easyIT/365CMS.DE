@@ -696,8 +696,21 @@ class PostsModule
         $keep('author_display_name', (string) ($existing->author_display_name ?? ''));
         $keep('author_display_url', (string) ($existing->author_display_url ?? ''));
         $keep('post_template', (string) ($existing->post_template ?? ''));
+        // Wie das Admin-Formular: Listenfelder als Zeilen-Text übergeben, findUnexpectedNonScalarInput()
+        // lässt in post_meta nur skalare Werte zu.
         $existingMeta = json_decode((string) ($existing->post_meta_json ?? ''), true);
-        $keep('post_meta', is_array($existingMeta) ? $existingMeta : []);
+        $existingMeta = is_array($existingMeta) ? $existingMeta : [];
+        foreach ($existingMeta as $metaKey => $metaValue) {
+            if (is_array($metaValue)) {
+                $existingMeta[$metaKey] = implode("\n", array_map(
+                    static fn(mixed $line): string => is_scalar($line) ? (string) $line : '',
+                    $metaValue
+                ));
+            } elseif (!is_scalar($metaValue) && $metaValue !== null) {
+                unset($existingMeta[$metaKey]);
+            }
+        }
+        $keep('post_meta', $existingMeta);
 
         // Zusatzkategorien (Hauptkategorie kommt aus dem Formular).
         $primaryCategoryId = (int) ($post['category_id'] ?? 0);
