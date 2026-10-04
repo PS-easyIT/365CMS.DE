@@ -131,7 +131,7 @@ $sectionPageConfig = [
     },
     'access_checker' => static fn (): bool => cms_admin_member_dashboard_can_access_section((string) $memberSection)
         && CoreModuleService::getInstance()->isAdminPageEnabled((string) $activePage),
-    'post_handler' => static function ($module, string $section, array $postData): array {
+    'post_handler' => static function ($module, string $section, array $postData) use ($activePage): array {
         if (!$module instanceof MemberDashboardModule) {
             return ['success' => false, 'error' => 'Member-Dashboard-Modul konnte nicht initialisiert werden.'];
         }
