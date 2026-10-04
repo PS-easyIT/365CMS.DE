@@ -446,8 +446,6 @@ final class VendorRegistry
             'symfony/polyfills' => ['url' => 'https://github.com/symfony/polyfill', 'label' => 'GitHub'],
             'egulias/email-validator' => ['url' => 'https://github.com/egulias/EmailValidator', 'label' => 'GitHub'],
             'psr/container' => ['url' => 'https://www.php-fig.org/psr/psr-11/', 'label' => 'Website'],
-            'symfony/cache' => ['url' => 'https://github.com/symfony/cache', 'label' => 'GitHub'],
-            'msgraph-sdk-php' => ['url' => 'https://github.com/microsoftgraph/msgraph-sdk-php', 'label' => 'GitHub'],
         ];
 
         return $links[$package] ?? ['url' => 'https://github.com/PS-easyIT/365CMS.DE', 'label' => 'GitHub'];
@@ -772,22 +770,6 @@ final class VendorRegistry
                     \Symfony\AI\Platform\Message\Message::ofUser('probe')
                 ),
                 'notes' => 'AI-Platform-Basis inkl. Serializer, PropertyInfo/-Access, TypeInfo, Uid, String, enum-helper und phpDocumentor-Reflection.',
-            ],
-            [
-                'package' => 'symfony/cache',
-                'label' => 'Symfony Cache (Staging)',
-                'paths' => [['path' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'cache-8.1.8', 'type' => 'dir']],
-                'symbol' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'cache-8.1.8',
-                'symbol_type' => 'staging',
-                'notes' => 'Dokumentierter Kandidat außerhalb der aktiven Runtime.',
-            ],
-            [
-                'package' => 'msgraph-sdk-php',
-                'label' => 'MS Graph SDK (Referenz)',
-                'paths' => [['path' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'msgraph-sdk-php-2.56.0', 'type' => 'dir']],
-                'symbol' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'msgraph-sdk-php-2.56.0',
-                'symbol_type' => 'reference',
-                'notes' => 'Referenzablage außerhalb der aktiven produktiven Verdrahtung.',
             ],
         ];
     }

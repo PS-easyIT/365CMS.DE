@@ -63,4 +63,4 @@ if ($consent->hasConsentForService('google_maps', 'external_media')) {
 
 ### Verwandte Dokumente
 
-[README.md](README.md) · [LEGAL.md](LEGAL.md) · [../seo/ANALYTICS.md](../seo/ANALYTICS.md) · [../../assets/cookieconsent/README.md](../../assets/cookieconsent/README.md)
+[README.md](README.md) · [LEGAL.md](LEGAL.md) · [../seo/ANALYTICS.md](../seo/ANALYTICS.md)

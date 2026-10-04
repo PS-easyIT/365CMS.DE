@@ -40,7 +40,6 @@ Führende Quelle für **aktive Laufzeitpfade** ist `CMS/assets/` sowie der dokum
 | `psr` | Log 3.0.2, EventDispatcher 1.0.0, Container 2.0.2, Clock 1.0.0 | PSR-Interfaces | `CMS/assets/psr/` | Packagist `psr/*` | vollständige Originalpakete statt Minimal-Shim | [php-fig.org/psr](https://www.php-fig.org/psr/) | [php-fig](https://github.com/php-fig) |
 | `dompdf` | `3.1.6` | PDF-Erzeugung | `CMS/vendor/dompdf/` | `CMS_ASSETS/dompdf-3.1.6.zip` (`dompdf/vendor/`), dazu `PHP-CSS-Parser-9.5.0.zip` und `html5-php-2.11.0.zip` | **kein** `CMS/assets`-Bundle, sondern Vendor-Sonderfall; `sabberworm/php-css-parser` 9.5.0 und `masterminds/html5` 2.11.0 ersetzen die im Dompdf-Archiv enthaltenen 8.9.0/2.10.0, `composer/`-Autoload (inkl. `autoload_files.php`) dafür neu erzeugt | [dompdf.github.io](https://dompdf.github.io/) | [dompdf/dompdf](https://github.com/dompdf/dompdf) |
 | `css/js/images` | intern | 365CMS-eigene Runtime-Assets | `CMS/assets/css/`, `CMS/assets/js/`, `CMS/assets/images/` | `ASSETS/css/`, `ASSETS/js/`, `ASSETS/images/` | kein Third-Party-Bundle; Bildinventar siehe [`DOC/assets/images/README.md`](images/README.md) | – | – |
-| `msgraph` | Referenzbestand | SDK-Ablage | `CMS/assets/msgraph/` | `ASSETS/msgraph-sdk-php-2.56.0/` | aktuell nicht als aktive Runtime-Integration dokumentiert | [learn.microsoft.com/graph/sdks/sdks-overview](https://learn.microsoft.com/graph/sdks/sdks-overview) | [microsoftgraph/msgraph-sdk-php](https://github.com/microsoftgraph/msgraph-sdk-php) |
 
 Zusätzlich produktiv relevant:
 
@@ -58,10 +57,10 @@ Die Synchronisation von `/ASSETS` nach `/CMS/assets` ist **selektiv**, nicht spi
 
 Wichtige Regeln im aktuellen Stand:
 
-1. **`ASSETS/` ist Staging, `CMS/assets/` ist Runtime.**
-2. **Frontend-Bundles nur als Build-Artefakte übernehmen.** Das gilt insbesondere für `tabler`, `gridjs`, `PhotoSwipe`, `editor.js` und `suneditor`.
+1. **`CMS_ASSETS/` (früher `ASSETS/`) ist Staging, `CMS/assets/` ist Runtime.**
+2. **Frontend-Bundles nur als Build-Artefakte übernehmen.** Das gilt insbesondere für `tabler`, `PhotoSwipe`, `editor.js` und `suneditor`.
 3. **`editorjs` bleibt kuratiert.** Der Core `editorjs.umd.js` wird bytegleich aus dem offiziellen Build übernommen (aktuell 2.31.7); die lokal angepassten Plugin-Bundles (z. B. `hyperlink.umd.js`, `delimiter.umd.js`) sind davon unabhängig. Die Runtime orientiert sich an `CMS/core/Services/EditorJs/EditorJsAssetService.php`, nicht am gesamten Plugin-Baum; Zusatzartefakte wie `delimiter.umd.js` müssen bei neuen Plugin-Ständen gezielt gebaut oder aktualisiert werden.
-4. **`suneditor` ist ein Sonderfall.** Für die Runtime werden `suneditor.min.js`, `suneditor.min.css`, `suneditor-contents.min.css` und `src/langs/de.js` aus dem gebauten Paketstand übernommen; fehlt `dist/` nach einem frischen Upstream-Download, kommen die Artefakte aus dem npm-Paket gleicher Version oder SunEditor wird lokal gebaut. Die CMS-Aufrufer (`EditorService`, `js/admin-hub-site-edit.js`, Plugin `cms-jobprofile-generator`) nutzen die 3.x-API: Plugins explizit übergeben, `value`, `events.onChange`, `$.html.get()`/`$.html.set()`.
+4. **`suneditor` ist ein Sonderfall.** Für die Runtime werden `suneditor.min.js`, `suneditor.min.css` und `src/langs/de.js` (das ungenutzte `suneditor-contents.min.css` ist seit 3.4.19 nicht mehr Teil der Runtime) aus dem gebauten Paketstand übernommen; fehlt `dist/` nach einem frischen Upstream-Download, kommen die Artefakte aus dem npm-Paket gleicher Version oder SunEditor wird lokal gebaut. Die CMS-Aufrufer (`EditorService`, `js/admin-hub-site-edit.js`, Plugin `cms-jobprofile-generator`) nutzen die 3.x-API: Plugins explizit übergeben, `value`, `events.onChange`, `$.html.get()`/`$.html.set()`.
 6. **`dompdf` bleibt außerhalb von `CMS/assets/`.** Der produktive Pfad ist `CMS/vendor/dompdf/`, geladen über `CMS/vendor/dompdf/autoload.php`.
 7. **Sicherheits- und Standard-Bibliotheken nicht umstrukturieren, solange der Autoload-Vertrag stabil bleiben muss.** Das betrifft u. a. `htmlpurifier`, `php-jwt`, `webauthn`, `twofactorauth`, `ldaprecord`, `mailer`, `mime` und `translation`.
 
@@ -123,12 +122,9 @@ dort und in [`DOC/FILELIST.md`](../FILELIST.md) gemeinsam zu ergänzen.
 
 ## Neue Kandidaten außerhalb der Runtime <!-- UPDATED: 2026-10-04 -->
 
-Folgende Pakete liegen unter `/ASSETS`, sind aber **nicht** produktiv in `CMS/assets/` bzw. `CMS/vendor/` integriert:
+Folgende Pakete liegen als Archiv unter `CMS_ASSETS/`, sind aber **nicht** produktiv in `CMS/assets/` bzw. `CMS/vendor/` integriert:
 
 - `symfony/cache` (`CMS_ASSETS/cache-8.1.8.zip`)
-- `guzzlehttp/guzzle` (`ASSETS/guzzle-7.10.0/`)
-- `adhocore/jwt` (`ASSETS/php-jwt_yuliyan_1.1.3/`)
-- weitere Beobachtungskandidaten wie `monolog-bundle-4.0.2`, `msgraph-sdk-php-2.56.0`
 - `phpstan/phpstan` (`CMS_ASSETS/phpstan-2.2.16.zip`): Entwicklungswerkzeug, nie Teil der Runtime; produktiv bleibt nur `phpstan/phpdoc-parser` als AI-Platform-Abhängigkeit
 
 Hinweis seit `3.3.42`: Tabler Icons wurden aus dem Beobachtungskandidaten-Status in die produktive Runtime übernommen. Die lokale Kopie unter `CMS/assets/tabler-icons/` ersetzt externe jsDelivr-/Tabler-Icon-Webfont-Requests im Admin-Header.
@@ -148,6 +144,7 @@ Ausnahme im aktuellen Stand:
 Zusätzlich wichtig im aktuellen Stand:
 
 - Das zuvor mitgeführte Paket `stichoza/google-translate-php` wurde **bewusst aus `/ASSETS` entfernt** und wird nicht weiter als aktiver Integrationskandidat geführt.
+- Die früheren Beobachtungskandidaten `guzzlehttp/guzzle`, `adhocore/jwt`, `monolog-bundle` und `msgraph-sdk-php` lagen nur im alten Staging-Ordner `ASSETS/`, der nicht mehr im Repository ist. Sie werden nicht weiter geführt; der Graph-Mailversand nutzt eigene HTTP-Aufrufe (`AzureMailTokenProvider`). Die zugehörigen Staging-/Referenz-Einträge in `CMS/core/VendorRegistry.php` sind seit 3.4.19 entfernt.
 - Für Übersetzungs- und Rewrite-Funktionen ist stattdessen ein **providerbasierter AI-Services-Ansatz** vorgesehen; Details siehe [ASSETS_NEW.md](ASSETS_NEW.md), [ai/AI-SERVICES.md](../ai/AI-SERVICES.md) und den Admin-Kontext unter [admin/system-settings/AI-SERVICES.md](../admin/system-settings/AI-SERVICES.md).
 
 Die ausführliche Bewertungs- und Integrationsdoku dazu liegt in [ASSETS_NEW.md](ASSETS_NEW.md).
@@ -159,5 +156,5 @@ Die ausführliche Bewertungs- und Integrationsdoku dazu liegt in [ASSETS_NEW.md]
 - Die produktive PHP-Dependency-Ladung erfolgt überwiegend über `CMS/assets/autoload.php`.
 - Die dokumentierte Ausnahme bleibt `CMS/vendor/dompdf/autoload.php`.
 - Die produktiv eingebundenen Symfony-8.1-Bundles (`mailer`, `mime`, `translation`, `yaml`, `clock` u. a.) deklarieren `PHP >= 8.4.1`; diese Mindestplattform ist Teil des offiziellen Runtime-Vertrags. Seit `3.4.18` liefert der Code sie als `CMS\Version::MIN_PHP` mit; `Version::minimumPhp()` nimmt das Maximum aus diesem Wert und `CMS_MIN_PHP_VERSION` aus `config.php`, damit ältere Installationen (deren `config.php` Core-Updates nicht ersetzen) nicht an der Plattformprüfung scheitern.
-- Besonders update-sensibel bleiben Editor- und UI-Bundles mit Build-Artefakten (`editorjs`, `suneditor`, `tabler`, `photoswipe`, `gridjs`).
+- Besonders update-sensibel bleiben Editor- und UI-Bundles mit Build-Artefakten (`editorjs`, `suneditor`, `tabler`, `photoswipe`).
 - Für künftige Pflege wäre eine kleine zentrale Asset-/Versionierungs-Registry sinnvoll, damit Pfadlogik, Existenzprüfung und Cache-Busting nicht über viele Dateien verstreut bleiben.

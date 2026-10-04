@@ -1,5 +1,5 @@
 # 365CMS Asset-Dokumentation
-> **Stand:** 2026-10-04 | **Version:** 3.4.00 (Changelog bis 3.4.18) | **Status:** Aktuell | **Update:** 2026-10-04
+> **Stand:** 2026-10-04 | **Version:** 3.4.00 (Changelog bis 3.4.19) | **Status:** Aktuell | **Update:** 2026-10-04
 
 ## Inhaltsverzeichnis
 - <a>Tabellarische Übersicht</a>
@@ -43,7 +43,6 @@
 | Util | `polyfill-*` | `1.43.0` | mbstring, ctype, intl-idn, intl-normalizer, intl-grapheme, uuid (nur ohne Extension aktiv) | Transitiv |
 | PDF | `dompdf` | `3.1.6` (mit `php-css-parser` 9.5.0, `html5` 2.11.0) | PDF-Erzeugung | System |
 | Intern | `css/js/images` | intern | 365CMS-eigene Runtime-Dateien | Admin / Frontend / Member |
-| Referenz | `msgraph` | Referenzstand (nur `ASSETS/msgraph-sdk-php-2.56.0/` im lokalen Staging, **kein** `CMS/assets/msgraph/`) | SDK-Ablage | nicht verdrahtet; Graph-Mailversand nutzt eigene HTTP-Aufrufe (`AzureMailTokenProvider`) |
 
 ---
 
@@ -167,7 +166,7 @@ Die produktive Detaildoku richtet sich nach den **Laufzeitpfaden in `CMS/assets/
 
 Wichtig im aktuellen Stand:
 
-- `ASSETS/` ist Quell- und Staging-Bereich, **nicht** der direkte Webroot-Assetpfad
+- `CMS_ASSETS/` (früher `ASSETS/`) ist Quell- und Staging-Bereich, **nicht** der direkte Webroot-Assetpfad
 - `editorjs` und `suneditor` sind keine simplen Ordnerkopien, sondern kuratierte bzw. gebaute Runtime-Sets
 - `editorjs` benötigt für das produktive `delimiter.umd.js` bei neuen Plugin-Ständen einen gezielten Build-/Refresh-Pfad
 - `tabler`, `tabler-icons` und `PhotoSwipe` werden nur mit ihren tatsächlich geladenen Dateien übernommen (keine RTL-/Map-/SVG-Font-/Varianten-Dateien)
@@ -175,7 +174,6 @@ Wichtig im aktuellen Stand:
 - `images/` enthält produktive Dashboard-, Logo- und Branding-Bestände
 - `ai-platform/` enthält die produktiv registrierte Symfony-AI-Platform-Basis inklusive aller Pflichtabhängigkeiten; Provider-Bridges und `symfony/http-client` bleiben separat zu bewerten
 - Bibliotheken werden ohne `Test*/`, `Command/`, `DataCollector/`, `DependencyInjection/`, Extractor- und Framework-Integrationsordner übernommen
-- `msgraph/` bleibt Referenzablage, solange kein eigener produktiver Core-Service diese Bibliothek verdrahtet
 
 ---
 
@@ -208,7 +206,7 @@ cms_asset_url('images/LOGO_365CMS-75px.png')
 
 Zusätzliche Hinweise:
 
-- `cookieconsent`, `filepond`, `elfinder`, `simplepie` und `gridjs` sind keine Runtime-Bundles mehr und wurden in `3.4.02` aus `CMS/assets/` entfernt
+- `cookieconsent`, `filepond`, `elfinder`, `simplepie` und `gridjs` sind keine Runtime-Bundles mehr und wurden in `3.4.02` aus `CMS/assets/` entfernt; ihre historischen READMEs unter `DOC/assets/` (inkl. `msgraph`) wurden in `3.4.19` gelöscht
 - die produktiv eingebundenen Symfony-8.1-Bundles deklarieren `PHP >= 8.4.1`; der Code führt diese Untergrenze seit `3.4.18` als `CMS\Version::MIN_PHP` und wertet sie zusammen mit `CMS_MIN_PHP_VERSION` aus (`Version::minimumPhp()`)
 - `.htaccess` sperrt `vendor/` komplett sowie PHP-/Metadaten-/versteckte Dateien unter `assets/`
 - **CSP-Vertrag:** Inline-`<script>`/`<style>` nur mit `Security::instance()->nonceAttr()`; keine Inline-Event-Handler (`onclick` …) – stattdessen `data-cms-*`-Attribute aus `js/cms-inline-actions.js`; `style="`-Attribute bleiben per CSP blockiert (`style-src-attr`); `CMS\Http\InlineStyleRewriter` (`core/Http/InlineStyleRewriter.php`, gestartet in `Bootstrap::run()`) überführt sie in vollständigen HTML-Antworten serverseitig in Klassen plus einen `<style nonce>`-Block vor `</head>`. Unsichere Werte (`{ } < > @ \`, Kommentare) bleiben blockiert; Fragmente, Downloads, Antworten mit `Content-Length`, gestreamte oder > 4 MB große Ausgaben bleiben unverändert; per JavaScript eingefügte Style-Attribute werden nicht umgeschrieben (dort CSSOM `el.style.*` nutzen). Tests: `TESTS/csp-style-rewriter/run.php`
@@ -223,8 +221,6 @@ Zusätzliche Hinweise:
 Neu dokumentierte, aber noch nicht produktiv integrierte Pakete:
 
 - `symfony/cache` als `CMS_ASSETS/cache-8.1.8.zip`
-- `guzzlehttp/guzzle` unter `ASSETS/guzzle-7.10.0/`
-- `adhocore/jwt` unter `ASSETS/php-jwt_yuliyan_1.1.3/`
 - `phpstan/phpstan` als `CMS_ASSETS/phpstan-2.2.16.zip` (Entwicklungswerkzeug für statische Analyse, kein Runtime-Paket; die AI-Platform nutzt nur `phpstan/phpdoc-parser`)
 
 Diese Kandidaten sind im aktuellen Core **nicht aktiv verdrahtet**. Die Code- und Laufzeitprüfung zeigte hierfür keine produktiven Referenzen in `CMS/**`; deshalb wurden sie beim Refresh nach `3.4.00` bewusst nicht in die aktive Runtime übernommen.
@@ -275,4 +271,4 @@ Abgleich mit `CMS/assets/`, `CMS/assets/autoload.php` und `CMS/core/VendorRegist
 | `dompdf` | 3.1.6 | `CMS/vendor/dompdf/`, `PdfService` (z. B. PDF-Export im Router) |
 | `images/` | 13 PNG + `plugin-not-found.svg` | Logos, Dashboard-Icons, Member-Platzhalter |
 
-Nicht (mehr) im Repository: `cookieconsent`, `filepond`, `elfinder`, `gridjs`, `simplepie`, `msgraph` unter `CMS/assets/` sowie der Staging-Ordner `ASSETS/` im Repository-Root. Upstream-Updates werden seit 2026-10-04 als ZIP-Archive unter `CMS_ASSETS/` im Repository-Root abgelegt (nicht deployt). Die Unterordner-READMEs dieser Pakete sind als historische Notizen zu lesen.
+Nicht (mehr) im Repository: `cookieconsent`, `filepond`, `elfinder`, `gridjs`, `simplepie`, `msgraph` unter `CMS/assets/` sowie der Staging-Ordner `ASSETS/` im Repository-Root. Upstream-Updates werden seit 2026-10-04 als ZIP-Archive unter `CMS_ASSETS/` im Repository-Root abgelegt (nicht deployt). Die Unterordner-READMEs dieser Pakete wurden in `3.4.19` aus `DOC/assets/` entfernt.

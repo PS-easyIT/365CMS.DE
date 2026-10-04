@@ -80,4 +80,4 @@ Header-Injection wird verhindert (gesperrte Headernamen, Längenbegrenzung Betre
 
 ### Verwandte Dokumente
 
-[SYSTEM.md](SYSTEM.md) · [MONITORING.md](MONITORING.md) · [../../assets/mailer/README.md](../../assets/mailer/README.md) · [../../assets/msgraph/README.md](../../assets/msgraph/README.md)
+[SYSTEM.md](SYSTEM.md) · [MONITORING.md](MONITORING.md) · [../../assets/mailer/README.md](../../assets/mailer/README.md)

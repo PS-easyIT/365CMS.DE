@@ -81,4 +81,4 @@ Eigene Kategorien anlegen/löschen (Name und Slug max. 80 Zeichen). Systemkatego
 
 ### Verwandte Dokumente
 
-[README.md](README.md) · [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md) · [../../workflow/MEDIA-UPLOAD-WORKFLOW.md](../../workflow/MEDIA-UPLOAD-WORKFLOW.md) · [../../assets/filepond/README.md](../../assets/filepond/README.md) · [../../assets/elfinder/README.md](../../assets/elfinder/README.md)
+[README.md](README.md) · [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md) · [../../workflow/MEDIA-UPLOAD-WORKFLOW.md](../../workflow/MEDIA-UPLOAD-WORKFLOW.md)

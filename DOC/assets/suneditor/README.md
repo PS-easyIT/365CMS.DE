@@ -6,7 +6,7 @@
 
 ## Quellordner
 
-- `CMS/assets/suneditor/` – Version **3.3.3** (`suneditor.min.js`, `css/suneditor.min.css`, `css/suneditor-contents.min.css`, `lang/de.js`)
+- `CMS/assets/suneditor/` – Version **3.3.3** (`suneditor.min.js`, `css/suneditor.min.css`, `lang/de.js`; das nirgends geladene `css/suneditor-contents.min.css` wurde in 3.4.19 entfernt)
 - Quelle: npm `suneditor@3.3.3` (`dist/` + `src/langs/de.js`); das GitHub-Archiv `CMS_ASSETS/suneditor-3.3.3.zip` enthält kein `dist/`
 
 ## Verwendung in 365CMS

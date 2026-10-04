@@ -36,7 +36,7 @@ References were checked mechanically: static `require`/`include` targets, asset 
 
 ### Bewusst nicht korrigiert
 
-In `DOC/` genannte, aber nicht vorhandene `CMS/…`-Pfade, die **absichtlich** nicht existieren: entfernte Grid.js-Dateien (Historie in `DOC/assets/gridjs/README.md`), Roadmap-Dateien in `DOC/assets/ASSETS_OwnAssets.md`/`ASSETS_NEW.md`, das zur Laufzeit erzeugte `CMS/config/media-settings.json`, der optionale lokale Marketplace-Index `CMS/index.json` und das Beispiel-Plugin `cms-forum` im Workflow-Fahrplan.
+In `DOC/` genannte, aber nicht vorhandene `CMS/…`-Pfade, die **absichtlich** nicht existieren: entfernte Grid.js-Dateien (die Historien-READMEs unter `DOC/assets/gridjs/` & Co. wurden in 3.4.19 gelöscht), Roadmap-Dateien in `DOC/assets/ASSETS_OwnAssets.md`/`ASSETS_NEW.md`, das zur Laufzeit erzeugte `CMS/config/media-settings.json`, der optionale lokale Marketplace-Index `CMS/index.json` und das Beispiel-Plugin `cms-forum` im Workflow-Fahrplan.
 
 ### Mit 3.4.13 behoben
 
