@@ -769,6 +769,7 @@ class Bootstrap
                         return;
                     }
 
+                    $db = Database::instance();
                     $requestedFontSlugs = Hooks::applyFilters('local_font_slugs', []);
                     $requestedFontSlugs = array_values(array_unique(array_filter(array_map(
                         static fn($slug): string => preg_replace('/[^a-z0-9_-]/i', '', (string)$slug) ?? '',
