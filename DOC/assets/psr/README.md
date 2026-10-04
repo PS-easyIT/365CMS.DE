@@ -21,6 +21,14 @@
 - Website: https://www.php-fig.org/psr/
 - GitHub: https://github.com/php-fig
 
+| Paket | Runtime-Pfad | Spezifikation | GitHub |
+|---|---|---|---|
+| `psr/log` | `CMS/assets/psr/Log/` | https://www.php-fig.org/psr/psr-3/ | https://github.com/php-fig/log |
+| `psr/container` | `CMS/assets/psr/Container/` | https://www.php-fig.org/psr/psr-11/ | https://github.com/php-fig/container |
+| `psr/event-dispatcher` | `CMS/assets/psr/EventDispatcher/` | https://www.php-fig.org/psr/psr-14/ | https://github.com/php-fig/event-dispatcher |
+| `psr/simple-cache` | `CMS/assets/psr/SimpleCache/` | https://www.php-fig.org/psr/psr-16/ | https://github.com/php-fig/simple-cache |
+| `psr/clock` | `CMS/assets/psr/Clock/` | https://www.php-fig.org/psr/psr-20/ | https://github.com/php-fig/clock |
+
 ## Stand
 
 - Zuletzt geprüft: 2026-09-26

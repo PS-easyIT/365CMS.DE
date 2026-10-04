@@ -28,3 +28,4 @@
 
 - Website: https://symfony.com/components/Mailer
 - GitHub: https://github.com/symfony/mailer
+- Pflicht-Abhängigkeit für Adressvalidierung: https://github.com/egulias/EmailValidator (`egulias/email-validator`) mit https://github.com/doctrine/lexer (`doctrine/lexer`)

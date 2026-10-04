@@ -26,4 +26,6 @@
 
 ## Website / GitHub
 
+- Website: https://cure53.de/purify
 - GitHub: https://github.com/cure53/DOMPurify
+- npm: https://www.npmjs.com/package/dompurify

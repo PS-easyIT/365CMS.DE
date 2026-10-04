@@ -15,5 +15,6 @@
 
 ## Website / GitHub
 
-- Website: https://github.com/firebase/php-jwt
-- GitHub: https://github.com/firebase/php-jwt
+- Website: https://packagist.org/packages/firebase/php-jwt
+- GitHub: https://github.com/googleapis/php-jwt
+- Hinweis (2026-10-04): Das Repository wird inzwischen unter `googleapis/php-jwt` gepflegt (früher `firebase/php-jwt`); der Composer-Paketname bleibt `firebase/php-jwt`.
