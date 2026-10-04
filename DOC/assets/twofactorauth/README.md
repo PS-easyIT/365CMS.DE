@@ -22,5 +22,6 @@
 
 ## Website / GitHub
 
-- Website: https://github.com/RobThree/TwoFactorAuth
+- Website: https://robthree.github.io/TwoFactorAuth/
 - GitHub: https://github.com/RobThree/TwoFactorAuth
+- QR-Code-Abhängigkeiten: https://github.com/Bacon/BaconQrCode (`bacon/bacon-qr-code`) und https://github.com/DASPRiD/Enum (`dasprid/enum`)

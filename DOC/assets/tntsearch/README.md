@@ -16,5 +16,5 @@
 
 ## Website / GitHub
 
-- Website: https://github.com/teamtnt/tntsearch
+- Website: https://packagist.org/packages/teamtnt/tntsearch
 - GitHub: https://github.com/teamtnt/tntsearch

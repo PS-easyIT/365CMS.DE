@@ -15,5 +15,5 @@
 
 ## Website / GitHub
 
-- Website: https://github.com/lbuchs/WebAuthn
+- Website: https://packagist.org/packages/lbuchs/webauthn
 - GitHub: https://github.com/lbuchs/WebAuthn

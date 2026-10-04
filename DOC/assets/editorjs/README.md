@@ -99,3 +99,37 @@ Damit entsteht ein WordPress-ähnliches Blockgefühl, während Sanitizer, Render
 
 - Website: https://editorjs.io/
 - GitHub: https://github.com/codex-team/editor.js
+
+### Plugin-Upstreams (Stand 2026-10-04)
+
+| Runtime-Datei | npm-Paket | GitHub |
+|---|---|---|
+| `paragraph.umd.js` | [`@editorjs/paragraph`](https://www.npmjs.com/package/@editorjs/paragraph) | https://github.com/editor-js/paragraph |
+| `header.umd.js` | [`@editorjs/header`](https://www.npmjs.com/package/@editorjs/header) | https://github.com/editor-js/header |
+| `editorjs-list.umd.js` | [`@editorjs/list`](https://www.npmjs.com/package/@editorjs/list) | https://github.com/editor-js/list |
+| `image.umd.js` | [`@editorjs/image`](https://www.npmjs.com/package/@editorjs/image) | https://github.com/editor-js/image |
+| `quote.umd.js` | [`@editorjs/quote`](https://www.npmjs.com/package/@editorjs/quote) | https://github.com/editor-js/quote |
+| `code.umd.js` | [`@editorjs/code`](https://www.npmjs.com/package/@editorjs/code) | https://github.com/editor-js/code |
+| `table.umd.js` | [`@editorjs/table`](https://www.npmjs.com/package/@editorjs/table) | https://github.com/editor-js/table |
+| `delimiter.umd.js` | [`@coolbytes/editorjs-delimiter`](https://www.npmjs.com/package/@coolbytes/editorjs-delimiter) | https://github.com/CoolBytesIN/editorjs-delimiter |
+| `embed.umd.js` | [`@editorjs/embed`](https://www.npmjs.com/package/@editorjs/embed) | https://github.com/editor-js/embed |
+| `link.umd.js` | [`@editorjs/link`](https://www.npmjs.com/package/@editorjs/link) | https://github.com/editor-js/link |
+| `attaches.umd.js` | [`@editorjs/attaches`](https://www.npmjs.com/package/@editorjs/attaches) | https://github.com/editor-js/attaches |
+| `warning.umd.js` | [`@editorjs/warning`](https://www.npmjs.com/package/@editorjs/warning) | https://github.com/editor-js/warning |
+| `alert.umd.js` | [`editorjs-alert`](https://www.npmjs.com/package/editorjs-alert) | https://github.com/vishaltelangre/editorjs-alert |
+| `raw.umd.js` | [`@editorjs/raw`](https://www.npmjs.com/package/@editorjs/raw) | https://github.com/editor-js/raw |
+| `inline-code.umd.js` | [`@editorjs/inline-code`](https://www.npmjs.com/package/@editorjs/inline-code) | https://github.com/editor-js/inline-code |
+| `underline.umd.js` | [`@editorjs/underline`](https://www.npmjs.com/package/@editorjs/underline) | https://github.com/editor-js/underline |
+| `strikethrough.umd.js` | [`@sotaproject/strikethrough`](https://www.npmjs.com/package/@sotaproject/strikethrough) | https://github.com/sotaproject/strikethrough |
+| `hyperlink.umd.js` | [`editorjs-hyperlink`](https://www.npmjs.com/package/editorjs-hyperlink) | https://github.com/trinhtam/editorjs-hyperlink |
+| `text-color.umd.js` | [`editorjs-text-color-plugin`](https://www.npmjs.com/package/editorjs-text-color-plugin) | https://github.com/flaming-cl/editorjs-text-color-plugin |
+| `spoiler.umd.js` | [`@iizotikov/editor-js-tg-spoiler`](https://www.npmjs.com/package/@iizotikov/editor-js-tg-spoiler) | https://github.com/izotikov/editor-js-tg-spoiler |
+| `anchor.umd.js` | [`editorjs-anchor`](https://www.npmjs.com/package/editorjs-anchor) | https://github.com/VolgaIgor/editorjs-anchor |
+| `alignment-tune.umd.js` | [`editorjs-text-alignment-blocktune`](https://www.npmjs.com/package/editorjs-text-alignment-blocktune) | https://github.com/kaaaaaaaaaaai/editorjs-alignment-blocktune |
+| `indent-tune.umd.js` | [`editorjs-indent-tune`](https://www.npmjs.com/package/editorjs-indent-tune) | https://github.com/sebmeister2077/editorjs-indent-tune |
+| `text-variant-tune.umd.js` | [`@editorjs/text-variant-tune`](https://www.npmjs.com/package/@editorjs/text-variant-tune) | https://github.com/editor-js/text-variant-tune |
+| `accordion.umd.js` | [`editorjs-collapsible-block`](https://www.npmjs.com/package/editorjs-collapsible-block) | https://github.com/sebmeister2077/editorjs-accordion |
+| `undo.umd.js` | [`editorjs-undo`](https://www.npmjs.com/package/editorjs-undo) | https://github.com/kommitters/editorjs-undo |
+| `drag-drop.umd.js` | [`editorjs-drag-drop`](https://www.npmjs.com/package/editorjs-drag-drop) | https://github.com/kommitters/editorjs-drag-drop |
+
+Hinweis: `delimiter.umd.js` wurde lokal aus `@coolbytes/editorjs-delimiter` 1.0.2 gebaut (Varianten `line`/`dash`/`star`), nicht aus `@editorjs/delimiter`.

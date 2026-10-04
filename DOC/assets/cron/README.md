@@ -29,5 +29,7 @@ Wenn die externe Klasse nicht verfuegbar ist oder eine Expression ungueltig ist,
 ## Quelle
 
 - Upstream: [poliander/cron](https://github.com/poliander/cron)
+- Website: https://packagist.org/packages/poliander/cron
+- GitHub: https://github.com/poliander/cron
 - Version: `3.3.1`
 - Ursprungsablage im Repo: `ASSETS/cron-3.3.1`
