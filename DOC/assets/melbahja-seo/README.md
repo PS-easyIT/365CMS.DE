@@ -21,8 +21,8 @@
 
 ## Website / GitHub
 
-- Website: https://github.com/melbahja/Seo
-- GitHub: https://github.com/melbahja/Seo
+- Website: https://packagist.org/packages/melbahja/seo
+- GitHub: https://github.com/melbahja/seo
 
 ## Stand
 

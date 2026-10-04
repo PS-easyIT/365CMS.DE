@@ -26,3 +26,4 @@
 
 - Website: https://symfony.com/components/Translation
 - GitHub: https://github.com/symfony/translation
+- YAML-Parser für die Sprachkataloge: https://symfony.com/components/Yaml / https://github.com/symfony/yaml

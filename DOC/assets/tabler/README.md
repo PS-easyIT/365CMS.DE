@@ -25,3 +25,4 @@ Die Webfont-Dateien aus `CMS/assets/tabler-icons/fonts/` sind produktiver Runtim
 
 - Website: https://tabler.io/
 - GitHub: https://github.com/tabler/tabler
+- Tabler Icons (`CMS/assets/tabler-icons/`): https://tabler.io/icons / https://github.com/tabler/tabler-icons

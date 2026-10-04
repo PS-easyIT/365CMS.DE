@@ -25,5 +25,7 @@
 
 ## Website / GitHub
 
-- Website: https://carbon.nesbot.com/
-- GitHub: https://github.com/briannesbitt/Carbon
+- Website: https://carbonphp.github.io/carbon/
+- GitHub: https://github.com/CarbonPHP/carbon
+- Packagist: https://packagist.org/packages/nesbot/carbon
+- Hinweis (2026-10-04): Das Repository ist von `briannesbitt/Carbon` nach `CarbonPHP/carbon` umgezogen; der Paketname `nesbot/carbon` bleibt gleich.
