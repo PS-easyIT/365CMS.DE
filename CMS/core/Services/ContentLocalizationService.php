@@ -137,6 +137,8 @@ final class ContentLocalizationService
     public function localizePage(array $page, string $locale): array
     {
         $page = $this->localizeArrayPayload($page, ['title', 'content', 'excerpt', 'meta_title', 'meta_description'], $locale, 'page');
+        // Basis-Slug (DE) bleibt für hreflang/Canonical erhalten, auch wenn `slug` lokalisiert wird.
+        $page['slug_base'] = (string) ($page['slug_base'] ?? $page['slug'] ?? '');
         $page['slug'] = $this->resolveLocalizedSlug($page, $locale);
 
         return $page;
@@ -145,6 +147,8 @@ final class ContentLocalizationService
     public function localizePost(array $post, string $locale): array
     {
         $post = $this->localizeArrayPayload($post, ['title', 'content', 'excerpt', 'meta_title', 'meta_description'], $locale, 'post');
+        // Basis-Slug (DE) bleibt für hreflang/Canonical erhalten, auch wenn `slug` lokalisiert wird.
+        $post['slug_base'] = (string) ($post['slug_base'] ?? $post['slug'] ?? '');
         $post['slug'] = $this->resolveLocalizedSlug($post, $locale);
 
         return $post;

@@ -23,7 +23,7 @@ $ovNoun  = $ovIsTag ? 'Tags' : 'Kategorien';
 $ovQuery = is_string($query ?? null) ? trim($query) : '';
 ?>
 <?php if (!empty($ovItems)): ?>
-<div class="section-label"><h3>Alle <?php echo $ovNoun; ?></h3></div>
+<div class="section-label"><h2>Alle <?php echo $ovNoun; ?></h2></div>
 
 <div class="card-grid">
     <?php foreach ($ovItems as $ovItem):
@@ -42,7 +42,7 @@ $ovQuery = is_string($query ?? null) ? trim($query) : '';
     ?>
     <div class="card">
         <div class="card-body">
-            <h4><a href="<?php echo $ovHref; ?>"><?php echo htmlspecialchars($ovTitle, ENT_QUOTES, 'UTF-8'); ?></a></h4>
+            <h3><a href="<?php echo $ovHref; ?>"><?php echo htmlspecialchars($ovTitle, ENT_QUOTES, 'UTF-8'); ?></a></h3>
             <?php if ($ovDesc !== ''): ?>
             <p><?php echo htmlspecialchars($ovDesc, ENT_QUOTES, 'UTF-8'); ?></p>
             <?php endif; ?>

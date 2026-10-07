@@ -230,6 +230,10 @@ function cms_admin_pages_normalize_bulk_ids(mixed $ids, mixed $csvIds = ''): arr
 
 function cms_admin_pages_build_inline_edit_data(PagesModule $module, array $post): array
 {
+    // Vorlagenfelder vor der Skalar-Bereinigung sichern: nach einem Validierungsfehler oder
+    // Sprachwechsel sollen Auswahl und eingegebene Rohwerte (auch fehlerhaftes JSON) erhalten bleiben.
+    $hasTemplateSelection = array_key_exists('page_template', $post);
+    $rawTemplateMeta = is_array($post['page_meta'] ?? null) ? $post['page_meta'] : [];
     $post = cms_admin_pages_sanitize_inline_post($post);
     $id = cms_admin_pages_normalize_positive_id($post['id'] ?? 0);
     $editData = $module->getEditData($id > 0 ? $id : null);
@@ -270,6 +274,22 @@ function cms_admin_pages_build_inline_edit_data(PagesModule $module, array $post
         $draftPage['title_en'] = (string) ($existingPage['title_en'] ?? $draftPage['title_en'] ?? '');
         $draftPage['slug_en'] = (string) ($existingPage['slug_en'] ?? $draftPage['slug_en'] ?? '');
         $draftPage['content_en'] = $existingPage['content_en'] ?? ($draftPage['content_en'] ?? '');
+    }
+
+    if ($hasTemplateSelection) {
+        $templateValue = preg_replace('/[^a-z0-9_-]/i', '', cms_admin_pages_scalar_string($post['page_template'] ?? '')) ?? '';
+        $templateMeta = [];
+        foreach ($rawTemplateMeta as $metaKey => $metaValue) {
+            $metaKey = preg_replace('/[^a-z0-9_-]/i', '', (string) $metaKey) ?? '';
+            if ($metaKey === '') {
+                continue;
+            }
+            $templateMeta[$metaKey] = is_scalar($metaValue) ? (string) $metaValue : (is_array($metaValue) ? $metaValue : '');
+        }
+        $draftPage['page_template'] = $templateValue !== '' ? $templateValue : 'default';
+        $draftPage['page_meta_json'] = $templateMeta !== []
+            ? (json_encode($templateMeta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE) ?: null)
+            : null;
     }
 
     $editData['page'] = (object) $draftPage;

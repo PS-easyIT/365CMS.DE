@@ -311,7 +311,7 @@ class MessageService
                 ORDER BY display_name ASC
                 LIMIT ?";
 
-        $like = '%' . $query . '%';
+        $like = '%' . \cms_escape_like($query) . '%';
         return $this->db->get_results($sql, [$excludeUserId, $like, $like, $limit]) ?: [];
     }
 }

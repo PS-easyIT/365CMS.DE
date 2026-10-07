@@ -21,6 +21,7 @@ use CMS\Services\RedirectService;
 use CMS\Services\ContentMediaPlacementService;
 use CMS\Services\ContentLocalizationService;
 use CMS\Services\SEOService;
+use CMS\Services\PageTemplateService;
 
 class PagesModule
 {
@@ -304,6 +305,7 @@ class PagesModule
             'categories' => $this->buildOrderedCategoryOptions(array_map(fn($category) => (array) $category, $categories)),
             'seoMeta' => $id !== null ? SEOService::getInstance()->getContentMeta('page', $id) : SEOService::getInstance()->getContentMeta('page', 0),
             'revisionHistory' => $this->buildPageRevisionHistory($page),
+            'pageTemplates' => $this->getPageTemplateDefinitions(),
         ];
     }
 
@@ -312,9 +314,15 @@ class PagesModule
      */
     public function save(array $post, int $userId): array
     {
-        $invalidInputField = $this->findUnexpectedNonScalarInput($post);
+        $invalidInputField = $this->findUnexpectedNonScalarInput(array_diff_key($post, ['page_meta' => true]));
         if ($invalidInputField !== '') {
             return ['success' => false, 'error' => 'Ungültige Eingabe für das Feld „' . $invalidInputField . '“. Bitte die Seite neu laden und erneut speichern.'];
+        }
+
+        // Seitenvorlage und Zusatzfelder vor jedem Datenbankzugriff validieren.
+        $templateSelection = $this->resolvePageTemplateSelection($post);
+        if (isset($templateSelection['error'])) {
+            return ['success' => false, 'error' => (string) $templateSelection['error']];
         }
 
         $id     = (int)($post['id'] ?? 0);
@@ -322,7 +330,7 @@ class PagesModule
             ? strtolower(trim((string) ($post['editor_locale'] ?? 'de')))
             : 'de';
         $existingPage = $id > 0
-            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]) ?: [])
+            ? (array) ($this->db->get_row("SELECT * FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]) ?: [])
             : [];
         $title  = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug   = trim($post['slug'] ?? '');
@@ -427,6 +435,15 @@ class PagesModule
             'content_updated_at' => $contentUpdatedAtInput['value'],
         ];
 
+        if ($templateSelection['provided']) {
+            $savePayload['page_template'] = $templateSelection['template'];
+            $savePayload['page_meta_json'] = $templateSelection['meta_json'];
+        } elseif ($existingPage !== [] && array_key_exists('page_template', $existingPage)) {
+            // Ältere Formulare ohne Vorlagenauswahl: gespeicherte Vorlage und Zusatzfelder unverändert lassen.
+            $savePayload['page_template'] = $existingPage['page_template'];
+            $savePayload['page_meta_json'] = $existingPage['page_meta_json'] ?? null;
+        }
+
         $filteredPayload = Hooks::applyFilters('cms_prepare_page_save_payload', $savePayload, $post, $id, $userId);
         if (is_array($filteredPayload)) {
             $savePayload = array_merge($savePayload, $filteredPayload);
@@ -457,7 +474,7 @@ class PagesModule
                     // Update meta fields
                     $this->db->execute(
                         "UPDATE {$this->prefix}pages 
-                             SET slug = ?, slug_en = ?, title_en = ?, content_en = ?, show_title_toc = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?, content_updated_at = ?
+                             SET slug = ?, slug_en = ?, title_en = ?, content_en = ?, show_title_toc = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?, content_updated_at = ?, page_template = ?, page_meta_json = ?
                          WHERE id = ?",
                         [
                             (string)$savePayload['slug'],
@@ -470,6 +487,8 @@ class PagesModule
                             (string)$savePayload['meta_title'],
                             (string)$savePayload['meta_description'],
                             $savePayload['content_updated_at'],
+                            (string)($savePayload['page_template'] ?? PageTemplateService::DEFAULT_TEMPLATE),
+                            $savePayload['page_meta_json'] ?? null,
                             $newId,
                         ]
                     );
@@ -681,6 +700,50 @@ class PagesModule
         }
     }
 
+    /**
+     * @return array{provided:bool,template:string,meta_json:?string}|array{error:string}
+     */
+    private function resolvePageTemplateSelection(array $post): array
+    {
+        if (!array_key_exists('page_template', $post)) {
+            return ['provided' => false, 'template' => PageTemplateService::DEFAULT_TEMPLATE, 'meta_json' => null];
+        }
+
+        $rawMeta = $post['page_meta'] ?? [];
+        if (!is_array($rawMeta)) {
+            return ['error' => 'Ungültige Zusatzfelder der Seitenvorlage. Bitte die Seite neu laden.'];
+        }
+
+        try {
+            $service = PageTemplateService::forActiveTheme();
+            $template = $service->normalizeTemplate($post['page_template']);
+
+            return [
+                'provided' => true,
+                'template' => $template,
+                'meta_json' => $service->encodeMetadata($rawMeta, $template),
+            ];
+        } catch (\InvalidArgumentException $e) {
+            return ['error' => $e->getMessage()];
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.pages')->error('Seitenvorlage konnte nicht geprüft werden.', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return ['error' => 'Die Seitenvorlage konnte nicht geprüft werden.'];
+        }
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function getPageTemplateDefinitions(): array
+    {
+        try {
+            return PageTemplateService::forActiveTheme()->getDefinitions();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     private function sanitizePlainText(string $value, int $maxLength): string
     {
         $value = trim(strip_tags($value));
@@ -865,6 +928,8 @@ class PagesModule
             $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Aktualisierungsdatum', $currentPage['content_updated_at'] ?? '', $revision['content_updated_at'] ?? '');
         $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (DE)', $currentPage['content'] ?? '', $revision['content'] ?? '');
         $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (EN)', $currentPage['content_en'] ?? '', $revision['content_en'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Seitenvorlage', $currentPage['page_template'] ?? '', $revision['page_template'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Vorlagen-Zusatzfelder', $currentPage['page_meta_json'] ?? '', $revision['page_meta_json'] ?? '');
 
         return [
             'changed_fields' => array_values(array_unique($changedFields)),

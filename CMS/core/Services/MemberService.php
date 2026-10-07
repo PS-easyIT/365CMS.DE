@@ -190,6 +190,7 @@ class MemberService
             "UPDATE {$this->prefix}users SET password = ? WHERE id = ?",
             [Security::hashPassword($new), $userId]
         );
+        \CMS\Auth::instance()->refreshPasswordFingerprint($userId);
 
         return true;
     }
@@ -656,7 +657,7 @@ class MemberService
         $table = $this->prefix . 'sessions';
         try {
             $rows = $this->db->get_results(
-                "SELECT * FROM {$table} WHERE user_id = ? ORDER BY last_activity DESC",
+                "SELECT id, user_id, ip_address, user_agent, last_activity, expires_at FROM {$table} WHERE user_id = ? AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY last_activity DESC LIMIT 50",
                 [$userId]
             );
             return (array)$rows;

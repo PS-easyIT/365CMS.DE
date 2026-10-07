@@ -18,7 +18,7 @@ if (empty($listPosts)) {
     return;
 }
 ?>
-<div class="section-label"><h3>Aktuelle Artikel</h3></div>
+<div class="section-label"><h2>Aktuelle Artikel</h2></div>
 
 <div class="article-list">
     <?php foreach ($listPosts as $item): ?>
@@ -44,7 +44,7 @@ if (empty($listPosts)) {
     ?>
     <article class="article-row">
         <?php if ($iImage['url'] !== ''): ?>
-        <a href="<?php echo SITE_URL; ?>/blog/<?php echo $iSlug; ?>" class="art-thumb">
+        <a href="<?php echo htmlspecialchars(meridian_post_url($item), ENT_QUOTES, 'UTF-8'); ?>" class="art-thumb">
             <picture>
                 <?php if ($iImage['webp_url'] !== ''): ?>
                 <source srcset="<?php echo htmlspecialchars($iImage['webp_url'], ENT_QUOTES, 'UTF-8'); ?>" type="image/webp">
@@ -56,21 +56,21 @@ if (empty($listPosts)) {
             </picture>
         </a>
         <?php else: ?>
-        <a href="<?php echo SITE_URL; ?>/blog/<?php echo $iSlug; ?>" class="art-thumb">
-            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <a href="<?php echo htmlspecialchars(meridian_post_url($item), ENT_QUOTES, 'UTF-8'); ?>" class="art-thumb" aria-hidden="true" tabindex="-1">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         </a>
         <?php endif; ?>
 
         <div class="art-body">
             <?php if ($iCat): ?>
             <div class="art-cat">
-                <a href="<?php echo SITE_URL; ?>/blog?category=<?php echo urlencode($iCatSlug ?: $iCat); ?>">
+                <a href="<?php echo htmlspecialchars(meridian_archive_url('category', (string) ($iCatSlug ?: $iCat)), ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo $iCat; ?>
                 </a>
             </div>
             <?php endif; ?>
             <div class="art-title">
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo $iSlug; ?>"><?php echo $iTitle; ?></a>
+                <a href="<?php echo htmlspecialchars(meridian_post_url($item), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $iTitle; ?></a>
             </div>
             <?php if ($iExcerpt): ?>
             <div class="art-excerpt"><?php echo $iExcerpt; ?></div>

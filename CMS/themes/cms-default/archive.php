@@ -60,7 +60,7 @@ foreach ($rawTagData as $t) {
 <div class="container" style="max-width:var(--max);margin:0 auto;padding:2rem 1.5rem;">
     <div class="page-wrap<?php echo $showSidebar ? ' page-wrap--sidebar' : ''; ?>">
 
-        <main id="main-content">
+        <div class="content-main">
             <?php if (!empty($posts)): ?>
 
             <?php
@@ -108,7 +108,7 @@ foreach ($rawTagData as $t) {
                 <a href="<?php echo SITE_URL; ?>/blog" class="btn-solid" style="display:inline-block;margin-top:1rem;">Alle Artikel anzeigen</a>
             </div>
             <?php endif; ?>
-        </main>
+        </div>
 
         <?php if ($showSidebar): ?>
         <?php require __DIR__ . '/partials/sidebar.php'; ?>

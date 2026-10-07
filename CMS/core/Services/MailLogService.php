@@ -89,7 +89,7 @@ class MailLogService
 
         if ($search !== '') {
             $where[] = '(recipient LIKE ? OR subject LIKE ? OR provider LIKE ? OR source LIKE ?)';
-            $like = '%' . $search . '%';
+            $like = '%' . \cms_escape_like($search) . '%';
             $params[] = $like;
             $params[] = $like;
             $params[] = $like;

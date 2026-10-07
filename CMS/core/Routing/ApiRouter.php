@@ -157,10 +157,12 @@ final class ApiRouter
     public function status(): void
     {
         header('Content-Type: application/json');
-        echo json_encode([
-            'status' => 'ok',
-            'version' => defined('CMS_VERSION') ? CMS_VERSION : Version::CURRENT,
-        ]);
+        // Exakte Version nur für Admins: öffentlich erleichterte sie das Zuordnen bekannter Schwachstellen.
+        $payload = ['status' => 'ok'];
+        if (\CMS\Auth::instance()->isAdmin()) {
+            $payload['version'] = defined('CMS_VERSION') ? CMS_VERSION : Version::CURRENT;
+        }
+        echo json_encode($payload);
         exit;
     }
 

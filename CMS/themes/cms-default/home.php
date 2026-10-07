@@ -17,22 +17,25 @@ if (!defined('ABSPATH')) {
 // ── Daten laden ──────────────────────────────────────────────────────────────
 $db   = \CMS\Database::instance();
 $pdo  = $db->getConnection();
+$prefix = $db->getPrefix();
+// Öffentlich sichtbar: veröffentlicht und nicht für die Zukunft geplant.
+$publishedWhere = function_exists('cms_post_publication_where') ? cms_post_publication_where('p') : "p.status = 'published'";
 
 // Hero-Post (neuester veröffentlichter Beitrag mit Bild, falls vorhanden)
 $heroPost = null;
 try {
     $stmt = $pdo->prepare(
-        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
-         FROM posts p
-         LEFT JOIN users u ON p.author_id = u.id
-         LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE p.status = 'published'
+        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), u.username) AS author_name, c.name AS category_name, c.slug AS category_slug
+         FROM {$prefix}posts p
+         LEFT JOIN {$prefix}users u ON p.author_id = u.id
+         LEFT JOIN {$prefix}post_categories c ON p.category_id = c.id
+         WHERE {$publishedWhere}
          ORDER BY p.published_at DESC
          LIMIT 1"
     );
     $stmt->execute();
     $heroPost = $stmt->fetch(\PDO::FETCH_OBJ);
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     // Tabelle existiert noch nicht oder leer → kein Hero-Post
 }
 
@@ -41,17 +44,17 @@ $articleList = [];
 try {
     $excludeId = $heroPost ? (int)$heroPost->id : 0;
     $stmt = $pdo->prepare(
-        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
-         FROM posts p
-         LEFT JOIN users u ON p.author_id = u.id
-         LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE p.status = 'published' AND p.id != :exclude
+        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), u.username) AS author_name, c.name AS category_name, c.slug AS category_slug
+         FROM {$prefix}posts p
+         LEFT JOIN {$prefix}users u ON p.author_id = u.id
+         LEFT JOIN {$prefix}post_categories c ON p.category_id = c.id
+         WHERE {$publishedWhere} AND p.id != :exclude
          ORDER BY p.published_at DESC
          LIMIT 5"
     );
     $stmt->execute([':exclude' => $excludeId]);
     $articleList = $stmt->fetchAll(\PDO::FETCH_OBJ);
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $articleList = [];
 }
 
@@ -64,17 +67,17 @@ try {
     );
     $placeholders = $excludeIds ? implode(',', array_fill(0, count($excludeIds), '?')) : '0';
     $stmt = $pdo->prepare(
-        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
-         FROM posts p
-         LEFT JOIN users u ON p.author_id = u.id
-         LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE p.status = 'published' AND p.id NOT IN ($placeholders)
+        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), u.username) AS author_name, c.name AS category_name, c.slug AS category_slug
+         FROM {$prefix}posts p
+         LEFT JOIN {$prefix}users u ON p.author_id = u.id
+         LEFT JOIN {$prefix}post_categories c ON p.category_id = c.id
+         WHERE {$publishedWhere} AND p.id NOT IN ($placeholders)
          ORDER BY p.views DESC
          LIMIT 3"
     );
     $stmt->execute($excludeIds ?: [0]);
     $cardPosts = $stmt->fetchAll(\PDO::FETCH_OBJ);
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $cardPosts = [];
 }
 
@@ -88,17 +91,17 @@ try {
     );
     $placeholders = implode(',', array_fill(0, count($allExclude), '?'));
     $stmt = $pdo->prepare(
-        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
-         FROM posts p
-         LEFT JOIN users u ON p.author_id = u.id
-         LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE p.status = 'published' AND p.id NOT IN ($placeholders)
+        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), u.username) AS author_name, c.name AS category_name, c.slug AS category_slug
+         FROM {$prefix}posts p
+         LEFT JOIN {$prefix}users u ON p.author_id = u.id
+         LEFT JOIN {$prefix}post_categories c ON p.category_id = c.id
+         WHERE {$publishedWhere} AND p.id NOT IN ($placeholders)
          ORDER BY p.published_at DESC
          LIMIT 2"
     );
     $stmt->execute($allExclude ?: [0]);
     $featurePosts = $stmt->fetchAll(\PDO::FETCH_OBJ);
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $featurePosts = [];
 }
 
@@ -111,7 +114,7 @@ $sidebarCats = meridian_get_categories(8);
 // Sidebar: Tags sammeln
 $tagCloud = [];
 try {
-    $stmt = $pdo->query("SELECT tags FROM posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
+    $stmt = $pdo->query("SELECT p.tags FROM {$prefix}posts p WHERE {$publishedWhere} AND p.tags IS NOT NULL AND p.tags != ''");
     $tagRows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
     $tagCounts = [];
     foreach ($tagRows as $row) {
@@ -123,7 +126,7 @@ try {
     }
     arsort($tagCounts);
     $tagCloud = array_keys(array_slice($tagCounts, 0, 20));
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $tagCloud = [];
 }
 
@@ -142,7 +145,8 @@ $numRecent        = count($recentSidebar);
 <?php else: /* ── BLOG MODUS (Standard) ── */ ?>
 <div class="page-wrap<?php echo !$showSidebar ? ' page-wrap--full' : ''; ?>">
 
-<main id="main-content">
+<div class="content-main">
+<h1 class="sr-only"><?php echo htmlspecialchars(defined('SITE_NAME') ? (string) SITE_NAME : '365CMS', ENT_QUOTES, 'UTF-8'); ?></h1>
 
 <!-- ── Hero Post ──────────────────────────────────────────────────────────── -->
 <?php if ($showHero && $heroPost): ?>
@@ -177,7 +181,7 @@ $numRecent        = count($recentSidebar);
         <div class="post-cat"><?php echo htmlspecialchars($heroPost->category_name); ?></div>
         <?php endif; ?>
         <h2>
-            <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($heroPost->slug); ?>">
+            <a href="<?php echo htmlspecialchars(meridian_post_url($heroPost), ENT_QUOTES, 'UTF-8'); ?>">
                 <?php echo htmlspecialchars($heroTitleOverride ?: $heroPost->title); ?>
             </a>
         </h2>
@@ -210,7 +214,7 @@ $numRecent        = count($recentSidebar);
 
 <!-- ── Artikel-Liste ──────────────────────────────────────────────────────── -->
 <?php if (!empty($articleList)): ?>
-<div class="section-label"><h3>Aktuelle Artikel</h3></div>
+<div class="section-label"><h2>Aktuelle Artikel</h2></div>
 <div class="article-list">
     <?php foreach ($articleList as $post): ?>
     <?php
@@ -241,7 +245,7 @@ $numRecent        = count($recentSidebar);
             <div class="art-cat"><?php echo htmlspecialchars($post->category_name); ?></div>
             <?php endif; ?>
             <div class="art-title">
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
+                <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo htmlspecialchars($post->title); ?>
                 </a>
             </div>
@@ -265,7 +269,7 @@ $numRecent        = count($recentSidebar);
 
 <!-- ── Card-Grid ────────────────────────────────────────────────────────── -->
 <?php if (!empty($cardPosts)): ?>
-<div class="section-label"><h3>Weitere Artikel</h3></div>
+<div class="section-label"><h2>Weitere Artikel</h2></div>
 <div class="card-grid">
     <?php foreach ($cardPosts as $post): ?>
     <?php
@@ -295,16 +299,16 @@ $numRecent        = count($recentSidebar);
             <?php endif; ?>
         </div>
         <div class="card-body">
-            <h4>
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
+            <h3>
+                <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo htmlspecialchars($post->title); ?>
                 </a>
-            </h4>
+            </h3>
             <p><?php echo htmlspecialchars(meridian_excerpt($post->excerpt ?: $post->content, 100)); ?></p>
             <div class="card-footer">
                 <time><?php echo meridian_format_date($post->published_at ?? $post->created_at, true); ?></time>
                 <?php echo meridian_post_update_badge($post); ?>
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="read-link">Lesen →</a>
+                <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>" class="read-link">Lesen →</a>
             </div>
         </div>
     </div>
@@ -314,18 +318,18 @@ $numRecent        = count($recentSidebar);
 
 <!-- ── Feature-Row ───────────────────────────────────────────────────────── -->
 <?php if (!empty($featurePosts)): ?>
-<div class="section-label"><h3>Schwerpunkte</h3></div>
+<div class="section-label"><h2>Schwerpunkte</h2></div>
 <div class="feature-row">
     <?php foreach ($featurePosts as $post): ?>
     <div class="feature-box">
         <h3>
-            <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
+            <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>">
                 <?php echo htmlspecialchars($post->title); ?>
             </a>
         </h3>
         <p><?php echo htmlspecialchars(meridian_excerpt($post->excerpt ?: $post->content, 120)); ?></p>
         <?php echo meridian_post_update_badge($post); ?>
-        <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="feature-link">
+        <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>" class="feature-link">
             <?php echo htmlspecialchars($post->category_name ?: 'Weiterlesen'); ?> →
         </a>
     </div>
@@ -341,7 +345,7 @@ $numRecent        = count($recentSidebar);
 </div>
 <?php endif; ?>
 
-</main>
+</div>
 
 <!-- ── Sidebar ────────────────────────────────────────────────────────────── -->
 <?php if ($showSidebar): ?>
@@ -364,7 +368,7 @@ $numRecent        = count($recentSidebar);
         <div class="widget-title">Kategorien</div>
         <?php foreach ($sidebarCats as $cat): ?>
         <div class="cat-row">
-            <a href="<?php echo SITE_URL . '/blog?category=' . urlencode($cat['slug'] ?? ''); ?>">
+            <a href="<?php echo htmlspecialchars(meridian_archive_url('category', (string) ($cat['slug'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
                 <?php echo htmlspecialchars($cat['name']); ?>
             </a>
             <?php if (!empty($cat['post_count'])): ?>
@@ -388,7 +392,7 @@ $numRecent        = count($recentSidebar);
                 <?php if (!empty($rArr['category_name'])): ?>
                 <div class="rcat"><?php echo htmlspecialchars($rArr['category_name']); ?></div>
                 <?php endif; ?>
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($rArr['slug'] ?? ''); ?>">
+                <a href="<?php echo htmlspecialchars(meridian_post_url($rArr), ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo htmlspecialchars($rArr['title'] ?? ''); ?>
                 </a>
                 <time><?php echo meridian_format_date($rArr['published_at'] ?? $rArr['created_at'] ?? '', true); ?></time>

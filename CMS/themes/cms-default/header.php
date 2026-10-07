@@ -77,6 +77,16 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
             if (!empty($tm)) { $siteTitle = $tm; }
         }
     } catch (\Throwable $e) {}
+    if (function_exists('meridian_document_title')) {
+        $siteTitle = meridian_document_title($siteTitle, [
+            'title' => $title ?? null,
+            'category' => $category ?? null,
+            'tag' => $tag ?? null,
+            'author' => $author ?? null,
+            'currentPage' => $currentPage ?? null,
+            'error_code' => $error_code ?? null,
+        ]);
+    }
     ?>
     <title><?php echo htmlspecialchars(\CMS\Hooks::applyFilters('page_title', $siteTitle), ENT_QUOTES, 'UTF-8'); ?></title>
     <?php
@@ -87,10 +97,11 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
 </head>
 <body class="meridian-theme">
 
+  <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
   <?php if (class_exists('\CMS\Hooks')) { \CMS\Hooks::doAction('body_start'); } ?>
 
 <?php if ($flashMsg): ?>
-<div class="alert alert-<?php echo htmlspecialchars($flashMsg['type'] ?? 'info'); ?>" style="border-radius:0;margin:0;">
+<div class="alert alert-<?php echo htmlspecialchars($flashMsg['type'] ?? 'info'); ?>" role="<?php echo in_array(($flashMsg['type'] ?? ''), ['error', 'danger'], true) ? 'alert' : 'status'; ?>" style="border-radius:0;margin:0;">
     <?php echo htmlspecialchars($flashMsg['message'] ?? ''); ?>
 </div>
 <?php endif; ?>
@@ -120,7 +131,7 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
     </div>
 
     <!-- Primary Nav -->
-    <nav class="primary-nav">
+    <nav class="primary-nav" aria-label="Hauptnavigation">
         <?php
         $navItems = [
             ['label' => 'Startseite', 'href' => SITE_URL . '/'],
@@ -154,7 +165,7 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
             <div class="nav-group">
                 <a href="<?php echo htmlspecialchars($href); ?>">
                     <?php echo htmlspecialchars($label); ?>
-                    <svg viewBox="0 0 10 10"><polyline points="2,3 5,7 8,3"/></svg>
+                    <svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><polyline points="2,3 5,7 8,3"/></svg>
                 </a>
                 <div class="nav-dropdown">
                     <?php foreach ($children as $child):
@@ -166,7 +177,7 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
                 </div>
             </div>
         <?php else: ?>
-            <a href="<?php echo htmlspecialchars($href); ?>" class="<?php echo $isActive ? 'active' : ''; ?>">
+            <a href="<?php echo htmlspecialchars($href); ?>" class="<?php echo $isActive ? 'active' : ''; ?>"<?php echo $isActive ? ' aria-current="page"' : ''; ?>>
                 <?php echo htmlspecialchars($label); ?>
             </a>
         <?php endif; endforeach; ?>
@@ -177,8 +188,8 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
     <!-- Header Actions -->
     <div class="header-actions">
       <?php if ($showSearch): ?>
-      <button class="btn-icon" id="searchToggle" aria-label="Suche">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <button type="button" class="btn-icon" id="searchToggle" aria-label="Suche öffnen" aria-expanded="false" aria-controls="headerSearch">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
       <?php endif; ?>
 
@@ -198,32 +209,45 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
       <?php endif; ?>
 
       <!-- Hamburger (nur mobil sichtbar via CSS) -->
-      <button class="nav-toggle" id="navToggle" aria-label="Menü öffnen" aria-expanded="false" aria-controls="mobileNavPanel">
+      <button type="button" class="nav-toggle" id="navToggle" aria-label="Menü öffnen" aria-expanded="false" aria-controls="mobileNavPanel">
         <span class="nav-toggle-bar"></span>
         <span class="nav-toggle-bar"></span>
         <span class="nav-toggle-bar"></span>
       </button>
     </div>
   </div>
+  <?php if ($showSearch): ?>
+  <div class="header-search" id="headerSearch" aria-hidden="true">
+    <form class="header-search-form" action="<?php echo htmlspecialchars(rtrim((string) SITE_URL, '/') . '/search', ENT_QUOTES, 'UTF-8'); ?>" method="GET" role="search">
+      <label for="headerSearchInput" class="sr-only">Website durchsuchen</label>
+      <input type="search" id="headerSearchInput" name="q" class="form-control header-search-input" placeholder="Suchen…" maxlength="200" autocomplete="off">
+      <button type="submit" class="btn-submit">Suchen</button>
+      <button type="button" class="btn-icon" id="searchClose" aria-label="Suche schließen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true" focusable="false"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </form>
+  </div>
+  <?php endif; ?>
 </header>
 
 <!-- Kategorie/Menü-Leiste -->
 <?php if ($headerBarMode !== 'none'): ?>
-<div class="category-bar">
+<nav class="category-bar" aria-label="<?php echo $headerBarMode === 'categories' ? 'Kategorien' : 'Sekundärnavigation'; ?>">
   <div class="category-bar-inner">
     
     <?php if ($headerBarMode === 'categories'): ?>
-        <span class="cat-label">Kategorien</span>
-        <a href="<?php echo SITE_URL; ?>/blog" class="<?php echo ($currentPath === '/blog' && !isset($_GET['category'])) ? 'active' : ''; ?>">Alle</a>
+        <span class="cat-label" aria-hidden="true">Kategorien</span>
+        <a href="<?php echo SITE_URL; ?>/blog" class="<?php echo $currentPath === '/blog' ? 'active' : ''; ?>"<?php echo $currentPath === '/blog' ? ' aria-current="page"' : ''; ?>>Alle</a>
         <?php
         $cats = function_exists('meridian_get_categories') ? meridian_get_categories(8) : [];
         if (!empty($cats)):
             foreach ($cats as $cat):
                 $catSlug = $cat['slug'] ?? '';
                 $catName = $cat['name'] ?? '';
-                $isActive = (isset($_GET['category']) && $_GET['category'] === $catSlug);
+                $catHref = meridian_archive_url('category', (string) $catSlug);
+                $isActive = rtrim($currentPath, '/') === rtrim((string) (parse_url($catHref, PHP_URL_PATH) ?: ''), '/');
         ?>
-        <a href="<?php echo SITE_URL; ?>/blog?category=<?php echo urlencode($catSlug); ?>" class="<?php echo $isActive ? 'active' : ''; ?>"><?php echo htmlspecialchars($catName); ?></a>
+        <a href="<?php echo htmlspecialchars($catHref, ENT_QUOTES, 'UTF-8'); ?>" class="<?php echo $isActive ? 'active' : ''; ?>"<?php echo $isActive ? ' aria-current="page"' : ''; ?>><?php echo htmlspecialchars($catName); ?></a>
         <?php endforeach; endif; ?>
 
     <?php elseif ($headerBarMode === 'menu'): ?>
@@ -244,7 +268,7 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
     <?php endif; ?>
 
   </div>
-</div>
+</nav>
 <?php endif; ?>
 
 <!-- Mobile Nav Overlay -->
@@ -261,8 +285,8 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
         <span class="logo-dot"></span>
       <?php endif; ?>
     </a>
-    <button id="mobileNavClose" class="btn-icon" aria-label="Menü schließen" style="margin-left:auto;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <button type="button" id="mobileNavClose" class="btn-icon" aria-label="Menü schließen" style="margin-left:auto;">
+      <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
 
@@ -274,7 +298,7 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
         $mChildren = is_array($item) ? ($item['children'] ?? []) : [];
     ?>
     <a href="<?php echo htmlspecialchars($mHref); ?>"
-       class="mobile-nav-link<?php echo $mActive ? ' active' : ''; ?>">
+       class="mobile-nav-link<?php echo $mActive ? ' active' : ''; ?>"<?php echo $mActive ? ' aria-current="page"' : ''; ?>>
       <?php echo htmlspecialchars($mLabel); ?>
     </a>
     <?php foreach ($mChildren as $child):
@@ -292,17 +316,17 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
     <div style="height:1px;background:var(--rule);margin:.5rem 1.25rem;"></div>
 
     <?php if ($isLoggedIn): ?>
-      <a href="<?php echo htmlspecialchars(rtrim((string) SITE_URL, '/') . $accountPath, ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link">👤 Mein Bereich</a>
+      <a href="<?php echo htmlspecialchars(rtrim((string) SITE_URL, '/') . $accountPath, ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link"><span aria-hidden="true">👤</span> Mein Bereich</a>
       <form method="POST" action="<?php echo htmlspecialchars($logoutAction, ENT_QUOTES, 'UTF-8'); ?>" class="logout-form">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($logoutToken, ENT_QUOTES, 'UTF-8'); ?>">
-        <button type="submit" class="mobile-nav-link mobile-nav-link--button">⬡ Logout</button>
+        <button type="submit" class="mobile-nav-link mobile-nav-link--button"><span aria-hidden="true">⬡</span> Logout</button>
       </form>
     <?php else: ?>
       <?php if ($showLoginBtn): ?>
-      <a href="<?php echo htmlspecialchars(meridian_auth_url('login'), ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link">🔑 Anmelden</a>
+      <a href="<?php echo htmlspecialchars(meridian_auth_url('login'), ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link"><span aria-hidden="true">🔑</span> Anmelden</a>
       <?php endif; ?>
       <?php if ($showRegBtn): ?>
-      <a href="<?php echo htmlspecialchars(meridian_auth_url('register'), ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link" style="color:var(--accent);font-weight:600;">✨ Registrieren</a>
+      <a href="<?php echo htmlspecialchars(meridian_auth_url('register'), ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link" style="color:var(--accent);font-weight:600;"><span aria-hidden="true">✨</span> Registrieren</a>
       <?php endif; ?>
     <?php endif; ?>
   </div>
@@ -311,11 +335,11 @@ $logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
   <div class="mobile-nav-search">
     <form action="<?php echo SITE_URL; ?>/search" method="GET" role="search" style="display:flex;gap:.5rem;">
       <input type="search" name="q" placeholder="Suchen…" class="form-control form-control--sm" aria-label="Suche" style="flex:1;">
-      <button type="submit" class="btn-submit" aria-label="Suche absenden" style="padding:.35rem .85rem;font-size:.82rem;">→</button>
+      <button type="submit" class="btn-submit" aria-label="Suche absenden" style="padding:.35rem .85rem;font-size:.82rem;"><span aria-hidden="true">→</span></button>
     </form>
   </div>
   <?php endif; ?>
 </nav>
 
 <!-- Main Content Wrapper startet hier -->
-<main class="site-main">
+<main class="site-main" id="main-content" tabindex="-1">

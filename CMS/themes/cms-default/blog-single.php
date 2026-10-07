@@ -19,7 +19,7 @@ if (empty($post)) {
 // Prepare variables
 $pTitleRaw = trim((string) ($post->title ?? ''));
 $pTitle = htmlspecialchars($pTitleRaw, ENT_QUOTES, 'UTF-8');
-$pLink = rtrim((string) SITE_URL, '/') . '/blog/' . ltrim((string) ($post->slug ?? ''), '/');
+$pLink = meridian_post_url($post);
 $pContent = (string) ($post->content ?? '');
 $pExcerptRaw = trim((string) ($post->excerpt ?? ''));
 $pExcerpt = $pExcerptRaw !== '' ? htmlspecialchars($pExcerptRaw, ENT_QUOTES, 'UTF-8') : '';
@@ -113,7 +113,7 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
     <nav class="breadcrumb-inner" aria-label="Breadcrumb">
       <a href="<?php echo SITE_URL; ?>/">Startseite</a><span class="sep">›</span>
       <a href="<?php echo SITE_URL; ?>/blog">Blog</a><span class="sep">›</span>
-      <a href="<?php echo SITE_URL; ?>/blog?category=<?php echo urlencode($pCatSlug); ?>"><?php echo htmlspecialchars($pCat, ENT_QUOTES, 'UTF-8'); ?></a><span class="sep">›</span>
+      <a href="<?php echo htmlspecialchars(meridian_archive_url('category', (string) ($pCatSlug)), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($pCat, ENT_QUOTES, 'UTF-8'); ?></a><span class="sep">›</span>
       <span class="cur"><?php echo $pTitle; ?></span>
     </nav>
   </div>
@@ -122,7 +122,7 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
     <header class="post-hero">
       <div class="post-hero__intro">
         <div class="post-hero__eyebrow">
-          <a href="<?php echo SITE_URL; ?>/blog?category=<?php echo urlencode($pCatSlug); ?>" class="post-hero__category"><?php echo htmlspecialchars($pCat, ENT_QUOTES, 'UTF-8'); ?></a>
+          <a href="<?php echo htmlspecialchars(meridian_archive_url('category', (string) ($pCatSlug)), ENT_QUOTES, 'UTF-8'); ?>" class="post-hero__category"><?php echo htmlspecialchars($pCat, ENT_QUOTES, 'UTF-8'); ?></a>
           <span class="post-hero__sep">•</span>
           <span class="post-hero__reading"><?php echo htmlspecialchars($pRead, ENT_QUOTES, 'UTF-8'); ?></span>
         </div>
@@ -200,7 +200,7 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
       <span class="pf-label">Schlagwörter</span>
       <div class="pf-tags">
         <?php foreach ($pTags as $tag): ?>
-        <a href="<?php echo SITE_URL; ?>/blog?tag=<?php echo urlencode((string) $tag); ?>"><?php echo htmlspecialchars((string) $tag, ENT_QUOTES, 'UTF-8'); ?></a>
+        <a href="<?php echo htmlspecialchars(meridian_archive_url('tag', (string) ((string) $tag)), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $tag, ENT_QUOTES, 'UTF-8'); ?></a>
         <?php endforeach; ?>
       </div>
     </div>
@@ -211,7 +211,7 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
         <div class="author-avatar-lg"><?php echo htmlspecialchars($pAuthIni, ENT_QUOTES, 'UTF-8'); ?></div>
         <div class="author-box-info">
           <div class="label">Über den Autor</div>
-          <h4><?php echo htmlspecialchars($pAuthor, ENT_QUOTES, 'UTF-8'); ?></h4>
+          <h2><?php echo htmlspecialchars($pAuthor, ENT_QUOTES, 'UTF-8'); ?></h2>
           <div class="arole">Redaktion · Schwerpunkt <?php echo htmlspecialchars($pCat, ENT_QUOTES, 'UTF-8'); ?></div>
           <p>Konzipiert, verdichtet und veröffentlicht Beiträge mit Fokus auf nachvollziehbare Praxis, klare Struktur und einen brauchbaren Erkenntnisgewinn statt Deko-Textwüste.</p>
         </div>
@@ -220,12 +220,12 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
 
     <?php if ($showRelated && !empty($relatedPosts)): ?>
     <section class="related-section" aria-labelledby="related-posts-heading">
-      <div class="section-label"><h3 id="related-posts-heading">Verwandte Artikel</h3></div>
+      <div class="section-label"><h2 id="related-posts-heading">Verwandte Artikel</h2></div>
       <div class="related-grid">
         <?php foreach ($relatedPosts as $rp): $rp = (array) $rp;
             $rTitleRaw = trim((string) ($rp['title'] ?? ''));
             $rTitle = htmlspecialchars($rTitleRaw, ENT_QUOTES, 'UTF-8');
-            $rLink = SITE_URL . '/blog/' . ltrim((string) ($rp['slug'] ?? ''), '/');
+            $rLink = meridian_post_url($rp);
             $rCat = trim((string) ($rp['category_name'] ?? 'Tipp'));
             $rDate = !empty($rp['published_at'] ?? $rp['created_at'] ?? '')
                 ? meridian_format_date((string) ($rp['published_at'] ?? $rp['created_at']), true)
@@ -256,7 +256,7 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
             </picture>
           </a>
           <?php else: ?>
-          <a href="<?php echo htmlspecialchars($rLink, ENT_QUOTES, 'UTF-8'); ?>" class="related-card__media related-card__media--placeholder">
+          <a href="<?php echo htmlspecialchars($rLink, ENT_QUOTES, 'UTF-8'); ?>" class="related-card__media related-card__media--placeholder" aria-hidden="true" tabindex="-1">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           </a>
           <?php endif; ?>
@@ -274,7 +274,7 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
 
     <?php if ($shouldRenderCommentsSection): ?>
     <section id="comments" class="comments-section" aria-labelledby="comments-heading">
-      <div class="section-label"><h3 id="comments-heading">Kommentare<?php echo $approvedCommentCount > 0 ? ' (' . $approvedCommentCount . ')' : ''; ?></h3></div>
+      <div class="section-label"><h2 id="comments-heading">Kommentare<?php echo $approvedCommentCount > 0 ? ' (' . $approvedCommentCount . ')' : ''; ?></h2></div>
 
       <?php if ($approvedCommentCount > 0): ?>
       <div class="comment-thread" aria-label="Freigegebene Kommentare">
@@ -319,7 +319,7 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
 
       <?php if ($postAllowsComments): ?>
       <div class="comment-form-wrap">
-        <h4>Einen Kommentar hinterlassen</h4>
+        <h3>Einen Kommentar hinterlassen</h3>
         <?php
           $commentCsrf = '';
           if (class_exists('\\CMS\\Security')) {

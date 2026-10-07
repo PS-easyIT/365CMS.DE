@@ -67,6 +67,49 @@ function cms_checkout_bool_setting(array $settings, string $key, string $default
     return in_array($value, ['1', 'true', 'yes', 'on'], true);
 }
 
+/**
+ * Bestellbestätigung an Kunde und Kopie an ADMIN_EMAIL. Fehler brechen die Bestellung nicht ab.
+ *
+ * @param array<string, float> $totals
+ */
+function cms_checkout_send_confirmation(string $email, string $orderNumber, string $planName, string $billing, array $totals, string $paymentMethod, string $customerName): bool
+{
+    $siteName = defined('SITE_NAME') ? (string) SITE_NAME : '365CMS';
+    $cycleLabels = ['monthly' => 'monatlich', 'yearly' => 'jährlich', 'lifetime' => 'einmalig'];
+    $paymentLabels = ['invoice' => 'Rechnung', 'stripe' => 'Kreditkarte (Stripe)', 'paypal' => 'PayPal'];
+    $amount = number_format((float) ($totals['total_amount'] ?? 0), 2, ',', '.') . ' EUR';
+    $lines = [
+        'Guten Tag' . ($customerName !== '' ? ' ' . $customerName : '') . ',',
+        '',
+        'vielen Dank für Ihre Bestellung bei ' . $siteName . '.',
+        '',
+        'Bestellnummer: ' . $orderNumber,
+        'Paket: ' . ($planName !== '' ? $planName : '-') . ' (' . ($cycleLabels[$billing] ?? $billing) . ')',
+        'Gesamtbetrag: ' . $amount,
+        'Zahlungsart: ' . ($paymentLabels[$paymentMethod] ?? $paymentMethod),
+        '',
+        'Wir melden uns, sobald die Bestellung bearbeitet ist.',
+        '',
+        $siteName,
+    ];
+
+    $sent = false;
+    try {
+        $mail = \CMS\Services\MailService::getInstance();
+        $sent = $mail->sendPlain($email, 'Ihre Bestellung ' . $orderNumber, implode("\n", $lines));
+        if (defined('ADMIN_EMAIL') && filter_var((string) ADMIN_EMAIL, FILTER_VALIDATE_EMAIL)) {
+            $mail->sendPlain((string) ADMIN_EMAIL, 'Neue Bestellung ' . $orderNumber, implode("\n", array_merge(['Neue Bestellung über den Checkout:', '', 'Kunde: ' . $email], array_slice($lines, 4, 4))));
+        }
+    } catch (\Throwable $e) {
+        Logger::instance()->withChannel('orders.checkout')->warning('Bestellbestätigung konnte nicht versendet werden.', [
+            'order_number' => $orderNumber,
+            'exception' => $e::class,
+        ]);
+    }
+
+    return $sent;
+}
+
 /** @return list<string> */
 function cms_checkout_available_payment_methods(string $setting): array
 {
@@ -217,17 +260,25 @@ if (!$plan) {
 $planBasePrice = (float) (($billing === 'yearly') ? ($plan['price_yearly'] ?? 0) : ($plan['price_monthly'] ?? 0));
 $pricingTotals = cms_checkout_calculate_totals($planBasePrice, $taxRate, $taxIncluded);
 $selectedPaymentMethod = cms_checkout_normalize_payment_method($_POST['payment_method'] ?? $defaultPaymentMethod, $paymentMethods, $defaultPaymentMethod);
-$selectedCountry = (string) ($_POST['country'] ?? 'DE');
 $countryOptions = ['DE' => 'Deutschland', 'AT' => 'Österreich', 'CH' => 'Schweiz'];
+$selectedCountry = strtoupper(trim((string) ($_POST['country'] ?? 'DE')));
+if (!isset($countryOptions[$selectedCountry])) {
+    $selectedCountry = 'DE';
+}
 
 // Handle Form Submission
 $error = '';
 $success = false;
 $orderId = 0;
+$confirmationSent = false;
+$clientIp = Security::getClientIp();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'checkout_process')) {
         $error = 'Sicherheitsüberprüfung fehlgeschlagen. Bitte versuchen Sie es erneut.';
+    } elseif (!Security::checkDbRateLimit($clientIp, 'checkout_order', 5, 3600)) {
+        // Öffentlicher Checkout ohne Limit erlaubte beliebig viele Bestellungen (DB-Wachstum, Spam).
+        $error = 'Zu viele Bestellversuche. Bitte versuchen Sie es in einer Stunde erneut.';
     } else {
         // Validate inputs
         $contactData = [
@@ -237,7 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'address' => trim($_POST['address'] ?? ''),
             'zip' => trim($_POST['zip'] ?? ''),
             'city' => trim($_POST['city'] ?? ''),
-            'country' => trim($_POST['country'] ?? ''),
+            'country' => $selectedCountry,
             'email' => trim($_POST['email'] ?? ''),
             'phone' => trim($_POST['phone'] ?? ''),
         ];
@@ -307,9 +358,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
                 
                 $success = (bool) $orderId;
-                
-                // Here you would send an email
-                
+                Security::recordDbRateLimitAttempt($clientIp, 'checkout_order');
+
+                if ($success) {
+                    $confirmationSent = cms_checkout_send_confirmation(
+                        $contactData['email'],
+                        (string) $orderNumber,
+                        (string) ($plan['name'] ?? ''),
+                        $billing,
+                        $totals,
+                        $selectedPaymentMethod,
+                        $customerName
+                    );
+                }
+
             } catch (\Throwable $e) {
                 Logger::instance()->withChannel('orders.checkout')->error('Bestellung konnte nicht erstellt werden.', [
                     'plan_id' => (int) ($plan['id'] ?? 0),
@@ -334,10 +396,14 @@ ob_start();
             <div style="font-size: 60px; color: #10b981; margin-bottom: 20px;">✓</div>
             <h1>Vielen Dank für Ihre Bestellung!</h1>
             <p class="lead">Ihre Bestellnummer lautet: <strong><?php echo htmlspecialchars($orderNumber); ?></strong></p>
+            <?php if ($confirmationSent): ?>
             <p>Wir haben Ihnen eine Bestätigung an <strong><?php echo htmlspecialchars($contactData['email']); ?></strong> gesendet.</p>
+            <?php else: ?>
+            <p>Ihre Bestellung ist eingegangen. Die Bestätigung an <strong><?php echo htmlspecialchars($contactData['email']); ?></strong> konnte gerade nicht versendet werden – bitte notieren Sie Ihre Bestellnummer.</p>
+            <?php endif; ?>
             
             <div class="order-actions" style="margin-top: 30px; display: flex; gap: 10px; justify-content: center;">
-                <button onclick="window.print()" class="btn btn-secondary">🖨️ Drucken / PDF</button>
+                <button type="button" class="btn btn-secondary" data-cms-print><span aria-hidden="true">🖨️</span> Drucken / PDF</button>
             </div>
             
             <div style="margin-top: 40px;">
@@ -349,7 +415,7 @@ ob_start();
     <h1 style="margin-bottom: 30px;">Bestellung abschließen</h1>
     
     <?php if ($error): ?>
-        <div class="alert alert-danger" style="background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+        <div class="alert alert-danger" role="alert" style="background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
             <?php echo htmlspecialchars($error); ?>
         </div>
     <?php endif; ?>
@@ -372,39 +438,39 @@ ob_start();
                     
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
                         <div class="form-group">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Vorname</label>
-                            <input type="text" name="first_name" class="form-control" value="<?php echo htmlspecialchars($_POST['first_name'] ?? ($user->first_name ?? '')); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                            <label for="checkout-first-name" style="display: block; margin-bottom: 5px; font-weight: 500;">Vorname</label>
+                            <input id="checkout-first-name" autocomplete="given-name" type="text" name="first_name" class="form-control" value="<?php echo htmlspecialchars($_POST['first_name'] ?? ($user->first_name ?? '')); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
                         </div>
                         <div class="form-group">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Nachname *</label>
-                            <input type="text" name="last_name" class="form-control" required value="<?php echo htmlspecialchars($_POST['last_name'] ?? ($user->last_name ?? '')); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                            <label for="checkout-last-name" style="display: block; margin-bottom: 5px; font-weight: 500;">Nachname *</label>
+                            <input id="checkout-last-name" autocomplete="family-name" type="text" name="last_name" class="form-control" required value="<?php echo htmlspecialchars($_POST['last_name'] ?? ($user->last_name ?? '')); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
                         </div>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Firma</label>
-                        <input type="text" name="company" class="form-control" value="<?php echo htmlspecialchars($_POST['company'] ?? ''); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        <label for="checkout-company" style="display: block; margin-bottom: 5px; font-weight: 500;">Firma</label>
+                        <input id="checkout-company" autocomplete="organization" type="text" name="company" class="form-control" value="<?php echo htmlspecialchars($_POST['company'] ?? ''); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
                     </div>
 
                     <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Adresse *</label>
-                        <input type="text" name="address" class="form-control" required value="<?php echo htmlspecialchars($_POST['address'] ?? ''); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        <label for="checkout-address" style="display: block; margin-bottom: 5px; font-weight: 500;">Adresse *</label>
+                        <input id="checkout-address" autocomplete="street-address" type="text" name="address" class="form-control" required value="<?php echo htmlspecialchars($_POST['address'] ?? ''); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
                     </div>
 
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 15px;">
                         <div class="form-group">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">PLZ *</label>
-                            <input type="text" name="zip" class="form-control" required value="<?php echo htmlspecialchars($_POST['zip'] ?? ''); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                            <label for="checkout-zip" style="display: block; margin-bottom: 5px; font-weight: 500;">PLZ *</label>
+                            <input id="checkout-zip" autocomplete="postal-code" type="text" name="zip" class="form-control" required value="<?php echo htmlspecialchars($_POST['zip'] ?? ''); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
                         </div>
                         <div class="form-group">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Stadt *</label>
-                            <input type="text" name="city" class="form-control" required value="<?php echo htmlspecialchars($_POST['city'] ?? ''); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                            <label for="checkout-city" style="display: block; margin-bottom: 5px; font-weight: 500;">Stadt *</label>
+                            <input id="checkout-city" autocomplete="address-level2" type="text" name="city" class="form-control" required value="<?php echo htmlspecialchars($_POST['city'] ?? ''); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
                         </div>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Land</label>
-                        <select name="country" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        <label for="checkout-country" style="display: block; margin-bottom: 5px; font-weight: 500;">Land</label>
+                        <select id="checkout-country" autocomplete="country" name="country" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
                             <?php foreach ($countryOptions as $countryCode => $countryLabel): ?>
                                 <option value="<?php echo htmlspecialchars($countryCode); ?>" <?php echo $selectedCountry === $countryCode ? 'selected' : ''; ?>><?php echo htmlspecialchars($countryLabel); ?></option>
                             <?php endforeach; ?>
@@ -412,14 +478,14 @@ ob_start();
                     </div>
 
                     <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">E-Mail Adresse *</label>
-                        <input type="email" name="email" class="form-control" required value="<?php echo htmlspecialchars($_POST['email'] ?? ($user->email ?? '')); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        <label for="checkout-email" style="display: block; margin-bottom: 5px; font-weight: 500;">E-Mail Adresse *</label>
+                        <input id="checkout-email" autocomplete="email" type="email" name="email" class="form-control" required value="<?php echo htmlspecialchars($_POST['email'] ?? ($user->email ?? '')); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
                     </div>
 
                     <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Zahlungsmethode</label>
+                        <label for="checkout-payment-method" style="display: block; margin-bottom: 5px; font-weight: 500;">Zahlungsmethode</label>
                         <?php if (count($paymentMethods) > 1): ?>
-                            <select name="payment_method" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                            <select id="checkout-payment-method" name="payment_method" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
                                 <?php foreach ($paymentMethods as $paymentMethod): ?>
                                     <option value="<?php echo htmlspecialchars($paymentMethod); ?>" <?php echo $selectedPaymentMethod === $paymentMethod ? 'selected' : ''; ?>><?php echo htmlspecialchars(cms_checkout_payment_method_label($paymentMethod)); ?></option>
                                 <?php endforeach; ?>
@@ -512,6 +578,11 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
+
+// Inline-Handler (onclick) blockiert die CSP; Drucken-Button per Nonce-Skript verdrahten.
+\CMS\Hooks::addAction('body_end', static function (): void {
+    echo '<script ' . Security::instance()->nonceAttr() . '>document.querySelectorAll("[data-cms-print]").forEach(function(b){b.addEventListener("click",function(){window.print();});});</script>' . "\n";
+}, 50);
 
 // Render with Theme
 ThemeManager::instance()->render('page', [

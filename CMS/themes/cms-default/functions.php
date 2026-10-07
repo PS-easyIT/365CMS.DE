@@ -317,17 +317,25 @@ class MeridianCMSDefaultTheme
 
     public function outputMetaTags(): void
     {
+        // Vollständige SEO-Ausgabe des Cores: Beschreibung, Robots, Canonical, Open Graph,
+        // Twitter Cards und JSON-LD inkl. Redaktions-Overrides aus dem SEO-Panel.
+        $headTags = '';
         try {
-            $seo     = \CMS\Services\SEOService::getInstance();
-            $metaDesc = $seo->getMetaDescription();
+            $seo = \CMS\Services\SEOService::getInstance();
+            $headTags = method_exists($seo, 'renderCurrentHeadTags') ? $seo->renderCurrentHeadTags() : '';
+            if ($headTags === '') {
+                $metaDesc = trim($seo->getMetaDescription());
+                if ($metaDesc !== '') {
+                    $headTags = '<meta name="description" content="' . htmlspecialchars($metaDesc, ENT_QUOTES, 'UTF-8') . '">' . "\n";
+                }
+            }
         } catch (\Throwable $e) {
-            $metaDesc = '';
+            $headTags = '';
         }
 
-        if ($metaDesc && trim($metaDesc) !== '') {
-            echo '<meta name="description" content="' . htmlspecialchars($metaDesc, ENT_QUOTES, 'UTF-8') . '">' . "\n";
-        }
+        echo $headTags;
         echo '<meta name="theme-color" content="#f7f6f2">' . "\n";
+        echo '<link rel="alternate" type="application/rss+xml" title="' . htmlspecialchars((defined('SITE_NAME') ? SITE_NAME : '365CMS') . ' – Feed', ENT_QUOTES, 'UTF-8') . '" href="' . htmlspecialchars(rtrim((string) SITE_URL, '/') . '/feed', ENT_QUOTES, 'UTF-8') . '">' . "\n";
     }
 
     // ─── Custom CSS aus Customizer ───────────────────────────────────────────
@@ -438,11 +446,20 @@ class MeridianCMSDefaultTheme
             $footerBg    = $footerBg    ?: '#1a1a18';
             $footerText  = $footerText  ?: '#9a9a94';
             $footerAccent = $footerAccent ?: '#c0862a';
-            $inkGhost = $this->lightenHex($inkMuted, 0.46); // ~#b7b7b4 (ähnlich #b8b8b0)
+            // Barrierefreiheit: Sekundärtexte (Datum, Lesezeit, Meta) und Akzent-Links müssen auf
+            // Grund- und Kartenfläche WCAG AA (4,5:1) erreichen. Die Voreinstellungen lagen bei
+            // 4,0:1 (ink-muted), 2,0:1 (ink-ghost) und 3,1:1 (accent als Textfarbe).
+            $textBackgrounds = [$ground, $surface, $surfaceTint];
+            $inkMuted = $this->ensureReadableTextColor($inkMuted, $textBackgrounds);
+            $inkGhost = $this->ensureReadableTextColor($this->lightenHex($inkMuted, 0.12), $textBackgrounds);
+            $accentText = $this->ensureReadableTextColor($accent, $textBackgrounds);
+            $linkColor = $this->ensureReadableTextColor($linkColor, $textBackgrounds);
+            $linkHover = $this->ensureReadableTextColor($linkHover, $textBackgrounds);
 
             echo ':root {' . "\n";
             echo '  --accent:           ' . $esc($accent)       . ";\n";
             echo '  --accent-dark:      ' . $esc($accentDark)   . ";\n";
+            echo '  --accent-text:      ' . $esc($accentText)   . ";\n";
             echo '  --accent-light:     ' . $this->hexToRgba($accent, 0.08) . ";\n";
             echo '  --accent-mid:       ' . $this->hexToRgba($accent, 0.15) . ";\n";
             echo '  --ink:              ' . $esc($ink)          . ";\n";
@@ -486,7 +503,7 @@ class MeridianCMSDefaultTheme
             echo '.main-nav a, .nav-link { font-size:' . $navFontSize . 'px; text-transform:' . $navTransform . '; letter-spacing:' . $esc($navLetterSp) . "; }\n";
             echo '.category-bar { background:' . $esc($catBarBg) . "; }\n";
             echo '.category-bar a, .category-bar .cat-label { color:' . $esc($catBarText) . "; }\n";
-            echo '.category-bar a:hover, .category-bar a.active { color:' . $esc($accent) . "; }\n";
+            echo '.category-bar a:hover, .category-bar a.active { color:' . $esc($accentText) . "; }\n";
 
             // ── Karten & Grid ─────────────────────────────────────────────────
             echo '.card-grid, .articles-grid, .dashboard-grid { gap:' . $cardGap . "px; }\n";
@@ -496,7 +513,7 @@ class MeridianCMSDefaultTheme
             echo 'footer, .site-footer { background:' . $esc($footerBg) . '; color:' . $esc($footerText) . "; }\n";
             echo 'footer a, .site-footer a { color:' . $esc($footerText) . "; }\n";
             echo 'footer a:hover, .site-footer a:hover, .ft-col a:hover { color:' . $esc($footerAccent) . " !important; }\n";
-            echo '.ft-col h4, .footer-col-title { color:' . $esc($footerAccent) . "; }\n";
+            echo '.ft-col h4, .ft-col h2, .ft-col-title, .footer-col-title { color:' . $esc($footerAccent) . "; }\n";
             echo '.ft-copyright { color:' . $esc($footerText) . "; opacity:.7; }\n";
 
             // ── Custom CSS ────────────────────────────────────────────────────
@@ -540,6 +557,68 @@ class MeridianCMSDefaultTheme
         $g = (int)round(hexdec(substr($hex, 2, 2)) + (255 - hexdec(substr($hex, 2, 2))) * $factor);
         $b = (int)round(hexdec(substr($hex, 4, 2)) + (255 - hexdec(substr($hex, 4, 2))) * $factor);
         return sprintf('#%02x%02x%02x', min(255, $r), min(255, $g), min(255, $b));
+    }
+
+    /**
+     * WCAG-Kontrastverhältnis zweier Hex-Farben (1–21).
+     */
+    private function contrastRatio(string $foreground, string $background): float
+    {
+        $luminance = static function (string $hex): float {
+            $hex = ltrim($hex, '#');
+            if (strlen($hex) === 3) {
+                $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+            }
+            if (preg_match('/^[0-9a-f]{6}$/i', $hex) !== 1) {
+                return 0.0;
+            }
+            $channels = [];
+            foreach ([0, 2, 4] as $offset) {
+                $c = hexdec(substr($hex, $offset, 2)) / 255;
+                $channels[] = $c <= 0.03928 ? $c / 12.92 : (($c + 0.055) / 1.055) ** 2.4;
+            }
+            return 0.2126 * $channels[0] + 0.7152 * $channels[1] + 0.0722 * $channels[2];
+        };
+
+        $a = $luminance($foreground);
+        $b = $luminance($background);
+
+        return (max($a, $b) + 0.05) / (min($a, $b) + 0.05);
+    }
+
+    /**
+     * Dunkelt eine Textfarbe schrittweise ab, bis sie auf allen Hintergründen WCAG AA (4,5:1)
+     * erreicht. Bereits ausreichende (auch individuell gewählte) Farben bleiben unverändert.
+     *
+     * @param list<string> $backgrounds
+     */
+    private function ensureReadableTextColor(string $color, array $backgrounds, float $minimum = 4.5): string
+    {
+        $hex = ltrim($color, '#');
+        if (strlen($hex) === 3) {
+            $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+        }
+        if (preg_match('/^[0-9a-f]{6}$/i', $hex) !== 1) {
+            return $color;
+        }
+
+        $rgb = [hexdec(substr($hex, 0, 2)), hexdec(substr($hex, 2, 2)), hexdec(substr($hex, 4, 2))];
+        for ($step = 0; $step < 40; $step++) {
+            $candidate = sprintf('#%02x%02x%02x', ...$rgb);
+            $readable = true;
+            foreach ($backgrounds as $background) {
+                if ($this->contrastRatio($candidate, $background) < $minimum) {
+                    $readable = false;
+                    break;
+                }
+            }
+            if ($readable) {
+                return $step === 0 ? $color : $candidate;
+            }
+            $rgb = array_map(static fn(int|float $c): int => max(0, (int) floor($c * 0.94)), $rgb);
+        }
+
+        return sprintf('#%02x%02x%02x', ...$rgb);
     }
 
     // ─── Custom Header Code (SEO / Tracking) ─────────────────────────────────
@@ -619,19 +698,21 @@ class MeridianCMSDefaultTheme
         $nonceAttr = \CMS\Security::instance()->nonceAttr();
 
         echo <<<HTML
-<div id="cms-cookie-bar" style="display:none;position:fixed;bottom:0;left:0;width:100%;background:var(--ink);color:rgba(255,255,255,.7);padding:.9rem 1.5rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;box-shadow:0 -2px 10px rgba(0,0,0,.2);">
+<div id="cms-cookie-bar" role="region" aria-label="Cookie-Hinweis" style="display:none;position:fixed;bottom:0;left:0;width:100%;background:var(--ink);color:rgba(255,255,255,.7);padding:.9rem 1.5rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;box-shadow:0 -2px 10px rgba(0,0,0,.2);">
     <p style="margin:0;font-size:.82rem;line-height:1.6;">{$text} <a href="{$policy}" style="color:var(--accent);text-decoration:underline;">Mehr erfahren</a></p>
     <div style="display:flex;gap:.6rem;flex-shrink:0;">
-        <button type="button" data-cms-cookie-choice="essential" style="padding:.35rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:3px;color:rgba(255,255,255,.7);font-size:.78rem;cursor:pointer;">{$essential}</button>
-        <button type="button" data-cms-cookie-choice="all" style="padding:.35rem .85rem;background:var(--accent);border:1px solid var(--accent);border-radius:3px;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;">{$accept}</button>
+        <button type="button" data-cms-cookie-choice="essential" style="padding:.35rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:3px;color:rgba(255,255,255,.85);font-size:.78rem;cursor:pointer;">{$essential}</button>
+        <button type="button" data-cms-cookie-choice="all" style="padding:.35rem .85rem;background:var(--accent-dark, #a06b18);border:1px solid var(--accent-dark, #a06b18);border-radius:3px;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;">{$accept}</button>
     </div>
 </div>
 <script {$nonceAttr}>
 (function(){
     var b = document.getElementById('cms-cookie-bar');
     if (!b) { return; }
-    b.style.display = localStorage.getItem('cms_cookie_consent') ? 'none' : 'flex';
-    function choose(value){ localStorage.setItem('cms_cookie_consent', value); b.style.display = 'none'; }
+    var stored = null;
+    try { stored = window.localStorage.getItem('cms_cookie_consent'); } catch (e) { stored = null; }
+    b.style.display = stored ? 'none' : 'flex';
+    function choose(value){ try { window.localStorage.setItem('cms_cookie_consent', value); } catch (e) {} b.style.display = 'none'; }
     window.cmsAcceptCookies  = function(){ choose('all'); };
     window.cmsDeclineCookies = function(){ choose('essential'); };
     b.querySelectorAll('[data-cms-cookie-choice]').forEach(function(button){
@@ -1288,6 +1369,123 @@ function meridian_nav_menu(string $location, string $currentPath = ''): void
 }
 }
 
+if (!function_exists('meridian_post_url')) {
+/**
+ * Kanonische Beitrags-URL gemäß Permalink-Struktur und Sprache. Fest verdrahtete
+ * /blog/<slug>-Links liefen bei abweichender Struktur über eine 301-Weiterleitung.
+ *
+ * @param array<string, mixed>|object $post
+ */
+function meridian_post_url(array|object $post): string
+{
+    $data = is_object($post) ? get_object_vars($post) : $post;
+    $slug = trim((string) ($data['slug'] ?? ''), '/');
+    if ($slug === '') {
+        return rtrim((string) SITE_URL, '/') . '/blog';
+    }
+
+    if (class_exists('\\CMS\\Services\\PermalinkService')) {
+        try {
+            $locale = function_exists('meridian_current_request_locale') ? meridian_current_request_locale() : 'de';
+            return \CMS\Services\PermalinkService::getInstance()->buildPostUrl($data, $locale);
+        } catch (\Throwable) {
+        }
+    }
+
+    return rtrim((string) SITE_URL, '/') . '/blog/' . rawurlencode($slug);
+}
+}
+
+if (!function_exists('meridian_archive_url')) {
+/**
+ * Kanonische Archiv-URL (z. B. /category/<slug>) statt der Filter-URL /blog?category=…,
+ * die nur per 301 weiterleitet und interne Links verwässert.
+ */
+function meridian_archive_url(string $type, string $slug = ''): string
+{
+    $slug = trim($slug);
+    if (function_exists('cms_get_archive_url')) {
+        try {
+            return cms_get_archive_url($type, $slug, function_exists('meridian_current_request_locale') ? meridian_current_request_locale() : null);
+        } catch (\Throwable) {
+        }
+    }
+
+    return rtrim((string) SITE_URL, '/') . '/blog' . ($slug !== '' ? '?' . $type . '=' . urlencode($slug) : '');
+}
+}
+
+if (!function_exists('meridian_document_title')) {
+/**
+ * Eindeutiger Dokumenttitel je URL statt überall nur des Website-Namens.
+ *
+ * Beiträge und Seiten übernehmen den vom Core aufgelösten Meta-Titel (inkl. Titel-Template
+ * und Redaktions-Override); Archive, Suche und Fehlerseiten erhalten einen sprechenden Präfix.
+ *
+ * @param array<string, mixed> $context Template-Variablen (category, tag, author, title, currentPage, error_code)
+ */
+function meridian_document_title(string $siteTitle, array $context = []): string
+{
+    $separator = '|';
+    try {
+        $seo = \CMS\Services\SEOService::getInstance();
+        $separator = trim((string) $seo->getTitleSeparator()) ?: '|';
+        $payload = method_exists($seo, 'getCurrentSeoPayload') ? $seo->getCurrentSeoPayload() : [];
+        $statusCode = http_response_code();
+        if ((!is_int($statusCode) || $statusCode < 400)
+            && in_array((string) ($payload['content_type'] ?? ''), ['post', 'page', 'request', 'home'], true)
+            && trim((string) ($payload['title'] ?? '')) !== ''
+        ) {
+            return trim((string) $payload['title']);
+        }
+    } catch (\Throwable) {
+    }
+
+    $readName = static function (mixed $value): string {
+        if (is_object($value)) {
+            $value = (array) $value;
+        }
+        if (!is_array($value)) {
+            return '';
+        }
+        return trim((string) ($value['name'] ?? $value['display_name'] ?? $value['username'] ?? ''));
+    };
+
+    $label = '';
+    $statusCode = http_response_code();
+    $path = '/' . trim((string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/'), '/');
+    if (is_int($statusCode) && $statusCode === 404) {
+        $label = 'Seite nicht gefunden';
+    } elseif (!empty($context['error_code'])) {
+        $label = 'Fehler ' . (int) $context['error_code'];
+    } elseif (($name = $readName($context['category'] ?? null)) !== '') {
+        $label = $name;
+    } elseif (($name = $readName($context['tag'] ?? null)) !== '') {
+        $label = $name;
+    } elseif (($name = $readName($context['author'] ?? null)) !== '') {
+        $label = $name;
+    } elseif (is_string($context['title'] ?? null) && trim((string) $context['title']) !== '') {
+        $label = trim((string) $context['title']);
+    } elseif (preg_match('#^(?:/en)?/(?:search|suche)$#', $path) === 1) {
+        $query = is_string($_GET['q'] ?? null) ? trim((string) $_GET['q']) : '';
+        $label = $query !== '' ? 'Suche: ' . mb_substr($query, 0, 80) : 'Suche';
+    } elseif (preg_match('#^(?:/en)?/blog$#', $path) === 1) {
+        $label = 'Blog';
+    }
+
+    if ($label === '') {
+        return $siteTitle;
+    }
+
+    $pageNumber = (int) ($context['currentPage'] ?? 0);
+    if ($pageNumber > 1) {
+        $label .= ' – Seite ' . $pageNumber;
+    }
+
+    return $label . ' ' . $separator . ' ' . $siteTitle;
+}
+}
+
 if (!function_exists('meridian_current_request_locale')) {
 function meridian_current_request_locale(): string
 {
@@ -1640,7 +1838,7 @@ function meridian_get_recent_posts(int $limit = 5, ?int $excludeId = null): arra
         $sql    = "SELECT p.id, p.title, p.slug, p.excerpt, p.featured_image, p.published_at, p.created_at, c.name AS category_name
                    FROM {$prefix}posts p
                    LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-                   WHERE p.status = 'published'";
+                   WHERE " . (function_exists('cms_post_publication_where') ? cms_post_publication_where('p') : "p.status = 'published'");
         $params = [];
         if ($excludeId !== null) {
             $sql .= ' AND p.id != ?';
@@ -1670,7 +1868,7 @@ function meridian_get_related_posts(int $categoryId, int $excludeId, int $limit 
             "SELECT p.id, p.title, p.slug, p.excerpt, p.featured_image, p.published_at, p.created_at, c.name AS category_name
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-             WHERE p.status = 'published' AND p.category_id = ? AND p.id != ?
+             WHERE " . (function_exists('cms_post_publication_where') ? cms_post_publication_where('p') : "p.status = 'published'") . " AND p.category_id = ? AND p.id != ?
              ORDER BY p.published_at DESC LIMIT ?",
             [$categoryId, $excludeId, $limit]
         );
@@ -1704,7 +1902,7 @@ function meridian_get_posts(array $args = []): array
                 FROM {$prefix}posts p 
                 LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id 
                 LEFT JOIN {$prefix}users u ON u.id = p.author_id 
-                WHERE p.status = 'published'";
+                WHERE " . (function_exists('cms_post_publication_where') ? cms_post_publication_where('p') : "p.status = 'published'");
         
         $params = [];
 

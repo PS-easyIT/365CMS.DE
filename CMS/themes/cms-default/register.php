@@ -37,7 +37,7 @@ $homeUrl = rtrim((string) SITE_URL, '/') . '/';
 $passwordPolicyHint = 'Mindestens 12 Zeichen sowie Groß-/Kleinbuchstabe, Zahl und Sonderzeichen.';
 ?>
 
-<main id="main" role="main" style="background:linear-gradient(135deg,#e3f2fd 0%,#f5f9fc 100%);min-height:calc(100vh - 200px);display:flex;align-items:center;padding:2rem 1.5rem;">
+<div class="auth-main" style="background:linear-gradient(135deg,#e3f2fd 0%,#f5f9fc 100%);min-height:calc(100vh - 200px);display:flex;align-items:center;padding:2rem 1.5rem;">
     <div style="width:100%;max-width:480px;margin:0 auto;">
 
         <div class="auth-card">
@@ -135,4 +135,4 @@ $passwordPolicyHint = 'Mindestens 12 Zeichen sowie Groß-/Kleinbuchstabe, Zahl u
 
         </div><!-- /.auth-card -->
     </div>
-</main>
+</div>

@@ -266,6 +266,10 @@ class UserService {
         }
         
         // Log
+        if (isset($update_data['password'])) {
+            // Eigene Sitzung behalten; andere Sitzungen des Kontos enden mit dem neuen Passwort.
+            \CMS\Auth::instance()->refreshPasswordFingerprint($user_id);
+        }
         $this->logAction('user_updated', $user_id, $update_data);
         
         return true;
@@ -375,7 +379,7 @@ class UserService {
         
         if (!empty($args['search'])) {
             $where[] = "(username LIKE ? OR email LIKE ?)";
-            $search_term = '%' . $args['search'] . '%';
+            $search_term = '%' . \cms_escape_like((string) $args['search']) . '%';
             $params[] = $search_term;
             $params[] = $search_term;
         }
@@ -660,6 +664,12 @@ class UserService {
         try {
             $actorId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
             $normalizedDetails = is_array($details) ? $details : [];
+            // Passwort-Hashes und Geheimnisse gehören nicht ins Aktivitätsprotokoll.
+            foreach (['password', 'pass', 'user_pass', 'password_hash', 'mfa_secret', 'token'] as $sensitiveKey) {
+                if (array_key_exists($sensitiveKey, $normalizedDetails)) {
+                    $normalizedDetails[$sensitiveKey] = '[geändert]';
+                }
+            }
             $description = 'Benutzeraktion: ' . $action;
 
             if (isset($normalizedDetails['username']) && is_scalar($normalizedDetails['username'])) {

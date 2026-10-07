@@ -164,18 +164,36 @@
         if (!headerSearch) return;
         headerSearch.removeAttribute('aria-hidden');
         headerSearch.classList.add('is-open');
+        if (searchToggle) searchToggle.setAttribute('aria-expanded', 'true');
         const input = $('input[type="search"]', headerSearch);
         if (input) setTimeout(() => input.focus(), 50);
     }
 
-    function closeSearch() {
+    function closeSearch(restoreFocus = true) {
         if (!headerSearch) return;
         headerSearch.setAttribute('aria-hidden', 'true');
         headerSearch.classList.remove('is-open');
+        if (searchToggle) {
+            searchToggle.setAttribute('aria-expanded', 'false');
+            if (restoreFocus) searchToggle.focus();
+        }
     }
 
-    if (searchToggle) searchToggle.addEventListener('click', openSearch);
-    if (searchClose)  searchClose.addEventListener('click', closeSearch);
+    if (searchToggle) {
+        searchToggle.addEventListener('click', () => {
+            if (headerSearch && headerSearch.classList.contains('is-open')) {
+                closeSearch();
+            } else {
+                openSearch();
+            }
+        });
+    }
+    if (searchClose)  searchClose.addEventListener('click', () => closeSearch());
+    if (headerSearch) {
+        headerSearch.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeSearch();
+        });
+    }
 
     // ── Passwort-Toggle ────────────────────────────────────────────────────
 
@@ -224,7 +242,8 @@
         }, { passive: true });
 
         scrollTopBtn.addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
         });
     }
 

@@ -526,6 +526,12 @@ final class CmsAuthPageService
             $passwordHash = Security::instance()->hashPassword($password);
             $this->db->execute("UPDATE {$this->prefix}users SET password = ? WHERE email = ?", [$passwordHash, (string) $row->email]);
             $this->db->execute("DELETE FROM {$this->prefix}password_resets WHERE email = ?", [(string) $row->email]);
+            // Bestehende Sitzungen werden über den Passwort-Fingerprint ungültig (Auth::checkSession());
+            // die Einträge der Sitzungsübersicht gleich mit entfernen.
+            $this->db->execute(
+                "DELETE s FROM {$this->prefix}sessions s INNER JOIN {$this->prefix}users u ON u.id = s.user_id WHERE u.email = ?",
+                [(string) $row->email]
+            );
 
             return ['success' => true, 'message' => (string) ($settings['forgot_reset_success_message'] ?? 'Dein Passwort wurde erfolgreich geändert.')];
         } catch (\Throwable $e) {
@@ -547,7 +553,7 @@ final class CmsAuthPageService
             $since = date('Y-m-d H:i:s', time() - $timeWindow);
             $row = $this->db->get_row(
                 "SELECT COUNT(*) AS attempt_count FROM {$this->prefix}login_attempts WHERE username = ? AND action = ? AND attempted_at >= ?",
-                [substr($identifier, 0, 190), substr($action, 0, 50), $since]
+                [Security::normalizeRateLimitIdentifier($identifier), Security::normalizeRateLimitAction($action), $since]
             );
 
             return (int) ($row->attempt_count ?? 0) < $maxAttempts;

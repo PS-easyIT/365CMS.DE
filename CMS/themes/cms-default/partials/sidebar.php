@@ -45,7 +45,7 @@ if (empty($sbTags)) {
                 $isActive = (isset($_GET['category']) && $_GET['category'] === $catSlug);
             ?>
             <li>
-                <a href="<?php echo SITE_URL; ?>/blog?category=<?php echo urlencode($catSlug); ?>"
+                <a href="<?php echo htmlspecialchars(meridian_archive_url('category', (string) ($catSlug)), ENT_QUOTES, 'UTF-8'); ?>"
                    class="cat-row<?php echo $isActive ? ' active' : ''; ?>"
                    style="display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;text-decoration:none;color:var(--ink-soft);font-size:.9rem;border-bottom:1px solid var(--rule);">
                     <span><?php echo htmlspecialchars($catName); ?></span>
@@ -65,15 +65,15 @@ if (empty($sbTags)) {
         <div class="widget-title">Zuletzt erschienen</div>
         <?php foreach ($sbRecent as $i => $rp):
             $rp    = (array)$rp;
-            $rLink = SITE_URL . '/blog/' . ($rp['slug'] ?? '');
+            $rLink = meridian_post_url($rp);
             $rCat  = htmlspecialchars($rp['category_name'] ?? '');
             $rDate = meridian_format_date($rp['published_at'] ?? $rp['created_at'] ?? '', true);
         ?>
         <div class="recent-item" style="display:flex;gap:.75rem;align-items:flex-start;padding:.6rem 0;border-bottom:1px solid var(--rule);">
-            <div class="recent-num" style="font-size:1.2rem;font-weight:700;color:var(--rule);min-width:2rem;font-family:var(--font-serif);"><?php echo str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT); ?></div>
+            <div class="recent-num" style="font-size:1.2rem;font-weight:700;color:var(--ink-ghost);min-width:2rem;font-family:var(--font-serif);"><?php echo str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT); ?></div>
             <div class="recent-body" style="flex:1;min-width:0;">
                 <?php if ($rCat): ?>
-                <div class="rcat" style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:.2rem;"><?php echo $rCat; ?></div>
+                <div class="rcat" style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text, var(--accent));font-weight:600;margin-bottom:.2rem;"><?php echo $rCat; ?></div>
                 <?php endif; ?>
                 <a href="<?php echo htmlspecialchars($rLink); ?>"
                    style="font-size:.88rem;font-weight:600;line-height:1.35;color:var(--ink-soft);text-decoration:none;display:block;"><?php echo htmlspecialchars($rp['title'] ?? ''); ?></a>
@@ -92,7 +92,7 @@ if (empty($sbTags)) {
         <div class="widget-title">Tags</div>
         <div class="tag-cloud" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;">
             <?php foreach ($sbTags as $tag): ?>
-            <a href="<?php echo SITE_URL; ?>/blog?tag=<?php echo urlencode($tag); ?>"
+            <a href="<?php echo htmlspecialchars(meridian_archive_url('tag', (string) ($tag)), ENT_QUOTES, 'UTF-8'); ?>"
                class="<?php echo (isset($_GET['tag']) && $_GET['tag'] === $tag) ? 'tag-active' : ''; ?>"
                style="font-size:.78rem;padding:.25rem .65rem;border-radius:20px;background:var(--surface-tint);color:var(--ink-muted);text-decoration:none;transition:background .2s,color .2s;">
                 <?php echo htmlspecialchars($tag); ?>

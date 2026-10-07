@@ -46,7 +46,8 @@ $tagCloud = array_values(array_filter(array_map(
 <div class="page-wrap">
 
     <!-- Content Area -->
-    <main id="main-content">
+    <div class="content-main">
+        <h1 class="sr-only">Blog<?php echo (int) ($currentPage ?? 1) > 1 ? ' – Seite ' . (int) $currentPage : ''; ?></h1>
 
             <?php if (!empty($posts)): ?>
             <?php
@@ -138,7 +139,7 @@ $tagCloud = array_values(array_filter(array_map(
             </div>
             <?php endif; ?>
 
-    </main>
+    </div>
 
     <!-- Sidebar -->
     <?php if ($showSidebar): ?>
@@ -172,7 +173,7 @@ $tagCloud = array_values(array_filter(array_map(
                     <?php if (!empty($rArr['category_name'])): ?>
                     <div class="rcat"><?php echo htmlspecialchars($rArr['category_name']); ?></div>
                     <?php endif; ?>
-                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($rArr['slug']); ?>"><?php echo htmlspecialchars($rArr['title']); ?></a>
+                    <a href="<?php echo htmlspecialchars(meridian_post_url($rArr), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($rArr['title']); ?></a>
                     <time><?php echo time_ago($rArr['published_at'] ?? $rArr['created_at'] ?? ''); ?></time>
                 </div>
             </div>
@@ -186,7 +187,7 @@ $tagCloud = array_values(array_filter(array_map(
             <div class="widget-title">Kategorien</div>
             <?php foreach ($sidebarCats as $cat): ?>
             <div class="cat-row<?php echo ($activeCategory === ($cat['slug'] ?? '')) ? ' cat-row--active' : ''; ?>">
-                <a href="<?php echo SITE_URL . '/blog?category=' . urlencode($cat['slug'] ?? ''); ?>">
+                <a href="<?php echo htmlspecialchars(meridian_archive_url('category', (string) ($cat['slug'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo htmlspecialchars($cat['name']); ?>
                 </a>
                 <?php if (!empty($cat['post_count'])): ?>
@@ -203,7 +204,7 @@ $tagCloud = array_values(array_filter(array_map(
             <div class="widget-title">Tags</div>
             <div class="tag-cloud">
                 <?php foreach ($tagCloud as $tag): ?>
-                <a href="<?php echo SITE_URL . '/blog?tag=' . urlencode($tag); ?>"><?php echo htmlspecialchars($tag); ?></a>
+                <a href="<?php echo htmlspecialchars(meridian_archive_url('tag', (string) ($tag)), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($tag); ?></a>
                 <?php endforeach; ?>
             </div>
         </div>
