@@ -12,6 +12,10 @@ Full code audit of 365CMS on 2026-10-03 covering security, performance, missing 
 
 Die Berichte liegen in `DOC/checks/`. Der Pfad `DOC/audit/` ist per `.gitignore` ausgeschlossen und wird nicht verwendet.
 
+### Folgeaudit 2026-10-07
+
+[FOLGEAUDIT-2026-10-07.md](FOLGEAUDIT-2026-10-07.md) – Sicherheit, SEO, Geschwindigkeit, interne Verlinkung, Barrierefreiheit und unvollständige Funktionen (32 Befunde, behoben mit Changelog `3.4.20`; Laufzeittests gegen MariaDB und axe-core). Die IDs setzen die Nummerierung dieses Audits fort (SEC-12 ff., FUN-15 ff.); SEO- und A11Y-Befunde sind neu.
+
 ### Dokumente dieses Audits
 
 | Dokument | Inhalt |

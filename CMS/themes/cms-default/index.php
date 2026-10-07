@@ -36,13 +36,13 @@ if (function_exists('meridian_get_posts')) {
 ?>
 
 <div class="page-wrap">
-    <main>
+    <div class="content-main">
 
         <!-- Featured Post -->
         <?php if ($heroPost): ?>
             <?php
             $hTitle   = htmlspecialchars($heroPost['title'] ?? '');
-            $hLink    = isset($heroPost['slug']) ? SITE_URL . '/blog/' . $heroPost['slug'] : '#';
+            $hLink    = isset($heroPost['slug']) ? meridian_post_url($heroPost) : '#';
             $hExcerpt = htmlspecialchars($heroPost['excerpt'] ?? '');
             $hDate    = isset($heroPost['created_at']) ? date('d. M Y', strtotime($heroPost['created_at'])) : '';
             $hCat     = $heroPost['category_name'] ?? 'Allgemein';
@@ -81,7 +81,7 @@ if (function_exists('meridian_get_posts')) {
             <?php if (!empty($latestPosts)): ?>
                 <?php foreach ($latestPosts as $post): 
                     $pTitle  = htmlspecialchars($post['title'] ?? '');
-                    $pLink   = isset($post['slug']) ? SITE_URL . '/blog/' . $post['slug'] : '#';
+                    $pLink   = isset($post['slug']) ? meridian_post_url($post) : '#';
                     $pExcerpt= htmlspecialchars($post['excerpt'] ?? '');
                     $pDate   = isset($post['created_at']) ? date('d. M Y', strtotime($post['created_at'])) : '';
                     $pCat    = $post['category_name'] ?? 'Blog';
@@ -116,7 +116,7 @@ if (function_exists('meridian_get_posts')) {
             <div class="feature-box">
                 <h3>Microsoft 365 Anleitungen</h3>
                 <p>Schritt-für-Schritt Tutorials für Teams, SharePoint und alle Microsoft 365 Dienste. Von der Grundkonfiguration bis zu erweiterten Admin-Aufgaben mit PowerShell.</p>
-                <a href="<?php echo SITE_URL; ?>/blog?category=m365" class="feature-link">Alle Anleitungen →</a>
+                <a href="<?php echo htmlspecialchars(meridian_archive_url('category', 'm365'), ENT_QUOTES, 'UTF-8'); ?>" class="feature-link">Alle Anleitungen →</a>
             </div>
             <div class="feature-box">
                 <h3>Script-Bibliothek &amp; GitHub</h3>
@@ -131,7 +131,7 @@ if (function_exists('meridian_get_posts')) {
         <div class="card-grid">
             <?php foreach ($featurePosts as $post): 
                 $cTitle = htmlspecialchars($post['title'] ?? '');
-                $cLink  = isset($post['slug']) ? SITE_URL . '/blog/' . $post['slug'] : '#';
+                $cLink  = isset($post['slug']) ? meridian_post_url($post) : '#';
                 $cExcerpt = htmlspecialchars($post['excerpt'] ?? '');
                 $cDate  = isset($post['created_at']) ? date('d. M', strtotime($post['created_at'])) : '';
                 $cCat   = $post['category_name'] ?? 'Tipp';
@@ -154,7 +154,7 @@ if (function_exists('meridian_get_posts')) {
         </div>
         <?php endif; ?>
 
-    </main>
+    </div>
 
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -178,7 +178,7 @@ if (function_exists('meridian_get_posts')) {
             foreach ($cats as $cat): 
             ?>
             <div class="cat-row">
-                <a href="<?php echo SITE_URL; ?>/blog?category=<?php echo urlencode($cat['slug']); ?>">
+                <a href="<?php echo htmlspecialchars(meridian_archive_url('category', (string) ($cat['slug'])), ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo htmlspecialchars($cat['name']); ?>
                 </a>
                 <span class="cat-count"><?php echo $cat['count'] ?? 0; ?></span>
@@ -199,7 +199,7 @@ if (function_exists('meridian_get_posts')) {
                 <div class="recent-num"><?php echo str_pad((string)$i++, 2, '0', STR_PAD_LEFT); ?></div>
                 <div class="recent-body">
                     <div class="rcat"><?php echo htmlspecialchars($rp['category_name'] ?? 'Blog'); ?></div>
-                    <a href="<?php echo SITE_URL . '/blog/' . ($rp['slug']??''); ?>"><?php echo htmlspecialchars($rp['title']); ?></a>
+                    <a href="<?php echo htmlspecialchars(meridian_post_url($rp), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($rp['title']); ?></a>
                     <time><?php echo isset($rp['created_at']) ? date('d. M Y', strtotime($rp['created_at'])) : ''; ?></time>
                 </div>
             </div>
@@ -213,7 +213,7 @@ if (function_exists('meridian_get_posts')) {
                <?php 
                $tags = function_exists('meridian_get_tags') ? meridian_get_tags(15) : [];
                foreach ($tags as $tag): ?>
-               <a href="<?php echo SITE_URL; ?>/blog?tag=<?php echo urlencode($tag['slug']); ?>"><?php echo htmlspecialchars($tag['name']); ?></a>
+               <a href="<?php echo htmlspecialchars(meridian_archive_url('tag', (string) ($tag['slug'])), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($tag['name']); ?></a>
                <?php endforeach; ?>
                <?php if(empty($tags)): ?>
                <!-- Static fallback tags matching prototype -->

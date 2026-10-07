@@ -195,6 +195,19 @@ class SEOService
     }
 
     /**
+     * Eine Datei des Sitemap-Bundles (sitemap.xml, pages.xml, posts.xml, plugins.xml, images.xml, news.xml).
+     */
+    public function getSitemapFile(string $fileName): string
+    {
+        return $this->sitemapService->getSitemapFile($fileName);
+    }
+
+    public function invalidateSavedSitemaps(): void
+    {
+        $this->sitemapService->invalidateSavedSitemaps();
+    }
+
+    /**
      * Generate robots.txt.
      */
     public function generateRobotsTxt(): string

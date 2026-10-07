@@ -29,6 +29,14 @@ $page    = $editData['page'] ?? null;
 $isNew   = $editData['isNew'] ?? true;
 $categories = $editData['categories'] ?? [];
 $seoMeta = $editData['seoMeta'] ?? [];
+$pageTemplates = is_array($editData['pageTemplates'] ?? null) ? $editData['pageTemplates'] : [];
+$pageTemplateValue = trim((string) ($page->page_template ?? 'default')) ?: 'default';
+$pageTemplateMetaValues = [];
+$pageTemplateMetaRaw = trim((string) ($page->page_meta_json ?? ''));
+if ($pageTemplateMetaRaw !== '') {
+    $decodedPageTemplateMeta = json_decode($pageTemplateMetaRaw, true);
+    $pageTemplateMetaValues = is_array($decodedPageTemplateMeta) ? $decodedPageTemplateMeta : [];
+}
 $revisionHistory = is_array($editData['revisionHistory'] ?? null) ? $editData['revisionHistory'] : ['total' => 0, 'displayed' => 0, 'has_more' => false, 'items' => []];
 $pageRevisionItems = is_array($revisionHistory['items'] ?? null) ? $revisionHistory['items'] : [];
 $pageRevisionContentMeta = static function (array $summary): string {
@@ -402,6 +410,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                                     <?php endforeach; ?>
                                 </select>
                             </div>
+                            <?php require __DIR__ . '/../partials/page-template-fields.php'; ?>
                             <div class="mb-0">
                                 <label class="form-label" for="pageContentUpdatedDate">Aktualisierungsdatum (öffentlich sichtbar)</label>
                                 <div class="row g-2">
@@ -773,6 +782,10 @@ $isEnglishEditorView = $editorLocale === 'en';
             'previewUrlTemplate' => $activePagePreviewUrlTemplate,
             'statusSelectId' => 'pageStatusSelect',
             'statusBadgeId' => 'pageStatusBadge',
+            'templateSelectId' => 'pageTemplateSelect',
+            'templateMetaPanelSelector' => '[data-page-template-meta-panel]',
+            'templateMetaPanelAttribute' => 'data-page-template-meta-panel',
+            'templateMetaEmptySelector' => '[data-page-template-meta-empty]',
             'statusMap' => [
                 'draft' => ['label' => 'Entwurf', 'className' => 'badge bg-yellow-lt text-yellow'],
                 'published' => ['label' => 'Veröffentlicht', 'className' => 'badge bg-green-lt text-green'],

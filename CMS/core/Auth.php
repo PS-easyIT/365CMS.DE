@@ -95,7 +95,118 @@ class Auth
         $this->currentUser = $this->getUserById((int)$_SESSION['user_id']);
         if ($this->currentUser === null) {
             $this->forceExpireSession();
+            return;
         }
+
+        // Passwortwechsel (Reset, Profil, Admin) beendet alle anderen Sitzungen: Wer eine
+        // gestohlene Session hält, bleibt sonst auch nach dem Zurücksetzen angemeldet.
+        $fingerprint = (string) ($this->currentUser->password_fingerprint ?? '');
+        $sessionFingerprint = (string) ($_SESSION['auth_password_fingerprint'] ?? '');
+        if ($sessionFingerprint === '') {
+            $_SESSION['auth_password_fingerprint'] = $fingerprint;
+        } elseif ($fingerprint !== '' && !hash_equals($sessionFingerprint, $fingerprint)) {
+            $this->forceExpireSession();
+        }
+        unset($this->currentUser->password_fingerprint);
+
+        if ($this->currentUser !== null) {
+            $this->touchSessionRegistry((int) $userId, $maxLifetime, $sessionStart);
+        }
+    }
+
+    /**
+     * Pflegt die Tabelle `sessions` (Mitgliederbereich „Aktive Sessions“, Dashboard-Statistik).
+     * Gespeichert wird nur ein Hash der Session-ID, nie die ID selbst; aktualisiert höchstens
+     * alle fünf Minuten, um Schreibzugriffe pro Request zu vermeiden.
+     */
+    private function touchSessionRegistry(int $userId, int $lifetime, int $sessionStart, bool $force = false): void
+    {
+        if ($userId <= 0 || session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+
+        $lastTouch = (int) ($_SESSION['session_registry_touched_at'] ?? 0);
+        if (!$force && $lastTouch > 0 && (time() - $lastTouch) < 300) {
+            return;
+        }
+
+        try {
+            $db = Database::instance();
+            $userAgent = substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
+            $db->execute(
+                "REPLACE INTO {$db->getPrefix()}sessions (id, user_id, ip_address, user_agent, payload, last_activity, expires_at)
+                 VALUES (?, ?, ?, ?, NULL, ?, ?)",
+                [
+                    self::sessionRegistryId(),
+                    $userId,
+                    substr(Security::getClientIp(), 0, 45),
+                    $userAgent,
+                    date('Y-m-d H:i:s'),
+                    date('Y-m-d H:i:s', ($sessionStart > 0 ? $sessionStart : time()) + max(300, $lifetime)),
+                ]
+            );
+            $_SESSION['session_registry_touched_at'] = time();
+        } catch (\Throwable) {
+            // Sitzungsverwaltung ist Komfort; Anmeldung darf daran nicht scheitern.
+        }
+    }
+
+    private function removeSessionRegistryEntry(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE || session_id() === '') {
+            return;
+        }
+
+        try {
+            $db = Database::instance();
+            $db->execute("DELETE FROM {$db->getPrefix()}sessions WHERE id = ?", [self::sessionRegistryId()]);
+        } catch (\Throwable) {
+        }
+    }
+
+    private static function sessionRegistryId(): string
+    {
+        return hash('sha256', session_id());
+    }
+
+    /**
+     * Nach einer Passwortänderung durch den angemeldeten Benutzer selbst aufrufen, damit nur
+     * die anderen Sitzungen enden und die aktuelle gültig bleibt.
+     */
+    public function refreshPasswordFingerprint(int $userId): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE || (int) ($_SESSION['user_id'] ?? 0) !== $userId) {
+            return;
+        }
+
+        $hash = Database::instance()->get_var(
+            "SELECT password FROM " . Database::instance()->getPrefix() . "users WHERE id = ? LIMIT 1",
+            [$userId]
+        );
+        $_SESSION['auth_password_fingerprint'] = self::passwordFingerprint((string) $hash);
+        $this->removeSessionRegistryEntry();
+        if (!headers_sent()) {
+            session_regenerate_id(true);
+        }
+        try {
+            // Andere Sitzungen sind mit dem neuen Passwort ungültig – Einträge entfernen.
+            Database::instance()->execute(
+                "DELETE FROM " . Database::instance()->getPrefix() . "sessions WHERE user_id = ?",
+                [$userId]
+            );
+        } catch (\Throwable) {
+        }
+        $this->touchSessionRegistry(
+            $userId,
+            $this->getConfiguredSessionLifetime((string) ($_SESSION['user_role'] ?? 'member')),
+            (int) ($_SESSION['session_start_time'] ?? time()),
+            true
+        );
+    }
+
+    private static function passwordFingerprint(string $passwordHash): string
+    {
+        return $passwordHash === '' ? '' : hash_hmac('sha256', $passwordHash, 'cms-session-password-binding');
     }
 
     /**
@@ -106,6 +217,7 @@ class Auth
     private function forceExpireSession(): void
     {
         $this->clearDeviceCookie();
+        $this->removeSessionRegistryEntry();
 
         if (session_status() !== PHP_SESSION_ACTIVE) {
             $this->currentUser = null;
@@ -514,6 +626,7 @@ class Auth
     public function logout(): void
     {
         $this->clearDeviceCookie();
+        $this->removeSessionRegistryEntry();
 
         // Clear session data
         $_SESSION = [];
@@ -622,6 +735,7 @@ class Auth
             return false;
         }
 
+        unset($user->password_fingerprint);
         $this->currentUser = $user;
         $this->bearerAuthenticated = true;
 
@@ -647,10 +761,17 @@ class Auth
     private function getUserById(int $id): ?object
     {
         $db = Database::instance();
-        $stmt = $db->prepare("SELECT id, username, email, display_name, role, status FROM {$db->getPrefix()}users WHERE id = ? AND status = 'active' LIMIT 1");
+        $stmt = $db->prepare("SELECT id, username, email, display_name, role, status, password FROM {$db->getPrefix()}users WHERE id = ? AND status = 'active' LIMIT 1");
         $stmt->execute([$id]);
-        
-        return $stmt->fetch() ?: null;
+
+        $user = $stmt->fetch() ?: null;
+        if (is_object($user)) {
+            // Der Hash selbst verlässt diese Methode nicht.
+            $user->password_fingerprint = self::passwordFingerprint((string) ($user->password ?? ''));
+            unset($user->password);
+        }
+
+        return $user;
     }
     
     /**
@@ -664,9 +785,10 @@ class Auth
         $security = Security::instance();
         
         $db->insert('login_attempts', [
-            'username'     => $username,
+            // Auf die Spaltenbreite normalisiert: lange Kennungen ließen das INSERT scheitern.
+            'username'     => Security::normalizeRateLimitIdentifier($username),
             'ip_address'   => $security->getClientIp(),
-            'action'       => $action,
+            'action'       => Security::normalizeRateLimitAction($action),
         ]);
     }
 
@@ -939,12 +1061,21 @@ class Auth
 
     private function completeAuthenticatedSession(object $user, bool $remember): void
     {
-        unset($user->password);
+        $passwordHash = (string) ($user->password ?? '');
+        if ($passwordHash === '') {
+            $passwordHash = (string) Database::instance()->get_var(
+                "SELECT password FROM " . Database::instance()->getPrefix() . "users WHERE id = ? LIMIT 1",
+                [(int) $user->id]
+            );
+        }
+        unset($user->password, $user->password_fingerprint);
 
         session_regenerate_id(true);
+        $_SESSION['auth_password_fingerprint'] = self::passwordFingerprint($passwordHash);
         $_SESSION['user_id'] = $user->id;
         $_SESSION['user_role'] = $user->role;
         $_SESSION['session_start_time'] = time();
+        $this->touchSessionRegistry((int) $user->id, $this->getConfiguredSessionLifetime((string) ($user->role ?? 'member')), time(), true);
         unset($_SESSION['mfa_pending_user_id'], $_SESSION['mfa_pending_remember']);
 
         $this->refreshSessionCookie((string) ($user->role ?? 'member'), $remember);

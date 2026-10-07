@@ -416,23 +416,24 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
     <!-- Neueste Artikel (Anzahl aus Landing-Page-Admin) -->
     <?php
     $lpPosts = [];
+    $prefix = \CMS\Database::instance()->getPrefix();
     try {
         $stmtLp = $pdo->prepare(
             "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
-             FROM posts p
-             LEFT JOIN users u ON p.author_id = u.id
-             LEFT JOIN post_categories c ON p.category_id = c.id
+             FROM {$prefix}posts p
+             LEFT JOIN {$prefix}users u ON p.author_id = u.id
+             LEFT JOIN {$prefix}post_categories c ON p.category_id = c.id
              WHERE " . cms_post_publication_where('p') . "
              ORDER BY p.published_at DESC
              LIMIT " . $lpPostsCount
         );
         $stmtLp->execute();
         $lpPosts = $stmtLp->fetchAll(\PDO::FETCH_OBJ);
-    } catch (\Exception $e) { $lpPosts = []; }
+    } catch (\Throwable $e) { $lpPosts = []; }
     ?>
     <?php if (!empty($lpPosts)): ?>
     <div class="lp-posts-section">
-        <div class="section-label"><h3>Aktuelle Beiträge</h3></div>
+        <div class="section-label"><h2>Aktuelle Beiträge</h2></div>
         <div class="card-grid">
             <?php foreach ($lpPosts as $post): ?>
             <div class="card">
@@ -447,12 +448,12 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
                     <?php endif; ?>
                 </div>
                 <div class="card-body">
-                    <h4><a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>"><?php echo htmlspecialchars($post->title); ?></a></h4>
+                    <h3><a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($post->title); ?></a></h3>
                     <p><?php echo meridian_excerpt((string)($post->excerpt ?: $post->content), 100); ?></p>
                     <div class="card-footer">
                         <time><?php echo meridian_format_date($post->published_at ?? $post->created_at, true); ?></time>
                         <?php echo meridian_post_update_badge($post); ?>
-                        <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="read-link">Lesen →</a>
+                        <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>" class="read-link">Lesen →</a>
                     </div>
                 </div>
             </div>

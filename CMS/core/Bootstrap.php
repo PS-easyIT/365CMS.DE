@@ -857,6 +857,16 @@ class Bootstrap
         Hooks::addAction('cms_cron_hourly', static function (): void {
             Services\SecurityAlertService::getInstance()->runScheduledScan();
         }, 40);
+        // Sitemaps nach Inhaltsänderungen verwerfen: die nächste Anfrage auf /sitemap.xml erzeugt
+        // das Bundle neu, statt bis zum nächsten Tages-Cron veraltete URLs auszuliefern.
+        foreach (['cms_after_post_save', 'cms_after_page_save', 'post_deleted', 'page_deleted'] as $sitemapInvalidationHook) {
+            Hooks::addAction($sitemapInvalidationHook, static function (): void {
+                try {
+                    Services\SEOService::getInstance()->invalidateSavedSitemaps();
+                } catch (\Throwable) {
+                }
+            }, 90);
+        }
         Hooks::addAction('cms_cron_daily', static function (): void {
             if (!Services\SEOService::getInstance()->saveSitemapBundle()) {
                 throw new \RuntimeException('SEO-Sitemap-Bundle konnte nicht aktualisiert werden.');

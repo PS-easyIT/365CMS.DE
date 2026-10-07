@@ -27,7 +27,7 @@ if (!defined('ABSPATH')) {
         <div class="post-cat"><?php echo htmlspecialchars($heroPost->category_name); ?></div>
         <?php endif; ?>
         <h2>
-            <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($heroPost->slug); ?>">
+            <a href="<?php echo htmlspecialchars(meridian_post_url($heroPost), ENT_QUOTES, 'UTF-8'); ?>">
                 <?php echo htmlspecialchars($heroTitleOverride ?: $heroPost->title); ?>
             </a>
         </h2>
@@ -59,7 +59,7 @@ if (!defined('ABSPATH')) {
 
 <!-- ── Artikel-Liste ──────────────────────────────────────────────────────── -->
 <?php if (!empty($articleList)): ?>
-<div class="section-label"><h3>Aktuelle Artikel</h3></div>
+<div class="section-label"><h2>Aktuelle Artikel</h2></div>
 <div class="article-list">
     <?php foreach ($articleList as $post): ?>
     <div class="article-row">
@@ -75,7 +75,7 @@ if (!defined('ABSPATH')) {
             <div class="art-cat"><?php echo htmlspecialchars($post->category_name); ?></div>
             <?php endif; ?>
             <div class="art-title">
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
+                <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo htmlspecialchars($post->title); ?>
                 </a>
             </div>
@@ -98,7 +98,7 @@ if (!defined('ABSPATH')) {
 
 <!-- ── Card-Grid ────────────────────────────────────────────────────────── -->
 <?php if (!empty($cardPosts)): ?>
-<div class="section-label"><h3>Weitere Artikel</h3></div>
+<div class="section-label"><h2>Weitere Artikel</h2></div>
 <div class="card-grid">
     <?php foreach ($cardPosts as $post): ?>
     <div class="card">
@@ -113,15 +113,15 @@ if (!defined('ABSPATH')) {
             <?php endif; ?>
         </div>
         <div class="card-body">
-            <h4>
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
+            <h3>
+                <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo htmlspecialchars($post->title); ?>
                 </a>
-            </h4>
+            </h3>
             <p><?php echo meridian_excerpt((string)($post->excerpt ?: $post->content), 100); ?></p>
             <div class="card-footer">
                 <time><?php echo meridian_format_date($post->published_at ?? $post->created_at, true); ?></time>
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="read-link">Lesen →</a>
+                <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>" class="read-link">Lesen →</a>
             </div>
         </div>
     </div>
@@ -131,17 +131,17 @@ if (!defined('ABSPATH')) {
 
 <!-- ── Feature-Row ───────────────────────────────────────────────────────── -->
 <?php if (!empty($featurePosts)): ?>
-<div class="section-label"><h3>Schwerpunkte</h3></div>
+<div class="section-label"><h2>Schwerpunkte</h2></div>
 <div class="feature-row">
     <?php foreach ($featurePosts as $post): ?>
     <div class="feature-box">
         <h3>
-            <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
+            <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>">
                 <?php echo htmlspecialchars($post->title); ?>
             </a>
         </h3>
         <p><?php echo meridian_excerpt((string)($post->excerpt ?: $post->content), 120); ?></p>
-        <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="feature-link">
+        <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>" class="feature-link">
             <?php echo htmlspecialchars($post->category_name ?: 'Weiterlesen'); ?> →
         </a>
     </div>
@@ -180,7 +180,7 @@ if (!defined('ABSPATH')) {
         <div class="widget-title">Kategorien</div>
         <?php foreach ($sidebarCats as $cat): ?>
         <div class="cat-row">
-            <a href="<?php echo SITE_URL . '/blog?category=' . urlencode($cat['slug'] ?? ''); ?>">
+            <a href="<?php echo htmlspecialchars(meridian_archive_url('category', (string) ($cat['slug'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
                 <?php echo htmlspecialchars($cat['name']); ?>
             </a>
             <?php if (!empty($cat['post_count'])): ?>
@@ -204,7 +204,7 @@ if (!defined('ABSPATH')) {
                 <?php if (!empty($rArr['category_name'])): ?>
                 <div class="rcat"><?php echo htmlspecialchars($rArr['category_name']); ?></div>
                 <?php endif; ?>
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($rArr['slug'] ?? ''); ?>">
+                <a href="<?php echo htmlspecialchars(meridian_post_url($rArr), ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo htmlspecialchars($rArr['title'] ?? ''); ?>
                 </a>
                 <time><?php echo meridian_format_date($rArr['published_at'] ?? $rArr['created_at'] ?? '', true); ?></time>

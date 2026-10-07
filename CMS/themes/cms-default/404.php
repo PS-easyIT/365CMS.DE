@@ -39,7 +39,7 @@ $recentPosts = meridian_get_recent_posts(3);
             <?php foreach ($recentPosts as $post): ?>
             <article class="card">
                 <?php if (!empty($post['featured_image'])): ?>
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post['slug']); ?>" class="card-img">
+                <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>" class="card-img">
                     <img src="<?php echo htmlspecialchars($post['featured_image']); ?>"
                          alt="<?php echo htmlspecialchars($post['title']); ?>"
                          loading="lazy">
@@ -47,7 +47,7 @@ $recentPosts = meridian_get_recent_posts(3);
                 <?php endif; ?>
                 <div class="card-body">
                     <h3 class="card-title">
-                        <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post['slug']); ?>">
+                        <a href="<?php echo htmlspecialchars(meridian_post_url($post), ENT_QUOTES, 'UTF-8'); ?>">
                             <?php echo htmlspecialchars($post['title']); ?>
                         </a>
                     </h3>

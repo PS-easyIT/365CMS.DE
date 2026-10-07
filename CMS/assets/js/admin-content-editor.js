@@ -271,6 +271,7 @@
         var categoryLabel = getElement(config.categoryLabelId);
         var templateSelect = getElement(config.templateSelectId);
         var templateMetaPanels = queryElements(config.templateMetaPanelSelector);
+        var templateMetaPanelAttribute = config.templateMetaPanelAttribute || 'data-post-template-meta-panel';
         var templateMetaEmpty = queryElements(config.templateMetaEmptySelector)[0] || null;
         var toggleButtons = queryElements(config.languageToggleSelector);
         var languagePanes = queryElements(config.languagePaneSelector);
@@ -361,8 +362,18 @@
             }
 
             templateMetaPanels.forEach(function (panel) {
-                var isActive = String(panel.getAttribute('data-post-template-meta-panel') || '') === activeTemplate;
+                var isActive = String(panel.getAttribute(templateMetaPanelAttribute) || '') === activeTemplate;
                 panel.hidden = !isActive;
+                if ('disabled' in panel) {
+                    panel.disabled = !isActive;
+                }
+                // Inaktive Panels deaktivieren: gleichnamige Felder anderer Vorlagen dürfen die Werte
+                // der gewählten Vorlage beim Absenden nicht überschreiben. Werte bleiben erhalten.
+                if (typeof panel.querySelectorAll === 'function') {
+                    Array.prototype.forEach.call(panel.querySelectorAll('input, select, textarea'), function (field) {
+                        field.disabled = !isActive;
+                    });
+                }
                 if (isActive) {
                     hasVisibleTemplateMetaPanel = true;
                 }

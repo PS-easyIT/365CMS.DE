@@ -245,7 +245,13 @@ include __DIR__ . '/partials/header.php';
                                 <?php else: ?>
                                     <?php foreach ($sessions as $session): ?>
                                         <tr>
-                                            <td>#<?= (int)($session->id ?? 0) ?></td>
+                                            <?php $sessionKey = (string) ($session->id ?? ''); ?>
+                                            <td>
+                                                <code><?= htmlspecialchars(substr($sessionKey, 0, 8), ENT_QUOTES, 'UTF-8') ?></code>
+                                                <?php if ($sessionKey !== '' && session_id() !== '' && hash_equals($sessionKey, hash('sha256', session_id()))): ?>
+                                                    <span class="badge bg-green-lt ms-1">Diese Sitzung</span>
+                                                <?php endif; ?>
+                                            </td>
                                             <td>
                                                 <div><?= htmlspecialchars((string)($session->ip_address ?? 'Unbekannt')) ?></div>
                                                 <div class="text-secondary small"><?= htmlspecialchars((string)($session->user_agent ?? '')) ?></div>

@@ -106,7 +106,7 @@ final class SeoSchemaRenderer
         if ($schemaType === 'BreadcrumbList') {
             $breadcrumb = $this->buildBreadcrumbThing(
                 (string) ($payload['canonical_url'] ?? $payload['url'] ?? SITE_URL),
-                (string) ($payload['title'] ?? SITE_NAME)
+                trim((string) ($payload['content_title'] ?? '')) ?: (string) ($payload['title'] ?? SITE_NAME)
             );
             if ($breadcrumb !== null) {
                 $things[] = $breadcrumb;
@@ -120,7 +120,7 @@ final class SeoSchemaRenderer
             if ($this->shouldIncludeBreadcrumbSchema()) {
                 $breadcrumb = $this->buildBreadcrumbThing(
                     (string) ($payload['canonical_url'] ?? $payload['url'] ?? SITE_URL),
-                    (string) ($payload['title'] ?? SITE_NAME)
+                    trim((string) ($payload['content_title'] ?? '')) ?: (string) ($payload['title'] ?? SITE_NAME)
                 );
                 if ($breadcrumb !== null) {
                     $things[] = $breadcrumb;
@@ -148,9 +148,9 @@ final class SeoSchemaRenderer
     {
         $props = [
             'url' => $payload['canonical_url'] ?? ($payload['url'] ?? SITE_URL),
-            'name' => $payload['title'] ?? SITE_NAME,
+            'name' => trim((string) ($payload['content_title'] ?? '')) ?: ($payload['title'] ?? SITE_NAME),
             'description' => $payload['description'] ?? '',
-            'inLanguage' => 'de-DE',
+            'inLanguage' => $this->resolveLanguageTag($payload),
             'isPartOf' => new Thing(
                 type: 'WebSite',
                 props: [
@@ -175,17 +175,21 @@ final class SeoSchemaRenderer
     private function buildArticleThing(array $payload, string $type = 'Article'): Thing
     {
         $url = (string) ($payload['canonical_url'] ?? $payload['url'] ?? SITE_URL);
+        // Überschrift ist der Inhaltstitel, nicht der Dokumenttitel mit „| Website-Name“.
+        $headline = trim((string) ($payload['content_title'] ?? '')) ?: (string) ($payload['title'] ?? SITE_NAME);
         $props = [
-            'headline' => $payload['title'] ?? SITE_NAME,
-            'name' => $payload['title'] ?? SITE_NAME,
+            'headline' => $headline,
+            'name' => $headline,
             'description' => $payload['description'] ?? '',
             'url' => $url,
             'dateModified' => $this->normalizeSchemaDate((string) ($payload['updated_at'] ?? date(DATE_W3C))),
+            'datePublished' => $this->normalizeSchemaDate((string) ($payload['published_at'] ?? '')),
+            'inLanguage' => $this->resolveLanguageTag($payload),
             'mainEntityOfPage' => new Thing(
                 type: 'WebPage',
                 props: [
                     'url' => $url,
-                    'name' => $payload['title'] ?? SITE_NAME,
+                    'name' => $headline,
                 ]
             ),
             'isPartOf' => new Thing(
@@ -197,6 +201,11 @@ final class SeoSchemaRenderer
             ),
             'publisher' => $this->buildOrganizationThing(),
         ];
+
+        $authorName = trim((string) ($payload['author_name'] ?? ''));
+        if ($authorName !== '') {
+            $props['author'] = new Thing(type: 'Person', props: ['name' => $authorName]);
+        }
 
         if (!empty($payload['og_image'])) {
             $props['image'] = [(string) $payload['og_image']];
@@ -287,7 +296,29 @@ final class SeoSchemaRenderer
             return '';
         }
 
-        return (string) new Schema(...$things);
+        $json = json_encode(
+            (new Schema(...$things))->jsonSerialize(),
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE
+        );
+
+        // JSON_HEX_TAG maskiert `<`/`>`: Inhalte wie `</script>` oder `<!--` können den Datenblock nicht verlassen.
+        return is_string($json) ? '<script type="application/ld+json">' . $json . '</script>' : '';
+    }
+
+    /** @param array<string,mixed> $payload */
+    private function resolveLanguageTag(array $payload): string
+    {
+        $locale = strtolower(trim((string) ($payload['locale'] ?? '')));
+        if ($locale === '') {
+            $path = (string) (strtok((string) ($_SERVER['REQUEST_URI'] ?? '/'), '?') ?: '/');
+            $sitePath = rtrim((string) parse_url((string) SITE_URL, PHP_URL_PATH), '/');
+            if ($sitePath !== '' && str_starts_with($path, $sitePath)) {
+                $path = substr($path, strlen($sitePath)) ?: '/';
+            }
+            $locale = preg_match('#^/en(?:/|$)#', $path) === 1 ? 'en' : 'de';
+        }
+
+        return str_starts_with($locale, 'en') ? 'en' : 'de-DE';
     }
 
     private function shouldIncludeBreadcrumbSchema(): bool
@@ -302,6 +333,10 @@ final class SeoSchemaRenderer
 
     private function normalizeSchemaDate(string $value): string
     {
+        if (trim($value) === '') {
+            return '';
+        }
+
         $timestamp = strtotime($value);
         return $timestamp !== false ? date(DATE_W3C, $timestamp) : date(DATE_W3C);
     }

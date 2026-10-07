@@ -37,7 +37,7 @@ $svgs = [
     '<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>',
 ];
 ?>
-<div class="section-label"><h3>Weitere Artikel</h3></div>
+<div class="section-label"><h2>Weitere Artikel</h2></div>
 
 <div class="card-grid">
     <?php foreach ($gridPosts as $i => $item): ?>
@@ -64,7 +64,7 @@ $svgs = [
     ?>
     <div class="card">
         <?php if ($gImage['url'] !== ''): ?>
-        <a href="<?php echo SITE_URL; ?>/blog/<?php echo $gSlug; ?>" class="card-thumb" style="background:<?php echo $grad; ?>;">
+        <a href="<?php echo htmlspecialchars(meridian_post_url($item), ENT_QUOTES, 'UTF-8'); ?>" class="card-thumb" style="background:<?php echo $grad; ?>;">
             <picture>
                 <?php if ($gImage['webp_url'] !== ''): ?>
                 <source srcset="<?php echo htmlspecialchars($gImage['webp_url'], ENT_QUOTES, 'UTF-8'); ?>" type="image/webp">
@@ -80,8 +80,8 @@ $svgs = [
             <?php endif; ?>
         </a>
         <?php else: ?>
-        <a href="<?php echo SITE_URL; ?>/blog/<?php echo $gSlug; ?>" class="card-thumb" style="background:<?php echo $grad; ?>;">
-            <svg viewBox="0 0 24 24"><?php echo $svg; ?></svg>
+        <a href="<?php echo htmlspecialchars(meridian_post_url($item), ENT_QUOTES, 'UTF-8'); ?>" class="card-thumb" style="background:<?php echo $grad; ?>;">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?php echo $svg; ?></svg>
             <?php if ($gCat): ?>
             <span class="card-cat"><?php echo $gCat; ?></span>
             <?php endif; ?>
@@ -89,14 +89,14 @@ $svgs = [
         <?php endif; ?>
 
         <div class="card-body">
-            <h4><a href="<?php echo SITE_URL; ?>/blog/<?php echo $gSlug; ?>"><?php echo $gTitle; ?></a></h4>
+            <h3><a href="<?php echo htmlspecialchars(meridian_post_url($item), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $gTitle; ?></a></h3>
             <?php if ($gExcerpt): ?>
             <p><?php echo $gExcerpt; ?></p>
             <?php endif; ?>
             <div class="card-footer">
                 <?php if ($gDate): ?><time><?php echo $gDate; ?></time><?php endif; ?>
                 <?php echo meridian_post_update_badge($item); ?>
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo $gSlug; ?>" class="read-link">Lesen →</a>
+                <a href="<?php echo htmlspecialchars(meridian_post_url($item), ENT_QUOTES, 'UTF-8'); ?>" class="read-link">Lesen →</a>
             </div>
         </div>
     </div>
