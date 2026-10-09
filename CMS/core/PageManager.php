@@ -57,14 +57,9 @@ class PageManager
                 'content_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN content_en LONGTEXT DEFAULT NULL AFTER content",
                 'category_id' => "ALTER TABLE {$this->prefix}pages ADD COLUMN category_id INT UNSIGNED DEFAULT NULL AFTER author_id",
                 'content_updated_at' => "ALTER TABLE {$this->prefix}pages ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER published_at",
-<<<<<<< HEAD
-                'page_template' => "ALTER TABLE {$this->prefix}pages ADD COLUMN page_template VARCHAR(80) DEFAULT NULL",
-                'page_meta_json' => "ALTER TABLE {$this->prefix}pages ADD COLUMN page_meta_json TEXT DEFAULT NULL",
-=======
                 // Seitenvorlagen aus theme.json (`page_templates`) samt validierten Zusatzfeldern.
                 'page_template' => "ALTER TABLE {$this->prefix}pages ADD COLUMN page_template VARCHAR(80) DEFAULT NULL AFTER category_id",
                 'page_meta_json' => "ALTER TABLE {$this->prefix}pages ADD COLUMN page_meta_json TEXT DEFAULT NULL AFTER page_template",
->>>>>>> a21cdf1cbe7760f7d7466627ac44af28c45a1ba4
             ];
 
             foreach ($columns as $column => $sql) {
@@ -97,7 +92,7 @@ class PageManager
                 excerpt TEXT,
                 status VARCHAR(20) DEFAULT NULL,
                 author_id INT UNSIGNED,
-                 content_updated_at DATETIME DEFAULT NULL,
+                content_updated_at DATETIME DEFAULT NULL,
                 page_template VARCHAR(80) DEFAULT NULL,
                 page_meta_json TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -112,9 +107,7 @@ class PageManager
                 'slug_en' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN slug_en VARCHAR(200) DEFAULT NULL AFTER slug",
                 'content_en' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN content_en LONGTEXT AFTER content",
                 'status' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN status VARCHAR(20) DEFAULT NULL AFTER excerpt",
-                'page_template' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN page_template VARCHAR(80) DEFAULT NULL",
-                'page_meta_json' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN page_meta_json TEXT DEFAULT NULL",
-                 'content_updated_at' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER author_id",
+                'content_updated_at' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER author_id",
                 'page_template' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN page_template VARCHAR(80) DEFAULT NULL AFTER content_updated_at",
                 'page_meta_json' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN page_meta_json TEXT DEFAULT NULL AFTER page_template",
             ];
@@ -332,13 +325,8 @@ class PageManager
             (string)($page['status'] ?? 'draft'),
             (int)($page['author_id'] ?? 0),
                 trim((string)($page['content_updated_at'] ?? '')) ?: null,
-<<<<<<< HEAD
-            $page['page_template'] ?? null,
-            $page['page_meta_json'] ?? null,
-=======
             trim((string)($page['page_template'] ?? '')) ?: null,
             trim((string)($page['page_meta_json'] ?? '')) ?: null,
->>>>>>> a21cdf1cbe7760f7d7466627ac44af28c45a1ba4
         ]);
     }
 

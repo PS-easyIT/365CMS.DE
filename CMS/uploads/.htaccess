@@ -1,0 +1,14 @@
+# Uploads are public media, never executable application code.
+Options -Indexes -MultiViews
+
+# Deny hidden files and common server-side/script formats, even if a handler
+# is configured for them by the hosting environment.
+<FilesMatch "(?i)^(?:\..*|.*\.(?:php[0-9]?|phtml|phar|shtml|cgi|pl|py|sh|bash|ksh|zsh|asp|aspx|jsp|jspx|js[pm]|war))$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

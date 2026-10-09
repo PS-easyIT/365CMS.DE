@@ -305,11 +305,7 @@ class PagesModule
             'categories' => $this->buildOrderedCategoryOptions(array_map(fn($category) => (array) $category, $categories)),
             'seoMeta' => $id !== null ? SEOService::getInstance()->getContentMeta('page', $id) : SEOService::getInstance()->getContentMeta('page', 0),
             'revisionHistory' => $this->buildPageRevisionHistory($page),
-<<<<<<< HEAD
-            'pageTemplates' => (new \CMS\Services\PageTemplateService(\CMS\ThemeManager::instance()->getThemePath()))->getDefinitions(),
-=======
             'pageTemplates' => $this->getPageTemplateDefinitions(),
->>>>>>> a21cdf1cbe7760f7d7466627ac44af28c45a1ba4
         ];
     }
 
@@ -334,11 +330,7 @@ class PagesModule
             ? strtolower(trim((string) ($post['editor_locale'] ?? 'de')))
             : 'de';
         $existingPage = $id > 0
-<<<<<<< HEAD
-            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en, page_template, page_meta_json FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]) ?: [])
-=======
             ? (array) ($this->db->get_row("SELECT * FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]) ?: [])
->>>>>>> a21cdf1cbe7760f7d7466627ac44af28c45a1ba4
             : [];
         $title  = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug   = trim($post['slug'] ?? '');
@@ -508,13 +500,8 @@ class PagesModule
                             (string)$savePayload['meta_title'],
                             (string)$savePayload['meta_description'],
                             $savePayload['content_updated_at'],
-<<<<<<< HEAD
-                            $savePayload['page_template'],
-                            $savePayload['page_meta_json'],
-=======
                             (string)($savePayload['page_template'] ?? PageTemplateService::DEFAULT_TEMPLATE),
                             $savePayload['page_meta_json'] ?? null,
->>>>>>> a21cdf1cbe7760f7d7466627ac44af28c45a1ba4
                             $newId,
                         ]
                     );

@@ -54,13 +54,8 @@ Fehler werden ohne Zugangsdaten protokolliert; im Debug-Modus erfasst `Debug::qu
 
 | Tabelle | Spalten |
 |---|---|
-<<<<<<< HEAD
-| `pages` | id, slug, slug_en, title (+ title_en), content (+ content_en), excerpt, status, hide_title, show_title_toc, featured_image, meta_title, meta_description, author_id, category_id, created_at, updated_at, published_at, content_updated_at; lokale unveröffentlichte Erweiterung 07.10.2026: page_template (VARCHAR 80), page_meta_json (TEXT) |
-| `page_revisions` | id, page_id, title, title_en, slug, slug_en, content, content_en, excerpt, status, author_id, content_updated_at, created_at; lokale unveröffentlichte Erweiterung 07.10.2026: page_template (VARCHAR 80), page_meta_json (TEXT) |
-=======
-| `pages` | id, slug, slug_en, title (+ title_en), content (+ content_en), excerpt, status, hide_title, show_title_toc, featured_image, meta_title, meta_description, author_id, category_id, created_at, updated_at, published_at, content_updated_at, page_template, page_meta_json (ab 3.4.20, Neuinstallation per `SchemaManager`, Bestand per `PageManager::ensureColumns()`) |
-| `page_revisions` | id, page_id, title, title_en, slug, slug_en, content, content_en, excerpt, status, author_id, content_updated_at, page_template, page_meta_json, created_at |
->>>>>>> a21cdf1cbe7760f7d7466627ac44af28c45a1ba4
+| `pages` | id, slug, slug_en, title (+ title_en), content (+ content_en), excerpt, status, hide_title, show_title_toc, featured_image, meta_title, meta_description, author_id, category_id, created_at, updated_at, published_at, content_updated_at, page_template (VARCHAR 80), page_meta_json (TEXT; ab 3.4.21, Neuinstallation per `SchemaManager`, Bestand per `PageManager::ensureColumns()`) |
+| `page_revisions` | id, page_id, title, title_en, slug, slug_en, content, content_en, excerpt, status, author_id, content_updated_at, page_template (VARCHAR 80), page_meta_json (TEXT), created_at |
 | `posts` | id, title (+ title_en), slug, slug_en, content (+ content_en), excerpt (+ excerpt_en), featured_image, status, author_id, author_display_name, author_display_url, post_template, post_meta_json, category_id, tags, views, allow_comments, meta_title, meta_description, created_at, updated_at, published_at, content_updated_at |
 | `post_revisions` | Snapshot je Speichern (Titel, Slugs, Inhalte DE/EN, Status, Kategorie, Tags, Autor-Anzeige, Datumswerte) |
 | `post_categories` | id, name, slug, slug_en, description, parent_id, sort_order, replacement_category_id, created_at |

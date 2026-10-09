@@ -395,12 +395,6 @@ class ThemeManager
         // Allow plugins to modify template
         $template = Hooks::applyFilters('template_name', $template);
         $this->loadTheme();
-<<<<<<< HEAD
-        if ($template === 'page' && isset($data['page']) && (is_array($data['page']) || is_object($data['page']))) {
-            $resolvedPage = (new Services\PageTemplateService($this->themePath))->prepareForRender((array) $data['page']);
-            $template = $resolvedPage['template'];
-            $data['page'] = $resolvedPage['page'];
-=======
 
         // Seitenvorlagen aus theme.json (`page_templates`): gewählte Vorlage → Theme-Datei,
         // gespeicherte Zusatzfelder → `$page['meta']`.
@@ -416,7 +410,6 @@ class ThemeManager
                     'exception' => $e->getMessage(),
                 ]);
             }
->>>>>>> a21cdf1cbe7760f7d7466627ac44af28c45a1ba4
         }
         
         // Template hierarchy
