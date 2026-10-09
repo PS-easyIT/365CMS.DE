@@ -271,6 +271,7 @@
         var categoryLabel = getElement(config.categoryLabelId);
         var templateSelect = getElement(config.templateSelectId);
         var templateMetaPanels = queryElements(config.templateMetaPanelSelector);
+        var templateMetaPanelAttribute = config.templateMetaPanelAttribute || 'data-post-template-meta-panel';
         var templateMetaEmpty = queryElements(config.templateMetaEmptySelector)[0] || null;
         var toggleButtons = queryElements(config.languageToggleSelector);
         var languagePanes = queryElements(config.languagePaneSelector);
@@ -361,11 +362,26 @@
             }
 
             templateMetaPanels.forEach(function (panel) {
+<<<<<<< HEAD
                 var isActive = String(panel.getAttribute(config.templateMetaPanelAttribute || 'data-post-template-meta-panel') || '') === activeTemplate;
                 panel.hidden = !isActive;
                 panel.querySelectorAll('input, textarea, select').forEach(function (input) {
                     input.disabled = !isActive;
                 });
+=======
+                var isActive = String(panel.getAttribute(templateMetaPanelAttribute) || '') === activeTemplate;
+                panel.hidden = !isActive;
+                if ('disabled' in panel) {
+                    panel.disabled = !isActive;
+                }
+                // Inaktive Panels deaktivieren: gleichnamige Felder anderer Vorlagen dürfen die Werte
+                // der gewählten Vorlage beim Absenden nicht überschreiben. Werte bleiben erhalten.
+                if (typeof panel.querySelectorAll === 'function') {
+                    Array.prototype.forEach.call(panel.querySelectorAll('input, select, textarea'), function (field) {
+                        field.disabled = !isActive;
+                    });
+                }
+>>>>>>> a21cdf1cbe7760f7d7466627ac44af28c45a1ba4
                 if (isActive) {
                     hasVisibleTemplateMetaPanel = true;
                 }

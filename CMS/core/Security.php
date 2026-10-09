@@ -618,7 +618,7 @@ class Security
                     AND action = ?
                     AND attempted_at >= ?"
             );
-            $stmt->execute([$ip, $action, $since]);
+            $stmt->execute([$ip, self::normalizeRateLimitAction($action), $since]);
             $row = $stmt->fetch(\PDO::FETCH_OBJ);
 
             $count = (int) ($row->attempt_count ?? 0);
@@ -639,22 +639,49 @@ class Security
         }
     }
 
+    /**
+     * Spaltenbreiten von `login_attempts` (action VARCHAR(30), username VARCHAR(60)).
+     * Längere Werte ließen das INSERT im SQL-Strict-Mode scheitern – die betroffenen Limits
+     * (Passwort-Reset je Konto und je Token) zählten dadurch nie.
+     */
+    public const RATE_LIMIT_ACTION_MAX_LENGTH = 30;
+    public const RATE_LIMIT_IDENTIFIER_MAX_LENGTH = 60;
+
+    public static function normalizeRateLimitAction(string $action): string
+    {
+        $action = preg_replace('/[^a-z0-9_.:-]/i', '_', trim($action)) ?? '';
+
+        return substr($action, 0, self::RATE_LIMIT_ACTION_MAX_LENGTH);
+    }
+
+    public static function normalizeRateLimitIdentifier(string $identifier): string
+    {
+        $identifier = trim($identifier);
+        if (strlen($identifier) <= self::RATE_LIMIT_IDENTIFIER_MAX_LENGTH) {
+            return $identifier;
+        }
+
+        // Lange Kennungen (E-Mail-Adressen, Token-Hashes) eindeutig kürzen.
+        return substr(hash('sha256', $identifier), 0, self::RATE_LIMIT_IDENTIFIER_MAX_LENGTH);
+    }
+
     public static function recordDbRateLimitAttempt(string $ip, string $action, string $username = ''): void
     {
         if (!filter_var($ip, FILTER_VALIDATE_IP)) {
             return;
         }
 
-        $action = preg_replace('/[^a-z0-9_.:-]/i', '_', trim($action)) ?? '';
+        $action = self::normalizeRateLimitAction($action);
         if ($action === '') {
             return;
         }
+        $username = self::normalizeRateLimitIdentifier($username);
 
         try {
             $db = Database::instance();
             $prefix = $db->getPrefix();
             $stmt = $db->prepare("INSERT INTO {$prefix}login_attempts (username, ip_address, action, attempted_at) VALUES (?, ?, ?, NOW())");
-            $stmt->execute([substr($username, 0, 190), $ip, substr($action, 0, 50)]);
+            $stmt->execute([$username, $ip, $action]);
         } catch (\Throwable $e) {
             error_log('Security::recordDbRateLimitAttempt() Fehler: ' . self::sanitizeDiagnosticText($e->getMessage()));
         }

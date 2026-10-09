@@ -108,7 +108,7 @@ $renderFooterMenuLinks = static function (array $items): void {
 
     <!-- Themes Column -->
     <div class="ft-col">
-      <h4><?php echo htmlspecialchars($col1Title); ?></h4>
+      <h2 class="ft-col-title"><?php echo htmlspecialchars($col1Title); ?></h2>
       <?php if (!empty($footerTopicsMenu)): ?>
         <?php $renderFooterMenuLinks($footerTopicsMenu); ?>
       <?php else: ?>
@@ -116,7 +116,7 @@ $renderFooterMenuLinks = static function (array $items): void {
           $cats = function_exists('meridian_get_categories') ? meridian_get_categories(6) : [];
           if (!empty($cats)) {
               foreach ($cats as $cat) {
-                   echo '<a href="'. SITE_URL .'/blog?category='. urlencode($cat['slug'] ?? '') .'">'. htmlspecialchars($cat['name'] ?? '') .'</a>';
+                   echo '<a href="'. htmlspecialchars(meridian_archive_url('category', (string) ($cat['slug'] ?? '')), ENT_QUOTES, 'UTF-8') .'">'. htmlspecialchars($cat['name'] ?? '') .'</a>';
               }
           } else {
               echo '<a href="'. SITE_URL .'/blog">Alle Artikel</a>';
@@ -127,7 +127,7 @@ $renderFooterMenuLinks = static function (array $items): void {
 
     <!-- Resources Column -->
     <div class="ft-col">
-      <h4><?php echo htmlspecialchars($col2Title); ?></h4>
+      <h2 class="ft-col-title"><?php echo htmlspecialchars($col2Title); ?></h2>
       <?php if (!empty($footerResourcesMenu)): ?>
         <?php $renderFooterMenuLinks($footerResourcesMenu); ?>
       <?php else: ?>
@@ -140,7 +140,7 @@ $renderFooterMenuLinks = static function (array $items): void {
 
     <!-- About Column -->
     <div class="ft-col">
-      <h4><?php echo htmlspecialchars($col3Title); ?></h4>
+      <h2 class="ft-col-title"><?php echo htmlspecialchars($col3Title); ?></h2>
       <?php if (!empty($footerAboutMenu)): ?>
         <?php $renderFooterMenuLinks($footerAboutMenu); ?>
       <?php else: ?>

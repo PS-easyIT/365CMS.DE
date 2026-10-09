@@ -40,7 +40,8 @@ class Utils
 		$url['query'] = $url['query'] ?? '';
 
 		if ($url['path'] !== '') {
-			$url['path'] = implode('/', array_map('rawurlencode', explode('/', $url['path'])));
+			// 365CMS-Patch: bereits kodierte Segmente nicht doppelt kodieren (%C3%BC -> %25C3%25BC).
+			$url['path'] = implode('/', array_map(static fn(string $segment): string => rawurlencode(rawurldecode($segment)), explode('/', $url['path'])));
 		}
 
 		if ($url['query'] !== '') {
@@ -50,7 +51,7 @@ class Utils
 		return str_replace(
 			['&', "'", '"', '>', '<'],
 			['&amp;', '&apos;', '&quot;', '&gt;', '&lt;'],
-			$url['scheme'] . "://{$url['host']}{$url['path']}{$url['query']}"
+			$url['scheme'] . "://{$url['host']}" . (isset($url['port']) ? ':' . $url['port'] : '') . "{$url['path']}{$url['query']}"
 		);
 	}
 
@@ -67,14 +68,16 @@ class Utils
 		$url['query'] = $url['query'] ?? '';
 
 		if ($url['path'] !== '') {
-			$url['path'] = implode('/', array_map('rawurlencode', explode('/', $url['path'])));
+			// 365CMS-Patch: bereits kodierte Segmente nicht doppelt kodieren (%C3%BC -> %25C3%25BC).
+			$url['path'] = implode('/', array_map(static fn(string $segment): string => rawurlencode(rawurldecode($segment)), explode('/', $url['path'])));
 		}
 
 		if ($url['query'] !== '') {
 			$url['query'] = "?{$url['query']}";
 		}
 
-		return "{$url['scheme']}://{$url['host']}{$url['path']}{$url['query']}";
+		// 365CMS-Patch: Port erhalten (Sites auf Nicht-Standard-Ports verloren ihn in allen Sitemap-URLs).
+		return "{$url['scheme']}://{$url['host']}" . (isset($url['port']) ? ':' . $url['port'] : '') . "{$url['path']}{$url['query']}";
 	}
 
 	/**

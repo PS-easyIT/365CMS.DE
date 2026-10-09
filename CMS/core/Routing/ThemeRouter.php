@@ -103,6 +103,9 @@ final class ThemeRouter
         }
         $this->router->addRoute('GET', '/feed', [$this, 'serveRssFeed']);
         $this->router->addRoute('GET', '/sitemap.xml', [$this, 'serveSitemap']);
+        foreach (['pages', 'posts', 'plugins', 'images', 'news'] as $sitemapPart) {
+            $this->router->addRoute('GET', '/' . $sitemapPart . '.xml', fn() => $this->serveSitemapFile($sitemapPart . '.xml'));
+        }
         $this->router->addRoute('GET', '/robots.txt', [$this, 'serveRobotsTxt']);
         $this->router->addRoute('GET', '/security.txt', [$this, 'serveSecurityTxt']);
         $this->router->addRoute('GET', '/.well-known/security.txt', [$this, 'serveSecurityTxt']);
@@ -188,18 +191,18 @@ final class ThemeRouter
                 $params = [];
                 if ($query !== '') {
                     $where[] = '(e.name LIKE ? OR e.title LIKE ? OR e.skills LIKE ? OR e.specializations LIKE ?)';
-                    $like = '%' . $query . '%';
+                    $like = '%' . \cms_escape_like($query) . '%';
                     $params = array_merge($params, [$like, $like, $like, $like]);
                 }
                 if ($location !== '') {
                     $where[] = '(e.location LIKE ? OR e.availability LIKE ?)';
-                    $locLike = '%' . $location . '%';
+                    $locLike = '%' . \cms_escape_like($location) . '%';
                     $params[] = $locLike;
                     $params[] = $locLike;
                 }
                 if ($filter !== '') {
                     $where[] = '(e.skills LIKE ? OR e.specializations LIKE ?)';
-                    $fLike = '%' . $filter . '%';
+                    $fLike = '%' . \cms_escape_like($filter) . '%';
                     $params[] = $fLike;
                     $params[] = $fLike;
                 }
@@ -225,18 +228,18 @@ final class ThemeRouter
                 $params = [];
                 if ($query !== '') {
                     $where[] = '(c.name LIKE ? OR c.description LIKE ? OR c.industry LIKE ?)';
-                    $like = '%' . $query . '%';
+                    $like = '%' . \cms_escape_like($query) . '%';
                     $params = array_merge($params, [$like, $like, $like]);
                 }
                 if ($location !== '') {
                     $where[] = '(c.location LIKE ? OR c.city LIKE ?)';
-                    $locLike = '%' . $location . '%';
+                    $locLike = '%' . \cms_escape_like($location) . '%';
                     $params[] = $locLike;
                     $params[] = $locLike;
                 }
                 if ($filter !== '') {
                     $where[] = '(c.industry LIKE ? OR c.description LIKE ?)';
-                    $fLike = '%' . $filter . '%';
+                    $fLike = '%' . \cms_escape_like($filter) . '%';
                     $params[] = $fLike;
                     $params[] = $fLike;
                 }
@@ -262,16 +265,16 @@ final class ThemeRouter
                 $params = [];
                 if ($query !== '') {
                     $where[] = '(s.name LIKE ? OR s.bio LIKE ? OR s.expertise LIKE ?)';
-                    $like = '%' . $query . '%';
+                    $like = '%' . \cms_escape_like($query) . '%';
                     $params = array_merge($params, [$like, $like, $like]);
                 }
                 if ($location !== '') {
                     $where[] = '(s.location LIKE ?)';
-                    $params[] = '%' . $location . '%';
+                    $params[] = '%' . \cms_escape_like($location) . '%';
                 }
                 if ($filter !== '') {
                     $where[] = '(s.expertise LIKE ? OR s.topics LIKE ?)';
-                    $fLike = '%' . $filter . '%';
+                    $fLike = '%' . \cms_escape_like($filter) . '%';
                     $params[] = $fLike;
                     $params[] = $fLike;
                 }
@@ -297,12 +300,12 @@ final class ThemeRouter
                 $params = [];
                 if ($query !== '') {
                     $where[] = '(ev.title LIKE ? OR ev.description LIKE ?)';
-                    $like = '%' . $query . '%';
+                    $like = '%' . \cms_escape_like($query) . '%';
                     $params = array_merge($params, [$like, $like]);
                 }
                 if ($location !== '') {
                     $where[] = '(ev.location LIKE ? OR ev.venue LIKE ?)';
-                    $locLike = '%' . $location . '%';
+                    $locLike = '%' . \cms_escape_like($location) . '%';
                     $params[] = $locLike;
                     $params[] = $locLike;
                 }
@@ -553,6 +556,18 @@ final class ThemeRouter
         }
     }
 
+    private function redirectToArchive(string $type, string $slug): void
+    {
+        $query = $_GET;
+        unset($query['category'], $query['tag']);
+        $target = \cms_get_archive_path($type, $slug, $this->router->getRequestLocale());
+        if ($query !== []) {
+            $target .= (str_contains($target, '?') ? '&' : '?') . http_build_query($query);
+        }
+
+        $this->router->redirect($target, 301);
+    }
+
     public function renderBlogIndex(): void
     {
         $requestedCategory = trim((string) ($_GET['category'] ?? ''));
@@ -563,7 +578,8 @@ final class ThemeRouter
                 return;
             }
 
-            $this->renderCategoryArchive($resolvedCategorySlug);
+            // Filter-URL /blog?category=… ist Duplicate Content des Archivs: dauerhaft auf die kanonische Archiv-URL.
+            $this->redirectToArchive('category', $resolvedCategorySlug);
             return;
         }
 
@@ -575,7 +591,8 @@ final class ThemeRouter
                 return;
             }
 
-            $this->renderTagArchive($resolvedTagSlug);
+            // Filter-URL /blog?tag=… ist Duplicate Content des Archivs: dauerhaft auf die kanonische Archiv-URL.
+            $this->redirectToArchive('tag', $resolvedTagSlug);
             return;
         }
 
@@ -662,7 +679,7 @@ final class ThemeRouter
 
         if ($query !== '') {
             $where[] = $this->buildLocalizedPostSearchClause('p', $locale);
-            $like = '%' . $query . '%';
+            $like = '%' . \cms_escape_like($query) . '%';
             array_push($params, $like, $like, $like);
         }
 
@@ -768,7 +785,7 @@ final class ThemeRouter
 
             if ($query !== '') {
                 $where[] = $this->buildLocalizedPostSearchClause('p', $locale);
-                $like = '%' . $query . '%';
+                $like = '%' . \cms_escape_like($query) . '%';
                 array_push($params, $like, $like, $like);
             }
 
@@ -1177,8 +1194,17 @@ final class ThemeRouter
 
     public function serveSitemap(): void
     {
-        header('Content-Type: application/xml; charset=utf-8');
-        echo Services\SEOService::getInstance()->generateSitemap();
+        $this->serveSitemapFile('sitemap.xml');
+    }
+
+    public function serveSitemapFile(string $fileName): void
+    {
+        if (!headers_sent()) {
+            header('Content-Type: application/xml; charset=utf-8');
+            header('Cache-Control: public, max-age=3600');
+            header('X-Robots-Tag: noindex', true);
+        }
+        echo Services\SEOService::getInstance()->getSitemapFile($fileName);
         exit;
     }
 

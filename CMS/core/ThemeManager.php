@@ -395,10 +395,28 @@ class ThemeManager
         // Allow plugins to modify template
         $template = Hooks::applyFilters('template_name', $template);
         $this->loadTheme();
+<<<<<<< HEAD
         if ($template === 'page' && isset($data['page']) && (is_array($data['page']) || is_object($data['page']))) {
             $resolvedPage = (new Services\PageTemplateService($this->themePath))->prepareForRender((array) $data['page']);
             $template = $resolvedPage['template'];
             $data['page'] = $resolvedPage['page'];
+=======
+
+        // Seitenvorlagen aus theme.json (`page_templates`): gewählte Vorlage → Theme-Datei,
+        // gespeicherte Zusatzfelder → `$page['meta']`.
+        if ($template === 'page' && (is_array($data['page'] ?? null) || is_object($data['page'] ?? null))) {
+            try {
+                $prepared = (new Services\PageTemplateService($this->themePath))->prepareForRender((array) $data['page']);
+                if (is_file($this->themePath . $prepared['template'] . '.php')) {
+                    $template = $prepared['template'];
+                }
+                $data['page'] = is_object($data['page']) ? (object) $prepared['page'] : $prepared['page'];
+            } catch (\Throwable $e) {
+                Logger::instance()->withChannel('theme')->warning('Seitenvorlage konnte nicht aufgelöst werden; Standardlayout wird verwendet.', [
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+>>>>>>> a21cdf1cbe7760f7d7466627ac44af28c45a1ba4
         }
         
         // Template hierarchy
@@ -409,6 +427,8 @@ class ThemeManager
         
         foreach ($templates as $file) {
             if (file_exists($file)) {
+                $this->publishCurrentContent($template, $data);
+
                 // Pre-render hook
                 Hooks::doAction('before_render', $template);
                 
@@ -435,6 +455,30 @@ class ThemeManager
         echo '<h1>Template nicht gefunden</h1>';
     }
     
+    /**
+     * Stellt Beitrag bzw. Seite der aktuellen Anfrage global bereit.
+     *
+     * Header-Hooks laufen außerhalb des Template-Scopes. SEO-Ausgabe (Canonical, Robots,
+     * Open Graph, JSON-LD), Hub-Erkennung und Themes lesen den Inhalt aus `$GLOBALS['post']`
+     * bzw. `$GLOBALS['page']`; ohne diese Zuordnung fielen sie auf generische Startseiten-Daten
+     * zurück oder fragten denselben Datensatz erneut aus der Datenbank ab.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function publishCurrentContent(string $template, array $data): void
+    {
+        if (in_array($template, ['404', 'error'], true) || preg_match('/^[45]\d\d$/', $template) === 1) {
+            unset($GLOBALS['post'], $GLOBALS['page']);
+            return;
+        }
+
+        foreach (['post', 'page'] as $key) {
+            if (isset($data[$key]) && (is_array($data[$key]) || is_object($data[$key]))) {
+                $GLOBALS[$key] = $data[$key];
+            }
+        }
+    }
+
     /**
      * Track page view for analytics
      */

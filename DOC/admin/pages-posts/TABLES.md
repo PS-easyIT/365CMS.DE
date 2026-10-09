@@ -68,4 +68,4 @@ Beide Schreibweisen sind gleichwertig. Verschachtelte Tabellen werden durch eine
 
 ### Verwandte Dokumente
 
-[HUBSITES.md](HUBSITES.md) · [PAGES.md](PAGES.md) · [../../assets/gridjs/README.md](../../assets/gridjs/README.md)
+[HUBSITES.md](HUBSITES.md) · [PAGES.md](PAGES.md)

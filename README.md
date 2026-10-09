@@ -1,6 +1,6 @@
 # 365CMS
 
-> **Stand:** 2026-10-03 | **Version:** 3.4.00 (Changelog bis 3.4.15) | **Status:** Stable | **Website:** [365cms.de](https://365cms.de/)
+> **Stand:** 2026-10-07 | **Version:** 3.4.00 (Changelog bis 3.4.20) | **Status:** Stable | **Website:** [365cms.de](https://365cms.de/)
 
 ## English
 
@@ -11,7 +11,6 @@
 | Key fact | Value |
 |---|---|
 | Core version | `3.4.00` ([`CMS/core/Version.php`](CMS/core/Version.php), released 2026-09-05, status `stable`) |
-| Latest changelog entry | `3.4.15` (member draft save keeps admin fields, message thread soft-delete, public form token filter, 2026-10-03) – entries after 3.4.00 do not change the version constant |
 | PHP | `8.4+` (`CMS_MIN_PHP_VERSION`) |
 | Database | MySQL / MariaDB via PDO, table prefix `cms_`, schema version `v23` |
 | Shipped theme / plugin | `cms-default` (Meridian CMS Default) / `cms-importer` (WordPress importer) |
@@ -75,7 +74,6 @@ Keep changes focused, document behavior changes in `DOC/` and [`Changelog.md`](C
 | Eckdaten | Wert |
 |---|---|
 | Core-Version | `3.4.00` ([`CMS/core/Version.php`](CMS/core/Version.php), veröffentlicht 2026-09-05, Status `stable`) |
-| Letzter Changelog-Eintrag | `3.4.15` (Member-Entwürfe behalten Admin-Felder, Nachrichten-Verlauf mit Soft-Delete, Filter für öffentliche Formular-Tokens, 2026-10-03) – Einträge nach 3.4.00 ändern die Versionskonstante nicht |
 | PHP | `8.4+` (`CMS_MIN_PHP_VERSION`) |
 | Datenbank | MySQL / MariaDB über PDO, Tabellenpräfix `cms_`, Schema-Version `v23` |
 | Mitgeliefertes Theme / Plugin | `cms-default` (Meridian CMS Default) / `cms-importer` (WordPress-Import) |

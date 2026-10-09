@@ -368,6 +368,16 @@ function cms_get_archive_url(string $type, string $slug = '', ?string $locale = 
     return cms_runtime_base_url(ltrim(cms_get_archive_path($type, $slug, $locale), '/'));
 }
 
+if (!function_exists('cms_escape_like')) {
+/**
+ * Maskiert LIKE-Platzhalter (`%`, `_`) und den Standard-Escape `\` für Suchbegriffe aus Benutzereingaben.
+ * Ohne Maskierung findet die Suche nach `%` alle Datensätze, und Muster wie `%_%_%_` erzeugen teure Scans.
+ */
+function cms_escape_like(string $value): string {
+    return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+}
+}
+
 /**
  * SQL-Fragment für öffentlich sichtbare Blog-Beiträge.
  */

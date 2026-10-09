@@ -19,6 +19,13 @@ final class SeoSitemapService
     /** Obergrenze für Plugin-Einträge (eine Sitemap-Datei darf max. 50.000 URLs enthalten). */
     private const MAX_PLUGIN_ENTRIES = 10000;
 
+    private const DEFAULT_SITEMAP_META = [
+        'robots_index' => true,
+        'canonical_url' => '',
+        'sitemap_priority' => '',
+        'sitemap_changefreq' => '',
+    ];
+
     private ?string $lastSitemapError = null;
 
     public function __construct(
@@ -33,6 +40,53 @@ final class SeoSitemapService
     public function generateSitemap(): string
     {
         return $this->renderSitemapFile('sitemap.xml');
+    }
+
+    /** Dateien des Sitemap-Bundles (Index + Teil-Sitemaps). */
+    public const SITEMAP_FILES = ['sitemap.xml', 'pages.xml', 'posts.xml', 'plugins.xml', 'images.xml', 'news.xml'];
+
+    /**
+     * Liefert eine Datei des Sitemap-Bundles. Gespeicherte Dateien im Web-Root werden direkt
+     * gelesen; fehlen sie (frische Installation, Cron nicht eingerichtet, nach Inhaltsänderung
+     * invalidiert), wird das Bundle einmal erzeugt und gespeichert – sonst dynamisch gerendert.
+     */
+    public function getSitemapFile(string $fileName): string
+    {
+        if (!in_array($fileName, self::SITEMAP_FILES, true)) {
+            return $this->fallbackSitemapContent('sitemap.xml');
+        }
+
+        $path = ABSPATH . $fileName;
+        if (!is_file(ABSPATH . 'sitemap.xml') && is_writable(ABSPATH)) {
+            $this->saveSitemapBundle();
+        }
+
+        if (is_file($path) && is_readable($path)) {
+            $content = file_get_contents($path);
+            if (is_string($content) && $content !== '') {
+                return $content;
+            }
+        }
+
+        if (is_file(ABSPATH . 'sitemap.xml')) {
+            // Bundle vorhanden, Teil-Sitemap leer (z. B. keine Bilder/News): gültige leere Liste.
+            return $this->fallbackSitemapContent($fileName);
+        }
+
+        return $this->renderSitemapFile($fileName);
+    }
+
+    /**
+     * Entfernt gespeicherte Sitemap-Dateien nach Inhaltsänderungen; die nächste Anfrage erzeugt sie neu.
+     */
+    public function invalidateSavedSitemaps(): void
+    {
+        foreach (self::SITEMAP_FILES as $file) {
+            $path = ABSPATH . $file;
+            if (is_file($path) && is_writable($path)) {
+                @unlink($path);
+            }
+        }
     }
 
     public function generateRobotsTxt(): string
@@ -50,7 +104,8 @@ final class SeoSitemapService
         $txt .= "Disallow: /core/\n";
         $txt .= "Disallow: /cache/\n";
         $txt .= "Disallow: /logs/\n";
-        $txt .= "Disallow: /backups/\n\n";
+        $txt .= "Disallow: /backups/\n";
+        $txt .= "Disallow: /member/\n\n";
         $txt .= "Sitemap: " . SITE_URL . "/sitemap.xml\n";
 
         return $txt;
@@ -118,33 +173,88 @@ final class SeoSitemapService
         return $this->lastSitemapError;
     }
 
+    /**
+     * Google (seit 2023) und Bing (seit 2022) haben den anonymen Sitemap-Ping abgeschaltet; die
+     * Endpunkte liefern 404/410 und kosteten bei jedem Speichern bis zu 2×5 s. Suchmaschinen finden
+     * die Sitemap über robots.txt bzw. Search Console; für sofortige Benachrichtigung dient IndexNow.
+     */
     private function pingSearchEngines(): void
     {
         $settings = $this->metaService->getSitemapSettings();
-        $sitemapUrl = SITE_URL . '/sitemap.xml';
-        $targets = [];
-
-        if (!empty($settings['ping_google'])) {
-            $targets[] = 'https://www.google.com/ping?sitemap=' . rawurlencode($sitemapUrl);
+        if (!empty($settings['ping_google']) || !empty($settings['ping_bing'])) {
+            $this->logger->info('Sitemap-Ping übersprungen: Google und Bing unterstützen den Ping-Endpunkt nicht mehr.');
         }
-        if (!empty($settings['ping_bing'])) {
-            $targets[] = 'https://www.bing.com/ping?sitemap=' . rawurlencode($sitemapUrl);
+    }
+
+    /**
+     * @return array<int, array{robots_index: bool, canonical_url: string, sitemap_priority: string, sitemap_changefreq: string}>
+     */
+    private function loadSitemapSeoMeta(string $contentType): array
+    {
+        $rows = $this->db->get_results(
+            "SELECT content_id, robots_index, canonical_url, sitemap_priority, sitemap_changefreq
+             FROM {$this->prefix}seo_meta
+             WHERE content_type = ?",
+            [$contentType]
+        ) ?: [];
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) ($row->content_id ?? 0)] = [
+                'robots_index' => (int) ($row->robots_index ?? 1) === 1,
+                'canonical_url' => trim((string) ($row->canonical_url ?? '')),
+                'sitemap_priority' => ($row->sitemap_priority ?? null) !== null ? (string) $row->sitemap_priority : '',
+                'sitemap_changefreq' => (string) ($row->sitemap_changefreq ?? ''),
+            ];
         }
 
-        foreach ($targets as $target) {
-            try {
-                $this->httpClient->get($target, [
-                    'timeout' => 5,
-                    'connectTimeout' => 3,
-                    'userAgent' => '365CMS SEO',
-                ]);
-            } catch (\Throwable $e) {
-                $this->logger->warning('SEO-Ping an Suchmaschine fehlgeschlagen.', [
-                    'target' => $target,
-                    'exception' => $e,
-                ]);
+        return $map;
+    }
+
+    /**
+     * Nur indexierbare, selbstkanonische URLs gehören in die Sitemap.
+     *
+     * @param array{robots_index: bool, canonical_url: string} $seoMeta
+     */
+    private function isIndexableSitemapEntry(array $seoMeta, string $url): bool
+    {
+        if (!$seoMeta['robots_index']) {
+            return false;
+        }
+
+        $canonical = $seoMeta['canonical_url'];
+        if ($canonical === '') {
+            return true;
+        }
+
+        $normalize = static fn(string $value): string => rtrim(strtolower((string) preg_replace('#^https?://#i', '', $value)), '/');
+
+        return $normalize($canonical) === $normalize($url)
+            || $normalize(SITE_URL . '/' . ltrim($canonical, '/')) === $normalize($url);
+    }
+
+    private function resolveHomepageLastmod(): string
+    {
+        try {
+            $latest = $this->db->get_var(
+                "SELECT MAX(updated_at) FROM {$this->prefix}posts WHERE " . \cms_post_publication_where()
+            );
+            if (is_string($latest) && $latest !== '' && strtotime($latest) !== false) {
+                return date(DATE_W3C, (int) strtotime($latest));
             }
+        } catch (\Throwable) {
         }
+
+        return date(DATE_W3C);
+    }
+
+    private function absolutizeImageUrl(string $image): string
+    {
+        if (preg_match('#^https?://#i', $image) === 1) {
+            return $image;
+        }
+
+        return $this->buildPathUrl($image);
     }
 
     private function renderSitemapFile(string $fileName): string
@@ -213,7 +323,7 @@ final class SeoSitemapService
         $settings = $this->metaService->getSitemapSettings();
         $entries = [[
             'url' => SITE_URL . '/',
-            'lastmod' => date(DATE_W3C),
+            'lastmod' => $this->resolveHomepageLastmod(),
             'priority' => $settings['pages_priority'],
             'changefreq' => $settings['pages_changefreq'],
         ]];
@@ -227,15 +337,20 @@ final class SeoSitemapService
              ORDER BY title ASC"
         ) ?: [];
 
+        $seoMetaMap = $this->loadSitemapSeoMeta('page');
         foreach ($rows as $row) {
             $slug = trim((string) ($row->slug ?? ''));
             if ($slug === '') {
                 continue;
             }
 
-            $seoMeta = $this->metaService->getContentMeta('page', (int) ($row->id ?? 0));
+            $url = $this->buildPathUrl($slug);
+            $seoMeta = $seoMetaMap[(int) ($row->id ?? 0)] ?? self::DEFAULT_SITEMAP_META;
+            if (!$this->isIndexableSitemapEntry($seoMeta, $url)) {
+                continue;
+            }
             $entries[] = [
-                'url' => $this->buildPathUrl($slug),
+                'url' => $url,
                 'lastmod' => (string) ($row->updated_at ?? date(DATE_W3C)),
                 'priority' => $seoMeta['sitemap_priority'] !== '' ? $seoMeta['sitemap_priority'] : $settings['pages_priority'],
                 'changefreq' => $seoMeta['sitemap_changefreq'] !== '' ? $seoMeta['sitemap_changefreq'] : $settings['pages_changefreq'],
@@ -262,19 +377,24 @@ final class SeoSitemapService
         ) ?: [];
 
         $entries = [];
+        $seoMetaMap = $this->loadSitemapSeoMeta('post');
         foreach ($rows as $row) {
             $slug = trim((string) ($row->slug ?? ''));
             if ($slug === '') {
                 continue;
             }
 
-            $seoMeta = $this->metaService->getContentMeta('post', (int) ($row->id ?? 0));
+            $url = PermalinkService::getInstance()->buildPostUrlFromValues(
+                $slug,
+                (string) ($row->published_at ?? ''),
+                (string) ($row->created_at ?? '')
+            );
+            $seoMeta = $seoMetaMap[(int) ($row->id ?? 0)] ?? self::DEFAULT_SITEMAP_META;
+            if (!$this->isIndexableSitemapEntry($seoMeta, $url)) {
+                continue;
+            }
             $entries[] = [
-                'url' => PermalinkService::getInstance()->buildPostUrlFromValues(
-                    $slug,
-                    (string) ($row->published_at ?? ''),
-                    (string) ($row->created_at ?? '')
-                ),
+                'url' => $url,
                 'lastmod' => (string) ($row->updated_at ?? date(DATE_W3C)),
                 'priority' => $seoMeta['sitemap_priority'] !== '' ? $seoMeta['sitemap_priority'] : $settings['posts_priority'],
                 'changefreq' => $seoMeta['sitemap_changefreq'] !== '' ? $seoMeta['sitemap_changefreq'] : $settings['posts_changefreq'],
@@ -435,7 +555,7 @@ final class SeoSitemapService
             "SELECT p.id, p.slug, p.updated_at, p.title, p.featured_image, sm.og_image
              FROM {$this->prefix}pages p
              LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'page' AND sm.content_id = p.id
-             WHERE p.status = 'published'
+             WHERE p.status = 'published' AND COALESCE(sm.robots_index, 1) = 1
              ORDER BY p.title ASC"
         ) ?: [];
 
@@ -447,7 +567,7 @@ final class SeoSitemapService
 
             $rows[] = [
                 'url' => $this->buildPathUrl((string) ($page->slug ?? '')),
-                'image' => $image,
+                'image' => $this->absolutizeImageUrl($image),
                 'title' => (string) ($page->title ?? ''),
                 'lastmod' => (string) ($page->updated_at ?? date(DATE_W3C)),
                 'priority' => 0.7,
@@ -459,7 +579,7 @@ final class SeoSitemapService
             "SELECT p.id, p.slug, p.updated_at, p.published_at, p.created_at, p.title, p.featured_image, sm.og_image
              FROM {$this->prefix}posts p
              LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'post' AND sm.content_id = p.id
-               WHERE " . \cms_post_publication_where('p') . "
+               WHERE " . \cms_post_publication_where('p') . " AND COALESCE(sm.robots_index, 1) = 1
              ORDER BY COALESCE(p.published_at, p.created_at) DESC"
         ) ?: [];
 
@@ -475,7 +595,7 @@ final class SeoSitemapService
                     (string) ($post->published_at ?? ''),
                     (string) ($post->created_at ?? '')
                 ),
-                'image' => $image,
+                'image' => $this->absolutizeImageUrl($image),
                 'title' => (string) ($post->title ?? ''),
                 'lastmod' => (string) ($post->updated_at ?? date(DATE_W3C)),
                 'priority' => 0.7,
@@ -492,11 +612,15 @@ final class SeoSitemapService
     private function getNewsSitemapEntries(): array
     {
         $rows = $this->db->get_results(
-            "SELECT slug, title, updated_at, published_at, created_at
-             FROM {$this->prefix}posts
-               WHERE " . \cms_post_publication_where() . "
-             ORDER BY COALESCE(published_at, created_at) DESC
-             LIMIT 100"
+            "SELECT p.slug, p.title, p.updated_at, p.published_at, p.created_at
+             FROM {$this->prefix}posts p
+             LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'post' AND sm.content_id = p.id
+               WHERE " . \cms_post_publication_where('p') . " AND COALESCE(sm.robots_index, 1) = 1
+                 AND COALESCE(p.published_at, p.created_at) >= ?
+             ORDER BY COALESCE(p.published_at, p.created_at) DESC
+             LIMIT 1000",
+            // Google News berücksichtigt nur Artikel der letzten zwei Tage (max. 1.000 URLs).
+            [date('Y-m-d H:i:s', time() - 2 * 86400)]
         ) ?: [];
 
         $entries = [];
@@ -514,7 +638,7 @@ final class SeoSitemapService
                     (string) ($row->created_at ?? '')
                 ),
                 'title' => $title,
-                'publication_date' => (string) ($row->updated_at ?? date(DATE_W3C)),
+                'publication_date' => (string) ($row->published_at ?? $row->created_at ?? date(DATE_W3C)),
                 'lastmod' => (string) ($row->updated_at ?? date(DATE_W3C)),
                 'priority' => 0.9,
                 'changefreq' => 'daily',

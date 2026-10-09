@@ -63,7 +63,9 @@ class Api
         try {
             switch ($endpoint) {
                 case 'status':
-                    $this->sendResponse(['status' => 'ok', 'version' => defined('CMS_VERSION') ? CMS_VERSION : Version::CURRENT]);
+                    $this->sendResponse(Auth::instance()->isAdmin()
+                        ? ['status' => 'ok', 'version' => defined('CMS_VERSION') ? CMS_VERSION : Version::CURRENT]
+                        : ['status' => 'ok']);
                     break;
                     
                 case 'pages':
@@ -103,6 +105,11 @@ class Api
         
         if ($slug) {
             $page = $pm->getPageBySlug($slug);
+            // Entwürfe, private und geplante Seiten nur für Redaktion: jedes registrierte
+            // Mitglied konnte sonst unveröffentlichte Inhalte über die API lesen.
+            if ($page && !$this->isPagePubliclyVisible($page) && !Auth::instance()->hasCapability('manage_pages')) {
+                $page = null;
+            }
             if ($page) {
                 $this->sendResponse($page);
             } else {
@@ -116,6 +123,19 @@ class Api
         }
     }
     
+    /** @param array<string, mixed> $page */
+    private function isPagePubliclyVisible(array $page): bool
+    {
+        if ((string) ($page['status'] ?? '') !== 'published') {
+            return false;
+        }
+
+        $publishedAt = trim((string) ($page['published_at'] ?? ''));
+        $timestamp = $publishedAt !== '' ? strtotime($publishedAt) : false;
+
+        return $timestamp === false || $timestamp <= time();
+    }
+
     private function handleUsers(?string $id): void
     {
         if (!Auth::instance()->isAdmin()) {

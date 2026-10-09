@@ -47,12 +47,22 @@ Health-Check beim Aktivieren (`ThemeManager::healthCheckTheme()`): `style.css` v
   "customization": { "colors": { … } },
   "post_templates": [
     { "id": "default", "label": "Standard", "description": "", "file": "blog-single.php", "meta_fields": [] }
+  ],
+  "page_templates": [
+    { "id": "default", "label": "Standard", "file": "page.php" },
+    { "id": "landing", "label": "Landing Page", "file": "page-landing.php",
+      "meta_fields": {
+        "hero_subtitle": { "label": "Hero-Untertitel", "type": "textarea" },
+        "hero_cta_url": { "label": "CTA-URL", "type": "url" },
+        "features": { "label": "Feature-Cards", "type": "array-of-objects", "fields": ["icon", "title", "text", "url"] }
+      } }
   ]
 }
 ```
 
 - `menus` registriert Menüpositionen (zusätzlich Filter `register_menu_locations`).
 - `post_templates` (optional) bietet im Beitragseditor eine Template-Auswahl mit eigenen Metafeldern an; ohne Angabe gibt es nur „Standard“. `cms-default` definiert keine Beitrags-Templates.
+- `page_templates` (optional, ab 3.4.20) bietet im Seiteneditor die Auswahl „Seitenvorlage“ mit Zusatzfeldern an (`CMS\Services\PageTemplateService`). Registriert werden nur IDs `[a-z0-9_-]`, deren `file` als PHP-Datei im Theme-Hauptverzeichnis existiert. Feldtypen: `text`, `textarea`, `url` (nur `/pfad`, `#anker`, `http(s)://`, `mailto:`, `tel:`), `array-of-objects` (JSON-Liste, höchstens 20 Einträge, nur die in `fields` genannten Schlüssel; leere Einträge entfallen). HTML wird zu Klartext. Gespeichert wird in `pages.page_template` und `pages.page_meta_json`; `ThemeManager::render('page', …)` lädt dann die Vorlagendatei statt `page.php` und stellt die Felder als `$page['meta']` bereit. Unbekannte gespeicherte Vorlagen und beschädigtes JSON fallen protokolliert auf `page.php` bzw. `[]` zurück.
 
 ### 3. Rendering-Vertrag
 
@@ -64,7 +74,7 @@ Health-Check beim Aktivieren (`ThemeManager::healthCheckTheme()`): `style.css` v
 | Template | Variablen |
 |---|---|
 | `home` | – (Startseite liest selbst: Customizer-Modus `posts` oder `landing`) |
-| `page` | `$page` (Array, `content` = gerendertes, bereinigtes HTML; auch Hub-Sites), `$contentLocale` |
+| `page` | `$page` (Array, `content` = gerendertes, bereinigtes HTML; auch Hub-Sites; ab 3.4.20 zusätzlich `meta` aus der Seitenvorlage), `$contentLocale`. Mit gewählter Seitenvorlage wird deren Datei (z. B. `page-landing.php`) statt `page.php` gerendert. |
 | `blog` | `$posts` (Objekte), `$total`, `$currentPage`, `$totalPages`, `$perPage` (Paginierung `?p=N`) |
 | `blog-single` | `$post` (Objekt), `$contentLocale` |
 | `category` | `$category` (Array), `$posts`, `$query`, `$total`, `$currentPage`, `$totalPages`, `$perPage`; Übersicht `/kategorie` mit `$overviewItems` |
@@ -77,6 +87,8 @@ Health-Check beim Aktivieren (`ThemeManager::healthCheckTheme()`): `style.css` v
 
 - **Suche:** Treffer sind bereits gefiltert (jedes Suchwort im sichtbaren Text) und sortiert; ohne Suchbegriff keine Treffer. Formulare senden `q`, `type`, `sort`.
 - **Links:** Beitrags-URLs mit `PermalinkService::buildPostUrl()`, Archive mit `cms_get_archive_url()`, lokalisierte Pfade mit `ContentLocalizationService::buildLocalizedPath()`.
+- **Aktueller Inhalt im Header (ab 3.4.20):** `ThemeManager::render()` setzt vor `header.php` `$GLOBALS['post']` bzw. `$GLOBALS['page']` (bei `404`/`error` werden beide entfernt). Darauf bauen die Core-SEO-Ausgabe (`SEOService::renderCurrentHeadTags()`: Beschreibung, Robots, Canonical, hreflang, Open Graph, Twitter, JSON-LD) und `SEOService::getCurrentSeoPayload()` auf. Themes müssen die Variablen nicht mehr selbst setzen.
+- **SEO im Theme:** Entweder `SEOService::renderCurrentHeadTags()` im `head`-Hook ausgeben (so `cms-default`) oder die Werte aus `getCurrentSeoPayload()` selbst rendern. Der Dokumenttitel steht in `payload['title']` (Meta-Titel inkl. Titel-Template).
 - Es gibt **keine** Klassen `\CMS\CMS`, `PageService`, `PostService`, `ContentHelper` und keine Methode `ThemeManager::registerMenuLocation()`.
 
 ### 4. Hooks im Theme

@@ -1,5 +1,5 @@
 # ASSETS NEW – Integrationsdoku für neue Kandidaten
-> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+> **Stand:** 2026-10-04 | **Version:** 3.4.19 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - <a>Überblick</a>
@@ -22,7 +22,7 @@ Aktueller Bewertungsstand:
 
 | Paket / Thema | Quelle | Status | Empfehlung |
 |---|---|---|---|
-| `symfony/ai-platform` | `CMS/assets/ai-platform/` (Quelle weiter in `ASSETS/ai-platform-0.6.0/`) | produktive Basis aktiv, Bridges weiter separat | nur über klaren Core-Adapter, Provider-Bridges und Admin-Feature-Gates einführen |
+| `symfony/ai-platform` | `CMS/assets/ai-platform/` (Quelle: `CMS_ASSETS/ai-0.14.1.zip`, `src/platform/`) | produktive Basis aktiv, Bridges weiter separat | nur über klaren Core-Adapter, Provider-Bridges und Admin-Feature-Gates einführen |
 | `stichoza/google-translate-php` | **aus `/ASSETS` entfernt am 2026-04-08** | kein aktiver Kandidat mehr | nicht weiter als Staging-Asset führen; offizielle oder austauschbare Provider-Adapter bevorzugen |
 
 Grundsatz: **Nicht jedes Paket unter `/ASSETS` gehört automatisch nach `CMS/assets/` oder `CMS/vendor/`.** Neue Kandidaten müssen fachlich, technisch, betrieblich und dokumentarisch bewertet werden. Auch wenn eine Basis wie `symfony/ai-platform` jetzt produktiv gespiegelt wird, bleiben Brücken, Provider und Zusatzabhängigkeiten eigene Integrationsentscheidungen.
@@ -41,8 +41,9 @@ Für den aktuellen Wunschstand ist vor allem wichtig:
 
 - **Paket:** `symfony/ai-platform`
 - **Produktiver Basispfad:** `CMS/assets/ai-platform/`
-- **Workspace-Quelle:** `ASSETS/ai-platform-0.6.0/`
-- **Version im Workspace:** `0.6.0`
+- **Quelle:** `CMS_ASSETS/ai-0.14.1.zip` (Monorepo `symfony/ai`, Unterordner `src/platform/`)
+- **Gebündelte Version:** `0.14.1` (nur Basis, ohne `src/Bridge/`)
+- **Nutzung im Code (Stand 3.4.19):** nur die Funktionsprobe in `Diagnose → Assets`; die AI-Services arbeiten noch mit eigenen HTTP-Aufrufen. Die Basis bleibt bewusst als vorbereiteter Unterbau für künftige Core-Adapter gebündelt.
 - **Pakettyp:** PHP-Library / AI-Abstraktionsschicht
 - **Status laut README:** **experimentell**
 - **PHP-Anforderung laut `composer.json`:** `>= 8.2`

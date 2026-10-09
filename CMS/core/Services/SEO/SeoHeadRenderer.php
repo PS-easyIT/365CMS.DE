@@ -89,7 +89,11 @@ final class SeoHeadRenderer
             $lines[] = '<meta name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '" content="' . htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8') . '">';
         }
 
-        $schema = $this->schemaRenderer->renderSchemaForPayload($payload);
+        foreach ($this->buildHreflangAlternates($payload) as $hreflang => $alternateUrl) {
+            $lines[] = '<link rel="alternate" hreflang="' . htmlspecialchars($hreflang, ENT_QUOTES, 'UTF-8') . '" href="' . htmlspecialchars($alternateUrl, ENT_QUOTES, 'UTF-8') . '">';
+        }
+
+        $schema = !empty($payload['suppress_schema']) ? '' : $this->schemaRenderer->renderSchemaForPayload($payload);
         if ($schema !== '') {
             $lines[] = $schema;
         }
@@ -124,10 +128,10 @@ final class SeoHeadRenderer
         if ($sitePath !== '' && ($uri === $sitePath || str_starts_with($uri, $sitePath . '/'))) {
             $uri = substr($uri, strlen($sitePath)) ?: '/';
         }
-        $canonicalUrl = SITE_URL . ($uri === '/' ? '/' : $uri);
+        $canonicalUrl = SITE_URL . ($uri === '/' ? '/' : $uri) . $this->buildPaginationQuery();
 
         if ($this->requestMeta !== []) {
-            return $this->buildRequestMetaPayload($socialDefaults, $canonicalUrl);
+            return $this->applyRequestRobotsPolicy($this->buildRequestMetaPayload($socialDefaults, $canonicalUrl));
         }
 
         $pageData = $GLOBALS['page'] ?? null;
@@ -145,28 +149,39 @@ final class SeoHeadRenderer
 
         if ($content === null) {
             $description = $this->settings->getMetaDescription('');
-            return [
+            $genericTitle = (string) SITE_NAME;
+            if ($uri === '/' || $uri === '/en' || $uri === '/en/') {
+                // Unter SEO → Meta gepflegte Startseiten-Angaben.
+                $genericTitle = trim($this->settings->getHomepageTitle('')) ?: $genericTitle;
+                $description = trim($this->settings->getHomepageDescription('')) ?: $description;
+            }
+            return $this->applyRequestRobotsPolicy([
                 'description' => $description,
                 'canonical_url' => $canonicalUrl,
                 'robots_index' => true,
                 'robots_follow' => true,
-                'og_title' => SITE_NAME,
+                'og_title' => $genericTitle,
                 'og_description' => $description,
-                'og_image' => $socialDefaults['image'],
+                'og_image' => $this->absolutizeUrl($socialDefaults['image']),
                 'og_type' => $socialDefaults['og_type'],
                 'og_site_name' => $socialDefaults['brand_name'],
                 'twitter_card' => $socialDefaults['twitter_card'],
-                'twitter_title' => SITE_NAME,
+                'twitter_title' => $genericTitle,
                 'twitter_description' => $description,
-                'twitter_image' => $socialDefaults['image'],
+                'twitter_image' => $this->absolutizeUrl($socialDefaults['image']),
                 'schema_type' => 'WebPage',
-                'title' => SITE_NAME,
+                'title' => $genericTitle,
+                'content_type' => $genericTitle !== (string) SITE_NAME ? 'home' : '',
                 'url' => $canonicalUrl,
                 'updated_at' => date(DATE_W3C),
-            ];
+            ]);
         }
 
         $id = (int) ($this->readField($content, 'id') ?? 0);
+        // Hub-Sites tragen die ID ihrer Site-Table; ein SEO-Datensatz `page` mit dieser ID gehört zu einer anderen Seite.
+        if ($contentType === 'page' && $this->isHubPayload($content)) {
+            $id = 0;
+        }
         $resolvedContext = [
             'title' => (string) ($this->readField($content, 'title') ?? SITE_NAME),
             'slug' => (string) ($this->readField($content, 'slug') ?? ''),
@@ -185,14 +200,17 @@ final class SeoHeadRenderer
         }
         $updatedAt = (string) ($this->readField($content, 'updated_at') ?? $this->readField($content, 'created_at') ?? date(DATE_W3C));
         $resolvedOgImage = $meta['og_image'] !== '' ? $meta['og_image'] : ($featuredImage !== '' ? $featuredImage : $socialDefaults['image']);
+        $resolvedOgImage = $this->absolutizeUrl($resolvedOgImage);
+        $isPublic = $this->isPubliclyVisibleContent($content);
 
-        return [
+        return $this->applyRequestRobotsPolicy([
             'title' => $title,
             'description' => $description,
             'keywords' => (string) ($meta['keywords'] ?? ''),
-            'canonical_url' => $meta['canonical_url'] !== '' ? $meta['canonical_url'] : $canonicalUrl,
-            'robots_index' => $meta['robots_index'],
-            'robots_follow' => $meta['robots_follow'],
+            'canonical_url' => $meta['canonical_url'] !== '' ? $this->absolutizeUrl($meta['canonical_url']) : $canonicalUrl,
+            // Entwürfe, geplante und private Inhalte (Admin-Vorschau) nie indexieren.
+            'robots_index' => $meta['robots_index'] && $isPublic,
+            'robots_follow' => $meta['robots_follow'] && $isPublic,
             'og_title' => $meta['og_title'] !== '' ? $meta['og_title'] : $title,
             'og_description' => $meta['og_description'] !== '' ? $meta['og_description'] : $description,
             'og_image' => $resolvedOgImage,
@@ -201,12 +219,164 @@ final class SeoHeadRenderer
             'twitter_card' => $meta['twitter_card'] !== '' ? $meta['twitter_card'] : $socialDefaults['twitter_card'],
             'twitter_title' => $meta['twitter_title'] !== '' ? $meta['twitter_title'] : $title,
             'twitter_description' => $meta['twitter_description'] !== '' ? $meta['twitter_description'] : $description,
-            'twitter_image' => $meta['twitter_image'] !== '' ? $meta['twitter_image'] : $resolvedOgImage,
+            'twitter_image' => $meta['twitter_image'] !== '' ? $this->absolutizeUrl($meta['twitter_image']) : $resolvedOgImage,
             'schema_type' => SeoSchemaRenderer::effectiveTypeFor((string) $meta['schema_type'], $contentType),
             'url' => $canonicalUrl,
             'content_type' => $contentType,
-            'updated_at' => $updatedAt,
-        ];
+            'content_title' => trim($resolvedContext['title']),
+            'content_source' => $content,
+            'updated_at' => (string) ($this->readField($content, 'content_updated_at') ?: $updatedAt),
+            'published_at' => (string) ($this->readField($content, 'published_at') ?? $this->readField($content, 'created_at') ?? ''),
+            'author_name' => trim((string) ($this->readField($content, 'author_name') ?? '')),
+            'locale' => (string) ($this->readField($content, 'locale') ?? $this->readField($content, 'content_locale') ?? ''),
+        ]);
+    }
+
+    /**
+     * Fehlerseiten, Suchergebnisse und nicht öffentliche Bereiche dürfen nicht in den Index.
+     *
+     * @param array<string,mixed> $payload
+     * @return array<string,mixed>
+     */
+    private function applyRequestRobotsPolicy(array $payload): array
+    {
+        $status = http_response_code();
+        if (is_int($status) && $status >= 400) {
+            $payload['robots_index'] = false;
+            // Fehlerseiten bekommen weder Canonical noch strukturierte Daten.
+            $payload['canonical_url'] = '';
+            $payload['suppress_schema'] = true;
+
+            return $payload;
+        }
+
+        $path = (string) (strtok((string) ($_SERVER['REQUEST_URI'] ?? '/'), '?') ?: '/');
+        $sitePath = rtrim((string) parse_url((string) SITE_URL, PHP_URL_PATH), '/');
+        if ($sitePath !== '' && str_starts_with($path, $sitePath)) {
+            $path = substr($path, strlen($sitePath)) ?: '/';
+        }
+        $path = '/' . trim(preg_replace('#^/(?:en|de)(?=/|$)#', '', $path) ?? $path, '/');
+
+        $noindexPaths = ['/search', '/suche', '/login', '/register', '/cms-login', '/cms-register', '/cms-password-forgot', '/forgot-password', '/order', '/orders.php'];
+        if (in_array($path, $noindexPaths, true) || str_starts_with($path, '/member') || str_starts_with($path, '/mfa-')) {
+            $payload['robots_index'] = false;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Folgeseiten paginierter Listen kanonisieren auf sich selbst, nicht auf Seite 1.
+     */
+    private function buildPaginationQuery(): string
+    {
+        foreach (['p', 'page'] as $param) {
+            $value = $_GET[$param] ?? null;
+            if (is_string($value) && ctype_digit($value) && (int) $value > 1) {
+                return '?' . $param . '=' . (int) $value;
+            }
+        }
+
+        return '';
+    }
+
+    private function absolutizeUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '' || preg_match('#^https?://#i', $url) === 1) {
+            return $url;
+        }
+
+        if (str_starts_with($url, '//')) {
+            return (str_starts_with((string) SITE_URL, 'http://') ? 'http:' : 'https:') . $url;
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $url) === 1) {
+            return '';
+        }
+
+        $siteUrl = rtrim((string) SITE_URL, '/');
+        $sitePath = rtrim((string) parse_url($siteUrl, PHP_URL_PATH), '/');
+        $origin = $sitePath !== '' ? substr($siteUrl, 0, -strlen($sitePath)) : $siteUrl;
+        if ($sitePath !== '' && str_starts_with($url, $sitePath . '/')) {
+            return $origin . $url;
+        }
+
+        return $siteUrl . '/' . ltrim($url, '/');
+    }
+
+    /**
+     * hreflang-Paare für Beiträge/Seiten mit gepflegter englischer Fassung (DE ist x-default).
+     *
+     * @param array<string,mixed> $payload
+     * @return array<string,string>
+     */
+    private function buildHreflangAlternates(array $payload): array
+    {
+        $content = $payload['content_source'] ?? null;
+        if ((!is_array($content) && !is_object($content)) || empty($payload['robots_index'])
+            || $this->settings->getSetting('technical_hreflang_enabled', '1') === '0'
+        ) {
+            return [];
+        }
+
+        $hasEnglish = false;
+        foreach (['title_en', 'content_en'] as $field) {
+            if (trim((string) ($this->readField($content, $field) ?? '')) !== '') {
+                $hasEnglish = true;
+                break;
+            }
+        }
+        $baseSlug = trim((string) ($this->readField($content, 'slug_base') ?? $this->readField($content, 'slug') ?? ''), '/');
+        if (!$hasEnglish || $baseSlug === '' || $this->isHubPayload($content)) {
+            return [];
+        }
+
+        try {
+            if (($payload['content_type'] ?? '') === 'post') {
+                $permalinks = \CMS\Services\PermalinkService::getInstance();
+                $base = array_merge(is_object($content) ? get_object_vars($content) : $content, ['slug' => $baseSlug]);
+                $alternates = [
+                    'de' => $permalinks->buildPostUrl($base, 'de'),
+                    'en' => $permalinks->buildPostUrl($base, 'en'),
+                ];
+            } else {
+                $englishSlug = trim((string) ($this->readField($content, 'slug_en') ?? ''), '/');
+                $siteUrl = rtrim((string) SITE_URL, '/');
+                $alternates = [
+                    'de' => $siteUrl . '/' . $baseSlug,
+                    'en' => $siteUrl . '/en/' . ($englishSlug !== '' ? $englishSlug : $baseSlug),
+                ];
+            }
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $alternates['x-default'] = $alternates['de'];
+
+        return $alternates;
+    }
+
+    private function isHubPayload(object|array $content): bool
+    {
+        if (strtolower(trim((string) ($this->readField($content, 'content_type') ?? ''))) === 'hub') {
+            return true;
+        }
+
+        return str_contains((string) ($this->readField($content, 'content') ?? ''), 'cms-hub-site');
+    }
+
+    private function isPubliclyVisibleContent(object|array $content): bool
+    {
+        $status = (string) ($this->readField($content, 'status') ?? 'published');
+        if ($status !== '' && $status !== 'published') {
+            return false;
+        }
+
+        $publishedAt = trim((string) ($this->readField($content, 'published_at') ?? ''));
+        $timestamp = $publishedAt !== '' ? strtotime($publishedAt) : false;
+
+        return $timestamp === false || $timestamp <= time();
     }
 
     private function readField(object|array $source, string $key): mixed
@@ -226,7 +396,7 @@ final class SeoHeadRenderer
         $title = (string) ($this->requestMeta['title'] ?? SITE_NAME);
         $description = (string) ($this->requestMeta['description'] ?? $this->settings->getMetaDescription(''));
         $canonicalUrl = (string) ($this->requestMeta['canonical_url'] ?? $fallbackCanonicalUrl);
-        $ogImage = (string) ($this->requestMeta['og_image'] ?? $socialDefaults['image']);
+        $ogImage = $this->absolutizeUrl((string) ($this->requestMeta['og_image'] ?? $socialDefaults['image']));
 
         return [
             'title' => $title,

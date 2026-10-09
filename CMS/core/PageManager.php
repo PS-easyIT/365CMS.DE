@@ -57,8 +57,14 @@ class PageManager
                 'content_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN content_en LONGTEXT DEFAULT NULL AFTER content",
                 'category_id' => "ALTER TABLE {$this->prefix}pages ADD COLUMN category_id INT UNSIGNED DEFAULT NULL AFTER author_id",
                 'content_updated_at' => "ALTER TABLE {$this->prefix}pages ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER published_at",
+<<<<<<< HEAD
                 'page_template' => "ALTER TABLE {$this->prefix}pages ADD COLUMN page_template VARCHAR(80) DEFAULT NULL",
                 'page_meta_json' => "ALTER TABLE {$this->prefix}pages ADD COLUMN page_meta_json TEXT DEFAULT NULL",
+=======
+                // Seitenvorlagen aus theme.json (`page_templates`) samt validierten Zusatzfeldern.
+                'page_template' => "ALTER TABLE {$this->prefix}pages ADD COLUMN page_template VARCHAR(80) DEFAULT NULL AFTER category_id",
+                'page_meta_json' => "ALTER TABLE {$this->prefix}pages ADD COLUMN page_meta_json TEXT DEFAULT NULL AFTER page_template",
+>>>>>>> a21cdf1cbe7760f7d7466627ac44af28c45a1ba4
             ];
 
             foreach ($columns as $column => $sql) {
@@ -92,6 +98,8 @@ class PageManager
                 status VARCHAR(20) DEFAULT NULL,
                 author_id INT UNSIGNED,
                  content_updated_at DATETIME DEFAULT NULL,
+                page_template VARCHAR(80) DEFAULT NULL,
+                page_meta_json TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_page_id (page_id),
                 INDEX idx_author (author_id),
@@ -107,6 +115,8 @@ class PageManager
                 'page_template' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN page_template VARCHAR(80) DEFAULT NULL",
                 'page_meta_json' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN page_meta_json TEXT DEFAULT NULL",
                  'content_updated_at' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER author_id",
+                'page_template' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN page_template VARCHAR(80) DEFAULT NULL AFTER content_updated_at",
+                'page_meta_json' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN page_meta_json TEXT DEFAULT NULL AFTER page_template",
             ];
 
             foreach ($columns as $column => $sql) {
@@ -322,8 +332,13 @@ class PageManager
             (string)($page['status'] ?? 'draft'),
             (int)($page['author_id'] ?? 0),
                 trim((string)($page['content_updated_at'] ?? '')) ?: null,
+<<<<<<< HEAD
             $page['page_template'] ?? null,
             $page['page_meta_json'] ?? null,
+=======
+            trim((string)($page['page_template'] ?? '')) ?: null,
+            trim((string)($page['page_meta_json'] ?? '')) ?: null,
+>>>>>>> a21cdf1cbe7760f7d7466627ac44af28c45a1ba4
         ]);
     }
 

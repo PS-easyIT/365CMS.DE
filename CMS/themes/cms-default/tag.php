@@ -47,7 +47,7 @@ $tagDesc = htmlspecialchars(trim((string) ($tagData['description'] ?? '')), ENT_
 if ($isOverview) {
     $baseUrl = cms_get_archive_url('tag') . ($query !== '' ? '?q=' . urlencode($query) : '');
 } else {
-    $baseUrl = SITE_URL . '/blog?tag=' . urlencode($tagRaw);
+    $baseUrl = meridian_archive_url('tag', (string) ($tagRaw));
 }
 $qSep = str_contains($baseUrl, '?') ? '&' : '?';
 
@@ -72,7 +72,7 @@ foreach ($rawTagData as $t) {
             <span style="color:var(--ink);"><?php echo $isOverview ? $tagName : 'Tag: ' . $tagName; ?></span>
         </nav>
         <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem;">
-            <span style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);"><?php echo $isOverview ? 'Übersicht' : 'Tag-Archiv'; ?></span>
+            <span style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-text, var(--accent));"><?php echo $isOverview ? 'Übersicht' : 'Tag-Archiv'; ?></span>
         </div>
         <h1 style="font-family:var(--font-serif);font-size:clamp(1.6rem,4vw,2.4rem);font-weight:700;margin:0 0 .75rem;color:var(--ink);"><?php echo $tagName; ?></h1>
         <?php if ($tagDesc): ?>
@@ -92,7 +92,7 @@ foreach ($rawTagData as $t) {
 <div class="container" style="max-width:var(--max);margin:0 auto;padding:2rem 1.5rem;">
     <div class="page-wrap<?php echo $showSidebar ? ' page-wrap--sidebar' : ''; ?>">
 
-        <main id="main-content">
+        <div class="content-main">
             <?php if ($isOverview || !empty($posts)): ?>
 
             <?php
@@ -142,7 +142,7 @@ foreach ($rawTagData as $t) {
                 <a href="<?php echo SITE_URL; ?>/blog" class="btn-solid" style="display:inline-block;margin-top:1rem;">Alle Artikel anzeigen</a>
             </div>
             <?php endif; ?>
-        </main>
+        </div>
 
         <?php if ($showSidebar): ?>
         <?php require __DIR__ . '/partials/sidebar.php'; ?>
