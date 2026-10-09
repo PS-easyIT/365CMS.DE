@@ -24,6 +24,15 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 
 ---
 
+### v3.4.21 — 09.10.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|--------------|
+| **3.4.21** | 🟢 feat | HubSites / Admin | Englische Hero-/Meta-Felder und Hub-Kacheln bieten „Aus DE kopieren“ vor „Mit KI übersetzen“. Die KI übersetzt den aktuellen Inhalt des englischen Zielfelds (z. B. den zuvor kopierten deutschen Text), ohne ihn erneut zu überschreiben. Kopieren ist nur bei verfügbarem deutschem Quellinhalt möglich; Tabellen-/Shortcode-Inhalte werden nicht an den Übersetzungsdienst gesendet. Bei Übersetzungsfehlern bleibt der kopierte Text im englischen Feld erhalten. |
+| **3.4.21** | 🔴 fix | Archive / SEO | Englische Tag-Archive bleiben unter `/en/tag` erreichbar; Beitrags-Sidebars verwenden den englischen Tag-Slug. Leere lokalisierte Tag-/Kategoriearchive sowie überzählige `?page=`-Aufrufe in Kategorie-, Tag-, Event- und Speaker-Archiven liefern HTTP 404 statt leerer oder duplizierter 200-Seiten. |
+
+---
+
 ### v3.4.20 — 07.10.2026
 
 Folgeaudit Sicherheit, SEO, Geschwindigkeit, interne Verlinkung, Barrierefreiheit und unvollständige Funktionen. Bericht: [`DOC/checks/FOLGEAUDIT-2026-10-07.md`](DOC/checks/FOLGEAUDIT-2026-10-07.md). Laufzeittests gegen MariaDB 10.11 (PHP-8.3-Kopie), axe-core vorher 38 / nachher 0 Regelverstöße auf den Testseiten von `cms-default`.
