@@ -28,6 +28,26 @@ $pageAdminBaseUrl = '/admin/pages';
 $page    = $editData['page'] ?? null;
 $isNew   = $editData['isNew'] ?? true;
 $categories = $editData['categories'] ?? [];
+$pageTemplates = $editData['pageTemplates'] ?? [
+    ['id' => 'default', 'label' => 'Standard', 'description' => '', 'meta_fields' => []],
+];
+$pageTemplateValue = (string) ($page->page_template ?? 'default');
+if (!in_array($pageTemplateValue, array_column($pageTemplates, 'id'), true)) {
+    $pageTemplateValue = 'default';
+}
+$pageTemplateMetaValues = [];
+if (!empty($page->page_meta_json)) {
+    try {
+        $decodedPageMeta = json_decode((string) $page->page_meta_json, true, 16, JSON_THROW_ON_ERROR);
+        if (is_array($decodedPageMeta)) {
+            $pageTemplateMetaValues = $decodedPageMeta;
+        }
+    } catch (\JsonException $exception) {
+        \CMS\Logger::instance()->withChannel('admin.pages')->warning('Gespeicherte Vorlagen-Zusatzfelder konnten nicht gelesen werden.', [
+            'page_id' => $page->id ?? null, 'exception' => $exception->getMessage(),
+        ]);
+    }
+}
 $seoMeta = $editData['seoMeta'] ?? [];
 $revisionHistory = is_array($editData['revisionHistory'] ?? null) ? $editData['revisionHistory'] : ['total' => 0, 'displayed' => 0, 'has_more' => false, 'items' => []];
 $pageRevisionItems = is_array($revisionHistory['items'] ?? null) ? $revisionHistory['items'] : [];
@@ -418,6 +438,8 @@ $isEnglishEditorView = $editorLocale === 'en';
                     </div>
                 </div>
 
+                <?php include __DIR__ . '/../partials/page-template-fields.php'; ?>
+
                 <div class="col-12 cms-editor-primary">
                     <div class="card cms-edit-card cms-editor-card mb-3">
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
@@ -759,6 +781,9 @@ $isEnglishEditorView = $editorLocale === 'en';
         require __DIR__ . '/../partials/featured-image-picker.php';
 
         $pageContentUiConfig = [
+            'templateSelectId' => 'pageTemplateSelect',
+            'templateMetaPanelSelector' => '[data-page-template-meta-panel]',
+            'templateMetaPanelAttribute' => 'data-page-template-meta-panel',
             'formId' => 'pageForm',
             'titleSelector' => '.page-header .page-title',
             'backLinkId' => 'pageBackToList',

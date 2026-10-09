@@ -304,6 +304,7 @@ class PagesModule
             'categories' => $this->buildOrderedCategoryOptions(array_map(fn($category) => (array) $category, $categories)),
             'seoMeta' => $id !== null ? SEOService::getInstance()->getContentMeta('page', $id) : SEOService::getInstance()->getContentMeta('page', 0),
             'revisionHistory' => $this->buildPageRevisionHistory($page),
+            'pageTemplates' => (new \CMS\Services\PageTemplateService(\CMS\ThemeManager::instance()->getThemePath()))->getDefinitions(),
         ];
     }
 
@@ -322,7 +323,7 @@ class PagesModule
             ? strtolower(trim((string) ($post['editor_locale'] ?? 'de')))
             : 'de';
         $existingPage = $id > 0
-            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]) ?: [])
+            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en, page_template, page_meta_json FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]) ?: [])
             : [];
         $title  = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug   = trim($post['slug'] ?? '');
@@ -354,6 +355,17 @@ class PagesModule
         }
         if ($id > 0 && $existingPage === []) {
             return ['success' => false, 'error' => 'Die Seite existiert nicht mehr. Bitte Liste neu laden.'];
+        }
+        $pageTemplate = (string) ($existingPage['page_template'] ?? 'default');
+        $pageMetaJson = $existingPage['page_meta_json'] ?? null;
+        if (array_key_exists('page_template', $post)) {
+            $pageTemplate = trim((string) $post['page_template']);
+            try {
+                $templateService = new \CMS\Services\PageTemplateService(\CMS\ThemeManager::instance()->getThemePath());
+                $pageMetaJson = $templateService->encodeMetadata($post['page_meta'] ?? null, $pageTemplate);
+            } catch (\InvalidArgumentException|\JsonException|\UnexpectedValueException $exception) {
+                return $this->failResult('pages.template.invalid', $exception->getMessage(), $exception, ['page_id' => $id]);
+            }
         }
 
         if ($editorLocale === 'en' && $existingPage !== []) {
@@ -425,6 +437,8 @@ class PagesModule
             'meta_title' => $metaTitle,
             'meta_description' => $metaDesc,
             'content_updated_at' => $contentUpdatedAtInput['value'],
+            'page_template' => $pageTemplate,
+            'page_meta_json' => $pageMetaJson,
         ];
 
         $filteredPayload = Hooks::applyFilters('cms_prepare_page_save_payload', $savePayload, $post, $id, $userId);
@@ -457,7 +471,7 @@ class PagesModule
                     // Update meta fields
                     $this->db->execute(
                         "UPDATE {$this->prefix}pages 
-                             SET slug = ?, slug_en = ?, title_en = ?, content_en = ?, show_title_toc = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?, content_updated_at = ?
+                             SET slug = ?, slug_en = ?, title_en = ?, content_en = ?, show_title_toc = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?, content_updated_at = ?, page_template = ?, page_meta_json = ?
                          WHERE id = ?",
                         [
                             (string)$savePayload['slug'],
@@ -470,6 +484,8 @@ class PagesModule
                             (string)$savePayload['meta_title'],
                             (string)$savePayload['meta_description'],
                             $savePayload['content_updated_at'],
+                            $savePayload['page_template'],
+                            $savePayload['page_meta_json'],
                             $newId,
                         ]
                     );
@@ -695,6 +711,9 @@ class PagesModule
     private function findUnexpectedNonScalarInput(array $input): string
     {
         foreach ($input as $key => $value) {
+            if ($key === 'page_meta' && is_array($value)) {
+                continue;
+            }
             if (!is_array($value) && !is_object($value)) {
                 continue;
             }
@@ -862,6 +881,8 @@ class PagesModule
         $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Titel (EN)', $currentPage['title_en'] ?? '', $revision['title_en'] ?? '');
         $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Slug (EN)', $currentPage['slug_en'] ?? '', $revision['slug_en'] ?? '');
         $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Status', $currentPage['status'] ?? '', $revision['status'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Seitenvorlage', $currentPage['page_template'] ?? '', $revision['page_template'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Vorlagen-Zusatzfelder', $currentPage['page_meta_json'] ?? '', $revision['page_meta_json'] ?? '');
             $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Aktualisierungsdatum', $currentPage['content_updated_at'] ?? '', $revision['content_updated_at'] ?? '');
         $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (DE)', $currentPage['content'] ?? '', $revision['content'] ?? '');
         $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (EN)', $currentPage['content_en'] ?? '', $revision['content_en'] ?? '');

@@ -78,10 +78,13 @@ $newsSitemapEnabled = !empty($settings['seo_sitemap_news_enabled']);
                                     } elseif ($fileName === 'news.xml') {
                                         $isFileEnabled = $newsSitemapEnabled;
                                     }
+                                    $hasNoEntriesState = in_array($fileName, ['plugins.xml', 'en-posts.xml'], true);
                                     $statusTooltip = '';
                                     if (empty($file['exists'])) {
-                                        if ($fileName === 'plugins.xml' && !$hasGenerationError) {
-                                            $statusTooltip = 'Wird erzeugt, sobald aktive Plugins öffentliche Seiten melden';
+                                        if ($hasNoEntriesState && !$hasGenerationError) {
+                                            $statusTooltip = $fileName === 'plugins.xml'
+                                                ? 'Wird erzeugt, sobald aktive Plugins öffentliche Seiten melden'
+                                                : 'Wird erzeugt, sobald veröffentlichte Beiträge einen englischen Titel und Inhalt haben';
                                         } elseif (!$isFileEnabled) {
                                             $statusTooltip = 'Deaktiviert — in Einstellungen aktivieren';
                                         } elseif ($hasGenerationError) {
@@ -103,7 +106,7 @@ $newsSitemapEnabled = !empty($settings['seo_sitemap_news_enabled']);
                                         <td>
                                             <?php if (!empty($file['exists'])): ?>
                                                 <span class="badge bg-success">vorhanden</span>
-                                            <?php elseif ($fileName === 'plugins.xml' && !$hasGenerationError): ?>
+                                            <?php elseif ($hasNoEntriesState && !$hasGenerationError): ?>
                                                 <span class="badge bg-secondary" title="<?= htmlspecialchars($statusTooltip) ?>">keine Einträge</span>
                                             <?php else: ?>
                                                 <span class="badge bg-danger" title="<?= htmlspecialchars($statusTooltip) ?>">fehlt</span>
@@ -394,6 +397,14 @@ $newsSitemapEnabled = !empty($settings['seo_sitemap_news_enabled']);
                             <div class="mb-3">
                                 <div class="fw-bold"><code>posts.xml</code></div>
                                 <div class="text-secondary small">Beiträge mit `lastMod`, Priority und Changefreq.</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="fw-bold"><code>en-pages.xml</code></div>
+                                <div class="text-secondary small">Englische Homepage und veröffentlichte Seiten mit englischem Titel und Inhalt.</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="fw-bold"><code>en-posts.xml</code></div>
+                                <div class="text-secondary small">Veröffentlichte Beiträge mit englischem Titel und Inhalt sowie ihrer englischen Permalink-URL.</div>
                             </div>
                             <div class="mb-3">
                                 <div class="fw-bold"><code>plugins.xml</code></div>

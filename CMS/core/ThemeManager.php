@@ -395,6 +395,11 @@ class ThemeManager
         // Allow plugins to modify template
         $template = Hooks::applyFilters('template_name', $template);
         $this->loadTheme();
+        if ($template === 'page' && isset($data['page']) && (is_array($data['page']) || is_object($data['page']))) {
+            $resolvedPage = (new Services\PageTemplateService($this->themePath))->prepareForRender((array) $data['page']);
+            $template = $resolvedPage['template'];
+            $data['page'] = $resolvedPage['page'];
+        }
         
         // Template hierarchy
         $templates = [

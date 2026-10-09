@@ -14,7 +14,7 @@ interface SitemapBuilderInterface extends SitemapInterface, \Stringable
 	 * News namespace
 	 * @var string
 	 */
-	public const NEWS_NS = 'https://www.google.com/schemas/sitemap-news/0.9';
+	public const NEWS_NS = 'http://www.google.com/schemas/sitemap-news/0.9';
 
 	/**
 	 * Images namespace

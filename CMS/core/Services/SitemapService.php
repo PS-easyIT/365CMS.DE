@@ -31,6 +31,12 @@ final class SitemapService
     private array $posts = [];
 
     /** @var array<int, array<string, mixed>> */
+    private array $englishPages = [];
+
+    /** @var array<int, array<string, mixed>> */
+    private array $englishPosts = [];
+
+    /** @var array<int, array<string, mixed>> */
     private array $images = [];
 
     /** @var array<int, array<string, mixed>> */
@@ -71,6 +77,32 @@ final class SitemapService
     public function generatePosts(array $posts): void
     {
         $this->posts = $this->normalizeItems(
+            $posts,
+            fn(array $item): array => $this->normalizePostItem($item)
+        );
+    }
+
+    /**
+     * Registriert englische Seiten für `en-pages.xml`.
+     *
+     * @param array<int, string|array<string, mixed>> $urls
+     */
+    public function generateEnglishPages(array $urls): void
+    {
+        $this->englishPages = $this->normalizeItems(
+            $urls,
+            fn(string|array $item): array => $this->normalizePageItem($item)
+        );
+    }
+
+    /**
+     * Registriert englische Beiträge für `en-posts.xml`.
+     *
+     * @param array<int, array<string, mixed>> $posts
+     */
+    public function generateEnglishPosts(array $posts): void
+    {
+        $this->englishPosts = $this->normalizeItems(
             $posts,
             fn(array $item): array => $this->normalizePostItem($item)
         );
@@ -129,13 +161,15 @@ final class SitemapService
 
         $pages = $this->pages;
         $posts = $this->posts;
+        $englishPages = $this->englishPages;
+        $englishPosts = $this->englishPosts;
         $images = $this->images;
         $news = $this->news;
         $plugins = $this->plugins;
         $publicationName = $this->newsPublicationName;
         $language = $this->newsLanguage;
 
-        if ($pages === [] && $posts === [] && $images === [] && $news === [] && $plugins === []) {
+        if ($pages === [] && $posts === [] && $englishPages === [] && $englishPosts === [] && $images === [] && $news === [] && $plugins === []) {
             $pages = [$this->normalizePageItem('/')];
         }
 
@@ -158,6 +192,24 @@ final class SitemapService
         if ($posts !== []) {
             $sitemap->links('posts.xml', function ($map) use ($posts): void {
                 foreach ($posts as $post) {
+                    $map->loc($post['url']);
+                    $this->applyCommonMapOptions($map, $post);
+                }
+            });
+        }
+
+        if ($englishPages !== []) {
+            $sitemap->links('en-pages.xml', function ($map) use ($englishPages): void {
+                foreach ($englishPages as $page) {
+                    $map->loc($page['url']);
+                    $this->applyCommonMapOptions($map, $page);
+                }
+            });
+        }
+
+        if ($englishPosts !== []) {
+            $sitemap->links('en-posts.xml', function ($map) use ($englishPosts): void {
+                foreach ($englishPosts as $post) {
                     $map->loc($post['url']);
                     $this->applyCommonMapOptions($map, $post);
                 }
@@ -213,7 +265,7 @@ final class SitemapService
             throw new \RuntimeException('Sitemap-Index konnte nicht geschrieben werden.');
         }
 
-        foreach ($this->expectedFiles($pages, $posts, $images, $news, $plugins) as $file) {
+        foreach ($this->expectedFiles($pages, $posts, $englishPages, $englishPosts, $images, $news, $plugins) as $file) {
             if (!is_file($this->saveDir . DIRECTORY_SEPARATOR . $file)) {
                 throw new \RuntimeException('Erwartete Sitemap-Datei fehlt: ' . $file);
             }
@@ -334,7 +386,7 @@ final class SitemapService
 
     private function deleteExistingTargets(): void
     {
-        foreach (['sitemap.xml', 'pages.xml', 'posts.xml', 'plugins.xml', 'images.xml', 'news.xml'] as $file) {
+        foreach (['sitemap.xml', 'pages.xml', 'posts.xml', 'en-pages.xml', 'en-posts.xml', 'plugins.xml', 'images.xml', 'news.xml'] as $file) {
             $path = $this->saveDir . DIRECTORY_SEPARATOR . $file;
             if (is_file($path) && !unlink($path)) {
                 throw new \RuntimeException('Vorhandene Sitemap-Datei konnte nicht ersetzt werden: ' . $path);
@@ -345,12 +397,14 @@ final class SitemapService
     /**
      * @param array<int, array<string, mixed>> $pages
      * @param array<int, array<string, mixed>> $posts
+     * @param array<int, array<string, mixed>> $englishPages
+     * @param array<int, array<string, mixed>> $englishPosts
      * @param array<int, array<string, mixed>> $images
      * @param array<int, array<string, mixed>> $news
      * @param array<int, array<string, mixed>> $plugins
      * @return array<int, string>
      */
-    private function expectedFiles(array $pages, array $posts, array $images, array $news, array $plugins = []): array
+    private function expectedFiles(array $pages, array $posts, array $englishPages, array $englishPosts, array $images, array $news, array $plugins = []): array
     {
         $files = ['sitemap.xml'];
 
@@ -359,6 +413,12 @@ final class SitemapService
         }
         if ($posts !== []) {
             $files[] = 'posts.xml';
+        }
+        if ($englishPages !== []) {
+            $files[] = 'en-pages.xml';
+        }
+        if ($englishPosts !== []) {
+            $files[] = 'en-posts.xml';
         }
         if ($plugins !== []) {
             $files[] = 'plugins.xml';

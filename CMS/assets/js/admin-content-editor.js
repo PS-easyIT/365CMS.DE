@@ -361,8 +361,11 @@
             }
 
             templateMetaPanels.forEach(function (panel) {
-                var isActive = String(panel.getAttribute('data-post-template-meta-panel') || '') === activeTemplate;
+                var isActive = String(panel.getAttribute(config.templateMetaPanelAttribute || 'data-post-template-meta-panel') || '') === activeTemplate;
                 panel.hidden = !isActive;
+                panel.querySelectorAll('input, textarea, select').forEach(function (input) {
+                    input.disabled = !isActive;
+                });
                 if (isActive) {
                     hasVisibleTemplateMetaPanel = true;
                 }

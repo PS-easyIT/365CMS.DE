@@ -164,11 +164,18 @@
         return textarea;
     }
 
-    function createFieldColumn(columnClass, labelText, control, hintText) {
+    function createFieldColumn(columnClass, labelText, control, hintText, actionButton) {
         var column = createElement('div', columnClass);
 
         if (labelText) {
-            column.appendChild(createFieldLabel(labelText));
+            if (actionButton) {
+                var labelRow = createElement('div', 'd-flex align-items-center justify-content-between gap-2');
+                labelRow.appendChild(createFieldLabel(labelText));
+                labelRow.appendChild(actionButton);
+                column.appendChild(labelRow);
+            } else {
+                column.appendChild(createFieldLabel(labelText));
+            }
         }
 
         column.appendChild(control);
@@ -178,6 +185,40 @@
         }
 
         return column;
+    }
+
+    function hasExcludedHubTranslationContent(value) {
+        var source = String(value || '');
+
+        return /<table\b/i.test(source) || /\[[^\]]*\]/.test(source);
+    }
+
+    function hasTranslatableHubContent(value) {
+        var source = String(value || '').trim();
+
+        if (source === '' || hasExcludedHubTranslationContent(source)) {
+            return false;
+        }
+        source = source.replace(/<[^>]*>/g, ' ').replace(/&nbsp;|&#160;/gi, ' ');
+        return source.trim() !== '';
+    }
+
+    function createAiTranslationButton(sourceKey, targetKey, index, enabled, sourceValue) {
+        if (!enabled || !hasTranslatableHubContent(sourceValue)) {
+            return null;
+        }
+
+        var button = createElement('button', 'btn btn-outline-secondary btn-sm mb-1', 'Mit KI übersetzen');
+        button.type = 'button';
+        button.title = 'Deutschen Text übersetzen und den englischen Feldinhalt ersetzen.';
+        setDataAttributes(button, {
+            hubAiTranslateCard: '1',
+            index: index,
+            sourceKey: sourceKey,
+            targetKey: targetKey
+        });
+
+        return button;
     }
 
     function createImagePreview(url) {
@@ -365,16 +406,58 @@
             }),
             'Zusätzlicher Abstand vor dieser Feature-Kachel.'
         ));
-        row.appendChild(createFieldColumn('col-md-6', options.schema.title_label + suffix, createInput(card[options.titleKey] || '', { index: index, key: options.titleKey })));
+        row.appendChild(createFieldColumn(
+            'col-md-6',
+            options.schema.title_label + suffix,
+            createInput(card[options.titleKey] || '', { index: index, key: options.titleKey }),
+            null,
+            options.activeLanguage === 'en' ? createAiTranslationButton('title', 'title_en', index, options.aiTranslationEnabled, card.title) : null
+        ));
         row.appendChild(createFieldColumn('col-md-8', 'URL', createInput(card.url || '', { index: index, key: 'url' })));
-        row.appendChild(createFieldColumn('col-md-6', options.schema.badge_label + suffix, createInput(card[options.badgeKey] || '', { index: index, key: options.badgeKey })));
-        row.appendChild(createFieldColumn('col-md-6', 'Legacy Meta' + suffix, createInput(card[options.metaKey] || '', { index: index, key: options.metaKey })));
-        row.appendChild(createFieldColumn('col-md-6', options.schema.meta_left_label + suffix, createInput(card[options.metaLeftKey] || '', { index: index, key: options.metaLeftKey })));
-        row.appendChild(createFieldColumn('col-md-6', options.schema.meta_right_label + suffix, createInput(card[options.metaRightKey] || '', { index: index, key: options.metaRightKey })));
-        row.appendChild(createFieldColumn('col-md-6', options.schema.button_text_label + suffix, createInput(card[options.buttonTextKey] || '', { index: index, key: options.buttonTextKey })));
+        row.appendChild(createFieldColumn(
+            'col-md-6',
+            options.schema.badge_label + suffix,
+            createInput(card[options.badgeKey] || '', { index: index, key: options.badgeKey }),
+            null,
+            options.activeLanguage === 'en' ? createAiTranslationButton('badge', 'badge_en', index, options.aiTranslationEnabled, card.badge) : null
+        ));
+        row.appendChild(createFieldColumn(
+            'col-md-6',
+            'Legacy Meta' + suffix,
+            createInput(card[options.metaKey] || '', { index: index, key: options.metaKey }),
+            null,
+            options.activeLanguage === 'en' ? createAiTranslationButton('meta', 'meta_en', index, options.aiTranslationEnabled, card.meta) : null
+        ));
+        row.appendChild(createFieldColumn(
+            'col-md-6',
+            options.schema.meta_left_label + suffix,
+            createInput(card[options.metaLeftKey] || '', { index: index, key: options.metaLeftKey }),
+            null,
+            options.activeLanguage === 'en' ? createAiTranslationButton('meta_left', 'meta_left_en', index, options.aiTranslationEnabled, card.meta_left) : null
+        ));
+        row.appendChild(createFieldColumn(
+            'col-md-6',
+            options.schema.meta_right_label + suffix,
+            createInput(card[options.metaRightKey] || '', { index: index, key: options.metaRightKey }),
+            null,
+            options.activeLanguage === 'en' ? createAiTranslationButton('meta_right', 'meta_right_en', index, options.aiTranslationEnabled, card.meta_right) : null
+        ));
+        row.appendChild(createFieldColumn(
+            'col-md-6',
+            options.schema.button_text_label + suffix,
+            createInput(card[options.buttonTextKey] || '', { index: index, key: options.buttonTextKey }),
+            null,
+            options.activeLanguage === 'en' ? createAiTranslationButton('button_text', 'button_text_en', index, options.aiTranslationEnabled, card.button_text) : null
+        ));
         row.appendChild(createFieldColumn('col-md-6', options.schema.button_link_label, createInput(card.button_link || '', { index: index, key: 'button_link' })));
         row.appendChild(createCardImageColumn(index, card, options));
-        row.appendChild(createFieldColumn('col-md-4', options.schema.image_alt_label + suffix, createInput(card[options.imageAltKey] || '', { index: index, key: options.imageAltKey })));
+        row.appendChild(createFieldColumn(
+            'col-md-4',
+            options.schema.image_alt_label + suffix,
+            createInput(card[options.imageAltKey] || '', { index: index, key: options.imageAltKey }),
+            null,
+            options.activeLanguage === 'en' ? createAiTranslationButton('image_alt', 'image_alt_en', index, options.aiTranslationEnabled, card.image_alt) : null
+        ));
         row.appendChild(createFieldColumn(
             'col-12',
             options.schema.summary_label + suffix,
@@ -385,7 +468,9 @@
                 rows: 6,
                 editor: 'hub-richtext',
                 source: 'cards'
-            })
+            }),
+            null,
+            options.activeLanguage === 'en' ? createAiTranslationButton('summary', 'summary_en', index, options.aiTranslationEnabled, card.summary) : null
         ));
         row.appendChild(createRemoveButtonColumn(index));
 
@@ -412,6 +497,7 @@
         var copySlugPreviewButton;
         var cardSchemaHint;
         var languageToggleButtons;
+        var aiTranslationButtonsEnabled;
         var initialTemplateValue;
         var activeLanguage = 'de';
         var summaryEditors = new Map();
@@ -434,6 +520,7 @@
         copySlugPreviewButton = document.getElementById('copySlugPreviewButton');
         cardSchemaHint = document.getElementById('cardSchemaHint');
         languageToggleButtons = document.querySelectorAll('[data-hub-lang-toggle]');
+        aiTranslationButtonsEnabled = siteConfig.aiTranslationEnabled === true;
         initialTemplateValue = templateSelect ? templateSelect.value : 'general-it';
         cards = Array.isArray(cards) ? cards : [];
         featureCards = Array.isArray(featureCards) ? featureCards : [];
@@ -755,6 +842,10 @@
                 var editor = {
                     getContents: function () {
                         return instance.$.html.get();
+                    },
+                    setContents: function (contents) {
+                        instance.setContents(contents);
+                        textarea.value = contents;
                     },
                     destroy: function () {
                         instance.destroy();
@@ -1089,6 +1180,200 @@
             }
         }
 
+        function getHubEditorValue(field) {
+            var editor = field && field.id ? summaryEditors.get(field.id) : null;
+
+            return editor && typeof editor.getContents === 'function'
+                ? editor.getContents()
+                : String(field && field.value || '');
+        }
+
+        function setHubEditorValue(field, value) {
+            var editor = field && field.id ? summaryEditors.get(field.id) : null;
+
+            if (editor && typeof editor.setContents === 'function') {
+                editor.setContents(value);
+            } else if (field) {
+                field.value = value;
+            }
+        }
+
+        function updateStaticAiTranslationButtons() {
+            form.querySelectorAll('[data-hub-ai-translate-field]').forEach(function (button) {
+                var sourceName = button.dataset.sourceName || '';
+                var sourceField = sourceName ? form.querySelector('[name="' + sourceName + '"]') : null;
+                var sourceText = sourceField ? getHubEditorValue(sourceField) : '';
+
+                if (!hasTranslatableHubContent(sourceText)
+                    && !hasExcludedHubTranslationContent(sourceText)
+                    && button.dataset.sourceFallbackName) {
+                    var fallbackField = form.querySelector('[name="' + button.dataset.sourceFallbackName + '"]');
+                    sourceText = fallbackField ? getHubEditorValue(fallbackField) : '';
+                }
+
+                button.hidden = !hasTranslatableHubContent(sourceText);
+            });
+        }
+
+        function requestHubFieldTranslation(sourceText) {
+            var body = new FormData();
+
+            if (!aiTranslationButtonsEnabled || !siteConfig.aiTranslationUrl || !siteConfig.aiTranslationToken) {
+                return Promise.reject(new Error('Die KI-Übersetzung ist derzeit nicht verfügbar.'));
+            }
+            if (!String(sourceText || '').trim()) {
+                return Promise.reject(new Error('Das deutsche Quellfeld ist leer.'));
+            }
+
+            body.append('csrf_token', siteConfig.aiTranslationToken);
+            body.append('content_type', 'editorjs');
+            body.append('source_locale', 'de');
+            body.append('target_locale', 'en');
+            body.append('editor_data', JSON.stringify({
+                blocks: [{ type: 'paragraph', data: { text: String(sourceText) } }]
+            }));
+
+            return fetch(siteConfig.aiTranslationUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: body
+            }).then(function (response) {
+                return response.json().catch(function () {
+                    throw new Error('Der Übersetzungsdienst hat eine ungültige Antwort geliefert.');
+                }).then(function (result) {
+                    if (!response.ok || !result || result.success !== true) {
+                        throw new Error(result && result.error ? result.error : 'Die Übersetzung konnte nicht erstellt werden.');
+                    }
+
+                    var blocks = result.translation
+                        && result.translation.content_data
+                        && Array.isArray(result.translation.content_data.blocks)
+                        ? result.translation.content_data.blocks
+                        : [];
+                    var translatedText = blocks[0] && blocks[0].data
+                        ? blocks[0].data.text
+                        : null;
+
+                    if (typeof translatedText !== 'string' || !translatedText.trim()) {
+                        throw new Error('Der Übersetzungsdienst hat keinen übersetzten Feldinhalt geliefert.');
+                    }
+
+                    return translatedText;
+                });
+            });
+        }
+
+        function translateHubField(button) {
+            var cardIndex = button.dataset.index;
+            var sourceText;
+            var sourceField;
+            var targetField;
+            var sourceName;
+            var targetName;
+
+            if (button.hasAttribute('data-hub-ai-translate-card')) {
+                var index = parseInt(cardIndex || '-1', 10);
+                var sourceKey = button.dataset.sourceKey || '';
+
+                if (index < 0 || !cards[index] || !sourceKey) {
+                    return Promise.reject(new Error('Das Quellfeld der Hub-Kachel wurde nicht gefunden.'));
+                }
+
+                sourceText = String(cards[index][sourceKey] || '');
+                targetName = button.dataset.targetKey || '';
+                if (!targetName) {
+                    return Promise.reject(new Error('Das Zielfeld der Hub-Kachel wurde nicht angegeben.'));
+                }
+
+                var cardTarget = targetName === 'summary_en'
+                    ? document.getElementById('hub-card-summary-en-' + index)
+                    : null;
+                var cardItem = button.closest('.hub-card-item');
+                var cardTargetField = cardTarget;
+
+                if (!cardTargetField && cardItem) {
+                    cardTargetField = Array.prototype.slice.call(cardItem.querySelectorAll('[data-key]')).find(function (field) {
+                        return field.dataset.key === targetName;
+                    }) || null;
+                }
+
+                cards[index][targetName] = sourceText;
+                if (cardTargetField) {
+                    setHubEditorValue(cardTargetField, sourceText);
+                    cardTargetField.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                sync();
+
+                return requestHubFieldTranslation(sourceText).then(function (translatedText) {
+                    if (cardTargetField) {
+                        setHubEditorValue(cardTargetField, translatedText);
+                        cardTargetField.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    cards[index][targetName] = translatedText;
+                    sync();
+                    render();
+                    return translatedText;
+                });
+            }
+
+            sourceName = button.dataset.sourceName || '';
+            targetName = button.dataset.targetName || '';
+            sourceField = sourceName ? form.querySelector('[name="' + sourceName + '"]') : null;
+            targetField = targetName ? form.querySelector('[name="' + targetName + '"]') : null;
+
+            if (!sourceField || !targetField) {
+                return Promise.reject(new Error('Quell- oder Zielfeld für die Übersetzung wurde nicht gefunden.'));
+            }
+
+            sourceText = getHubEditorValue(sourceField);
+            if (!hasTranslatableHubContent(sourceText)
+                && !hasExcludedHubTranslationContent(sourceText)
+                && button.dataset.sourceFallbackName) {
+                var fallbackField = form.querySelector('[name="' + button.dataset.sourceFallbackName + '"]');
+                sourceText = fallbackField ? getHubEditorValue(fallbackField) : '';
+            }
+
+            if (!hasTranslatableHubContent(sourceText)) {
+                return Promise.reject(new Error('Das deutsche Quellfeld ist leer.'));
+            }
+
+            setHubEditorValue(targetField, sourceText);
+            targetField.dispatchEvent(new Event('input', { bubbles: true }));
+
+            return requestHubFieldTranslation(sourceText).then(function (translatedText) {
+                setHubEditorValue(targetField, translatedText);
+                targetField.dispatchEvent(new Event('input', { bubbles: true }));
+                return translatedText;
+            });
+        }
+
+        form.addEventListener('click', function (event) {
+            var button = event.target && typeof event.target.closest === 'function'
+                ? event.target.closest('[data-hub-ai-translate-field], [data-hub-ai-translate-card]')
+                : null;
+
+            if (!button || !form.contains(button)) {
+                return;
+            }
+
+            event.preventDefault();
+            if (button.disabled) {
+                return;
+            }
+
+            var originalLabel = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Übersetze …';
+
+            translateHubField(button).then(function () {
+                showAlert('success', 'Feld wurde auf Englisch übersetzt. Bitte Änderungen noch speichern.');
+            }).catch(function (error) {
+                showAlert('danger', error && error.message ? error.message : 'Die Übersetzung ist fehlgeschlagen.');
+            }).finally(function () {
+                button.disabled = false;
+                button.textContent = originalLabel;
+            });
+        });
 
         function copyHubUrl(url) {
             if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
@@ -1135,6 +1420,8 @@
                 var isMatch = pane.getAttribute('data-lang-pane') === activeLanguage;
                 pane.classList.toggle('d-none', !isMatch);
             });
+
+            updateStaticAiTranslationButtons();
 
             languageToggleButtons.forEach(function (button) {
                 var isActive = button.getAttribute('data-hub-lang-toggle') === activeLanguage;
@@ -1205,6 +1492,7 @@
                 imageAltKey: imageAltKey,
                 summaryKey: summaryKey,
                 buttonTextKey: buttonTextKey,
+                aiTranslationEnabled: aiTranslationButtonsEnabled,
                 onSetImageUrl: setCardImageUrl,
                 onUploadImage: uploadHubCardImage,
                 onOpenImageLibrary: openHubImageLibrary

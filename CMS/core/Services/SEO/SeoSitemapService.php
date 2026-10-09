@@ -187,6 +187,8 @@ final class SeoSitemapService
     {
         $service->generatePages($this->getPageSitemapEntries());
         $service->generatePosts($this->getPostSitemapEntries());
+        $service->generateEnglishPages($this->getEnglishPageSitemapEntries());
+        $service->generateEnglishPosts($this->getEnglishPostSitemapEntries());
         $service->generatePlugins($this->getPluginSitemapEntries());
 
         if ($this->metaService->getSetting('sitemap_image_enabled', '1') === '1') {
@@ -220,6 +222,8 @@ final class SeoSitemapService
             "SELECT id, slug, title, updated_at
              FROM {$this->prefix}pages
              WHERE status = 'published'
+               AND (CHAR_LENGTH(TRIM(COALESCE(title, ''))) > 0
+                    OR CHAR_LENGTH(TRIM(COALESCE(content, ''))) > 0)
              ORDER BY title ASC"
         ) ?: [];
 
@@ -251,6 +255,9 @@ final class SeoSitemapService
             "SELECT id, slug, updated_at, published_at, created_at
              FROM {$this->prefix}posts
                WHERE " . \cms_post_publication_where() . "
+                 AND (CHAR_LENGTH(TRIM(COALESCE(title, ''))) > 0
+                      OR CHAR_LENGTH(TRIM(COALESCE(content, ''))) > 0
+                      OR CHAR_LENGTH(TRIM(COALESCE(excerpt, ''))) > 0)
              ORDER BY COALESCE(published_at, created_at) DESC"
         ) ?: [];
 
@@ -268,6 +275,82 @@ final class SeoSitemapService
                     (string) ($row->published_at ?? ''),
                     (string) ($row->created_at ?? '')
                 ),
+                'lastmod' => (string) ($row->updated_at ?? date(DATE_W3C)),
+                'priority' => $seoMeta['sitemap_priority'] !== '' ? $seoMeta['sitemap_priority'] : $settings['posts_priority'],
+                'changefreq' => $seoMeta['sitemap_changefreq'] !== '' ? $seoMeta['sitemap_changefreq'] : $settings['posts_changefreq'],
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getEnglishPageSitemapEntries(): array
+    {
+        $localization = \CMS\Services\ContentLocalizationService::getInstance();
+        $settings = $this->metaService->getSitemapSettings();
+        $entries = [[
+            'url' => rtrim((string) SITE_URL, '/') . '/en/',
+            'lastmod' => date(DATE_W3C),
+            'priority' => $settings['pages_priority'],
+            'changefreq' => $settings['pages_changefreq'],
+        ]];
+
+        $rows = $this->db->get_results(
+            "SELECT id, slug, slug_en, title_en, content_en, updated_at
+             FROM {$this->prefix}pages
+             WHERE status = 'published'
+               AND CHAR_LENGTH(TRIM(COALESCE(title_en, ''))) > 0
+               AND CHAR_LENGTH(TRIM(COALESCE(content_en, ''))) > 0
+             ORDER BY title_en ASC"
+        ) ?: [];
+
+        foreach ($rows as $row) {
+            $page = (array) $row;
+            $slug = $localization->resolveLocalizedSlug($page, 'en');
+            if ($slug === '') {
+                continue;
+            }
+
+            $seoMeta = $this->metaService->getContentMeta('page', (int) ($row->id ?? 0));
+            $entries[] = [
+                'url' => $localization->buildLocalizedPath('/' . ltrim($slug, '/'), 'en'),
+                'lastmod' => (string) ($row->updated_at ?? date(DATE_W3C)),
+                'priority' => $seoMeta['sitemap_priority'] !== '' ? $seoMeta['sitemap_priority'] : $settings['pages_priority'],
+                'changefreq' => $seoMeta['sitemap_changefreq'] !== '' ? $seoMeta['sitemap_changefreq'] : $settings['pages_changefreq'],
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getEnglishPostSitemapEntries(): array
+    {
+        $settings = $this->metaService->getSitemapSettings();
+        $rows = $this->db->get_results(
+            "SELECT id, slug, slug_en, title_en, content_en, excerpt_en, updated_at, published_at, created_at
+             FROM {$this->prefix}posts
+             WHERE " . \cms_post_publication_where() . "
+               AND CHAR_LENGTH(TRIM(COALESCE(title_en, ''))) > 0
+               AND CHAR_LENGTH(TRIM(COALESCE(content_en, ''))) > 0
+             ORDER BY COALESCE(published_at, created_at) DESC"
+        ) ?: [];
+
+        $entries = [];
+        foreach ($rows as $row) {
+            $postData = \CMS\Services\ContentLocalizationService::getInstance()->localizePost((array) $row, 'en');
+            if (trim((string) ($postData['slug'] ?? '')) === '') {
+                continue;
+            }
+
+            $seoMeta = $this->metaService->getContentMeta('post', (int) ($row->id ?? 0));
+            $entries[] = [
+                'url' => PermalinkService::getInstance()->buildPostPath($postData, 'en'),
                 'lastmod' => (string) ($row->updated_at ?? date(DATE_W3C)),
                 'priority' => $seoMeta['sitemap_priority'] !== '' ? $seoMeta['sitemap_priority'] : $settings['posts_priority'],
                 'changefreq' => $seoMeta['sitemap_changefreq'] !== '' ? $seoMeta['sitemap_changefreq'] : $settings['posts_changefreq'],
@@ -501,6 +584,7 @@ final class SeoSitemapService
     {
         return match ($fileName) {
             'sitemap.xml' => '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>',
+            'en-pages.xml', 'en-posts.xml' => '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
             'images.xml' => '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"></urlset>',
             'news.xml' => '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"></urlset>',
             default => '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',

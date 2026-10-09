@@ -1113,7 +1113,7 @@ final class SeoSuiteModule
 	private function getSitemapFilesStatus(): array
 	{
 		$result = [];
-		foreach (['sitemap.xml', 'pages.xml', 'posts.xml', 'plugins.xml', 'images.xml', 'news.xml', 'robots.txt'] as $file) {
+		foreach (['sitemap.xml', 'pages.xml', 'posts.xml', 'en-pages.xml', 'en-posts.xml', 'plugins.xml', 'images.xml', 'news.xml', 'robots.txt'] as $file) {
 			$path = ABSPATH . $file;
 			$exists = file_exists($path);
 			$result[$file] = [

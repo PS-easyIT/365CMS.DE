@@ -58,6 +58,10 @@ Die Seitenverwaltung pflegt statische Inhalte wie „Über uns“, Leistungsseit
 | Meta-Titel / Meta-Beschreibung | Direkt in der Seite gespeichert; Platzhalter wie `%title%` oder `%%sitename%%` werden seit 3.4.08 bei der Ausgabe aufgelöst. |
 | Erweiterte SEO-Felder | Fokus-Keyphrase, Keywords, Canonical, Robots (index/follow), Open Graph, Twitter Card, Schema-Typ (Standard `WebPage`), Sitemap-Priorität/-Frequenz, Hreflang-Gruppe – nur sichtbar, wenn das Modul `seo` aktiv ist (`admin-seo-editor.js`). |
 | „Inhalt aktualisiert am“ | Optionales Datum/Uhrzeit (`content_updated_at`) für die sichtbare Aktualisierungsangabe. |
+| Seitenvorlage | Im lokalen, unveröffentlichten Stand vom 07.10.2026: Auswahl aus `page_templates` des aktiven Theme-Manifests. Fehlt ein Register, bleibt das Standardlayout. |
+| Vorlagen-Zusatzfelder | Typisierte, erlaubte Felder des gewählten Templates; gemeinsam für DE/EN. `array-of-objects` als JSON-Array mit höchstens 20 Feature-Cards, jeweils nur mit den im Manifest definierten Schlüsseln. |
+
+**Seitenvorlagen (lokale Erweiterung vom 07.10.2026):** `PageTemplateService` liest das aktive Manifest, prüft Vorlagen-ID und vorhandene PHP-Datei im Theme-Hauptverzeichnis und validiert Zusatzfelder. Eingabe-Arrays in einfachen Textfeldern, ungültiges JSON, nicht erlaubte URLs und unbekannte Vorlagen führen zu einem sichtbaren Fehler vor Datenbankänderungen. Inaktive Panels sind verborgen und ihre Controls deaktiviert, damit gleichnamige Felder keine aktiven Werte überschreiben. Die bisherigen Beitrags-Panels nutzen dieselbe Korrektur. Nicht gespeicherte Seitenfelder bleiben bei Sprachwechsel und Fehleranzeige erhalten; ältere Requests ohne `page_template` behalten die vorhandene Auswahl und Metadaten.
 
 **Sprachumschaltung:** Der Button „DE/EN“ sendet `switch_locale:de|en`. Die Seite wird *ohne Speichern* mit den aktuellen Formularwerten in der anderen Sprache neu gerendert, damit keine Eingaben verloren gehen.
 
@@ -79,11 +83,11 @@ Die Seitenverwaltung pflegt statische Inhalte wie „Über uns“, Leistungsseit
 | `delete` | Löscht die Seite | `/admin/pages` |
 | `bulk` | Sammelaktion (siehe oben) | `/admin/pages` |
 
-Alle Formulare tragen das CSRF-Token der Aktion `admin_pages`. Bei Validierungsfehlern bleibt der Editor mit den eingegebenen Werten geöffnet und zeigt die Fehlerdetails an (`render_inline`). Nicht-skalare Eingaben werden verworfen.
+Alle Formulare tragen das CSRF-Token der Aktion `admin_pages`. Bei Validierungsfehlern bleibt der Editor mit den eingegebenen Werten geöffnet und zeigt die Fehlerdetails an (`render_inline`). Nicht-skalare Eingaben werden mit Ausnahme des explizit validierten `page_meta`-Arrays zurückgewiesen.
 
 ### Datenmodell
 
-- Tabelle `cms_pages` (Präfix aus `config/app.php`): `id`, `title`, `title_en`, `slug`, `slug_en`, `content`, `content_en`, `status`, `hide_title`, `show_title_toc`, `category_id`, `featured_image`, `meta_title`, `meta_description`, `content_updated_at`, `author_id`, Zeitstempel.
+- Tabelle `cms_pages` (Präfix aus `config/app.php`): `id`, `title`, `title_en`, `slug`, `slug_en`, `content`, `content_en`, `status`, `hide_title`, `show_title_toc`, `category_id`, `featured_image`, `meta_title`, `meta_description`, `content_updated_at`, `author_id`, Zeitstempel; lokale Erweiterung: `page_template` (VARCHAR 80), `page_meta_json` (TEXT).
 - Revisionen: `cms_page_revisions`.
 - SEO-Zusatzfelder: über `SEOService`/`SeoAnalysisService` (Meta-Speicher des SEO-Moduls).
 - Details: [../../core/DATABASE-SCHEMA.md](../../core/DATABASE-SCHEMA.md).
@@ -91,6 +95,8 @@ Alle Formulare tragen das CSRF-Token der Aktion `admin_pages`. Bei Validierungsf
 ### Frontend
 
 Veröffentlichte Seiten werden über `PublicRouter` unter `/<slug>` bzw. `/en/<slug_en>` ausgeliefert. `PageManager::search()` liefert für leere Suchbegriffe seit 3.4.06 keine Treffer mehr. Shortcodes wie `[site-table id="…"]` und `[hub-site id="…"]` im Inhalt werden von `SiteTableService` ersetzt.
+
+Bei `ThemeManager::render('page', …)` löst der neue `PageTemplateService` die gespeicherte ID auf und stellt validierte Zusatzfelder unter `page['meta']` bereit. Unbekannte/fehlende Vorlagen, etwa nach einem Theme-Wechsel, fallen mit Protokollierung auf das Standardlayout zurück. Explizite Plugin-Template-Overrides bleiben bestehen. Schema und Revisions-Snapshots enthalten die neuen Felder; Bestandsinstallationen erhalten idempotente Kompatibilitätsmigrationen. Migration und Rendering wurden bislang nur isoliert mit Datenbank-Doubles geprüft, nicht gegen eine laufende Installation.
 
 ### Fehlerbilder
 

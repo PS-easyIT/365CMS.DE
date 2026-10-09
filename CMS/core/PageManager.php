@@ -57,6 +57,8 @@ class PageManager
                 'content_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN content_en LONGTEXT DEFAULT NULL AFTER content",
                 'category_id' => "ALTER TABLE {$this->prefix}pages ADD COLUMN category_id INT UNSIGNED DEFAULT NULL AFTER author_id",
                 'content_updated_at' => "ALTER TABLE {$this->prefix}pages ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER published_at",
+                'page_template' => "ALTER TABLE {$this->prefix}pages ADD COLUMN page_template VARCHAR(80) DEFAULT NULL",
+                'page_meta_json' => "ALTER TABLE {$this->prefix}pages ADD COLUMN page_meta_json TEXT DEFAULT NULL",
             ];
 
             foreach ($columns as $column => $sql) {
@@ -102,6 +104,8 @@ class PageManager
                 'slug_en' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN slug_en VARCHAR(200) DEFAULT NULL AFTER slug",
                 'content_en' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN content_en LONGTEXT AFTER content",
                 'status' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN status VARCHAR(20) DEFAULT NULL AFTER excerpt",
+                'page_template' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN page_template VARCHAR(80) DEFAULT NULL",
+                'page_meta_json' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN page_meta_json TEXT DEFAULT NULL",
                  'content_updated_at' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER author_id",
             ];
 
@@ -151,7 +155,7 @@ class PageManager
         $values = [];
         
         foreach ($data as $key => $value) {
-            if (in_array($key, ['title', 'title_en', 'content', 'content_en', 'status', 'slug', 'slug_en', 'hide_title', 'show_title_toc', 'featured_image', 'meta_title', 'meta_description', 'category_id', 'content_updated_at'], true)) {
+            if (in_array($key, ['title', 'title_en', 'content', 'content_en', 'status', 'slug', 'slug_en', 'hide_title', 'show_title_toc', 'featured_image', 'meta_title', 'meta_description', 'category_id', 'content_updated_at', 'page_template', 'page_meta_json'], true)) {
                 $fields[] = "$key = ?";
                 $values[] = $value;
             }
@@ -178,7 +182,7 @@ class PageManager
      */
     private function hasTrackedRevisionChanges(array $currentPage, array $newData): bool
     {
-        foreach (['title', 'title_en', 'slug', 'slug_en', 'content', 'content_en', 'excerpt', 'status', 'content_updated_at'] as $field) {
+        foreach (['title', 'title_en', 'slug', 'slug_en', 'content', 'content_en', 'excerpt', 'status', 'content_updated_at', 'page_template', 'page_meta_json'] as $field) {
             if (!array_key_exists($field, $newData)) {
                 continue;
             }
@@ -303,7 +307,7 @@ class PageManager
             return false;
         }
 
-        $sql = "INSERT INTO {$this->prefix}page_revisions (page_id, title, title_en, slug, slug_en, content, content_en, excerpt, status, author_id, content_updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO {$this->prefix}page_revisions (page_id, title, title_en, slug, slug_en, content, content_en, excerpt, status, author_id, content_updated_at, page_template, page_meta_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
 
         return $stmt->execute([
@@ -318,6 +322,8 @@ class PageManager
             (string)($page['status'] ?? 'draft'),
             (int)($page['author_id'] ?? 0),
                 trim((string)($page['content_updated_at'] ?? '')) ?: null,
+            $page['page_template'] ?? null,
+            $page['page_meta_json'] ?? null,
         ]);
     }
 
@@ -344,6 +350,8 @@ class PageManager
                        pr.status,
                        pr.author_id,
                        pr.content_updated_at,
+                       pr.page_template,
+                       pr.page_meta_json,
                        pr.created_at,
                        u.username,
                        u.display_name

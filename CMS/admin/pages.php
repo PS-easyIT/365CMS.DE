@@ -118,6 +118,12 @@ function cms_admin_pages_scalar_string(mixed $value, string $fallback = ''): str
 function cms_admin_pages_sanitize_inline_post(array $post): array
 {
     foreach ($post as $key => $value) {
+        if ($key === 'page_meta' && is_array($value)) {
+            $post[$key] = array_map(static fn(mixed $field): string => is_scalar($field) || $field === null
+                ? (string) $field
+                : json_encode($field, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $value);
+            continue;
+        }
         if (!is_scalar($value) && $value !== null) {
             $post[$key] = '';
         }
@@ -260,6 +266,10 @@ function cms_admin_pages_build_inline_edit_data(PagesModule $module, array $post
         'meta_title' => (string) ($post['meta_title'] ?? ($existingPage['meta_title'] ?? '')),
         'meta_description' => (string) ($post['meta_description'] ?? ($existingPage['meta_description'] ?? '')),
         'content_updated_at' => $contentUpdatedAt,
+        'page_template' => (string) ($post['page_template'] ?? $existingPage['page_template'] ?? 'default'),
+        'page_meta_json' => is_array($post['page_meta'] ?? null)
+            ? json_encode($post['page_meta'], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            : ($existingPage['page_meta_json'] ?? null),
     ]);
 
     if ($editorLocale === 'en') {

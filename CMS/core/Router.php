@@ -468,6 +468,10 @@ class Router
                     ]);
                 }
             }
+
+            if ($this->redirectLegacyEnglishPostSlug($routingUri)) {
+                return;
+            }
         } catch (\Throwable $e) {
             Logger::instance()->withChannel('router')->warning('Dynamic page lookup failed.', [
                 'slug' => $slug ?? $uri,
@@ -477,6 +481,45 @@ class Router
         }
 
         $this->render404();
+    }
+
+    private function redirectLegacyEnglishPostSlug(string $routingUri): bool
+    {
+        if ($this->getRequestLocale() !== 'en' || !in_array($this->requestMethod, ['GET', 'HEAD'], true)) {
+            return false;
+        }
+
+        $slug = trim($routingUri, '/');
+        if ($slug === '' || str_contains($slug, '/')) {
+            return false;
+        }
+
+        $slug = rawurldecode($slug);
+        $db = Database::instance();
+        $post = $db->get_row(
+            "SELECT p.slug, p.slug_en, p.published_at, p.created_at
+             FROM {$db->getPrefix()}posts p
+             WHERE p.slug = ?
+               AND p.slug_en IS NOT NULL
+               AND TRIM(p.slug_en) <> ''
+               AND p.slug_en <> p.slug
+               AND " . \cms_post_publication_where('p') . "
+             LIMIT 1",
+            [$slug]
+        );
+
+        if (!$post) {
+            return false;
+        }
+
+        $target = Services\PermalinkService::getInstance()->buildPostPath($post, 'en');
+        $query = trim((string) ($_SERVER['QUERY_STRING'] ?? ''));
+        if ($query !== '') {
+            $target .= '?' . $query;
+        }
+
+        $this->redirect($target, 301);
+        return true;
     }
 
     private function maybeRedirectHubAliasDomain(string $routingUri): bool

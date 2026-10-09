@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\Services\CoreModuleService;
 
 const CMS_ADMIN_HUB_SITES_READ_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_HUB_SITES_WRITE_CAPABILITY = 'manage_settings';
@@ -208,6 +209,8 @@ function cms_admin_hub_sites_view_config(HubSitesModule $module, string $viewAct
         'edit' => (function () use ($module): array {
             $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
             $data = $module->getEditData($id, cms_admin_hub_sites_pull_form_state());
+            $aiTranslationEnabled = !class_exists(CoreModuleService::class)
+                || CoreModuleService::getInstance()->isModuleEnabled('ai_services');
 
             return [
                 'data' => $data,
@@ -215,6 +218,13 @@ function cms_admin_hub_sites_view_config(HubSitesModule $module, string $viewAct
                 'activePage' => 'hub-sites',
                 'template_vars' => [
                     'editorMediaToken' => Security::instance()->generateToken('editorjs_media'),
+                    'aiTranslationEnabled' => $aiTranslationEnabled,
+                    'aiTranslationToken' => $aiTranslationEnabled
+                        ? Security::instance()->generateToken('admin_ai_editorjs_translation')
+                        : '',
+                    'aiTranslationUrl' => $aiTranslationEnabled
+                        ? '/admin/ai-translate-editorjs'
+                        : '',
                 ],
                 'pageAssets' => [
                     'css' => [

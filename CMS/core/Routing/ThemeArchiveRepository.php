@@ -238,7 +238,7 @@ final class ThemeArchiveRepository
     /**
      * @return array<int,array{name:string,slug:string}>
      */
-    public function getPostTagRows(int $postId): array
+    public function getPostTagRows(int $postId, string $locale = 'de'): array
     {
         if ($postId <= 0) {
             return [];
@@ -247,7 +247,7 @@ final class ThemeArchiveRepository
         $db = Database::instance();
         $prefix = $db->getPrefix();
         $rows = $db->get_results(
-            "SELECT t.name, t.slug
+            "SELECT t.name, t.slug, t.slug_en
              FROM {$prefix}post_tags t
              INNER JOIN {$prefix}post_tag_rel ptr ON ptr.tag_id = t.id
              WHERE ptr.post_id = ?
@@ -255,9 +255,11 @@ final class ThemeArchiveRepository
             [$postId]
         ) ?: [];
 
-        return array_values(array_filter(array_map(static function (object $row): array {
+        return array_values(array_filter(array_map(static function (object $row) use ($locale): array {
             $name = trim((string) ($row->name ?? ''));
-            $slug = trim((string) ($row->slug ?? ''));
+            $slugDe = trim((string) ($row->slug ?? ''));
+            $slugEn = trim((string) ($row->slug_en ?? ''));
+            $slug = $locale === 'en' && $slugEn !== '' ? $slugEn : $slugDe;
 
             return $name !== '' && $slug !== ''
                 ? ['name' => $name, 'slug' => $slug]

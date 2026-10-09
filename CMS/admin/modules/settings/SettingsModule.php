@@ -82,6 +82,20 @@ class SettingsModule
         'routing.tag_base_de', 'routing.tag_base_en',
     ];
 
+    private const CONTENT_SETTINGS_KEYS = [
+        'setting_editor_type',
+        'setting_page_default_status',
+        'setting_post_default_status',
+        'setting_page_editor_width',
+        'setting_post_editor_width',
+        'setting_post_permalink_structure',
+        'setting_post_permalink_custom',
+        'routing.category_base_de',
+        'routing.category_base_en',
+        'routing.tag_base_de',
+        'routing.tag_base_en',
+    ];
+
     private const ARCHIVE_BASE_DEFAULTS = [
         'category' => [
             'de' => 'kategorie',
@@ -218,6 +232,8 @@ class SettingsModule
                 return ['success' => false, 'error' => 'Die zentrale Konfigurationsdatei konnte nicht gelesen werden.'];
             }
 
+            $isContentSettingsSave = ($post['tab'] ?? '') === 'content'
+                || array_key_exists('post_permalink_preset', $post);
             $permalinkPreset = (string)($post['post_permalink_preset'] ?? 'blog');
             $permalinkCustom = trim((string)($post['post_permalink_custom'] ?? ''));
             $permalinkStructure = match ($permalinkPreset) {
@@ -295,8 +311,24 @@ class SettingsModule
 
             $siteFavicon = $this->normalizeMediaReference((string)($post['site_favicon'] ?? ''));
 
-            $newSiteUrl = rtrim(filter_var($post['site_url'] ?? '', FILTER_SANITIZE_URL), '/');
-            if ($newSiteUrl === '' || filter_var($newSiteUrl, FILTER_VALIDATE_URL) === false) {
+            $settings = $this->loadSettings();
+            $storedSiteUrl = '';
+            foreach ([
+                (string)($settings['site_url'] ?? ''),
+                (string)($existingConfig['site_url'] ?? ''),
+                defined('SITE_URL') ? (string)SITE_URL : '',
+            ] as $siteUrlCandidate) {
+                $siteUrlCandidate = rtrim(filter_var($siteUrlCandidate, FILTER_SANITIZE_URL), '/');
+                if ($siteUrlCandidate !== '' && filter_var($siteUrlCandidate, FILTER_VALIDATE_URL) !== false) {
+                    $storedSiteUrl = $siteUrlCandidate;
+                    break;
+                }
+            }
+            $submittedSiteUrl = array_key_exists('site_url', $post)
+                ? rtrim(filter_var((string)$post['site_url'], FILTER_SANITIZE_URL), '/')
+                : $storedSiteUrl;
+            $newSiteUrl = $isContentSettingsSave ? $storedSiteUrl : $submittedSiteUrl;
+            if (!$isContentSettingsSave && ($newSiteUrl === '' || filter_var($newSiteUrl, FILTER_VALIDATE_URL) === false)) {
                 return ['success' => false, 'error' => 'Bitte eine gültige Website-URL angeben.'];
             }
 
@@ -312,10 +344,10 @@ class SettingsModule
                 'site_logo'            => $siteLogo,
                 'site_favicon'         => $siteFavicon,
                 'admin_email'          => filter_var($post['admin_email'] ?? '', FILTER_VALIDATE_EMAIL) ?: '',
-                'language'             => array_key_exists($post['language'] ?? 'de', self::LANGUAGES) ? $post['language'] : 'de',
+                'language'             => array_key_exists($post['language'] ?? 'de', self::LANGUAGES) ? ($post['language'] ?? 'de') : 'de',
                 'timezone'             => in_array($post['timezone'] ?? '', self::TIMEZONES, true) ? $post['timezone'] : 'Europe/Berlin',
-                'date_format'          => in_array($post['date_format'] ?? 'd.m.Y', ['d.m.Y', 'Y-m-d', 'm/d/Y', 'd/m/Y'], true) ? $post['date_format'] : 'd.m.Y',
-                'time_format'          => in_array($post['time_format'] ?? 'H:i', ['H:i', 'H:i:s', 'g:i A'], true) ? $post['time_format'] : 'H:i',
+                'date_format'          => in_array($post['date_format'] ?? 'd.m.Y', ['d.m.Y', 'Y-m-d', 'm/d/Y', 'd/m/Y'], true) ? ($post['date_format'] ?? 'd.m.Y') : 'd.m.Y',
+                'time_format'          => in_array($post['time_format'] ?? 'H:i', ['H:i', 'H:i:s', 'g:i A'], true) ? ($post['time_format'] ?? 'H:i') : 'H:i',
                 'posts_per_page'       => (string)max(1, min(100, (int)($post['posts_per_page'] ?? 10))),
                 'comments_enabled'     => !empty($post['comments_enabled']) ? '1' : '0',
                 'maintenance_mode'     => !empty($post['maintenance_mode']) ? '1' : '0',
@@ -350,24 +382,30 @@ class SettingsModule
             }
 
             $migrationSourceUrl = $manualMigrationSource !== '' ? $manualMigrationSource : $oldSiteUrl;
-            $shouldMigrateUrls = !empty($post['migrate_site_url_references'])
+            $shouldMigrateUrls = !$isContentSettingsSave
+                && !empty($post['migrate_site_url_references'])
                 && $migrationSourceUrl !== ''
                 && $migrationSourceUrl !== $newSiteUrl;
 
-            $configResult = $this->updateConfigFile($existingConfig, [
-                'site_name' => $values['site_name'],
-                'site_url' => $newSiteUrl,
-                'admin_email' => $values['admin_email'],
-                'debug_mode' => $existingConfig['debug_mode'] ?? (defined('CMS_DEBUG') && CMS_DEBUG ? 'true' : 'false'),
-            ]);
+            $configResult = $isContentSettingsSave
+                ? true
+                : $this->updateConfigFile($existingConfig, [
+                    'site_name' => $values['site_name'],
+                    'site_url' => $newSiteUrl,
+                    'admin_email' => $values['admin_email'],
+                    'debug_mode' => $existingConfig['debug_mode'] ?? (defined('CMS_DEBUG') && CMS_DEBUG ? 'true' : 'false'),
+                ]);
 
             if ($configResult !== true) {
                 return ['success' => false, 'error' => is_string($configResult) ? $configResult : 'Konfigurationsdatei konnte nicht aktualisiert werden.'];
             }
 
-            $existingSettingNames = $this->loadExistingSettingNames(array_keys($values));
+            $settingsToSave = $isContentSettingsSave
+                ? array_intersect_key($values, array_fill_keys(self::CONTENT_SETTINGS_KEYS, true))
+                : $values;
+            $existingSettingNames = $this->loadExistingSettingNames(array_keys($settingsToSave));
 
-            foreach ($values as $key => $value) {
+            foreach ($settingsToSave as $key => $value) {
                 if (isset($existingSettingNames[$key])) {
                     $this->db->execute(
                         "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
@@ -388,7 +426,9 @@ class SettingsModule
                 $migrationSummary = $this->migrateSiteUrls($migrationSourceUrl, $newSiteUrl);
             }
 
-            $message = 'Einstellungen gespeichert. Runtime-URL aktualisiert auf ' . $newSiteUrl . '.';
+            $message = $isContentSettingsSave
+                ? 'Einstellungen für Beiträge & Sites gespeichert.'
+                : 'Einstellungen gespeichert. Runtime-URL aktualisiert auf ' . $newSiteUrl . '.';
             if (is_array($migrationSummary)) {
                 $migrationSourceLabel = $migrationSourceUrl !== '' ? $migrationSourceUrl : $oldSiteUrl;
                 $message .= sprintf(

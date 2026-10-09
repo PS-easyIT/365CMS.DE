@@ -117,13 +117,20 @@ final class ThemeRouter
         $indexPaths = [];
 
         foreach (\cms_get_archive_locales() as $locale) {
-            $basePath = '/' . ltrim((string) \cms_get_archive_base($type, $locale), '/');
-            if ($basePath === '/') {
-                continue;
-            }
+            $baseSegments = [
+                (string) \cms_get_archive_base($type, $locale),
+                (string) \cms_get_default_archive_base($type, $locale),
+            ];
 
-            $indexPaths[] = $basePath;
-            $detailPaths[] = $basePath . '/:slug';
+            foreach (array_unique($baseSegments) as $baseSegment) {
+                $basePath = '/' . trim($baseSegment, '/');
+                if ($basePath === '/') {
+                    continue;
+                }
+
+                $indexPaths[] = $basePath;
+                $detailPaths[] = $basePath . '/:slug';
+            }
         }
 
         if ($indexCallback !== null) {
@@ -634,7 +641,6 @@ final class ThemeRouter
         $query = trim((string) ($_GET['q'] ?? ''));
         $page = max(1, (int) ($_GET['page'] ?? $_GET['p'] ?? 1));
         $perPage = 10;
-        $offset = ($page - 1) * $perPage;
 
         $categoryIds = $this->archiveRepository->getCategoryArchiveIds((int) ($category->id ?? 0));
         if ($categoryIds === []) {
@@ -667,6 +673,12 @@ final class ThemeRouter
              WHERE {$whereSql}",
             $params
         );
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        if (($query === '' && $total === 0) || $page > $totalPages) {
+            $this->router->render404();
+            return;
+        }
+        $offset = ($page - 1) * $perPage;
 
         $posts = $db->get_results(
             "SELECT p.*, c.name AS category_name, " . $this->categorySlugSelectExpression($locale) . ",
@@ -686,7 +698,7 @@ final class ThemeRouter
             'query' => $query,
             'total' => $total,
             'currentPage' => $page,
-            'totalPages' => max(1, (int) ceil($total / $perPage)),
+            'totalPages' => $totalPages,
             'perPage' => $perPage,
         ]);
     }
@@ -703,6 +715,10 @@ final class ThemeRouter
             $page,
             $perPage
         );
+        if ($overview === null) {
+            $this->router->render404();
+            return;
+        }
 
         ThemeManager::instance()->render('category', [
             'category' => [
@@ -766,7 +782,10 @@ final class ThemeRouter
             );
 
             $totalPages = max(1, (int) ceil($total / $perPage));
-            $page = min($page, $totalPages);
+            if (($query === '' && $total === 0) || $page > $totalPages) {
+                $this->router->render404();
+                return;
+            }
             $offset = ($page - 1) * $perPage;
 
             $posts = $db->get_results(
@@ -845,7 +864,10 @@ final class ThemeRouter
 
         $total = count($matchingPosts);
         $totalPages = max(1, (int) ceil($total / $perPage));
-        $page = min($page, $totalPages);
+        if ($page > $totalPages) {
+            $this->router->render404();
+            return;
+        }
         $offset = ($page - 1) * $perPage;
         $posts = array_slice($matchingPosts, $offset, $perPage);
 
@@ -875,6 +897,10 @@ final class ThemeRouter
             $page,
             $perPage
         );
+        if ($overview === null) {
+            $this->router->render404();
+            return;
+        }
 
         ThemeManager::instance()->render('tag', [
             'tag' => [
@@ -1317,9 +1343,9 @@ final class ThemeRouter
 
     /**
      * @param array<int,array<string,mixed>> $items
-     * @return array{items:array<int,array<string,mixed>>,total:int,currentPage:int,totalPages:int}
+     * @return array{items:array<int,array<string,mixed>>,total:int,currentPage:int,totalPages:int}|null
      */
-    private function buildArchiveOverviewPage(array $items, string $query, int $page, int $perPage): array
+    private function buildArchiveOverviewPage(array $items, string $query, int $page, int $perPage): ?array
     {
         if ($query !== '') {
             $needle = mb_strtolower($query, 'UTF-8');
@@ -1335,7 +1361,9 @@ final class ThemeRouter
 
         $total = count($items);
         $totalPages = max(1, (int) ceil($total / max(1, $perPage)));
-        $page = min(max(1, $page), $totalPages);
+        if ($page > $totalPages) {
+            return null;
+        }
         $offset = ($page - 1) * $perPage;
 
         return [
@@ -1542,7 +1570,7 @@ final class ThemeRouter
             return $postData;
         }
 
-        $tagRows = $this->archiveRepository->getPostTagRows($postId);
+        $tagRows = $this->archiveRepository->getPostTagRows($postId, $this->getResolvedContentLocale());
         if ($tagRows !== []) {
             $postData['tags'] = implode(', ', array_map(
                 static fn(array $tag): string => (string) ($tag['name'] ?? ''),

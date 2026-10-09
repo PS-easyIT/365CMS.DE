@@ -148,6 +148,8 @@ class SchemaManager
                 featured_image VARCHAR(500) DEFAULT NULL,
                 meta_title VARCHAR(255) DEFAULT NULL,
                 meta_description TEXT DEFAULT NULL,
+                page_template VARCHAR(80) DEFAULT NULL,
+                page_meta_json TEXT DEFAULT NULL,
                 author_id INT UNSIGNED,
                 category_id INT UNSIGNED DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -174,6 +176,8 @@ class SchemaManager
                 status VARCHAR(20) DEFAULT NULL,
                 author_id INT UNSIGNED,
                     content_updated_at DATETIME DEFAULT NULL,
+                page_template VARCHAR(80) DEFAULT NULL,
+                page_meta_json TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_page_id (page_id),
                 INDEX idx_author (author_id),
@@ -952,6 +956,18 @@ class SchemaManager
             'content_updated_at',
             "ALTER TABLE {$this->prefix}pages ADD COLUMN content_updated_at DATETIME DEFAULT NULL AFTER published_at"
         );
+        foreach (['pages', 'page_revisions'] as $table) {
+            $this->ensureColumnExists(
+                $this->prefix . $table,
+                'page_template',
+                "ALTER TABLE {$this->prefix}{$table} ADD COLUMN page_template VARCHAR(80) DEFAULT NULL"
+            );
+            $this->ensureColumnExists(
+                $this->prefix . $table,
+                'page_meta_json',
+                "ALTER TABLE {$this->prefix}{$table} ADD COLUMN page_meta_json TEXT DEFAULT NULL"
+            );
+        }
     }
 
     private function ensureRuntimeSchema(): void

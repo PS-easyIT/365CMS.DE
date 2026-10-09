@@ -14,6 +14,7 @@ $templateOptions = $data['templateOptions'] ?? [];
 $templateProfiles = $data['templateProfiles'] ?? [];
 $settings = $site['settings'] ?? $defaults;
 $cards = $site['cards'] ?? [];
+$aiTranslationEnabled = (bool) ($aiTranslationEnabled ?? false);
 $hubDomains = is_array($settings['hub_domains'] ?? null) ? $settings['hub_domains'] : [];
 $hubDomainsInput = (string) ($data['hubDomainsInput'] ?? implode("\n", array_map('strval', $hubDomains)));
 $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''));
@@ -89,6 +90,9 @@ $hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstan
                 'legacyFeatureCardInterval' => (int) ($settings['hub_feature_card_interval'] ?? 0),
                 'mediaUploadUrl' => '/api/media',
                 'mediaToken' => (string) ($editorMediaToken ?? ''),
+                'aiTranslationEnabled' => $aiTranslationEnabled,
+                'aiTranslationToken' => (string) ($aiTranslationToken ?? ''),
+                'aiTranslationUrl' => (string) ($aiTranslationUrl ?? ''),
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
 
             <div class="row g-4">
@@ -218,39 +222,84 @@ $hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstan
                                             <div class="alert alert-info mb-0">Die englische Hub-Site wird unter <code>/en/<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? 'hub-site')); ?></code> ausgeliefert. URL und Kartenstruktur bleiben identisch.</div>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Topic badge</label>
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <label class="form-label mb-1">Topic badge</label>
+                                                <?php if ($aiTranslationEnabled): ?>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm mb-1" data-hub-ai-translate-field data-source-name="hub_badge" data-target-name="hub_badge_en">Mit KI übersetzen</button>
+                                                <?php endif; ?>
+                                            </div>
                                             <input type="text" class="form-control" name="hub_badge_en" value="<?php echo htmlspecialchars((string)($settings['hub_badge_en'] ?? '')); ?>" placeholder="e.g. Microsoft 365">
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label">Hero title (EN)</label>
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <label class="form-label mb-1">Hero title (EN)</label>
+                                                <?php if ($aiTranslationEnabled): ?>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm mb-1" data-hub-ai-translate-field data-source-name="hub_hero_title" data-source-fallback-name="site_name" data-target-name="hub_hero_title_en">Mit KI übersetzen</button>
+                                                <?php endif; ?>
+                                            </div>
                                             <input type="text" class="form-control" name="hub_hero_title_en" value="<?php echo htmlspecialchars((string)($settings['hub_hero_title_en'] ?? '')); ?>" placeholder="Optional English headline">
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label">Hero text (EN)</label>
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <label class="form-label mb-1">Hero text (EN)</label>
+                                                <?php if ($aiTranslationEnabled): ?>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm mb-1" data-hub-ai-translate-field data-source-name="hub_hero_text" data-target-name="hub_hero_text_en">Mit KI übersetzen</button>
+                                                <?php endif; ?>
+                                            </div>
                                             <textarea class="form-control" id="hubHeroTextEditorEn" name="hub_hero_text_en" rows="5" placeholder="Short English intro for this hub." data-editor="hub-richtext" data-source="form"><?php echo htmlspecialchars((string)($settings['hub_hero_text_en'] ?? '')); ?></textarea>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">CTA label (EN)</label>
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <label class="form-label mb-1">CTA label (EN)</label>
+                                                <?php if ($aiTranslationEnabled): ?>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm mb-1" data-hub-ai-translate-field data-source-name="hub_cta_label" data-target-name="hub_cta_label_en">Mit KI übersetzen</button>
+                                                <?php endif; ?>
+                                            </div>
                                             <input type="text" class="form-control" name="hub_cta_label_en" value="<?php echo htmlspecialchars((string)($settings['hub_cta_label_en'] ?? '')); ?>" placeholder="e.g. Explore all topics">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Meta: Audience</label>
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <label class="form-label mb-1">Meta: Audience</label>
+                                                <?php if ($aiTranslationEnabled): ?>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm mb-1" data-hub-ai-translate-field data-source-name="hub_meta_audience" data-target-name="hub_meta_audience_en">Mit KI übersetzen</button>
+                                                <?php endif; ?>
+                                            </div>
                                             <input type="text" class="form-control" name="hub_meta_audience_en" value="<?php echo htmlspecialchars((string)($settings['hub_meta_audience_en'] ?? '')); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Meta: Owner</label>
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <label class="form-label mb-1">Meta: Owner</label>
+                                                <?php if ($aiTranslationEnabled): ?>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm mb-1" data-hub-ai-translate-field data-source-name="hub_meta_owner" data-target-name="hub_meta_owner_en">Mit KI übersetzen</button>
+                                                <?php endif; ?>
+                                            </div>
                                             <input type="text" class="form-control" name="hub_meta_owner_en" value="<?php echo htmlspecialchars((string)($settings['hub_meta_owner_en'] ?? '')); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Meta: Update cycle</label>
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <label class="form-label mb-1">Meta: Update cycle</label>
+                                                <?php if ($aiTranslationEnabled): ?>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm mb-1" data-hub-ai-translate-field data-source-name="hub_meta_update_cycle" data-target-name="hub_meta_update_cycle_en">Mit KI übersetzen</button>
+                                                <?php endif; ?>
+                                            </div>
                                             <input type="text" class="form-control" name="hub_meta_update_cycle_en" value="<?php echo htmlspecialchars((string)($settings['hub_meta_update_cycle_en'] ?? '')); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Meta: Focus</label>
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <label class="form-label mb-1">Meta: Focus</label>
+                                                <?php if ($aiTranslationEnabled): ?>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm mb-1" data-hub-ai-translate-field data-source-name="hub_meta_focus" data-target-name="hub_meta_focus_en">Mit KI übersetzen</button>
+                                                <?php endif; ?>
+                                            </div>
                                             <input type="text" class="form-control" name="hub_meta_focus_en" value="<?php echo htmlspecialchars((string)($settings['hub_meta_focus_en'] ?? '')); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Meta: KPI</label>
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <label class="form-label mb-1">Meta: KPI</label>
+                                                <?php if ($aiTranslationEnabled): ?>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm mb-1" data-hub-ai-translate-field data-source-name="hub_meta_kpi" data-target-name="hub_meta_kpi_en">Mit KI übersetzen</button>
+                                                <?php endif; ?>
+                                            </div>
                                             <input type="text" class="form-control" name="hub_meta_kpi_en" value="<?php echo htmlspecialchars((string)($settings['hub_meta_kpi_en'] ?? '')); ?>">
                                         </div>
                                     </div>
