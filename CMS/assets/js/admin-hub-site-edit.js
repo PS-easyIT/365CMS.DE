@@ -203,6 +203,28 @@
         return source.trim() !== '';
     }
 
+    function hasHubFieldContent(value) {
+        return String(value || '').trim() !== '';
+    }
+
+    function createHubCopyButton(sourceKey, targetKey, index, sourceValue) {
+        if (!hasHubFieldContent(sourceValue)) {
+            return null;
+        }
+
+        var button = createElement('button', 'btn btn-outline-primary btn-sm mb-1', 'Aus DE kopieren');
+        button.type = 'button';
+        button.title = 'Deutschen Feldinhalt in das englische Feld kopieren.';
+        setDataAttributes(button, {
+            hubCopyCard: '1',
+            index: index,
+            sourceKey: sourceKey,
+            targetKey: targetKey
+        });
+
+        return button;
+    }
+
     function createAiTranslationButton(sourceKey, targetKey, index, enabled, sourceValue) {
         if (!enabled || !hasTranslatableHubContent(sourceValue)) {
             return null;
@@ -210,7 +232,7 @@
 
         var button = createElement('button', 'btn btn-outline-secondary btn-sm mb-1', 'Mit KI übersetzen');
         button.type = 'button';
-        button.title = 'Deutschen Text übersetzen und den englischen Feldinhalt ersetzen.';
+        button.title = 'Den Inhalt des englischen Feldes mit KI übersetzen.';
         setDataAttributes(button, {
             hubAiTranslateCard: '1',
             index: index,
@@ -219,6 +241,21 @@
         });
 
         return button;
+    }
+
+    function createHubCardTranslationActions(sourceKey, targetKey, index, enabled, sourceValue) {
+        var group = createElement('div', 'd-flex align-items-center gap-1 flex-wrap');
+        var copyButton = createHubCopyButton(sourceKey, targetKey, index, sourceValue);
+        var translateButton = createAiTranslationButton(sourceKey, targetKey, index, enabled, sourceValue);
+
+        if (copyButton) {
+            group.appendChild(copyButton);
+        }
+        if (translateButton) {
+            group.appendChild(translateButton);
+        }
+
+        return group.childNodes.length ? group : null;
     }
 
     function createImagePreview(url) {
@@ -411,7 +448,7 @@
             options.schema.title_label + suffix,
             createInput(card[options.titleKey] || '', { index: index, key: options.titleKey }),
             null,
-            options.activeLanguage === 'en' ? createAiTranslationButton('title', 'title_en', index, options.aiTranslationEnabled, card.title) : null
+            options.activeLanguage === 'en' ? createHubCardTranslationActions('title', 'title_en', index, options.aiTranslationEnabled, card.title) : null
         ));
         row.appendChild(createFieldColumn('col-md-8', 'URL', createInput(card.url || '', { index: index, key: 'url' })));
         row.appendChild(createFieldColumn(
@@ -419,35 +456,35 @@
             options.schema.badge_label + suffix,
             createInput(card[options.badgeKey] || '', { index: index, key: options.badgeKey }),
             null,
-            options.activeLanguage === 'en' ? createAiTranslationButton('badge', 'badge_en', index, options.aiTranslationEnabled, card.badge) : null
+            options.activeLanguage === 'en' ? createHubCardTranslationActions('badge', 'badge_en', index, options.aiTranslationEnabled, card.badge) : null
         ));
         row.appendChild(createFieldColumn(
             'col-md-6',
             'Legacy Meta' + suffix,
             createInput(card[options.metaKey] || '', { index: index, key: options.metaKey }),
             null,
-            options.activeLanguage === 'en' ? createAiTranslationButton('meta', 'meta_en', index, options.aiTranslationEnabled, card.meta) : null
+            options.activeLanguage === 'en' ? createHubCardTranslationActions('meta', 'meta_en', index, options.aiTranslationEnabled, card.meta) : null
         ));
         row.appendChild(createFieldColumn(
             'col-md-6',
             options.schema.meta_left_label + suffix,
             createInput(card[options.metaLeftKey] || '', { index: index, key: options.metaLeftKey }),
             null,
-            options.activeLanguage === 'en' ? createAiTranslationButton('meta_left', 'meta_left_en', index, options.aiTranslationEnabled, card.meta_left) : null
+            options.activeLanguage === 'en' ? createHubCardTranslationActions('meta_left', 'meta_left_en', index, options.aiTranslationEnabled, card.meta_left) : null
         ));
         row.appendChild(createFieldColumn(
             'col-md-6',
             options.schema.meta_right_label + suffix,
             createInput(card[options.metaRightKey] || '', { index: index, key: options.metaRightKey }),
             null,
-            options.activeLanguage === 'en' ? createAiTranslationButton('meta_right', 'meta_right_en', index, options.aiTranslationEnabled, card.meta_right) : null
+            options.activeLanguage === 'en' ? createHubCardTranslationActions('meta_right', 'meta_right_en', index, options.aiTranslationEnabled, card.meta_right) : null
         ));
         row.appendChild(createFieldColumn(
             'col-md-6',
             options.schema.button_text_label + suffix,
             createInput(card[options.buttonTextKey] || '', { index: index, key: options.buttonTextKey }),
             null,
-            options.activeLanguage === 'en' ? createAiTranslationButton('button_text', 'button_text_en', index, options.aiTranslationEnabled, card.button_text) : null
+            options.activeLanguage === 'en' ? createHubCardTranslationActions('button_text', 'button_text_en', index, options.aiTranslationEnabled, card.button_text) : null
         ));
         row.appendChild(createFieldColumn('col-md-6', options.schema.button_link_label, createInput(card.button_link || '', { index: index, key: 'button_link' })));
         row.appendChild(createCardImageColumn(index, card, options));
@@ -456,7 +493,7 @@
             options.schema.image_alt_label + suffix,
             createInput(card[options.imageAltKey] || '', { index: index, key: options.imageAltKey }),
             null,
-            options.activeLanguage === 'en' ? createAiTranslationButton('image_alt', 'image_alt_en', index, options.aiTranslationEnabled, card.image_alt) : null
+            options.activeLanguage === 'en' ? createHubCardTranslationActions('image_alt', 'image_alt_en', index, options.aiTranslationEnabled, card.image_alt) : null
         ));
         row.appendChild(createFieldColumn(
             'col-12',
@@ -470,7 +507,7 @@
                 source: 'cards'
             }),
             null,
-            options.activeLanguage === 'en' ? createAiTranslationButton('summary', 'summary_en', index, options.aiTranslationEnabled, card.summary) : null
+            options.activeLanguage === 'en' ? createHubCardTranslationActions('summary', 'summary_en', index, options.aiTranslationEnabled, card.summary) : null
         ));
         row.appendChild(createRemoveButtonColumn(index));
 
@@ -1199,19 +1236,19 @@
         }
 
         function updateStaticAiTranslationButtons() {
-            form.querySelectorAll('[data-hub-ai-translate-field]').forEach(function (button) {
+            form.querySelectorAll('[data-hub-ai-translate-field], [data-hub-copy-field]').forEach(function (button) {
                 var sourceName = button.dataset.sourceName || '';
                 var sourceField = sourceName ? form.querySelector('[name="' + sourceName + '"]') : null;
                 var sourceText = sourceField ? getHubEditorValue(sourceField) : '';
 
-                if (!hasTranslatableHubContent(sourceText)
-                    && !hasExcludedHubTranslationContent(sourceText)
-                    && button.dataset.sourceFallbackName) {
+                if (!hasHubFieldContent(sourceText) && button.dataset.sourceFallbackName) {
                     var fallbackField = form.querySelector('[name="' + button.dataset.sourceFallbackName + '"]');
                     sourceText = fallbackField ? getHubEditorValue(fallbackField) : '';
                 }
 
-                button.hidden = !hasTranslatableHubContent(sourceText);
+                button.hidden = button.hasAttribute('data-hub-copy-field')
+                    ? !hasHubFieldContent(sourceText)
+                    : !hasTranslatableHubContent(sourceText);
             });
         }
 
@@ -1222,7 +1259,7 @@
                 return Promise.reject(new Error('Die KI-Übersetzung ist derzeit nicht verfügbar.'));
             }
             if (!String(sourceText || '').trim()) {
-                return Promise.reject(new Error('Das deutsche Quellfeld ist leer.'));
+                return Promise.reject(new Error('Das englische Zielfeld ist leer.'));
             }
 
             body.append('csrf_token', siteConfig.aiTranslationToken);
@@ -1273,13 +1310,11 @@
 
             if (button.hasAttribute('data-hub-ai-translate-card')) {
                 var index = parseInt(cardIndex || '-1', 10);
-                var sourceKey = button.dataset.sourceKey || '';
 
-                if (index < 0 || !cards[index] || !sourceKey) {
+                if (index < 0 || !cards[index]) {
                     return Promise.reject(new Error('Das Quellfeld der Hub-Kachel wurde nicht gefunden.'));
                 }
 
-                sourceText = String(cards[index][sourceKey] || '');
                 targetName = button.dataset.targetKey || '';
                 if (!targetName) {
                     return Promise.reject(new Error('Das Zielfeld der Hub-Kachel wurde nicht angegeben.'));
@@ -1297,18 +1332,17 @@
                     }) || null;
                 }
 
-                cards[index][targetName] = sourceText;
-                if (cardTargetField) {
-                    setHubEditorValue(cardTargetField, sourceText);
-                    cardTargetField.dispatchEvent(new Event('input', { bubbles: true }));
+                if (!cardTargetField) {
+                    return Promise.reject(new Error('Das englische Zielfeld der Hub-Kachel wurde nicht gefunden.'));
                 }
-                sync();
+                sourceText = getHubEditorValue(cardTargetField);
+                if (!hasTranslatableHubContent(sourceText)) {
+                    return Promise.reject(new Error('Das englische Zielfeld ist leer.'));
+                }
 
                 return requestHubFieldTranslation(sourceText).then(function (translatedText) {
-                    if (cardTargetField) {
-                        setHubEditorValue(cardTargetField, translatedText);
-                        cardTargetField.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
+                    setHubEditorValue(cardTargetField, translatedText);
+                    cardTargetField.dispatchEvent(new Event('input', { bubbles: true }));
                     cards[index][targetName] = translatedText;
                     sync();
                     render();
@@ -1325,20 +1359,11 @@
                 return Promise.reject(new Error('Quell- oder Zielfeld für die Übersetzung wurde nicht gefunden.'));
             }
 
-            sourceText = getHubEditorValue(sourceField);
-            if (!hasTranslatableHubContent(sourceText)
-                && !hasExcludedHubTranslationContent(sourceText)
-                && button.dataset.sourceFallbackName) {
-                var fallbackField = form.querySelector('[name="' + button.dataset.sourceFallbackName + '"]');
-                sourceText = fallbackField ? getHubEditorValue(fallbackField) : '';
-            }
+            sourceText = getHubEditorValue(targetField);
 
             if (!hasTranslatableHubContent(sourceText)) {
-                return Promise.reject(new Error('Das deutsche Quellfeld ist leer.'));
+                return Promise.reject(new Error('Das englische Zielfeld ist leer.'));
             }
-
-            setHubEditorValue(targetField, sourceText);
-            targetField.dispatchEvent(new Event('input', { bubbles: true }));
 
             return requestHubFieldTranslation(sourceText).then(function (translatedText) {
                 setHubEditorValue(targetField, translatedText);
@@ -1347,9 +1372,70 @@
             });
         }
 
+        function copyHubField(button) {
+            var sourceText;
+            var targetName;
+            var sourceName;
+            var sourceField;
+            var targetField;
+
+            if (button.hasAttribute('data-hub-copy-card')) {
+                var index = parseInt(button.dataset.index || '-1', 10);
+                var sourceKey = button.dataset.sourceKey || '';
+                targetName = button.dataset.targetKey || '';
+
+                if (index < 0 || !cards[index] || !sourceKey || !targetName) {
+                    return Promise.reject(new Error('Quell- oder Zielfeld der Hub-Kachel wurde nicht gefunden.'));
+                }
+
+                var cardItem = button.closest('.hub-card-item');
+                targetField = cardItem
+                    ? Array.prototype.slice.call(cardItem.querySelectorAll('[data-key]')).find(function (field) {
+                        return field.dataset.key === targetName;
+                    }) || null
+                    : null;
+                if (!targetField) {
+                    return Promise.reject(new Error('Das englische Zielfeld der Hub-Kachel wurde nicht gefunden.'));
+                }
+
+                sourceText = String(cards[index][sourceKey] || '');
+                if (!hasHubFieldContent(sourceText)) {
+                    return Promise.reject(new Error('Das deutsche Quellfeld ist leer.'));
+                }
+
+                setHubEditorValue(targetField, sourceText);
+                targetField.dispatchEvent(new Event('input', { bubbles: true }));
+                cards[index][targetName] = sourceText;
+                sync();
+                return Promise.resolve(sourceText);
+            }
+
+            sourceName = button.dataset.sourceName || '';
+            targetName = button.dataset.targetName || '';
+            sourceField = sourceName ? form.querySelector('[name="' + sourceName + '"]') : null;
+            targetField = targetName ? form.querySelector('[name="' + targetName + '"]') : null;
+
+            if (!sourceField || !targetField) {
+                return Promise.reject(new Error('Quell- oder Zielfeld zum Kopieren wurde nicht gefunden.'));
+            }
+
+            sourceText = getHubEditorValue(sourceField);
+            if (!hasHubFieldContent(sourceText) && button.dataset.sourceFallbackName) {
+                var fallbackField = form.querySelector('[name="' + button.dataset.sourceFallbackName + '"]');
+                sourceText = fallbackField ? getHubEditorValue(fallbackField) : '';
+            }
+            if (!hasHubFieldContent(sourceText)) {
+                return Promise.reject(new Error('Das deutsche Quellfeld ist leer.'));
+            }
+
+            setHubEditorValue(targetField, sourceText);
+            targetField.dispatchEvent(new Event('input', { bubbles: true }));
+            return Promise.resolve(sourceText);
+        }
+
         form.addEventListener('click', function (event) {
             var button = event.target && typeof event.target.closest === 'function'
-                ? event.target.closest('[data-hub-ai-translate-field], [data-hub-ai-translate-card]')
+                ? event.target.closest('[data-hub-copy-field], [data-hub-copy-card], [data-hub-ai-translate-field], [data-hub-ai-translate-card]')
                 : null;
 
             if (!button || !form.contains(button)) {
@@ -1363,10 +1449,13 @@
 
             var originalLabel = button.textContent;
             button.disabled = true;
-            button.textContent = 'Übersetze …';
+            var isCopyAction = button.hasAttribute('data-hub-copy-field') || button.hasAttribute('data-hub-copy-card');
+            button.textContent = isCopyAction ? 'Kopiere …' : 'Übersetze …';
 
-            translateHubField(button).then(function () {
-                showAlert('success', 'Feld wurde auf Englisch übersetzt. Bitte Änderungen noch speichern.');
+            (isCopyAction ? copyHubField(button) : translateHubField(button)).then(function () {
+                showAlert('success', isCopyAction
+                    ? 'Deutscher Feldinhalt wurde kopiert. Bitte Änderungen noch speichern.'
+                    : 'Feld wurde auf Englisch übersetzt. Bitte Änderungen noch speichern.');
             }).catch(function (error) {
                 showAlert('danger', error && error.message ? error.message : 'Die Übersetzung ist fehlgeschlagen.');
             }).finally(function () {
