@@ -2,11 +2,11 @@
 
 ## English
 
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.20` are retained as historical release notes and do not change the current runtime version.
+This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.21` are retained as historical release notes and do not change the current runtime version.
 
 ## Deutsch
 
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.20` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
+Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.21` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
 
 ## 365CMS Changelog
 
@@ -30,6 +30,7 @@ Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verb
 |---------|-----|---------|--------------|
 | **3.4.21** | 🟢 feat | HubSites / Admin | Englische Hero-/Meta-Felder und Hub-Kacheln bieten „Aus DE kopieren“ vor „Mit KI übersetzen“. Die KI übersetzt den aktuellen Inhalt des englischen Zielfelds (z. B. den zuvor kopierten deutschen Text), ohne ihn erneut zu überschreiben. Kopieren ist nur bei verfügbarem deutschem Quellinhalt möglich; Tabellen-/Shortcode-Inhalte werden nicht an den Übersetzungsdienst gesendet. Bei Übersetzungsfehlern bleibt der kopierte Text im englischen Feld erhalten. |
 | **3.4.21** | 🔴 fix | Archive / SEO | Englische Tag-Archive bleiben unter `/en/tag` erreichbar; Beitrags-Sidebars verwenden den englischen Tag-Slug. Leere lokalisierte Tag-/Kategoriearchive sowie überzählige `?page=`-Aufrufe in Kategorie-, Tag-, Event- und Speaker-Archiven liefern HTTP 404 statt leerer oder duplizierter 200-Seiten. |
+| **3.4.21** | 🟢 feat | Seitenvorlagen / Admin | Der Seiteneditor kann in `theme.json` deklarierte Vorlagen und validierte Zusatzfelder bearbeiten. Core speichert Vorlagenauswahl und Metadaten in Seiten und Revisionen, stellt sie beim Rendern als `$page['meta']` bereit und vergleicht Metadaten in der Revisionsansicht. |
 
 ---
 
@@ -41,13 +42,13 @@ Folgeaudit Sicherheit, SEO, Geschwindigkeit, interne Verlinkung, Barrierefreihei
 |---------|-----|---------|--------------|
 | **3.4.20** | 🔴 fix | SEO / `cms-default` | Das Standard-Theme gibt die vollständige Core-SEO-Ausgabe aus (Robots, Canonical, hreflang, Open Graph, Twitter, JSON-LD) statt nur `description`, und jede Seite erhält einen eigenen `<title>` (`meridian_document_title()`); bisher stand überall der Website-Name. |
 | **3.4.20** | 🟢 feat | Theme-Rendering | `ThemeManager::render()` setzt `$GLOBALS['post']`/`$GLOBALS['page']` vor `header.php`; Core-SEO und Hub-Erkennung kennen damit den aktuellen Inhalt. |
-| **3.4.20** | 🔴 fix | SEO-Ausgabe | `noindex` für Fehlerseiten (ohne Canonical/Schema), Suche, Login/Registrierung, Mitgliederbereich, Checkout und Vorschauen nicht veröffentlichter Inhalte; Canonical behält `?p=N`; absolute OG-/Twitter-Bilder; Startseiten-Titel und -Beschreibung aus *SEO → Meta*; hreflang DE/EN/x-default; JSON-LD mit Inhaltstitel, `datePublished`, Autor, Sprache und `JSON_HEX_TAG`. |
+| **3.4.20** | 🔴 fix | SEO-Ausgabe | `noindex` für Fehlerseiten (ohne Canonical/Schema), Suche, Login/Registrierung, Mitgliederbereich, Checkout und Vorschauen nicht veröffentlichter Inhalte; Plugins dürfen restriktive Robots-Vorgaben nicht lockern. Fehler-, Utility-, private und unveröffentlichte Vorschauseiten erhalten keine öffentlichen Schema-/hreflang-Signale. Canonical behält `?p=N`; absolute OG-/Twitter-Bilder; Startseiten-Titel und -Beschreibung aus *SEO → Meta*; hreflang DE/EN/x-default; JSON-LD mit Inhaltstitel, `datePublished`, Autor, Sprache und `JSON_HEX_TAG`. |
 | **3.4.20** | 🔴 fix | Sitemaps | Routen für `pages.xml`, `posts.xml`, `plugins.xml`, `images.xml`, `news.xml` (vorher 404 ohne gelaufenen Cron); Bundle wird bei Bedarf erzeugt und gespeichert, nach Speichern/Löschen von Beiträgen und Seiten verworfen; nur indexierbare, selbstkanonische URLs; News nur 48 h mit `published_at`; keine N+1-Abfragen; Ping an Google/Bing entfernt; `melbahja/seo` erhält den Port und kodiert Pfade nicht doppelt. `robots.txt` sperrt `/member/`. |
 | **3.4.20** | 🟠 fix | Interne Links | `/blog?category=…` und `/blog?tag=…` leiten per 301 auf das kanonische Archiv; `cms-default` verlinkt Beiträge über den `PermalinkService` (`meridian_post_url()`) und Archive über `cms_get_archive_url()`. |
 | **3.4.20** | 🛡️ security | API | `/api/v1/pages/<slug>` liefert Entwürfe, private und geplante Seiten nur noch mit `manage_pages`; `/api/v1/status` nennt die Version nur Admins. |
 | **3.4.20** | 🛡️ security | Sitzungen | Passwortwechsel und -Reset beenden alle anderen Sitzungen (Fingerprint des Passwort-Hashes in der Session). Die Tabelle `sessions` wird gepflegt (Hash der Session-ID); „Aktive Sessions“ im Mitgliederbereich zeigt sie an. |
 | **3.4.20** | 🛡️ security | Protokoll / Rate-Limits | Kein Passwort-Hash mehr im Aktivitätsprotokoll. Rate-Limit-Einträge werden auf die Spaltenbreite normalisiert – die Konto- und Token-Limits beim Passwort-Reset zählten vorher nie. LIKE-Platzhalter in Suchbegriffen maskiert (`cms_escape_like()`). Checkout: 5 Bestellungen je IP/Stunde, Länderliste. |
-| **3.4.20** | 🟢 feat | Seitenvorlagen | `page_templates` aus `theme.json`: Auswahl und validierte Zusatzfelder im Seiteneditor, Speicherung (`page_template`, `page_meta_json`) mit Revisionen, Rendering der Vorlagendatei mit `$page['meta']` (`CMS\Services\PageTemplateService`). |
+| **3.4.20** | 🟢 feat | Seitenvorlagen / Core-Unterbau | `PageTemplateService` liest die in `theme.json` deklarierten Vorlagen ein und stellt die registrierte Vorlagenauswahl für die Core-Theme-Auflösung bereit. Adminfelder, Metadatenspeicherung und Revisionsintegration folgten am 09.10.2026 in v3.4.21. |
 | **3.4.20** | 🔴 fix | `cms-default` Funktionen | Startseite fragte Tabellen ohne Präfix ab und blieb leer; geplante Beiträge erschienen vorab in Listen. Header-Suche ohne Ziel ergänzt. „Passwort vergessen“ im Legacy-Modus nutzt den Core-Handler (vorher immer fehlgeschlagen, eigene Logik ohne Rate-Limit). Checkout versendet die versprochene Bestätigung; Drucken-Button ohne CSP-blockierten Inline-Handler. |
 | **3.4.20** | 🟠 fix | Barrierefreiheit `cms-default` | Ein `<main>`, Sprunglink, Fokusrahmen, benannte Navigationen mit `aria-current`, Untermenüs per Tastatur, Überschriften-Hierarchie, WCAG-AA-Kontraste (automatische Abdunklung zu heller Customizer-Farben), beschriftete Checkout-Felder, Meldungen mit `role`, reduzierte Bewegung. |
 | **3.4.20** | 🔵 docs | Doku | `DOC/checks/FOLGEAUDIT-2026-10-07.md`, `theme/THEME-DEVELOPMENT.md` (Seitenvorlagen, Globals, SEO-Ausgabe), `admin/pages-posts/PAGES.md`, `core/DATABASE-SCHEMA.md`. |
@@ -1120,4 +1121,10 @@ Vollständiges Code-Audit (Sicherheit, Geschwindigkeit, Funktionen, Verweise). A
 | **3.0.0** | 🛡️ security | Folgeaudit – Shared Editor & AI-Translation | **Der kritische Shared-Editor-Pfad wurde gegen Client- und Server-Randfälle nachgezogen.** `CMS/assets/js/admin-content-editor.js` erzwingt für AI-Translation-Requests nun Same-Origin-Endpunkte, setzt ein clientseitiges Zeitlimit, prüft deklarierte und tatsächliche JSON-Antwortgrößen und verwirft übergroße Antworten ohne sie dauerhaft im UI-State zu halten. `CMS/admin/modules/system/AiEditorJsTranslationModule.php` validiert Editor.js-Payloads vor der AI-Pipeline zusätzlich auf gültiges JSON, maximale Blockanzahl, erlaubte Blocktyp-Metadaten und array-basierte Blockdaten. `CMS/assets/js/admin-seo-editor.js` begrenzt die Liveanalyse von Editor.js-JSON, Blockanzahl und HTML-Fragmenten defensiv, damit große oder manipulierte Inhalte die SEO-Vorschau nicht unnötig blockieren. Damit folgt der Übersetzungspfad enger dem OWASP-ASVS-Fail-Closed-Prinzip und reduziert unnötige Heap-Last bei fehlerhaften oder manipulierten Editor-Daten. |
 | **3.0.0** | ⬜ chore | Release-Schnitt & Dokumentation | **Die 2.x-Historie wurde von `Changelog.md` nach `Changelog_old.md` verschoben und eine neue, schlanke `Changelog.md` für Version `3.0.0` angelegt.** Version, Update-Metadaten und README verweisen auf den neuen Major-Release-Stand; die historische Detailspur bleibt weiterhin vollständig über `Changelog_old.md` nachvollziehbar. |
 
-> Die vollständige historische 2.x-Historie wurde in `Changelog_old.md` archiviert; die Datei ist nicht mehr Teil dieses Repositorys (siehe Git-Historie).
+### v2.8.5 — 04.04.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.8.5** | 🛡️ security | HubSites / HTMLPurifier | `CMS/core/Services/PurifierService.php` ergänzt das Sanitizer-Profil `hub`, damit HubSite-Markup im PhinIT-Page-Template purifier-gesichert bleibt und dabei benötigte HTML-Struktur (`section`, `article`, `nav`) sowie CSS-Klassen erhält. |
+
+> Die vollständige historische 2.x-Historie wurde in `Changelog_old.md` archiviert; die Datei ist nicht mehr Teil dieses Repositorys (siehe Git-Historie). Der gezielte v2.8.5-Nachtrag hält eine Core-Funktion fest, die zuvor nur im PhinIT-Theme-Changelog als Core-Abhängigkeit aufgeführt war.
