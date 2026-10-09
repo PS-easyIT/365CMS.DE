@@ -1,14 +1,4 @@
-﻿# 365CMS – Projektdokumentation | Abschnitt: Änderungsprotokoll
-
-## English
-
-This changelog records historical 365CMS changes. The authoritative current runtime version is `3.4.00`, defined in [`CMS/core/Version.php`](CMS/core/Version.php) and released on `2026-09-05`. Entries labelled `v3.4.01` to `v3.4.21` are retained as historical release notes and do not change the current runtime version.
-
-## Deutsch
-
-Dieses Änderungsprotokoll enthält historische Änderungen von 365CMS. Die verbindliche aktuelle Runtime-Version ist `3.4.00`, definiert in [`CMS/core/Version.php`](CMS/core/Version.php) und veröffentlicht am `2026-09-05`. Einträge von `v3.4.01` bis `v3.4.21` bleiben als historische Release-Notizen erhalten und ändern nicht die aktuelle Runtime-Version.
-
-## 365CMS Changelog
+﻿# 365CMS Changelog
 
 ## 📋 Legende
 
